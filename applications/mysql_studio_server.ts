@@ -146,6 +146,171 @@ function qm(name: string): string {
   return `\`${s.replace(/`/g, "``")}\``;
 }
 
+/** Only allow MySQL RSA public key retrieval over TLS or loopback hosts to prevent MITM password disclosure. */
+export function shouldAllowPublicKeyRetrieval(
+  host: string | undefined,
+  tls: boolean | undefined,
+): boolean {
+  if (tls) return true;
+  const h = String(host || "localhost")
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "");
+  return (
+    h === "localhost" ||
+    h === "127.0.0.1" ||
+    h === "::1" ||
+    h === "::ffff:127.0.0.1" ||
+    h.startsWith("127.")
+  );
+}
+
+/**
+ * State-machine parser for MySQL ENUM(...) / SET(...) value lists.
+ * Handles commas inside quoted values, doubled single quotes (''), and MySQL backslash escapes (\', \\).
+ */
+export function parseMysqlEnumValues(rawList: string): string[] {
+  const s = String(rawList ?? "");
+  const out: string[] = [];
+  let i = 0;
+  const n = s.length;
+
+  while (i < n) {
+    while (i < n && /\s/.test(s[i]!)) i++;
+    if (i >= n) break;
+    if (s[i] !== "'") {
+      throw new Error(
+        "Invalid MySQL ENUM/SET literal list: expected opening quote",
+      );
+    }
+    i++; // consume opening '
+    let val = "";
+    let closed = false;
+    while (i < n) {
+      const ch = s[i]!;
+      if (ch === "\\") {
+        if (i + 1 >= n) {
+          throw new Error("Unterminated escape sequence in ENUM/SET literal");
+        }
+        const next = s[i + 1]!;
+        if (next === "'") val += "'";
+        else if (next === '"') val += '"';
+        else if (next === "\\") val += "\\";
+        else if (next === "n") val += "\n";
+        else if (next === "r") val += "\r";
+        else if (next === "t") val += "\t";
+        else if (next === "0") val += "\0";
+        else val += next;
+        i += 2;
+        continue;
+      }
+      if (ch === "'") {
+        if (s[i + 1] === "'") {
+          val += "'";
+          i += 2;
+          continue;
+        }
+        i++; // consume closing '
+        closed = true;
+        break;
+      }
+      val += ch;
+      i++;
+    }
+    if (!closed) {
+      throw new Error(
+        "Unterminated string literal in MySQL ENUM/SET definition",
+      );
+    }
+    out.push(val);
+    while (i < n && /\s/.test(s[i]!)) i++;
+    if (i < n) {
+      if (s[i] !== ",") {
+        throw new Error("Invalid MySQL ENUM/SET literal list: expected comma");
+      }
+      i++;
+    }
+  }
+  return out;
+}
+
+const DISALLOWED_MYSQL_TYPE_WORDS = new Set([
+  "PRIMARY",
+  "FOREIGN",
+  "REFERENCES",
+  "CHECK",
+  "DEFAULT",
+  "UNIQUE",
+  "CONSTRAINT",
+  "COLLATE",
+  "GENERATED",
+  "AS",
+  "SELECT",
+  "UNION",
+  "DROP",
+  "ALTER",
+  "CREATE",
+  "INSERT",
+  "UPDATE",
+  "DELETE",
+  "WHERE",
+  "FROM",
+  "INTO",
+  "NOT",
+  "NULL",
+  "AUTO_INCREMENT",
+  "ON",
+  "KEY",
+]);
+
+function validateMysqlColumnType(rawType: string): string {
+  const t = String(rawType || "VARCHAR(255)").trim() || "VARCHAR(255)";
+  if (t.length > 512 || /[;\r\n\0]|--|\/\*/.test(t)) {
+    throw new Error(`Invalid column type: ${rawType}`);
+  }
+  const enumMatch = t.match(/^(ENUM|SET)\s*\(([\s\S]*)\)$/i);
+  if (enumMatch) {
+    const kind = enumMatch[1]!.toUpperCase();
+    const vals = parseMysqlEnumValues(enumMatch[2]!);
+    if (vals.length === 0) {
+      throw new Error(`${kind} column requires at least one allowed value`);
+    }
+    return `${kind}(${vals.map((v) => ml(v)).join(", ")})`;
+  }
+  const stdMatch = t.match(
+    /^([A-Za-z_][A-Za-z0-9_]*(?:\s+[A-Za-z_][A-Za-z0-9_]*){0,2})(?:\(\s*(\d+(?:\s*,\s*\d+)?)\s*\))?(\s+UNSIGNED)?(\s+ZEROFILL)?$/i,
+  );
+  if (!stdMatch) {
+    throw new Error(`Invalid column type: ${rawType}`);
+  }
+  const words = stdMatch[1]!.trim().split(/\s+/);
+  for (const w of words) {
+    if (DISALLOWED_MYSQL_TYPE_WORDS.has(w.toUpperCase())) {
+      throw new Error(
+        `Invalid keyword '${w}' in MySQL column type: ${rawType}`,
+      );
+    }
+  }
+  const base = words.join(" ");
+  const lenPart = stdMatch[2] ? `(${stdMatch[2].replace(/\s+/g, "")})` : "";
+  const unsignedPart = stdMatch[3] ? " UNSIGNED" : "";
+  const zerofillPart = stdMatch[4] ? " ZEROFILL" : "";
+  return `${base}${lenPart}${unsignedPart}${zerofillPart}`;
+}
+
+function formatSafeMysqlDefault(rawVal: unknown): string {
+  const s = String(rawVal ?? "").trim();
+  if (/[;\r\n\0]|--|\/\*/.test(s)) {
+    throw new Error("Invalid DEFAULT value");
+  }
+  if (/^-?\d+(?:\.\d+)?$/.test(s)) return s;
+  if (/^(?:NULL|TRUE|FALSE)$/i.test(s)) return s.toUpperCase();
+  if (/^(?:CURRENT_TIMESTAMP|NOW)(?:\(\s*\d*\s*\))?$/i.test(s)) {
+    return s.toUpperCase().replace(/\s+/g, "");
+  }
+  return ml(s);
+}
+
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
   const k = 1024;
@@ -426,7 +591,9 @@ export class MysqlManager {
   }
 
   public initConnection() {
+    const prevConn = this.sql_conn;
     try {
+      const tls = this.dbConfig.tls ?? false;
       this.sql_conn = new SQL(
         mysqlOptions({
           adapter: "mysql",
@@ -435,10 +602,16 @@ export class MysqlManager {
           username: this.dbConfig.user,
           password: this.dbConfig.password,
           database: this.dbConfig.database,
-          allowPublicKeyRetrieval: true,
-          tls: this.dbConfig.tls ?? false,
+          allowPublicKeyRetrieval: shouldAllowPublicKeyRetrieval(
+            this.dbConfig.host,
+            tls,
+          ),
+          tls,
         }),
       );
+      if (prevConn && prevConn !== this.sql_conn) {
+        Promise.resolve(prevConn.end?.() ?? prevConn.close?.()).catch(() => {});
+      }
       // Enable ANSI_QUOTES in session mode to guarantee compatibility with both ANSI quotes and backticks
       this.sql_conn
         .unsafe(
@@ -501,7 +674,7 @@ export class MysqlManager {
           username: user,
           password: password,
           database: database || undefined,
-          allowPublicKeyRetrieval: true,
+          allowPublicKeyRetrieval: shouldAllowPublicKeyRetrieval(host, tls),
           tls: tls,
         }),
       );
@@ -651,27 +824,35 @@ export class MysqlManager {
   }
 
   public async ensureDatabaseExists(dbName?: string | any): Promise<void> {
+    let rootSql: any = null;
     try {
       const db =
         (typeof dbName === "string" ? dbName : this.dbConfig?.database) ||
         "my_app_dev";
-      const rootSql = new SQL(
+      const tls = this.dbConfig.tls ?? false;
+      rootSql = new SQL(
         mysqlOptions({
           adapter: "mysql",
           hostname: this.dbConfig.host,
           port: this.dbConfig.port,
           username: this.dbConfig.user,
           password: this.dbConfig.password,
-          allowPublicKeyRetrieval: true,
-          tls: this.dbConfig.tls ?? false,
+          allowPublicKeyRetrieval: shouldAllowPublicKeyRetrieval(
+            this.dbConfig.host,
+            tls,
+          ),
+          tls,
         }),
       );
-      await rootSql.unsafe(
-        `CREATE DATABASE IF NOT EXISTS \`${db.replace(/`/g, "``")}\``,
-      );
-      await rootSql.end?.().catch(() => {});
+      await rootSql.unsafe(`CREATE DATABASE IF NOT EXISTS ${qm(db)}`);
     } catch (err: any) {
       console.warn("ensureDatabaseExists warning:", err?.message || err);
+    } finally {
+      if (rootSql) {
+        await Promise.resolve(rootSql.end?.() ?? rootSql.close?.()).catch(
+          () => {},
+        );
+      }
     }
   }
 
@@ -1464,28 +1645,36 @@ export class MysqlManager {
     }
   }
 
+  private buildMysqlColumnSpec(
+    c: ColumnSpec,
+    includeInlinePk: boolean,
+  ): string {
+    const validType = validateMysqlColumnType(c.type || "VARCHAR(255)");
+    let def = `${qm(c.name)} ${validType}`;
+    if (c.notnull || c.pk) def += " NOT NULL";
+    if (c.autoinc) def += " AUTO_INCREMENT";
+    if (includeInlinePk && c.pk) def += " PRIMARY KEY";
+    if (c.unique && !c.pk) def += " UNIQUE";
+    if (c.default !== undefined && c.default !== null && c.default !== "") {
+      def += ` DEFAULT ${formatSafeMysqlDefault(c.default)}`;
+    }
+    return def;
+  }
+
   public async createTable(name: string, columns: ColumnSpec[]): Promise<any> {
     try {
       if (!name || !columns || columns.length === 0)
         throw new Error("Table name and columns required");
-      const colDefs = columns.map((c) => {
-        const rawType =
-          String(c.type || "VARCHAR(255)").trim() || "VARCHAR(255)";
-        if (
-          /;|--|\/\*|\*\//.test(rawType) ||
-          !/^[A-Za-z0-9_ (),.'"+-]+$/.test(rawType)
-        ) {
-          throw new Error(`Invalid column type: ${rawType}`);
-        }
-        let def = `${qm(c.name)} ${rawType}`;
-        if (c.notnull) def += " NOT NULL";
-        if (c.autoinc) def += " AUTO_INCREMENT";
-        if (c.pk) def += " PRIMARY KEY";
-        if (c.default !== undefined && c.default !== null && c.default !== "") {
-          def += ` DEFAULT ${ml(String(c.default))}`;
-        }
-        return def;
-      });
+      const pkCols = columns.filter((c) => c.pk);
+      const inlinePk = pkCols.length === 1;
+      const colDefs = columns.map((c) =>
+        this.buildMysqlColumnSpec(c, inlinePk),
+      );
+      if (pkCols.length > 1) {
+        colDefs.push(
+          `PRIMARY KEY (${pkCols.map((c) => qm(c.name)).join(", ")})`,
+        );
+      }
       const ddl = `CREATE TABLE ${qm(name)} (\n  ${colDefs.join(",\n  ")}\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;`;
       await this.sql_conn.unsafe(ddl);
       await this.logAudit(
@@ -1499,17 +1688,197 @@ export class MysqlManager {
     }
   }
 
+  public async addColumn(table: string, column: ColumnSpec): Promise<any> {
+    try {
+      if (!table || !column || !column.name) {
+        throw new Error("Table name and column name required");
+      }
+      const spec = this.buildMysqlColumnSpec({ ...column, pk: false }, false);
+      await this.sql_conn.unsafe(
+        `ALTER TABLE ${qm(table)} ADD COLUMN ${spec};`,
+      );
+      await this.logAudit("ADD_COLUMN", table, `Added column ${column.name}`);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
+  }
+
   public async redesignTable(
     table: string,
     newName: string,
-    columns: ColumnSpec[],
+    columns: (ColumnSpec & { origName?: string })[],
   ): Promise<any> {
     try {
-      if (newName && newName !== table) {
+      const sourceTable = String(table || "").trim();
+      if (!sourceTable) throw new Error("Table name is required");
+      const targetTable = String(newName || sourceTable).trim();
+
+      if (Array.isArray(columns) && columns.length > 0) {
+        const seen = new Set<string>();
+        for (const c of columns) {
+          const nm = String(c.name || "").trim();
+          if (!nm) throw new Error("Every column requires a name");
+          const lower = nm.toLowerCase();
+          if (seen.has(lower)) {
+            throw new Error(`Duplicate column name '${nm}'`);
+          }
+          seen.add(lower);
+          validateMysqlColumnType(c.type || "VARCHAR(255)");
+          if (
+            c.default !== undefined &&
+            c.default !== null &&
+            c.default !== ""
+          ) {
+            formatSafeMysqlDefault(c.default);
+          }
+        }
+
+        const existingRows =
+          (await this.sql_conn.unsafe(
+            `SHOW FULL COLUMNS FROM ${qm(sourceTable)};`,
+          )) || [];
+        if (existingRows.length === 0) {
+          throw new Error(`Table '${sourceTable}' does not exist`);
+        }
+
+        const existingMap = new Map<string, any>();
+        const existingPkCols: string[] = [];
+        for (const r of existingRows) {
+          const field = String(r.Field ?? r.COLUMN_NAME ?? "");
+          if (field) {
+            existingMap.set(field, r);
+            if (String(r.Key ?? "").toUpperCase() === "PRI") {
+              existingPkCols.push(field);
+            }
+          }
+        }
+
+        const matchedOld = new Set<string>();
+        for (const c of columns) {
+          if (c.origName && existingMap.has(c.origName)) {
+            matchedOld.add(c.origName);
+          } else if (!c.origName && existingMap.has(c.name)) {
+            matchedOld.add(c.name);
+          }
+        }
+
+        const alterParts: string[] = [];
+        for (const oldField of existingMap.keys()) {
+          if (!matchedOld.has(oldField)) {
+            alterParts.push(`DROP COLUMN ${qm(oldField)}`);
+          }
+        }
+
+        for (const c of columns) {
+          const colSpec = this.buildMysqlColumnSpec(c, false);
+          if (c.origName && existingMap.has(c.origName)) {
+            if (c.origName !== c.name) {
+              alterParts.push(`CHANGE COLUMN ${qm(c.origName)} ${colSpec}`);
+            } else {
+              const prev = existingMap.get(c.origName)!;
+              const prevType = String(prev.Type || "")
+                .trim()
+                .toUpperCase();
+              const nextType = validateMysqlColumnType(
+                c.type || "VARCHAR(255)",
+              ).toUpperCase();
+              const prevNotNull =
+                String(prev.Null || "YES").toUpperCase() === "NO";
+              const nextNotNull = Boolean(c.notnull || c.pk);
+              const prevAutoInc = /auto_increment/i.test(
+                String(prev.Extra || ""),
+              );
+              const nextAutoInc = Boolean(c.autoinc);
+              const prevDef =
+                prev.Default !== null && prev.Default !== undefined
+                  ? String(prev.Default)
+                  : "";
+              const nextDef =
+                c.default !== undefined && c.default !== null
+                  ? String(c.default)
+                  : "";
+              if (
+                prevType !== nextType ||
+                prevNotNull !== nextNotNull ||
+                prevAutoInc !== nextAutoInc ||
+                prevDef !== nextDef
+              ) {
+                alterParts.push(`MODIFY COLUMN ${colSpec}`);
+              }
+            }
+          } else if (existingMap.has(c.name)) {
+            const prev = existingMap.get(c.name)!;
+            const prevType = String(prev.Type || "")
+              .trim()
+              .toUpperCase();
+            const nextType = validateMysqlColumnType(
+              c.type || "VARCHAR(255)",
+            ).toUpperCase();
+            const prevNotNull =
+              String(prev.Null || "YES").toUpperCase() === "NO";
+            const nextNotNull = Boolean(c.notnull || c.pk);
+            const prevAutoInc = /auto_increment/i.test(
+              String(prev.Extra || ""),
+            );
+            const nextAutoInc = Boolean(c.autoinc);
+            const prevDef =
+              prev.Default !== null && prev.Default !== undefined
+                ? String(prev.Default)
+                : "";
+            const nextDef =
+              c.default !== undefined && c.default !== null
+                ? String(c.default)
+                : "";
+            if (
+              prevType !== nextType ||
+              prevNotNull !== nextNotNull ||
+              prevAutoInc !== nextAutoInc ||
+              prevDef !== nextDef
+            ) {
+              alterParts.push(`MODIFY COLUMN ${colSpec}`);
+            }
+          } else {
+            alterParts.push(`ADD COLUMN ${colSpec}`);
+          }
+        }
+
+        const desiredPkCols = columns.filter((c) => c.pk).map((c) => c.name);
+        const mappedExistingPkCols = existingPkCols.map((oldPk) => {
+          const ren = columns.find((c) => c.origName === oldPk);
+          return ren ? ren.name : oldPk;
+        });
+        const pkChanged =
+          desiredPkCols.length !== mappedExistingPkCols.length ||
+          desiredPkCols.some((c, i) => c !== mappedExistingPkCols[i]);
+        if (pkChanged) {
+          if (existingPkCols.length > 0) {
+            alterParts.push("DROP PRIMARY KEY");
+          }
+          if (desiredPkCols.length > 0) {
+            alterParts.push(
+              `ADD PRIMARY KEY (${desiredPkCols.map(qm).join(", ")})`,
+            );
+          }
+        }
+
+        if (alterParts.length > 0) {
+          await this.sql_conn.unsafe(
+            `ALTER TABLE ${qm(sourceTable)} ${alterParts.join(", ")};`,
+          );
+        }
+      }
+
+      if (targetTable !== sourceTable) {
         await this.sql_conn.unsafe(
-          `RENAME TABLE ${qm(table)} TO ${qm(newName)}`,
+          `RENAME TABLE ${qm(sourceTable)} TO ${qm(targetTable)};`,
         );
       }
+      await this.logAudit(
+        "REDESIGN_TABLE",
+        targetTable,
+        `Redesigned MySQL table (${columns?.length || 0} columns)`,
+      );
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
@@ -1841,14 +2210,14 @@ export class MysqlManager {
       `);
       return (rows || []).map((r: any) => {
         const colType = String(r.COLUMN_TYPE || "");
-        const match = colType.match(/\((.*)\)/);
+        const match = colType.match(/^(?:enum|set)\s*\(([\s\S]*)\)$/i);
         let values: string[] = [];
         if (match && match[1]) {
-          values = match[1]
-            .split(",")
-            .map((v: string) =>
-              v.trim().replace(/^'|'$/g, "").replace(/''/g, "'"),
-            );
+          try {
+            values = parseMysqlEnumValues(match[1]);
+          } catch {
+            values = [];
+          }
         }
         return {
           name: `${r.TABLE_NAME}.${r.COLUMN_NAME}`,
@@ -1882,28 +2251,30 @@ export class MysqlManager {
       `);
       if (!rows || rows.length === 0)
         return { success: false, error: "Column not found" };
-      const curType = String(rows[0].COLUMN_TYPE);
+      const curType = String(rows[0].COLUMN_TYPE || "");
       const isNull = rows[0].IS_NULLABLE === "YES";
       const dflt =
-        rows[0].COLUMN_DEFAULT !== null
+        rows[0].COLUMN_DEFAULT !== null && rows[0].COLUMN_DEFAULT !== undefined
           ? `DEFAULT ${ml(rows[0].COLUMN_DEFAULT)}`
           : "";
 
-      const match = curType.match(/^(\w+)\((.*)\)$/);
+      const match = curType.match(/^(enum|set)\s*\(([\s\S]*)\)$/i);
       if (!match)
-        return { success: false, error: "Invalid column type definition" };
-      const baseType = match[1];
-      const existingVals = match[2]!.split(",").map((v: string) => v.trim());
-      const escapedNewVal = `${ml(newValue)}`;
-      if (!existingVals.includes(escapedNewVal)) {
-        existingVals.push(escapedNewVal);
+        return {
+          success: false,
+          error: "Invalid ENUM/SET column type definition",
+        };
+      const baseType = match[1]!.toUpperCase();
+      const parsedVals = parseMysqlEnumValues(match[2]!);
+      if (!parsedVals.includes(newValue)) {
+        parsedVals.push(newValue);
       }
-      const newTypeStr = `${baseType}(${existingVals.join(", ")})`;
+      const newTypeStr = `${baseType}(${parsedVals.map((v) => ml(v)).join(", ")})`;
       const nullStr = isNull ? "NULL" : "NOT NULL";
 
       await this.sql_conn.unsafe(`
-        ALTER TABLE \`${tableName.replace(/`/g, "")}\`
-        MODIFY COLUMN \`${colName.replace(/`/g, "")}\` ${newTypeStr} ${nullStr} ${dflt};
+        ALTER TABLE ${qm(tableName)}
+        MODIFY COLUMN ${qm(colName)} ${newTypeStr} ${nullStr} ${dflt};
       `);
       return { success: true };
     } catch (e: any) {
@@ -2126,7 +2497,7 @@ export class MysqlManager {
       }
 
       const res = await this.sql_conn.unsafe(
-        `SELECT ${aggSelects.join(", ")} FROM \`${tableName.replace(/`/g, "")}\``,
+        `SELECT ${aggSelects.join(", ")} FROM ${qm(tableName)}`,
       );
       const row = res && res[0] ? res[0] : {};
       const totalCount = Number(row.__total_count__) || 0;
@@ -3313,6 +3684,12 @@ export function startMysqlStudioServer(options: ServerOptions = {}) {
           switch (op) {
             case "create-table":
               result = await manager.createTable(body.name, body.columns);
+              break;
+            case "add-column":
+              result = await manager.addColumn(
+                body.table || body.name,
+                body.column || body,
+              );
               break;
             case "redesign-table":
               result = await manager.redesignTable(

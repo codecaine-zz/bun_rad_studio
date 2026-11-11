@@ -97,10 +97,29 @@ export interface KeySummary {
 
 /** The address as shown to the page: a password in it is hidden (the page only displays this, and may be framed by the File Manager). */
 export function maskUrlPassword(url: string): string {
-  return url.replace(
-    /^([A-Za-z][A-Za-z0-9+.-]*:\/\/[^:/@?#\s]*:)[^@/?#\s]*@/,
-    "$1••••@",
-  );
+  const raw = String(url ?? "");
+  if (!raw) return raw;
+  const schemeMatch = raw.match(/^([A-Za-z][A-Za-z0-9+.-]*:\/\/)(.*)$/);
+  if (!schemeMatch) return raw;
+  const scheme = schemeMatch[1]!;
+  const rest = schemeMatch[2]!;
+  const qhIdx = rest.search(/[?#]/);
+  const beforeQuery = qhIdx >= 0 ? rest.slice(0, qhIdx) : rest;
+  const queryAndHash = qhIdx >= 0 ? rest.slice(qhIdx) : "";
+
+  // In URL authority, the host starts right after the LAST '@' before path/query/hash.
+  // Using lastIndexOf('@') safely masks passwords that themselves contain '@' or '/'.
+  const lastAt = beforeQuery.lastIndexOf("@");
+  if (lastAt < 0) return raw;
+
+  const userinfo = beforeQuery.slice(0, lastAt);
+  const hostAndPath = beforeQuery.slice(lastAt + 1);
+  const colonIdx = userinfo.indexOf(":");
+  if (colonIdx >= 0) {
+    const username = userinfo.slice(0, colonIdx);
+    return `${scheme}${username}:••••@${hostAndPath}${queryAndHash}`;
+  }
+  return `${scheme}••••@${hostAndPath}${queryAndHash}`;
 }
 
 export class RedisManager {
@@ -304,37 +323,67 @@ export class RedisManager {
         namespaceMap[prefix] = (namespaceMap[prefix] || 0) + 1;
       }
 
-      const sortedKeys = [...allKeys].sort().slice(0, limit);
+      const safeLimit = Math.max(1, Math.min(5000, Number(limit) || 250));
+      const sortedKeys = [...allKeys].sort().slice(0, safeLimit);
       const summaries: KeySummary[] = [];
 
-      const BATCH_SIZE = 50;
-      for (let i = 0; i < sortedKeys.length; i += BATCH_SIZE) {
-        const chunk = sortedKeys.slice(i, i + BATCH_SIZE);
+      const PAGE_BATCH_SIZE = 250;
+      const canSend = typeof (this.client as any).send === "function";
+      const hasPttl = typeof (this.client as any).pttl === "function";
+
+      for (let i = 0; i < sortedKeys.length; i += PAGE_BATCH_SIZE) {
+        const chunk = sortedKeys.slice(i, i + PAGE_BATCH_SIZE);
+
+        // Pipelined Wave 1: dispatch TYPE + PTTL/TTL + MEMORY USAGE across the entire page concurrently
+        const metaWave = await Promise.all(
+          chunk.map((k) =>
+            Promise.all([
+              Promise.resolve(this.client.type(k)).catch(() => "unknown"),
+              hasPttl
+                ? Promise.resolve((this.client as any).pttl(k))
+                    .then((ms: any) => {
+                      const n = Number(ms);
+                      if (n === -1 || n === -2) return n;
+                      return Number.isFinite(n) ? Math.ceil(n / 1000) : -1;
+                    })
+                    .catch(() => this.client.ttl(k).catch(() => -1))
+                : Promise.resolve(this.client.ttl(k)).catch(() => -1),
+              canSend
+                ? Promise.resolve(this.client.send("MEMORY", ["USAGE", k]))
+                    .then((m: any) =>
+                      typeof m === "number" && Number.isFinite(m)
+                        ? m
+                        : undefined,
+                    )
+                    .catch(() => undefined)
+                : Promise.resolve(undefined),
+            ]),
+          ),
+        );
+
+        // Pipelined Wave 2: dispatch per-type cardinality/length inspection concurrently
         const chunkSummaries = await Promise.all(
-          chunk.map(async (k): Promise<KeySummary> => {
+          chunk.map(async (k, idx): Promise<KeySummary> => {
             try {
-              const [rawType, ttl] = await Promise.all([
-                this.client.type(k),
-                this.client.ttl(k),
-              ]);
+              const [rawType, ttl, memoryUsage] = metaWave[idx]!;
               const type = rawType || "none";
+              if (type === "unknown") {
+                return { key: k, type: "unknown", ttl: -1 };
+              }
               let length = 0;
               let detectedType: string = type;
               if (type === "string") {
-                length = await this.client.strlen(k);
-                if (length >= 4) {
+                const [strLen, sample] = await Promise.all([
+                  this.client.strlen(k),
+                  this.client.getrange(k, 0, 3).catch(() => ""),
+                ]);
+                length = strLen;
+                if (length >= 4 && sample === "HYLL") {
                   try {
-                    const sample = await this.client.getrange(k, 0, 3);
-                    if (sample === "HYLL") {
-                      detectedType = "hyperloglog";
-                      length = await this.client.pfcount(k);
-                    }
+                    detectedType = "hyperloglog";
+                    length = await this.client.pfcount(k);
                   } catch {}
-                }
-                if (
-                  detectedType === "string" &&
-                  (k.startsWith("bitmap:") || k.includes(":bitmap"))
-                ) {
+                } else if (k.startsWith("bitmap:") || k.includes(":bitmap")) {
                   try {
                     detectedType = "bitmap";
                     length = await this.client.bitcount(k);
@@ -346,7 +395,13 @@ export class RedisManager {
               else if (type === "zset") length = await this.client.zcard(k);
               else if (type === "stream") length = await this.client.xlen(k);
 
-              return { key: k, type: detectedType, ttl, length };
+              return {
+                key: k,
+                type: detectedType,
+                ttl,
+                length,
+                ...(memoryUsage !== undefined ? { memoryUsage } : {}),
+              };
             } catch {
               return { key: k, type: "unknown", ttl: -1 };
             }
@@ -716,7 +771,20 @@ export class RedisManager {
           break;
         }
         case "bitmap": {
-          const offset = Number(field ?? 0);
+          const MAX_BITMAP_OFFSET = 67_108_864; // 8 MiB hard cap (67,108,864 bits)
+          const rawOffset = field ?? 0;
+          const offset = Number(rawOffset);
+          if (
+            typeof rawOffset === "boolean" ||
+            String(rawOffset).trim() === "" ||
+            !Number.isInteger(offset) ||
+            offset < 0 ||
+            offset > MAX_BITMAP_OFFSET
+          ) {
+            throw new Error(
+              `Bitmap offset must be an integer between 0 and ${MAX_BITMAP_OFFSET} (8 MiB max)`,
+            );
+          }
           const bitVal: 0 | 1 = value ? 1 : 0;
           await this.client.setbit(key, offset, bitVal);
           break;
@@ -1573,7 +1641,10 @@ export function startRedisStudioServer(options: RedisServerOptions = {}) {
         try {
           const body: any = await req.json();
           const result = await manager.setKeyValue(body);
-          return Response.json(result, { headers: corsHeaders });
+          return Response.json(result, {
+            status: result.success ? 200 : 400,
+            headers: corsHeaders,
+          });
         } catch (err: any) {
           return Response.json(
             { success: false, error: err.message },

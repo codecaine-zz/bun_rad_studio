@@ -3122,6 +3122,9 @@ export function createRedisStudio(
 
         webview.run();
         try {
+          app.server?.stop(true);
+        } catch {}
+        try {
           app.worker?.terminate();
         } catch {}
         try {
@@ -3132,14 +3135,21 @@ export function createRedisStudio(
         console.warn(
           `Desktop Webview unavailable (${err?.message || err}). Running in web mode at: ${info.url}`,
         );
-      } finally {
-        try {
-          app.worker?.terminate();
-        } catch {}
-        try {
-          serverProc?.kill();
-        } catch {}
-        process.exit(0);
+        const onShutdown = () => {
+          try {
+            app.server?.stop(true);
+          } catch {}
+          try {
+            app.worker?.terminate();
+          } catch {}
+          try {
+            serverProc?.kill();
+          } catch {}
+          process.exit(0);
+        };
+        process.once("SIGINT", onShutdown);
+        process.once("SIGTERM", onShutdown);
+        await new Promise<void>(() => {});
       }
     },
   };
@@ -3162,8 +3172,15 @@ export { startRedisStudioServer } from "./redis_studio_server.ts";
 if (import.meta.main && process.argv.includes("--server")) {
   const url = process.env.REDIS_URL || "redis://127.0.0.1:6379";
   const db = process.env.REDIS_DB ? parseInt(process.env.REDIS_DB, 10) : 0;
+  const portIdx = process.argv.indexOf("--port");
+  const port =
+    portIdx !== -1 && process.argv[portIdx + 1]
+      ? parseInt(process.argv[portIdx + 1]!, 10)
+      : process.env.PORT
+        ? parseInt(process.env.PORT, 10)
+        : 0;
   const srv = startRedisStudioServer({
-    port: 0,
+    port,
     host: "127.0.0.1",
     url,
     db,

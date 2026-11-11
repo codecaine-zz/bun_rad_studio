@@ -25,6 +25,7 @@ import {
   buildMakeTableStatements,
   buildUpdateRecordSql,
   createDefaultMacros,
+  evaluateMacroCondition,
   extractPromptParams,
   macroToBunJs,
   macroToSqlScript,
@@ -74,10 +75,16 @@ interface StoreFile {
 }
 
 export class MacroStore {
+  private sessionSavedIds = new Set<string>();
+
   constructor(
     private dialect: Exclude<MacroDialect, "sqlite">,
     private keyFn: () => string,
   ) {}
+
+  isSessionSavedMacro(id?: string): boolean {
+    return Boolean(id && this.sessionSavedIds.has(id));
+  }
 
   private file(): string {
     const dir =
@@ -159,6 +166,7 @@ export class MacroStore {
       });
     data.macros = data.macros.filter((m) => m.id !== id).concat(saved);
     this.write(data);
+    this.sessionSavedIds.add(id);
     return { success: true, macro: saved };
   }
 
@@ -223,63 +231,494 @@ export interface RunMacroOptions {
   transaction?: boolean;
   dryRun?: boolean;
   params?: Record<string, any>;
+  confirmRunCode?: boolean;
+  confirmedAutoExec?: boolean;
+  autoExec?: boolean;
+  trigger?: string;
 }
 
 const MAX_MACRO_DEPTH = 8;
 const DDL_PATTERN = /^\s*(CREATE|DROP|ALTER|TRUNCATE|RENAME)\b/i;
-const FORBIDDEN_STUDIO_MACRO_RE =
-  /(?:\b(?:process\b|Bun\b|globalThis\b|Reflect\b|Proxy\b|constructor\b|__proto__\b|prototype\b|require\s*\(|import\s*\(|child_process\b|Function\b|eval\b|WebSocket\b|XMLHttpRequest\b|fetch\b|Worker\b|Deno\b)|\[\s*(?:['"`]|[^\]]*\+))/;
+export const FORBIDDEN_STUDIO_MACRO_RE =
+  /(?:\b(?:process|Bun|Deno|globalThis|global|window|self|frames|parent|top|Reflect|Proxy|constructor|__proto__|prototype|mainModule|require|import|child_process|Function|AsyncFunction|GeneratorFunction|AsyncGeneratorFunction|eval|WebSocket|XMLHttpRequest|EventSource|fetch|Worker|SharedArrayBuffer|Atomics|WebAssembly|__dirname|__filename)\b|\bnode:)/;
+
+function decodeJsEscapesForAudit(src: string): string {
+  return src
+    .replace(/\\u\{([0-9a-fA-F]+)\}/g, (_m, hex) => {
+      const cp = Number.parseInt(hex, 16);
+      return Number.isFinite(cp) && cp >= 0 && cp <= 0x10ffff
+        ? String.fromCodePoint(cp)
+        : "";
+    })
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex) =>
+      String.fromCharCode(Number.parseInt(hex, 16)),
+    )
+    .replace(/\\x([0-9a-fA-F]{2})/g, (_m, hex) =>
+      String.fromCharCode(Number.parseInt(hex, 16)),
+    );
+}
+
+/**
+ * Validates and transpiles a RunCode snippet, checking FORBIDDEN_STUDIO_MACRO_RE
+ * BEFORE and AFTER transpilation (and after decoding unicode/hex escapes).
+ */
+export function transpileSafeRunCode(rawCode: string): string {
+  const code = String(rawCode || "").trim();
+  if (!code) throw new Error("RunCode requires code");
+  if (
+    FORBIDDEN_STUDIO_MACRO_RE.test(code) ||
+    FORBIDDEN_STUDIO_MACRO_RE.test(decodeJsEscapesForAudit(code))
+  ) {
+    throw new Error("RunCode references restricted host or process APIs");
+  }
+  const transpiler = new Bun.Transpiler({
+    loader: "ts",
+    target: "browser",
+  });
+  const transpiled = transpiler.transformSync(
+    `async function __studioRunCode(CurrentDb, db, DoCmd, TempVars, vars, DCount, DLookup, DSum, MsgBox, Debug) {\n"use strict";\n${code}\n}`,
+  );
+  if (
+    FORBIDDEN_STUDIO_MACRO_RE.test(transpiled) ||
+    FORBIDDEN_STUDIO_MACRO_RE.test(decodeJsEscapesForAudit(transpiled))
+  ) {
+    throw new Error("RunCode references restricted host or process APIs");
+  }
+  return transpiled;
+}
+
+export interface RunCodeRpcHandlers {
+  dialect: MacroDialect;
+  query(sql: string): Promise<any[]>;
+  execute(sql: string): Promise<{ affectedRows: number }>;
+  tables(): Promise<string[]>;
+}
+
+/**
+ * Executes a validated RunCode snippet inside an isolated Worker thread with:
+ * - Zero host object/function references (preventing .constructor AsyncFunction escapes)
+ * - Wiped & non-configurable Bun/process/require/fetch/WebSocket/Worker/Function/eval globals
+ * - Strict mode ("use strict") so `this` is undefined
+ * - Enforced wall-clock timeout terminating hung loops cleanly
+ */
+export async function executeIsolatedRunCode(
+  rawCode: string,
+  initialVariables: Record<string, any>,
+  rpc: RunCodeRpcHandlers,
+  timeoutMs = 5000,
+): Promise<{
+  returnValue: any;
+  variables: Record<string, any>;
+  debugLogs: string[];
+}> {
+  const transpiledFn = transpileSafeRunCode(rawCode);
+  const d = rpc.dialect;
+
+  const workerScript = `"use strict";
+(() => {
+  const _postMessage = self.postMessage.bind(self);
+  const _addEventListener = self.addEventListener.bind(self);
+  const _Object = Object;
+  const _Array = Array;
+  const _Promise = Promise;
+  const _Map = Map;
+  const _JSON = JSON;
+  const _Number = Number;
+  const _String = String;
+  const _Boolean = Boolean;
+  const _Error = Error;
+  const _Math = Math;
+
+  const blockedCtor = function BlockedConstructor() {
+    throw new _Error("Dynamic Function constructor is disabled in RunCode sandbox");
+  };
+  const protos = [
+    Function.prototype,
+    _Object.getPrototypeOf(async function () {}),
+    _Object.getPrototypeOf(function* () {}),
+    _Object.getPrototypeOf(async function* () {}),
+  ];
+  for (const proto of protos) {
+    if (proto) {
+      try {
+        _Object.defineProperty(proto, "constructor", {
+          value: blockedCtor,
+          writable: false,
+          configurable: false,
+        });
+      } catch {}
+    }
+  }
+
+  const scrubGlobals = [
+    "Bun",
+    "Deno",
+    "process",
+    "require",
+    "fetch",
+    "WebSocket",
+    "XMLHttpRequest",
+    "EventSource",
+    "Worker",
+    "SharedArrayBuffer",
+    "Atomics",
+    "WebAssembly",
+    "Blob",
+    "URL",
+    "caches",
+    "indexedDB",
+    "navigator",
+    "eval",
+    "Function",
+    "importScripts",
+    "postMessage",
+    "onmessage",
+    "addEventListener",
+    "removeEventListener",
+    "dispatchEvent",
+    "close",
+  ];
+  for (const key of scrubGlobals) {
+    try { delete globalThis[key]; } catch {}
+    try {
+      _Object.defineProperty(globalThis, key, {
+        value: undefined,
+        writable: false,
+        configurable: false,
+      });
+    } catch {}
+  }
+
+  let nextId = 1;
+  const pending = new _Map();
+
+  function callHost(method, args) {
+    return new _Promise((resolve, reject) => {
+      const id = nextId++;
+      pending.set(id, { resolve, reject });
+      _postMessage({ type: "rpc", id, method, args });
+    });
+  }
+
+  function safeClone(val) {
+    if (val === undefined || typeof val === "function" || typeof val === "symbol") return undefined;
+    try {
+      return _JSON.parse(_JSON.stringify(val));
+    } catch {
+      return _String(val);
+    }
+  }
+
+  ${transpiledFn}
+
+  _addEventListener("message", async (ev) => {
+    const msg = ev.data;
+    if (!msg || typeof msg !== "object") return;
+    if (msg.type === "rpc_res") {
+      const entry = pending.get(msg.id);
+      if (!entry) return;
+      pending.delete(msg.id);
+      if (msg.ok) entry.resolve(msg.value);
+      else entry.reject(new _Error(msg.error || "RunCode RPC failed"));
+      return;
+    }
+    if (msg.type === "start") {
+      const TempVars = _Object.assign({}, msg.variables || {});
+      const debugLogs = [];
+      let recordsAffected = 0;
+
+      const CurrentDb = _Object.freeze(_Object.assign(_Object.create(null), {
+        dialect: ${JSON.stringify(d)},
+        get RecordsAffected() { return recordsAffected; },
+        async query(sql) {
+          return await callHost("query", [_String(sql ?? "")]);
+        },
+        async execute(sql) {
+          const res = await callHost("execute", [_String(sql ?? "")]);
+          recordsAffected = _Number(res && res.affectedRows ? res.affectedRows : 0);
+          TempVars.lastRowsAffected = recordsAffected;
+          return { affectedRows: recordsAffected };
+        },
+        async tables() {
+          return await callHost("tables", []);
+        },
+      }));
+
+      const DCount = async (expr = "*", domain = "", criteria = "") => {
+        return await callHost("dcount", [_String(expr ?? "*"), _String(domain ?? ""), criteria ? _String(criteria) : ""]);
+      };
+      const DLookup = async (expr = "", domain = "", criteria = "") => {
+        return await callHost("dlookup", [_String(expr ?? ""), _String(domain ?? ""), criteria ? _String(criteria) : ""]);
+      };
+      const DSum = async (expr = "", domain = "", criteria = "") => {
+        return await callHost("dsum", [_String(expr ?? ""), _String(domain ?? ""), criteria ? _String(criteria) : ""]);
+      };
+
+      const DoCmd = _Object.freeze(_Object.assign(_Object.create(null), {
+        RunSQL: (sql) => CurrentDb.execute(sql),
+        OpenQuery: (sql) => CurrentDb.query(sql),
+        OpenTable: (table, where = "", limit = 200) =>
+          callHost("openTable", [_String(table ?? ""), where ? _String(where) : "", _Number(limit) || 200]),
+        InsertRecord: async (table, fields) => {
+          const res = await callHost("insertRecord", [_String(table ?? ""), safeClone(fields)]);
+          recordsAffected = _Number(res && res.affectedRows ? res.affectedRows : 0);
+          TempVars.lastRowsAffected = recordsAffected;
+          return res;
+        },
+        UpdateRecord: async (table, setVals, where = "") => {
+          const res = await callHost("updateRecord", [_String(table ?? ""), _String(setVals ?? ""), where ? _String(where) : ""]);
+          recordsAffected = _Number(res && res.affectedRows ? res.affectedRows : 0);
+          TempVars.lastRowsAffected = recordsAffected;
+          return res;
+        },
+        DeleteRecord: async (table, where = "") => {
+          const res = await callHost("deleteRecord", [_String(table ?? ""), where ? _String(where) : ""]);
+          recordsAffected = _Number(res && res.affectedRows ? res.affectedRows : 0);
+          TempVars.lastRowsAffected = recordsAffected;
+          return res;
+        },
+        EmptyTable: async (table) => {
+          const res = await callHost("emptyTable", [_String(table ?? "")]);
+          recordsAffected = _Number(res && res.affectedRows ? res.affectedRows : 0);
+          TempVars.lastRowsAffected = recordsAffected;
+          return res;
+        },
+        SetTempVar: (k, v) => { TempVars[_String(k)] = v; },
+        RemoveTempVar: (k) => { delete TempVars[_String(k)]; },
+        MessageBox: (m) => { debugLogs.push(_String(m)); },
+        Beep: () => {},
+      }));
+
+      const formatDebug = (args) =>
+        args.map((x) => (typeof x === "string" ? x : _JSON.stringify(x))).join(" ");
+      const Debug = _Object.freeze(_Object.assign(_Object.create(null), {
+        print: (...args) => { debugLogs.push(formatDebug(args)); },
+        Print: (...args) => { debugLogs.push(formatDebug(args)); },
+      }));
+
+      try {
+        const ret = await __studioRunCode(
+          CurrentDb,
+          CurrentDb,
+          DoCmd,
+          TempVars,
+          TempVars,
+          DCount,
+          DLookup,
+          DSum,
+          DoCmd.MessageBox,
+          Debug
+        );
+        _postMessage({
+          type: "done",
+          ok: true,
+          returnValue: safeClone(ret),
+          variables: safeClone(TempVars) || {},
+          debugLogs,
+        });
+      } catch (err) {
+        _postMessage({
+          type: "done",
+          ok: false,
+          error: err && err.message ? _String(err.message) : _String(err),
+        });
+      }
+    }
+  });
+})();`;
+
+  const blob = new Blob([workerScript], { type: "application/javascript" });
+  const blobUrl = URL.createObjectURL(blob);
+  const worker = new Worker(blobUrl, { type: "module" });
+
+  let safeInitialVars: Record<string, any> = {};
+  try {
+    safeInitialVars = JSON.parse(JSON.stringify(initialVariables || {}));
+  } catch {
+    safeInitialVars = {};
+  }
+
+  const assertSafeExpr = (expr: string, label: string) => {
+    const s = String(expr || "").trim();
+    if (!s || /[;]/.test(s) || /--|\/\*/.test(s)) {
+      throw new Error(`Unsafe ${label} expression in RunCode`);
+    }
+    return s;
+  };
+
+  return await new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        worker.terminate();
+      } catch {}
+      try {
+        URL.revokeObjectURL(blobUrl);
+      } catch {}
+      fn();
+    };
+
+    const timer = setTimeout(() => {
+      finish(() =>
+        reject(new Error(`RunCode execution timed out after ${timeoutMs}ms`)),
+      );
+    }, timeoutMs);
+
+    worker.onerror = (ev: any) => {
+      finish(() =>
+        reject(new Error(ev?.message || "Isolated RunCode worker error")),
+      );
+    };
+
+    worker.onmessage = async (ev: MessageEvent) => {
+      const msg = ev.data;
+      if (!msg || typeof msg !== "object") return;
+      if (msg.type === "done") {
+        if (msg.ok) {
+          finish(() =>
+            resolve({
+              returnValue: msg.returnValue,
+              variables: msg.variables || {},
+              debugLogs: Array.isArray(msg.debugLogs) ? msg.debugLogs : [],
+            }),
+          );
+        } else {
+          finish(() => reject(new Error(msg.error || "RunCode failed")));
+        }
+        return;
+      }
+      if (msg.type === "rpc") {
+        try {
+          const args = Array.isArray(msg.args) ? msg.args : [];
+          let value: any;
+          switch (msg.method) {
+            case "query":
+              value = await rpc.query(String(args[0] ?? ""));
+              break;
+            case "execute":
+              value = await rpc.execute(String(args[0] ?? ""));
+              break;
+            case "tables":
+              value = await rpc.tables();
+              break;
+            case "openTable": {
+              const tbl = quoteIdentFor(d, String(args[0] ?? ""));
+              const where = args[1]
+                ? ` WHERE ${assertSafeExpr(String(args[1]), "WHERE")}`
+                : "";
+              const lim = Math.min(Math.max(1, Number(args[2]) || 200), 10000);
+              value = await rpc.query(
+                `SELECT * FROM ${tbl}${where} LIMIT ${lim}`,
+              );
+              break;
+            }
+            case "insertRecord":
+              value = await rpc.execute(
+                parseRecordFieldsToInsertSql(String(args[0] ?? ""), args[1], d),
+              );
+              break;
+            case "updateRecord":
+              value = await rpc.execute(
+                buildUpdateRecordSql(
+                  String(args[0] ?? ""),
+                  String(args[1] ?? ""),
+                  args[2] ? String(args[2]) : undefined,
+                  d,
+                ),
+              );
+              break;
+            case "deleteRecord":
+              value = await rpc.execute(
+                buildDeleteRecordSql(
+                  String(args[0] ?? ""),
+                  args[1] ? String(args[1]) : undefined,
+                  d,
+                ),
+              );
+              break;
+            case "emptyTable":
+              value = await rpc.execute(
+                buildEmptyTableSql(String(args[0] ?? ""), d),
+              );
+              break;
+            case "dcount": {
+              const expr =
+                String(args[0] || "*").trim() === "*"
+                  ? "*"
+                  : assertSafeExpr(String(args[0]), "DCount");
+              const tbl = quoteIdentFor(d, String(args[1] ?? ""));
+              const w =
+                args[2] && String(args[2]).trim()
+                  ? ` WHERE ${assertSafeExpr(String(args[2]), "criteria")}`
+                  : "";
+              const r = await rpc.query(
+                `SELECT COUNT(${expr}) AS c FROM ${tbl}${w}`,
+              );
+              value = Number(r[0]?.c ?? Object.values(r[0] || {})[0] ?? 0);
+              break;
+            }
+            case "dlookup": {
+              const expr = assertSafeExpr(String(args[0] ?? ""), "DLookup");
+              const tbl = quoteIdentFor(d, String(args[1] ?? ""));
+              const w =
+                args[2] && String(args[2]).trim()
+                  ? ` WHERE ${assertSafeExpr(String(args[2]), "criteria")}`
+                  : "";
+              const r = await rpc.query(
+                `SELECT ${expr} AS v FROM ${tbl}${w} LIMIT 1`,
+              );
+              value = r[0]?.v ?? (r[0] ? Object.values(r[0])[0] : null) ?? null;
+              break;
+            }
+            case "dsum": {
+              const expr = assertSafeExpr(String(args[0] ?? ""), "DSum");
+              const tbl = quoteIdentFor(d, String(args[1] ?? ""));
+              const w =
+                args[2] && String(args[2]).trim()
+                  ? ` WHERE ${assertSafeExpr(String(args[2]), "criteria")}`
+                  : "";
+              const r = await rpc.query(
+                `SELECT COALESCE(SUM(${expr}), 0) AS s FROM ${tbl}${w}`,
+              );
+              value = Number(r[0]?.s ?? Object.values(r[0] || {})[0] ?? 0);
+              break;
+            }
+            default:
+              throw new Error(`Unsupported RunCode RPC method '${msg.method}'`);
+          }
+          if (!settled) {
+            worker.postMessage({
+              type: "rpc_res",
+              id: msg.id,
+              ok: true,
+              value,
+            });
+          }
+        } catch (err: any) {
+          if (!settled) {
+            worker.postMessage({
+              type: "rpc_res",
+              id: msg.id,
+              ok: false,
+              error: err?.message || String(err),
+            });
+          }
+        }
+      }
+    };
+
+    worker.postMessage({ type: "start", variables: safeInitialVars });
+  });
+}
 
 function evaluateCondition(
   condition: string,
   variables: Record<string, any>,
 ): boolean {
-  const expr = condition.trim().replace(/\[([a-zA-Z0-9_]+)\]/g, (_, name) => {
-    if (Object.prototype.hasOwnProperty.call(variables, name)) {
-      const val = variables[name];
-      return typeof val === "number" || typeof val === "boolean"
-        ? String(val)
-        : JSON.stringify(val);
-    }
-    return "0";
-  });
-  if (FORBIDDEN_STUDIO_MACRO_RE.test(expr) || /[;\[\]]/.test(expr)) {
-    throw new Error(
-      "Macro condition references restricted host or process APIs",
-    );
-  }
-  const safeKeys = Object.keys(variables).filter(
-    (k) =>
-      /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k) &&
-      k !== "constructor" &&
-      k !== "__proto__" &&
-      k !== "prototype" &&
-      k !== "eval" &&
-      k !== "arguments",
-  );
-  const safeVals = safeKeys.map((k) => variables[k]);
-  const fn = new Function(
-    "process",
-    "globalThis",
-    "global",
-    "Bun",
-    "Function",
-    "require",
-    ...safeKeys,
-    `"use strict"; return Boolean(${expr});`,
-  );
-  return Boolean(
-    fn.call(
-      null,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      ...safeVals,
-    ),
-  );
+  return evaluateMacroCondition(condition, variables);
 }
 
 function resolvePrompts(
@@ -342,6 +781,7 @@ export async function runMacroAsync(
       initialVariables,
       opts.params || {},
       0,
+      opts,
     );
   } catch (err) {
     if (tx) {
@@ -383,6 +823,7 @@ async function runCore(
   initialVariables: Record<string, any>,
   promptParams: Record<string, any>,
   depth: number,
+  opts: RunMacroOptions = {},
 ): Promise<MacroExecutionResult> {
   const d = adapter.dialect;
   const qi = (ident: string) => quoteIdentFor(d, ident);
@@ -425,6 +866,20 @@ async function runCore(
       macro.actions.length,
       "RunMacro nesting too deep (possible recursion)",
     );
+
+  if (
+    (opts.autoExec || opts.trigger === "AutoExec") &&
+    opts.confirmedAutoExec !== true
+  ) {
+    return {
+      ...fail(
+        macro.name,
+        macro.actions.length,
+        "AutoExec macro execution requires explicit user consent (confirmedAutoExec: true)",
+      ),
+      requiresConsent: true,
+    } as MacroExecutionResult;
+  }
 
   const blocking = validateMacro(
     macro,
@@ -510,7 +965,10 @@ async function runCore(
           continue;
         }
       } catch (err: any) {
-        conditionError = `Invalid condition [${act.condition}]: ${err?.message || err}`;
+        const em = String(err?.message || err);
+        conditionError = em.startsWith("Invalid condition")
+          ? em
+          : `Invalid condition [${act.condition}]: ${em}`;
       }
     }
 
@@ -700,22 +1158,17 @@ async function runCore(
         case "RunCode": {
           const code = String(p.code ?? p.functionName ?? "").trim();
           if (!code) throw new Error("RunCode requires code");
-          if (FORBIDDEN_STUDIO_MACRO_RE.test(code)) {
+          const canRunCode =
+            opts.confirmRunCode === true ||
+            (opts.confirmRunCode !== false &&
+              Boolean(macro.id && store.isSessionSavedMacro(macro.id)));
+          if (!canRunCode) {
             throw new Error(
-              "RunCode references restricted host or process APIs",
+              "RunCode requires explicit user confirmation (confirmRunCode: true)",
             );
           }
-          const transpiler = new Bun.Transpiler({
-            loader: "ts",
-            target: "bun",
-          });
-          const jsBody = transpiler.transformSync(
-            `async function __studioRunCode() {\n${code}\n}`,
-          );
-          const debugLogs: string[] = [];
-          const CurrentDb = {
+          const iso = await executeIsolatedRunCode(code, variables, {
             dialect: d,
-            RecordsAffected: 0,
             async query(sql: string) {
               const r = await run(
                 resolvePrompts(sql, promptParams, d),
@@ -728,121 +1181,19 @@ async function runCore(
                 resolvePrompts(sql, promptParams, d),
                 "RunCode.execute",
               );
-              this.RecordsAffected = r.rowsAffected ?? 0;
-              variables.lastRowsAffected = this.RecordsAffected;
-              return { affectedRows: this.RecordsAffected };
+              const affected = r.rowsAffected ?? 0;
+              variables.lastRowsAffected = affected;
+              return { affectedRows: affected };
             },
             async tables() {
               return await adapter.listTables();
             },
-          };
-          const DCount = async (
-            expr = "*",
-            domain: string,
-            criteria?: string,
-          ) => {
-            const w =
-              criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
-            const r = await CurrentDb.query(
-              `SELECT COUNT(${expr || "*"}) AS c FROM ${quoteIdentFor(d, domain)}${w}`,
-            );
-            return Number(r[0]?.c ?? Object.values(r[0] || {})[0] ?? 0);
-          };
-          const DLookup = async (
-            expr: string,
-            domain: string,
-            criteria?: string,
-          ) => {
-            const w =
-              criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
-            const r = await CurrentDb.query(
-              `SELECT ${expr} AS v FROM ${quoteIdentFor(d, domain)}${w} LIMIT 1`,
-            );
-            return r[0]?.v ?? (r[0] ? Object.values(r[0])[0] : null) ?? null;
-          };
-          const DSum = async (
-            expr: string,
-            domain: string,
-            criteria?: string,
-          ) => {
-            const w =
-              criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
-            const r = await CurrentDb.query(
-              `SELECT COALESCE(SUM(${expr}), 0) AS s FROM ${quoteIdentFor(d, domain)}${w}`,
-            );
-            return Number(r[0]?.s ?? Object.values(r[0] || {})[0] ?? 0);
-          };
-          const DoCmd = {
-            RunSQL: (sql: string) => CurrentDb.execute(sql),
-            OpenQuery: (sql: string) => CurrentDb.query(sql),
-            SetTempVar: (k: string, v: any) => {
-              variables[k] = v;
-            },
-            RemoveTempVar: (k: string) => {
-              delete variables[k];
-            },
-            MessageBox: (msg: any) => {
-              debugLogs.push(String(msg));
-            },
-            Beep: () => {},
-          };
-          const Debug = {
-            print: (...args: any[]) =>
-              debugLogs.push(
-                args
-                  .map((x) => (typeof x === "string" ? x : JSON.stringify(x)))
-                  .join(" "),
-              ),
-            Print: (...args: any[]) =>
-              debugLogs.push(
-                args
-                  .map((x) => (typeof x === "string" ? x : JSON.stringify(x)))
-                  .join(" "),
-              ),
-          };
-          const fn = new Function(
-            "CurrentDb",
-            "db",
-            "DoCmd",
-            "TempVars",
-            "vars",
-            "DCount",
-            "DLookup",
-            "DSum",
-            "MsgBox",
-            "Debug",
-            "process",
-            "globalThis",
-            "global",
-            "Bun",
-            "Function",
-            "eval",
-            "require",
-            `return (async () => { ${jsBody}\n return await __studioRunCode(); })();`,
-          );
-          const ret = await fn(
-            CurrentDb,
-            CurrentDb,
-            DoCmd,
-            variables,
-            variables,
-            DCount,
-            DLookup,
-            DSum,
-            DoCmd.MessageBox,
-            Debug,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-            undefined,
-          );
-          output = { returnValue: ret, debugLogs };
+          });
+          Object.assign(variables, iso.variables);
+          output = { returnValue: iso.returnValue, debugLogs: iso.debugLogs };
           message =
-            debugLogs.length > 0
-              ? `RunCode: ${debugLogs.join(" | ")}`
+            iso.debugLogs.length > 0
+              ? `RunCode: ${iso.debugLogs.join(" | ")}`
               : `Executed Bun JS RunCode`;
           break;
         }
@@ -856,6 +1207,7 @@ async function runCore(
             variables,
             promptParams,
             depth + 1,
+            opts,
           );
           logs.push({
             stepIndex: i + 1,
@@ -989,9 +1341,23 @@ export async function handleMacroRoute(
           transaction: body.transaction,
           dryRun: body.dryRun,
           params: body.params,
+          confirmRunCode: body.confirmRunCode,
+          confirmedAutoExec: body.confirmedAutoExec,
+          autoExec: body.autoExec,
+          trigger: body.trigger,
         },
       );
-      return ok({ success: result.success, result });
+      const requiresConsent = Boolean(
+        (result as any).requiresConsent ||
+        (result.error && /requires explicit/i.test(result.error)),
+      );
+      return ok({
+        ok: result.success,
+        success: result.success,
+        ...(requiresConsent ? { requiresConsent: true } : {}),
+        ...(result.error ? { error: result.error } : {}),
+        result,
+      });
     }
     if (pathname === "/api/macros/validate" && isPost) {
       const body = await readBody();

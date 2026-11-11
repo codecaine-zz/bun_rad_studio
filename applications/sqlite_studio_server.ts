@@ -49,10 +49,15 @@ import {
   extractPromptParams,
   applyPromptParams,
   validateMacro,
+  evaluateMacroCondition,
   macroToBunJs,
   macroToSqlScript,
   macroToVba,
 } from "./sqlite_studio_macros.ts";
+import {
+  executeIsolatedRunCode,
+  type RunCodeRpcHandlers,
+} from "./studio_macros_server.ts";
 import { handleCodegenRequest } from "./studio_codegen.ts";
 import { sqliteSampleApi } from "../src/db/samples/wiring";
 
@@ -112,6 +117,8 @@ export interface DatabaseSchemaResponse {
   totalViews: number;
   totalIndices: number;
   totalRows: number;
+  hasEmbeddedMacros?: boolean;
+  trusted?: boolean;
 }
 
 export interface DatabaseKpis {
@@ -132,6 +139,18 @@ export interface DatabaseKpis {
   totalRows: number;
   cacheSizeKb: number;
   sqliteVersion: string;
+  hasEmbeddedMacros?: boolean;
+  trusted?: boolean;
+}
+
+export interface SqliteRunMacroOptions {
+  transaction?: boolean;
+  dryRun?: boolean;
+  params?: Record<string, any>;
+  confirmRunCode?: boolean;
+  confirmedAutoExec?: boolean;
+  autoExec?: boolean;
+  trigger?: string;
 }
 
 export interface ColumnSpec {
@@ -156,14 +175,122 @@ function qi(name: string): string {
   return `"${s.replace(/"/g, '""')}"`;
 }
 
+const DISALLOWED_SQLITE_TYPE_WORDS = new Set([
+  "PRIMARY",
+  "FOREIGN",
+  "REFERENCES",
+  "CHECK",
+  "DEFAULT",
+  "UNIQUE",
+  "CONSTRAINT",
+  "COLLATE",
+  "GENERATED",
+  "AS",
+  "SELECT",
+  "UNION",
+  "DROP",
+  "ALTER",
+  "CREATE",
+  "INSERT",
+  "UPDATE",
+  "DELETE",
+  "WHERE",
+  "FROM",
+  "INTO",
+  "NOT",
+  "NULL",
+  "AUTOINCREMENT",
+  "ON",
+]);
+
+function validateSqliteColumnType(rawType: string): string {
+  const t = String(rawType || "").trim();
+  if (!t) return "";
+  if (t.length > 128 || /[;\r\n\0]|--|\/\*/.test(t)) {
+    throw new Error(`Invalid column type '${rawType}'`);
+  }
+  const m = t.match(
+    /^([A-Za-z_][A-Za-z0-9_]*(?:\s+[A-Za-z_][A-Za-z0-9_]*){0,3})(?:\(\s*(\d+(?:\s*,\s*\d+)?)\s*\))?$/,
+  );
+  if (!m) {
+    throw new Error(`Invalid column type '${rawType}'`);
+  }
+  const words = m[1]!.trim().split(/\s+/);
+  for (const w of words) {
+    if (DISALLOWED_SQLITE_TYPE_WORDS.has(w.toUpperCase())) {
+      throw new Error(`Invalid keyword '${w}' in column type '${rawType}'`);
+    }
+  }
+  return m[2]
+    ? `${words.join(" ")}(${m[2].replace(/\s+/g, "")})`
+    : words.join(" ");
+}
+
+function validateSqliteCheckExpr(rawCheck: string): string {
+  const chk = String(rawCheck || "").trim();
+  if (!chk) return "";
+  if (/[;\0]|--|\/\*/.test(chk)) {
+    throw new Error("CHECK expression may not contain ';' or comments");
+  }
+  if (/\b(?:SELECT|UNION|ATTACH|DETACH|PRAGMA|LOAD_EXTENSION)\b/i.test(chk)) {
+    throw new Error(
+      "CHECK expression may not contain subqueries or PRAGMA/ATTACH statements",
+    );
+  }
+  let depth = 0;
+  let inSingle = false;
+  let inDouble = false;
+  for (let i = 0; i < chk.length; i++) {
+    const ch = chk[i]!;
+    if (inSingle) {
+      if (ch === "'") {
+        if (chk[i + 1] === "'") i++;
+        else inSingle = false;
+      }
+      continue;
+    }
+    if (inDouble) {
+      if (ch === '"') {
+        if (chk[i + 1] === '"') i++;
+        else inDouble = false;
+      }
+      continue;
+    }
+    if (ch === "'") inSingle = true;
+    else if (ch === '"') inDouble = true;
+    else if (ch === "(") depth++;
+    else if (ch === ")") {
+      depth--;
+      if (depth < 0) {
+        throw new Error("CHECK expression has unbalanced parentheses");
+      }
+    }
+  }
+  if (inSingle || inDouble || depth !== 0) {
+    throw new Error("CHECK expression has unbalanced quotes or parentheses");
+  }
+  return chk;
+}
+
 /** Turn a user typed default value into a safe SQL literal. */
 function defaultLiteral(v: string): string {
   const s = v.trim();
+  if (s.includes("\0")) throw new Error("Invalid NUL byte in DEFAULT value");
   if (/^-?\d+(\.\d+)?$/.test(s)) return s;
   if (
     /^(CURRENT_TIMESTAMP|CURRENT_DATE|CURRENT_TIME|NULL|TRUE|FALSE)$/i.test(s)
   )
     return s.toUpperCase();
+  if (/^\(\s*(?:datetime|date|time)\(\s*'now'\s*\)\s*\)$/i.test(s)) {
+    return s;
+  }
+  if (/^\(\s*unixepoch\(\s*\)\s*\)$/i.test(s)) {
+    return "(unixepoch())";
+  }
+  if (s.length >= 2 && s.startsWith("'") && s.endsWith("'")) {
+    const inner = s.slice(1, -1).replace(/''/g, "'");
+    return `'${inner.replace(/'/g, "''")}'`;
+  }
   return `'${s.replace(/'/g, "''")}'`;
 }
 
@@ -196,14 +323,54 @@ export class SqliteManager {
   public db: Database;
   public activePath: string;
   public isMemory: boolean;
+  public hasPreExistingEmbeddedMacros = false;
+  private trustedDatabases = new Set<string>([":memory:"]);
+  private sessionSavedMacroIds = new Set<string>();
 
   constructor(dbPath: string = ":memory:") {
     this.activePath = dbPath;
     this.isMemory = dbPath === ":memory:";
     this.db = new Database(dbPath);
+    this.hasPreExistingEmbeddedMacros = this.detectPreExistingEmbeddedMacros(
+      this.db,
+      this.isMemory,
+    );
     this.initPragmas();
     if (this.isMemory) {
       this.seedEnterpriseDatabase();
+    }
+  }
+
+  private detectPreExistingEmbeddedMacros(
+    db: Database,
+    isMemory: boolean,
+  ): boolean {
+    if (isMemory) return false;
+    try {
+      const row = db
+        .query(
+          "SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = '_studio_macros' LIMIT 1;",
+        )
+        .get() as any;
+      return Boolean(row);
+    } catch {
+      return false;
+    }
+  }
+
+  public isDatabaseTrusted(): boolean {
+    return this.isMemory || this.trustedDatabases.has(this.activePath);
+  }
+
+  public setDatabaseTrusted(trusted: boolean): void {
+    if (this.isMemory) {
+      this.trustedDatabases.add(":memory:");
+      return;
+    }
+    if (trusted) {
+      this.trustedDatabases.add(this.activePath);
+    } else {
+      this.trustedDatabases.delete(this.activePath);
     }
   }
 
@@ -233,6 +400,11 @@ export class SqliteManager {
       }
 
       const newDb = new Database(targetPath);
+      const isMem = targetPath === ":memory:";
+      const preExistingMacros = this.detectPreExistingEmbeddedMacros(
+        newDb,
+        isMem,
+      );
 
       // Close old if not memory (checkpoint WAL first so no orphaned -wal/-shm files remain)
       try {
@@ -244,7 +416,12 @@ export class SqliteManager {
 
       this.db = newDb;
       this.activePath = targetPath;
-      this.isMemory = targetPath === ":memory:";
+      this.isMemory = isMem;
+      this.hasPreExistingEmbeddedMacros = preExistingMacros;
+      this.sessionSavedMacroIds.clear();
+      if (!isMem) {
+        this.trustedDatabases.delete(targetPath);
+      }
       this.initPragmas();
 
       if (this.isMemory) {
@@ -368,11 +545,16 @@ export class SqliteManager {
     let indexCount = 0;
     let totalRows = 0;
 
+    const exposeUntrustedMacros =
+      this.hasPreExistingEmbeddedMacros && !this.isDatabaseTrusted();
+
     try {
       const items =
         (this.db
           .query(
-            "SELECT type, name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name NOT LIKE '_studio_%';",
+            exposeUntrustedMacros
+              ? "SELECT type, name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND (name = '_studio_macros' OR name NOT LIKE '_studio_%');"
+              : "SELECT type, name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name NOT LIKE '_studio_%';",
           )
           .all() as any[]) || [];
       items.forEach((item) => {
@@ -421,6 +603,8 @@ export class SqliteManager {
       totalRows,
       cacheSizeKb,
       sqliteVersion,
+      hasEmbeddedMacros: this.hasPreExistingEmbeddedMacros,
+      trusted: this.isDatabaseTrusted(),
     };
   }
 
@@ -429,11 +613,15 @@ export class SqliteManager {
     const viewsMeta: TableSchemaMeta[] = [];
     let totalIndices = 0;
     let totalRows = 0;
+    const exposeUntrustedMacros =
+      this.hasPreExistingEmbeddedMacros && !this.isDatabaseTrusted();
 
     const masterItems =
       (this.db
         .query(
-          "SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name NOT LIKE '_studio_%' ORDER BY type, name;",
+          exposeUntrustedMacros
+            ? "SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND (name = '_studio_macros' OR name NOT LIKE '_studio_%') ORDER BY type, name;"
+            : "SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name NOT LIKE '_studio_%' ORDER BY type, name;",
         )
         .all() as any[]) || [];
 
@@ -547,6 +735,8 @@ export class SqliteManager {
       totalViews: viewsMeta.length,
       totalIndices,
       totalRows,
+      hasEmbeddedMacros: this.hasPreExistingEmbeddedMacros,
+      trusted: this.isDatabaseTrusted(),
     };
   }
 
@@ -1002,14 +1192,110 @@ export class SqliteManager {
     }
   }
 
+  public batchInsertRows(
+    table: string,
+    rows: Record<string, any>[],
+  ): { success: boolean; count: number; inserted: number; error?: string } {
+    try {
+      const targetTable = String(table || "").trim();
+      if (!targetTable) throw new Error("Target table is required");
+      const exists = this.db
+        .query(
+          "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?;",
+        )
+        .get(targetTable);
+      if (!exists) throw new Error(`Table '${targetTable}' does not exist`);
+
+      const colInfos =
+        (this.db
+          .query(`PRAGMA table_info(${qi(targetTable)});`)
+          .all() as any[]) || [];
+      const validCols = new Set<string>(colInfos.map((c) => String(c.name)));
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return { success: true, count: 0, inserted: 0 };
+      }
+
+      const escapedTable = qi(targetTable);
+      const stmtCache = new Map<
+        string,
+        { keys: string[]; stmt: ReturnType<Database["prepare"]> }
+      >();
+      let inserted = 0;
+
+      this.db.run("BEGIN;");
+      try {
+        for (const row of rows) {
+          const data = row && typeof row === "object" ? row : {};
+          const keys = Object.keys(data).filter((k) => validCols.has(k));
+          if (keys.length === 0) {
+            const res = this.db.run(
+              `INSERT INTO ${escapedTable} DEFAULT VALUES;`,
+            );
+            inserted += res.changes > 0 ? res.changes : 1;
+            continue;
+          }
+          const sig = JSON.stringify(keys);
+          let entry = stmtCache.get(sig);
+          if (!entry) {
+            const colList = keys.map(qi).join(", ");
+            const placeholders = keys.map(() => "?").join(", ");
+            const stmt = this.db.prepare(
+              `INSERT INTO ${escapedTable} (${colList}) VALUES (${placeholders});`,
+            );
+            entry = { keys, stmt };
+            stmtCache.set(sig, entry);
+          }
+          const vals = entry.keys.map((k) => {
+            const v = data[k];
+            if (v === undefined) return null;
+            if (
+              v !== null &&
+              typeof v === "object" &&
+              !(v instanceof Uint8Array)
+            ) {
+              return JSON.stringify(v);
+            }
+            return v;
+          });
+          const res = entry.stmt.run(...vals);
+          inserted += res.changes > 0 ? res.changes : 1;
+        }
+        this.db.run("COMMIT;");
+      } catch (err) {
+        try {
+          this.db.run("ROLLBACK;");
+        } catch {}
+        throw err;
+      } finally {
+        for (const entry of stmtCache.values()) {
+          try {
+            entry.stmt.finalize();
+          } catch {}
+        }
+      }
+
+      this.logAudit(
+        "IMPORT_BATCH",
+        targetTable,
+        `Inserted ${inserted} row(s) in batch transaction`,
+      );
+      return { success: true, count: inserted, inserted };
+    } catch (err: any) {
+      return {
+        success: false,
+        count: 0,
+        inserted: 0,
+        error: err?.message || String(err),
+      };
+    }
+  }
+
   // -----------------------------------------------------------------------------------------------
   // Schema Designer operations (table design, no SQL needed)
   // -----------------------------------------------------------------------------------------------
 
   private buildColumnDef(c: ColumnSpec, inlinePk: boolean): string {
-    const type = String(c.type || "").trim();
-    if (!/^[A-Za-z0-9_ (),]*$/.test(type))
-      throw new Error(`Invalid column type '${type}'`);
+    const type = validateSqliteColumnType(String(c.type || ""));
     let def = `${qi(c.name)}${type ? " " + type : ""}`;
     if (inlinePk && c.pk) {
       def += " PRIMARY KEY";
@@ -1025,9 +1311,7 @@ export class SqliteManager {
       def += ` DEFAULT ${defaultLiteral(String(c.default))}`;
     }
     if (c.check && String(c.check).trim()) {
-      const chk = String(c.check).trim();
-      if (/[;]|--|\/\*/.test(chk))
-        throw new Error("CHECK expression may not contain ';' or comments");
+      const chk = validateSqliteCheckExpr(String(c.check));
       def += ` CHECK (${chk})`;
     }
     if (c.fkTable) {
@@ -1046,6 +1330,29 @@ export class SqliteManager {
         def += ` ON DELETE ${od}`;
     }
     return def;
+  }
+
+  public addColumn(
+    table: string,
+    column: ColumnSpec,
+  ): { success: boolean; sql?: string; error?: string } {
+    try {
+      const tbl = String(table || "").trim();
+      if (!tbl) throw new Error("Table name is required");
+      if (!column || !String(column.name || "").trim()) {
+        throw new Error("Column name is required");
+      }
+      const colDef = this.buildColumnDef(
+        { ...column, pk: false, autoinc: false },
+        false,
+      );
+      const sql = `ALTER TABLE ${qi(tbl)} ADD COLUMN ${colDef};`;
+      this.db.run(sql);
+      this.logAudit("ADD_COLUMN", tbl, column.name);
+      return { success: true, sql };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err) };
+    }
   }
 
   public buildCreateTableSql(name: string, columns: ColumnSpec[]): string {
@@ -1083,6 +1390,21 @@ export class SqliteManager {
     }
   }
 
+  private rewriteAuxTableRef(
+    auxSql: string,
+    oldName: string,
+    finalName: string,
+  ): string {
+    if (oldName === finalName) return auxSql;
+    const escRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const dq = escRegex(`"${oldName.replace(/"/g, '""')}"`);
+    const bq = escRegex(`\`${oldName.replace(/`/g, "``")}\``);
+    const sq = escRegex(`[${oldName}]`);
+    const bare = `${escRegex(oldName)}(?=[\\s(;\\r\\n]|$)`;
+    const re = new RegExp(`(\\bON\\s+)(?:${dq}|${bq}|${sq}|${bare})`, "i");
+    return auxSql.replace(re, `$1${qi(finalName)}`);
+  }
+
   /**
    * Redesign an existing table (rename it, change/add/remove columns, change types & constraints)
    * by rebuilding it safely: create new table -> copy mapped data -> swap -> restore indexes/triggers.
@@ -1116,17 +1438,19 @@ export class SqliteManager {
       const aux = (
         this.db
           .query(
-            "SELECT sql FROM sqlite_master WHERE tbl_name = ? AND type IN ('index','trigger') AND sql IS NOT NULL;",
+            "SELECT type, name, sql FROM sqlite_master WHERE tbl_name = ? AND type IN ('index','trigger') AND sql IS NOT NULL;",
           )
           .all(oldName) as any[]
-      ).map((r) => String(r.sql));
+      ).map((r) => this.rewriteAuxTableRef(String(r.sql), oldName, finalName));
       const oldCols = new Set(
         (
           this.db.query(`PRAGMA table_info(${qi(oldName)});`).all() as any[]
         ).map((c) => c.name),
       );
       const mapped = columns.filter(
-        (c) => c.origName && oldCols.has(c.origName),
+        (c) =>
+          (c.origName && oldCols.has(c.origName)) ||
+          (!c.origName && oldCols.has(c.name)),
       );
 
       fkWasOn =
@@ -1139,7 +1463,7 @@ export class SqliteManager {
         this.db.run(createSql);
         if (mapped.length > 0) {
           const dst = mapped.map((c) => qi(c.name)).join(", ");
-          const src = mapped.map((c) => qi(c.origName!)).join(", ");
+          const src = mapped.map((c) => qi(c.origName || c.name)).join(", ");
           this.db.run(
             `INSERT INTO ${qi(tmp)} (${dst}) SELECT ${src} FROM ${qi(oldName)};`,
           );
@@ -1170,7 +1494,10 @@ export class SqliteManager {
         if (fkWasOn) this.db.run("PRAGMA foreign_keys = ON;");
       }
       this.logAudit("REDESIGN_TABLE", finalName, `${columns.length} columns`);
-      return { success: true, sql: createSql.replace(tmp, finalName) };
+      return {
+        success: true,
+        sql: createSql.replace(qi(tmp), qi(finalName)),
+      };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
     }
@@ -1539,7 +1866,7 @@ export class SqliteManager {
       const mode = options.mode || "all";
       const items = this.db
         .query(
-          "SELECT type, name, tbl_name, sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_studio_%' ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 WHEN 'view' THEN 2 ELSE 3 END, name;",
+          "SELECT type, name, tbl_name, sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_studio_%' ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 WHEN 'view' THEN 2 WHEN 'trigger' THEN 3 ELSE 4 END, name;",
         )
         .all() as any[];
 
@@ -1551,66 +1878,106 @@ export class SqliteManager {
           ? options.tables
           : allTableNames;
       const want = new Set(targetTables);
+      const safeHeaderLine = (s: string) =>
+        String(s ?? "").replace(/[\r\n]+/g, " ");
 
-      let dump = `-- ================================================================\n`;
-      dump += `-- ⚡ SQLITE STUDIO PRO - ENTERPRISE DATABASE DUMP & RECOVERY SCRIPT\n`;
-      dump += `-- Generated: ${new Date().toISOString()}\n`;
-      dump += `-- Database: ${this.activePath} | Mode: ${mode.toUpperCase()}\n`;
-      dump += `-- ================================================================\n\n`;
-      dump += `PRAGMA foreign_keys = OFF;\n`;
+      const chunks: string[] = [];
+      chunks.push(
+        `-- ================================================================\n`,
+        `-- ⚡ SQLITE STUDIO PRO - ENTERPRISE DATABASE DUMP & RECOVERY SCRIPT\n`,
+        `-- Generated: ${new Date().toISOString()}\n`,
+        `-- Database: ${safeHeaderLine(this.activePath)} | Mode: ${safeHeaderLine(mode.toUpperCase())}\n`,
+        `-- ================================================================\n\n`,
+        `PRAGMA foreign_keys = OFF;\n`,
+      );
       if (mode === "all" || mode === "data") {
-        dump += `BEGIN TRANSACTION;\n\n`;
+        chunks.push(`BEGIN TRANSACTION;\n\n`);
       }
 
-      // Schema DDL
+      // Schema DDL (tables, views, indexes)
       if (mode === "all" || mode === "schema") {
         for (const it of items) {
           if (it.type === "table") {
             if (!want.has(it.name)) continue;
-            dump += `-- -----------------------------------------------------\n`;
-            dump += `-- Table structure for table "${it.name}"\n`;
-            dump += `-- -----------------------------------------------------\n`;
-            dump += `DROP TABLE IF EXISTS ${qi(it.name)};\n`;
-            dump += `${String(it.sql).replace(/;?\s*$/, ";")}\n\n`;
+            chunks.push(
+              `-- -----------------------------------------------------\n`,
+              `-- Table structure for table "${safeHeaderLine(it.name)}"\n`,
+              `-- -----------------------------------------------------\n`,
+              `DROP TABLE IF EXISTS ${qi(it.name)};\n`,
+              `${String(it.sql).replace(/;?\s*$/, ";")}\n\n`,
+            );
           } else if (it.type === "view") {
-            dump += `-- View: "${it.name}"\n`;
-            dump += `DROP VIEW IF EXISTS ${qi(it.name)};\n`;
-            dump += `${String(it.sql).replace(/;?\s*$/, ";")}\n\n`;
+            chunks.push(
+              `-- View: "${safeHeaderLine(it.name)}"\n`,
+              `DROP VIEW IF EXISTS ${qi(it.name)};\n`,
+              `${String(it.sql).replace(/;?\s*$/, ";")}\n\n`,
+            );
           } else if (it.type === "index") {
             if (it.tbl_name && !want.has(it.tbl_name)) continue;
-            dump += `${String(it.sql).replace(/;?\s*$/, ";")}\n`;
+            chunks.push(`${String(it.sql).replace(/;?\s*$/, ";")}\n`);
           }
         }
-        dump += `\n`;
+        chunks.push(`\n`);
       }
 
-      // Table Data
+      // Table Data (streamed row-by-row via cursor iteration rather than materializing .all())
       if (mode === "all" || mode === "data") {
         for (const tbl of targetTables) {
+          let stmt: ReturnType<Database["query"]> | null = null;
           try {
-            const rows = this.db
-              .query(`SELECT * FROM ${qi(tbl)};`)
-              .all() as any[];
-            if (rows && rows.length > 0) {
-              dump += `-- Dumping data for table "${tbl}" (${rows.length} rows)\n`;
-              const keys = Object.keys(rows[0]);
-              const colList = keys.map(qi).join(", ");
-              for (const r of rows) {
-                const vals = keys.map((k) => sqlLiteral(r[k])).join(", ");
-                dump += `INSERT INTO ${qi(tbl)} (${colList}) VALUES (${vals});\n`;
+            stmt = this.db.query(`SELECT * FROM ${qi(tbl)};`);
+            let keys: string[] | null = null;
+            let colList = "";
+            let rowCount = 0;
+            for (const r of stmt.iterate() as Iterable<Record<string, any>>) {
+              if (!keys) {
+                keys = Object.keys(r);
+                colList = keys.map(qi).join(", ");
+                chunks.push(
+                  `-- Dumping data for table "${safeHeaderLine(tbl)}"\n`,
+                );
               }
-              dump += `\n`;
+              const vals = keys.map((k) => sqlLiteral(r[k])).join(", ");
+              chunks.push(
+                `INSERT INTO ${qi(tbl)} (${colList}) VALUES (${vals});\n`,
+              );
+              rowCount++;
             }
-          } catch {}
+            if (rowCount > 0) {
+              chunks.push(`\n`);
+            }
+          } catch {
+          } finally {
+            try {
+              stmt?.finalize();
+            } catch {}
+          }
+        }
+      }
+
+      // Triggers emitted after table data so bulk INSERTs during restore do not re-fire triggers
+      if (mode === "all" || mode === "schema") {
+        for (const it of items) {
+          if (it.type === "trigger") {
+            if (it.tbl_name && !want.has(it.tbl_name)) continue;
+            chunks.push(
+              `-- Trigger: "${safeHeaderLine(it.name)}"\n`,
+              `DROP TRIGGER IF EXISTS ${qi(it.name)};\n`,
+              `${String(it.sql).replace(/;?\s*$/, ";")}\n\n`,
+            );
+          }
         }
       }
 
       if (mode === "all" || mode === "data") {
-        dump += `COMMIT;\n`;
+        chunks.push(`COMMIT;\n`);
       }
-      dump += `PRAGMA foreign_keys = ON;\n`;
-      dump += `-- Dump completed on ${new Date().toISOString()}\n`;
+      chunks.push(
+        `PRAGMA foreign_keys = ON;\n`,
+        `-- Dump completed on ${new Date().toISOString()}\n`,
+      );
 
+      const dump = chunks.join("");
       return { success: true, sql: dump, dump, tablesIncluded: targetTables };
     } catch (err: any) {
       return { success: false, error: err?.message || String(err) };
@@ -2342,7 +2709,23 @@ export class SqliteManager {
     } catch {}
   }
 
+  private hasMacroTable(): boolean {
+    try {
+      const row = this.db
+        .query(
+          "SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = '_studio_macros' LIMIT 1;",
+        )
+        .get() as any;
+      return Boolean(row);
+    } catch {
+      return false;
+    }
+  }
+
   public getMacros(): MacroDefinition[] {
+    if (!this.isMemory && !this.hasMacroTable()) {
+      return createDefaultMacros();
+    }
     this.ensureMacroTable();
     try {
       const rows =
@@ -2353,21 +2736,31 @@ export class SqliteManager {
           .all() as any[]) || [];
       if (rows.length === 0) {
         const defaults = createDefaultMacros();
-        for (const m of defaults) {
-          this.saveMacro(m);
+        if (this.isMemory) {
+          for (const m of defaults) {
+            this.saveMacro(m);
+          }
         }
         return defaults;
       }
-      return rows.map((r) => ({
-        id: String(r.id),
-        name: String(r.name),
-        description: String(r.description || ""),
-        isAutoExec: Boolean(r.is_autoexec),
-        onError: r.on_error === "continue" ? "continue" : "stop",
-        actions: JSON.parse(r.actions_json || "[]"),
-        createdAt: r.created_at,
-        updatedAt: r.updated_at,
-      }));
+      const trusted = this.isDatabaseTrusted();
+      return rows.map((r) => {
+        const id = String(r.id);
+        const isEmbedded =
+          this.hasPreExistingEmbeddedMacros &&
+          !this.sessionSavedMacroIds.has(id);
+        return {
+          id,
+          name: String(r.name),
+          description: String(r.description || ""),
+          isAutoExec: Boolean(r.is_autoexec),
+          onError: r.on_error === "continue" ? "continue" : "stop",
+          actions: JSON.parse(r.actions_json || "[]"),
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+          ...(isEmbedded ? { embedded: true, trusted } : {}),
+        } as MacroDefinition;
+      });
     } catch {
       return createDefaultMacros();
     }
@@ -2416,6 +2809,7 @@ export class SqliteManager {
           macro.onError === "continue" ? "continue" : "stop",
         ],
       );
+      this.sessionSavedMacroIds.add(id);
 
       const saved: MacroDefinition = {
         ...macro,
@@ -2459,20 +2853,356 @@ export class SqliteManager {
     return applyPromptParams(sql, values);
   }
 
+  private resolveMacroAndCheckConsent(
+    macroOrId: MacroDefinition | string,
+    opts: SqliteRunMacroOptions,
+  ):
+    | { ok: true; macro: MacroDefinition; loadedFromDb: boolean }
+    | {
+        ok: false;
+        result: MacroExecutionResult & { requiresConsent?: boolean };
+      } {
+    const loadedFromDb = typeof macroOrId === "string";
+    let macro: MacroDefinition | null = null;
+    if (typeof macroOrId === "string") {
+      const all = this.getMacros();
+      macro =
+        all.find(
+          (m) =>
+            m.id === macroOrId ||
+            m.name.toLowerCase() === macroOrId.toLowerCase(),
+        ) || null;
+    } else {
+      macro = macroOrId;
+    }
+
+    if (!macro) {
+      return {
+        ok: false,
+        result: {
+          success: false,
+          macroName: typeof macroOrId === "string" ? macroOrId : "Unknown",
+          totalSteps: 0,
+          executedSteps: 0,
+          skippedSteps: 0,
+          failedSteps: 1,
+          totalLatencyMs: 0,
+          logs: [],
+          error: `Macro '${typeof macroOrId === "string" ? macroOrId : ""}' not found`,
+        },
+      };
+    }
+
+    if (opts.confirmedAutoExec === true) {
+      this.setDatabaseTrusted(true);
+    }
+
+    const isAutoExecTrigger =
+      opts.autoExec === true ||
+      String(opts.trigger || "").toLowerCase() === "autoexec";
+    const isMacroAutoExec =
+      Boolean(macro.isAutoExec) ||
+      String(macro.name || "")
+        .trim()
+        .toLowerCase() === "autoexec";
+    if (
+      (isAutoExecTrigger || (!this.isDatabaseTrusted() && isMacroAutoExec)) &&
+      opts.confirmedAutoExec !== true
+    ) {
+      return {
+        ok: false,
+        result: {
+          success: false,
+          requiresConsent: true,
+          macroName: macro.name,
+          totalSteps: macro.actions.length,
+          executedSteps: 0,
+          skippedSteps: 0,
+          failedSteps: 1,
+          totalLatencyMs: 0,
+          logs: [],
+          error:
+            "AutoExec macro execution requires explicit user consent before running",
+        },
+      };
+    }
+
+    return { ok: true, macro, loadedFromDb };
+  }
+
+  private assertRunCodeAllowed(
+    macro: MacroDefinition,
+    loadedFromDb: boolean,
+    opts: SqliteRunMacroOptions,
+  ): void {
+    if (opts.confirmRunCode === false) {
+      throw new Error(
+        "RunCode execution requires explicit user confirmation (confirmRunCode: true)",
+      );
+    }
+    if (!this.isDatabaseTrusted() && opts.confirmRunCode !== true) {
+      throw new Error(
+        "RunCode in an untrusted database requires explicit user confirmation (confirmRunCode: true)",
+      );
+    }
+    const isPreExistingEmbedded =
+      loadedFromDb &&
+      this.hasPreExistingEmbeddedMacros &&
+      !this.sessionSavedMacroIds.has(macro.id);
+    if (isPreExistingEmbedded && opts.confirmRunCode !== true) {
+      throw new Error(
+        "Embedded RunCode macro requires explicit user confirmation (confirmRunCode: true)",
+      );
+    }
+  }
+
+  private executeSyncMacroStep(
+    act: MacroAction,
+    variables: Record<string, any>,
+    promptParams: Record<string, any>,
+  ): { output: any; message: string } {
+    const p = act.parameters || {};
+    let output: any = null;
+    let message = `Action ${act.action} executed`;
+
+    switch (act.action) {
+      case "OpenTable": {
+        const tbl =
+          p.table || p.tableName || p.targetTable || variables.activeTable;
+        if (!tbl) throw new Error("OpenTable requires target table");
+        variables.activeTable = tbl;
+        const res = this.query(`SELECT * FROM ${qi(tbl)} LIMIT 100;`);
+        if (!res.success) throw new Error(res.error || "OpenTable failed");
+        variables.totalRows = res.rows?.length || 0;
+        output = {
+          table: tbl,
+          columns: res.columns,
+          rows: res.rows,
+          rowsCount: res.rows?.length || 0,
+        };
+        message = `Opened table '${tbl}' (${res.rows?.length || 0} rows)`;
+        break;
+      }
+      case "ApplyFilter": {
+        const cond = p.condition || p.where || p.whereCondition;
+        const tbl =
+          p.table || p.tableName || variables.activeTable || "customers";
+        if (!cond) {
+          message = "No filter condition provided";
+          break;
+        }
+        const resolvedCond = this.resolvePromptParams(
+          String(cond),
+          promptParams,
+        );
+        const sql = `SELECT * FROM ${qi(tbl)} WHERE ${resolvedCond} LIMIT 100;`;
+        const res = this.query(sql);
+        if (!res.success) throw new Error(res.error || "ApplyFilter failed");
+        variables.totalRows = res.rows?.length || 0;
+        output = {
+          table: tbl,
+          condition: resolvedCond,
+          columns: res.columns,
+          rows: res.rows,
+          rowsCount: res.rows?.length || 0,
+        };
+        message = `Applied filter '${resolvedCond}' (${res.rows?.length || 0} matching records)`;
+        break;
+      }
+      case "OpenQuery": {
+        let sql = p.sql;
+        if (p.queryName) {
+          const allQ = this.getSavedQueries();
+          const found = allQ.find(
+            (q) =>
+              q.name.toLowerCase() === p.queryName.toLowerCase() ||
+              q.id === p.queryName,
+          );
+          if (found) {
+            sql = found.sql;
+          } else if (!sql) {
+            throw new Error(`Saved query '${p.queryName}' not found`);
+          }
+        }
+        if (!sql) throw new Error("OpenQuery missing SQL query or query name");
+        sql = this.resolvePromptParams(sql, promptParams);
+        const res = this.query(sql);
+        if (!res.success) throw new Error(res.error || "OpenQuery failed");
+        output = { columns: res.columns, rowsCount: res.rows?.length || 0 };
+        message = `Executed query '${p.queryName || "custom"}' (${res.rows?.length || 0} rows returned)`;
+        break;
+      }
+      case "InsertRecord": {
+        const tbl = p.tableName || p.table || p.targetTable;
+        if (!tbl) throw new Error("InsertRecord requires target table");
+        const sql = parseRecordFieldsToInsertSql(
+          tbl,
+          p.fields || p.record || p.values,
+        );
+        const res = this.query(sql);
+        if (!res.success) throw new Error(res.error || "InsertRecord failed");
+        output = res;
+        variables.lastRowsAffected = 1;
+        message = `Appended 1 record into '${tbl}'`;
+        break;
+      }
+      case "UpdateRecord": {
+        const tbl = p.tableName || p.table || p.targetTable;
+        if (!tbl) throw new Error("UpdateRecord requires target table");
+        const setVals = p.setValues || p.set || p.updates;
+        if (!setVals) throw new Error("UpdateRecord requires SET expressions");
+        const whereCond = p.whereCondition || p.where || p.condition;
+        const sql = buildUpdateRecordSql(tbl, setVals, whereCond);
+        const res = this.query(sql);
+        if (!res.success) throw new Error(res.error || "UpdateRecord failed");
+        output = res;
+        variables.lastRowsAffected = res.rowsAffected ?? 0;
+        message = `Updated records in '${tbl}' (${res.rowsAffected ?? 0} rows affected)`;
+        break;
+      }
+      case "DeleteRecord": {
+        const tbl = p.tableName || p.table || p.targetTable;
+        if (!tbl) throw new Error("DeleteRecord requires target table");
+        const whereCond = p.whereCondition || p.where || p.condition;
+        const sql = buildDeleteRecordSql(tbl, whereCond);
+        const res = this.query(sql);
+        if (!res.success) throw new Error(res.error || "DeleteRecord failed");
+        output = res;
+        variables.lastRowsAffected = res.rowsAffected ?? 0;
+        message = `Deleted records from '${tbl}' (${res.rowsAffected ?? 0} rows affected)`;
+        break;
+      }
+      case "MakeTable": {
+        const newTbl = p.newTableName || p.newTable || p.tableName || p.table;
+        if (!newTbl) throw new Error("MakeTable requires new table name");
+        let selectSql = p.sourceSql || p.selectSql || p.sql;
+        if (p.queryName) {
+          const allQ = this.getSavedQueries();
+          const found = allQ.find(
+            (q) =>
+              q.name.toLowerCase() === p.queryName.toLowerCase() ||
+              q.id === p.queryName,
+          );
+          if (found) {
+            selectSql = found.sql;
+          } else if (!selectSql) {
+            throw new Error(
+              `Saved query '${p.queryName}' not found for MakeTable`,
+            );
+          }
+        }
+        if (!selectSql)
+          throw new Error(
+            "MakeTable requires source SELECT query or saved query name",
+          );
+        const sql = buildMakeTableSql(
+          newTbl,
+          this.resolvePromptParams(selectSql, promptParams),
+          p.dropExisting !== false,
+        );
+        this.db.run(sql);
+        output = { newTable: newTbl };
+        message = `Created table '${newTbl}' from query`;
+        break;
+      }
+      case "EmptyTable": {
+        const tbl = p.tableName || p.table || p.targetTable;
+        if (!tbl) throw new Error("EmptyTable requires target table");
+        const sql = buildEmptyTableSql(tbl);
+        const res = this.query(sql);
+        if (!res.success) throw new Error(res.error || "EmptyTable failed");
+        output = res;
+        message = `Emptied table '${tbl}' (${res.rowsAffected ?? 0} rows removed)`;
+        break;
+      }
+      case "GoToRecord": {
+        variables.currentRecord = p.record || "first";
+        message = `Navigated to record: ${variables.currentRecord}`;
+        break;
+      }
+      case "FindRecord": {
+        variables.findWhat = p.findWhat || "";
+        message = `FindRecord target: ${variables.findWhat}`;
+        break;
+      }
+      case "ShowAllRecords": {
+        message = `ShowAllRecords: Cleared active filter`;
+        break;
+      }
+      case "SetValue": {
+        const item = p.item || "var";
+        variables[item] = p.expression;
+        message = `SetValue: [${item}] = ${JSON.stringify(p.expression)}`;
+        break;
+      }
+      case "SetWarnings": {
+        variables.warningsOn = Boolean(p.warningsOn);
+        message = `SetWarnings: ${variables.warningsOn ? "ON" : "OFF"}`;
+        break;
+      }
+      case "SaveRecord": {
+        message = "SaveRecord: Committed active row edits";
+        break;
+      }
+      case "RunSQL": {
+        if (!p.sql) throw new Error("RunSQL missing sql statement");
+        const res = this.query(this.resolvePromptParams(p.sql, promptParams));
+        if (!res.success) throw new Error(res.error || "Query failed");
+        output = res;
+        message = `Executed SQL (${res.rowsAffected ?? res.rows?.length ?? 0} rows)`;
+        break;
+      }
+      case "VacuumDatabase": {
+        if (this.db.inTransaction)
+          throw new Error(
+            "VACUUM cannot run inside a transaction; run it as a separate (non-transactional) macro",
+          );
+        this.db.run("VACUUM;");
+        if (p.analyze) {
+          try {
+            this.db.run("PRAGMA optimize;");
+          } catch {}
+        }
+        message = "Executed VACUUM & optimization";
+        break;
+      }
+      case "BackupDatabase": {
+        const dump = this.generateDatabaseDump({ mode: p.mode || "all" });
+        message = `Generated backup dump (${dump.tablesIncluded?.length || 0} tables)`;
+        output = { tablesIncluded: dump.tablesIncluded };
+        break;
+      }
+      case "SetVariable": {
+        const vName = p.name || "var1";
+        variables[vName] = p.expression;
+        message = `Variable [${vName}] set to ${JSON.stringify(p.expression)}`;
+        break;
+      }
+      case "Comment": {
+        message = `Remark: ${p.comment || ""}`;
+        break;
+      }
+      default: {
+        message = `Validated action '${act.action}' for execution`;
+        break;
+      }
+    }
+
+    return { output, message };
+  }
+
   /**
-   * Runs a macro. With `transaction` (or `dryRun`) every data change is wrapped in one SQLite
-   * transaction that is rolled back if any step fails; `dryRun` always rolls back.
-   * `params` answers `[Enter ...]` prompts used in SQL.
+   * Runs a macro synchronously (for non-RunCode macros). With `transaction` (or `dryRun`)
+   * every data change is wrapped in one SQLite transaction that is rolled back if any step fails.
    */
   public runMacro(
     macroOrId: MacroDefinition | string,
     initialVariables: Record<string, any> = {},
-    opts: {
-      transaction?: boolean;
-      dryRun?: boolean;
-      params?: Record<string, any>;
-    } = {},
-  ): MacroExecutionResult {
+    opts: SqliteRunMacroOptions = {},
+  ): MacroExecutionResult & { requiresConsent?: boolean } {
+    const pre = this.resolveMacroAndCheckConsent(macroOrId, opts);
+    if (!pre.ok) return pre.result;
+
     const useTx = Boolean(opts.transaction || opts.dryRun);
     if (useTx) {
       try {
@@ -2480,10 +3210,7 @@ export class SqliteManager {
       } catch (err: any) {
         return {
           success: false,
-          macroName:
-            typeof macroOrId === "string"
-              ? macroOrId
-              : macroOrId?.name || "Unknown",
+          macroName: pre.macro.name,
           totalSteps: 0,
           executedSteps: 0,
           skippedSteps: 0,
@@ -2494,13 +3221,83 @@ export class SqliteManager {
         };
       }
     }
-    let result: MacroExecutionResult;
+    let result: MacroExecutionResult & { requiresConsent?: boolean };
     try {
       result = this.runMacroCore(
         macroOrId,
         initialVariables,
         opts.params || {},
         0,
+        opts,
+      );
+    } catch (err: any) {
+      if (useTx) {
+        try {
+          this.db.run("ROLLBACK;");
+        } catch {}
+      }
+      throw err;
+    }
+    if (useTx) {
+      try {
+        if (result.success && !opts.dryRun) {
+          this.db.run("COMMIT;");
+          result.committed = true;
+        } else {
+          this.db.run("ROLLBACK;");
+          result.rolledBack = true;
+        }
+      } catch (err: any) {
+        try {
+          this.db.run("ROLLBACK;");
+        } catch {}
+        result.success = false;
+        result.rolledBack = true;
+        result.error = `Transaction finalize failed: ${err?.message || err}`;
+      }
+    }
+    if (opts.dryRun) result.dryRun = true;
+    return result;
+  }
+
+  /**
+   * Runs a macro asynchronously, executing `RunCode` steps inside an isolated Worker
+   * with a hard 5,000ms termination timeout and zero host/FS/network globals.
+   */
+  public async runMacroAsync(
+    macroOrId: MacroDefinition | string,
+    initialVariables: Record<string, any> = {},
+    opts: SqliteRunMacroOptions = {},
+  ): Promise<MacroExecutionResult & { requiresConsent?: boolean }> {
+    const pre = this.resolveMacroAndCheckConsent(macroOrId, opts);
+    if (!pre.ok) return pre.result;
+
+    const useTx = Boolean(opts.transaction || opts.dryRun);
+    if (useTx) {
+      try {
+        this.db.run("BEGIN IMMEDIATE;");
+      } catch (err: any) {
+        return {
+          success: false,
+          macroName: pre.macro.name,
+          totalSteps: 0,
+          executedSteps: 0,
+          skippedSteps: 0,
+          failedSteps: 1,
+          totalLatencyMs: 0,
+          logs: [],
+          error: `Cannot start transaction: ${err?.message || err}`,
+        };
+      }
+    }
+    let result: MacroExecutionResult & { requiresConsent?: boolean };
+    try {
+      result = await this.runMacroCoreAsync(
+        macroOrId,
+        initialVariables,
+        opts.params || {},
+        0,
+        opts,
       );
     } catch (err: any) {
       if (useTx) {
@@ -2537,33 +3334,11 @@ export class SqliteManager {
     initialVariables: Record<string, any>,
     promptParams: Record<string, any>,
     depth: number,
-  ): MacroExecutionResult {
-    let macro: MacroDefinition | null = null;
-    if (typeof macroOrId === "string") {
-      const all = this.getMacros();
-      macro =
-        all.find(
-          (m) =>
-            m.id === macroOrId ||
-            m.name.toLowerCase() === macroOrId.toLowerCase(),
-        ) || null;
-    } else {
-      macro = macroOrId;
-    }
-
-    if (!macro) {
-      return {
-        success: false,
-        macroName: typeof macroOrId === "string" ? macroOrId : "Unknown",
-        totalSteps: 0,
-        executedSteps: 0,
-        skippedSteps: 0,
-        failedSteps: 1,
-        totalLatencyMs: 0,
-        logs: [],
-        error: `Macro '${typeof macroOrId === "string" ? macroOrId : ""}' not found`,
-      };
-    }
+    opts: SqliteRunMacroOptions = {},
+  ): MacroExecutionResult & { requiresConsent?: boolean } {
+    const pre = this.resolveMacroAndCheckConsent(macroOrId, opts);
+    if (!pre.ok) return pre.result;
+    const { macro, loadedFromDb } = pre;
 
     if (depth > 8) {
       return {
@@ -2618,57 +3393,9 @@ export class SqliteManager {
 
       let conditionMet = true;
       let conditionError: string | null = null;
-      const forbiddenMacroRe =
-        /(?:\b(?:process\b|Bun\b|globalThis\b|Reflect\b|Proxy\b|constructor\b|__proto__\b|prototype\b|require\s*\(|import\s*\(|child_process\b|Function\b|eval\b|WebSocket\b|XMLHttpRequest\b|fetch\b|Worker\b|Deno\b)|\[\s*(?:['"`]|[^\]]*\+))/;
       if (act.condition && act.condition.trim()) {
         try {
-          let expr = act.condition.trim();
-          expr = expr.replace(/\[([a-zA-Z0-9_]+)\]/g, (_, vName) => {
-            if (Object.prototype.hasOwnProperty.call(variables, vName)) {
-              const val = variables[vName];
-              return typeof val === "number" || typeof val === "boolean"
-                ? String(val)
-                : JSON.stringify(val);
-            }
-            return "0";
-          });
-          if (forbiddenMacroRe.test(expr) || /[;\[\]]/.test(expr)) {
-            throw new Error(
-              "Macro condition references restricted host or process APIs",
-            );
-          }
-          const safeKeys = Object.keys(variables).filter(
-            (k) =>
-              /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k) &&
-              k !== "constructor" &&
-              k !== "__proto__" &&
-              k !== "prototype" &&
-              k !== "eval" &&
-              k !== "arguments",
-          );
-          const safeVals = safeKeys.map((k) => variables[k]);
-          const fn = new Function(
-            "process",
-            "globalThis",
-            "global",
-            "Bun",
-            "Function",
-            "require",
-            ...safeKeys,
-            `"use strict"; return Boolean(${expr});`,
-          );
-          conditionMet = Boolean(
-            fn.call(
-              null,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              ...safeVals,
-            ),
-          );
+          conditionMet = evaluateMacroCondition(act.condition, variables);
         } catch (err: any) {
           conditionError = `Invalid condition [${act.condition}]: ${err?.message || err}`;
         }
@@ -2694,301 +3421,49 @@ export class SqliteManager {
       try {
         if (conditionError) throw new Error(conditionError);
         const p = act.parameters || {};
-        let output: any = null;
-        let message = `Action ${act.action} executed`;
 
-        switch (act.action) {
-          case "OpenTable": {
-            const tbl =
-              p.table || p.tableName || p.targetTable || variables.activeTable;
-            if (!tbl) throw new Error("OpenTable requires target table");
-            variables.activeTable = tbl;
-            const res = this.query(`SELECT * FROM ${qi(tbl)} LIMIT 100;`);
-            if (!res.success) throw new Error(res.error || "OpenTable failed");
-            variables.totalRows = res.rows?.length || 0;
-            output = {
-              table: tbl,
-              columns: res.columns,
-              rows: res.rows,
-              rowsCount: res.rows?.length || 0,
-            };
-            message = `Opened table '${tbl}' (${res.rows?.length || 0} rows)`;
-            break;
-          }
-          case "ApplyFilter": {
-            const cond = p.condition || p.where || p.whereCondition;
-            const tbl =
-              p.table || p.tableName || variables.activeTable || "customers";
-            if (!cond) {
-              message = "No filter condition provided";
-              break;
-            }
-            const resolvedCond = this.resolvePromptParams(
-              String(cond),
-              promptParams,
-            );
-            const sql = `SELECT * FROM ${qi(tbl)} WHERE ${resolvedCond} LIMIT 100;`;
-            const res = this.query(sql);
-            if (!res.success)
-              throw new Error(res.error || "ApplyFilter failed");
-            variables.totalRows = res.rows?.length || 0;
-            output = {
-              table: tbl,
-              condition: resolvedCond,
-              columns: res.columns,
-              rows: res.rows,
-              rowsCount: res.rows?.length || 0,
-            };
-            message = `Applied filter '${resolvedCond}' (${res.rows?.length || 0} matching records)`;
-            break;
-          }
-          case "OpenQuery": {
-            let sql = p.sql;
-            if (p.queryName) {
-              const allQ = this.getSavedQueries();
-              const found = allQ.find(
-                (q) =>
-                  q.name.toLowerCase() === p.queryName.toLowerCase() ||
-                  q.id === p.queryName,
-              );
-              if (found) {
-                sql = found.sql;
-              } else if (!sql) {
-                throw new Error(`Saved query '${p.queryName}' not found`);
-              }
-            }
-            if (!sql)
-              throw new Error("OpenQuery missing SQL query or query name");
-            sql = this.resolvePromptParams(sql, promptParams);
-            const res = this.query(sql);
-            if (!res.success) throw new Error(res.error || "OpenQuery failed");
-            output = { columns: res.columns, rowsCount: res.rows?.length || 0 };
-            message = `Executed query '${p.queryName || "custom"}' (${res.rows?.length || 0} rows returned)`;
-            break;
-          }
-          case "InsertRecord": {
-            const tbl = p.tableName || p.table || p.targetTable;
-            if (!tbl) throw new Error("InsertRecord requires target table");
-            const sql = parseRecordFieldsToInsertSql(
-              tbl,
-              p.fields || p.record || p.values,
-            );
-            const res = this.query(sql);
-            if (!res.success)
-              throw new Error(res.error || "InsertRecord failed");
-            output = res;
-            variables.lastRowsAffected = 1;
-            message = `Appended 1 record into '${tbl}'`;
-            break;
-          }
-          case "UpdateRecord": {
-            const tbl = p.tableName || p.table || p.targetTable;
-            if (!tbl) throw new Error("UpdateRecord requires target table");
-            const setVals = p.setValues || p.set || p.updates;
-            if (!setVals)
-              throw new Error("UpdateRecord requires SET expressions");
-            const whereCond = p.whereCondition || p.where || p.condition;
-            const sql = buildUpdateRecordSql(tbl, setVals, whereCond);
-            const res = this.query(sql);
-            if (!res.success)
-              throw new Error(res.error || "UpdateRecord failed");
-            output = res;
-            variables.lastRowsAffected = res.rowsAffected ?? 0;
-            message = `Updated records in '${tbl}' (${res.rowsAffected ?? 0} rows affected)`;
-            break;
-          }
-          case "DeleteRecord": {
-            const tbl = p.tableName || p.table || p.targetTable;
-            if (!tbl) throw new Error("DeleteRecord requires target table");
-            const whereCond = p.whereCondition || p.where || p.condition;
-            const sql = buildDeleteRecordSql(tbl, whereCond);
-            const res = this.query(sql);
-            if (!res.success)
-              throw new Error(res.error || "DeleteRecord failed");
-            output = res;
-            variables.lastRowsAffected = res.rowsAffected ?? 0;
-            message = `Deleted records from '${tbl}' (${res.rowsAffected ?? 0} rows affected)`;
-            break;
-          }
-          case "MakeTable": {
-            const newTbl =
-              p.newTableName || p.newTable || p.tableName || p.table;
-            if (!newTbl) throw new Error("MakeTable requires new table name");
-            let selectSql = p.sourceSql || p.selectSql || p.sql;
-            if (p.queryName) {
-              const allQ = this.getSavedQueries();
-              const found = allQ.find(
-                (q) =>
-                  q.name.toLowerCase() === p.queryName.toLowerCase() ||
-                  q.id === p.queryName,
-              );
-              if (found) {
-                selectSql = found.sql;
-              } else if (!selectSql) {
-                throw new Error(
-                  `Saved query '${p.queryName}' not found for MakeTable`,
-                );
-              }
-            }
-            if (!selectSql)
-              throw new Error(
-                "MakeTable requires source SELECT query or saved query name",
-              );
-            const sql = buildMakeTableSql(
-              newTbl,
-              this.resolvePromptParams(selectSql, promptParams),
-              p.dropExisting !== false,
-            );
-            this.db.run(sql);
-            output = { newTable: newTbl };
-            message = `Created table '${newTbl}' from query`;
-            break;
-          }
-          case "EmptyTable": {
-            const tbl = p.tableName || p.table || p.targetTable;
-            if (!tbl) throw new Error("EmptyTable requires target table");
-            const sql = buildEmptyTableSql(tbl);
-            const res = this.query(sql);
-            if (!res.success) throw new Error(res.error || "EmptyTable failed");
-            output = res;
-            message = `Emptied table '${tbl}' (${res.rowsAffected ?? 0} rows removed)`;
-            break;
-          }
-          case "GoToRecord": {
-            variables.currentRecord = p.record || "first";
-            message = `Navigated to record: ${variables.currentRecord}`;
-            break;
-          }
-          case "FindRecord": {
-            variables.findWhat = p.findWhat || "";
-            message = `FindRecord target: ${variables.findWhat}`;
-            break;
-          }
-          case "ShowAllRecords": {
-            message = `ShowAllRecords: Cleared active filter`;
-            break;
-          }
-          case "SetValue": {
-            const item = p.item || "var";
-            variables[item] = p.expression;
-            message = `SetValue: [${item}] = ${JSON.stringify(p.expression)}`;
-            break;
-          }
-          case "SetWarnings": {
-            variables.warningsOn = Boolean(p.warningsOn);
-            message = `SetWarnings: ${variables.warningsOn ? "ON" : "OFF"}`;
-            break;
-          }
-          case "SaveRecord": {
-            message = "SaveRecord: Committed active row edits";
-            break;
-          }
-          case "RunSQL": {
-            if (!p.sql) throw new Error("RunSQL missing sql statement");
-            const res = this.query(
-              this.resolvePromptParams(p.sql, promptParams),
-            );
-            if (!res.success) throw new Error(res.error || "Query failed");
-            output = res;
-            message = `Executed SQL (${res.rowsAffected ?? res.rows?.length ?? 0} rows)`;
-            break;
-          }
-          case "VacuumDatabase": {
-            if (this.db.inTransaction)
-              throw new Error(
-                "VACUUM cannot run inside a transaction; run it as a separate (non-transactional) macro",
-              );
-            this.db.run("VACUUM;");
-            if (p.analyze) {
-              try {
-                this.db.run("PRAGMA optimize;");
-              } catch {}
-            }
-            message = "Executed VACUUM & optimization";
-            break;
-          }
-          case "BackupDatabase": {
-            const dump = this.generateDatabaseDump({ mode: p.mode || "all" });
-            message = `Generated backup dump (${dump.tablesIncluded?.length || 0} tables)`;
-            output = { tablesIncluded: dump.tablesIncluded };
-            break;
-          }
-          case "SetVariable": {
-            const vName = p.name || "var1";
-            variables[vName] = p.expression;
-            message = `Variable [${vName}] set to ${JSON.stringify(p.expression)}`;
-            break;
-          }
-          case "RunMacro": {
-            const sub = this.runMacroCore(
-              p.macroName,
+        if (act.action === "RunMacro") {
+          const sub = this.runMacroCore(
+            p.macroName,
+            variables,
+            promptParams,
+            depth + 1,
+            opts,
+          );
+          logs.push({
+            stepIndex: i + 1,
+            actionId: act.id,
+            action: act.action,
+            condition: act.condition,
+            conditionMet: true,
+            parameters: p,
+            status: sub.success ? "success" : "error",
+            message: sub.success
+              ? `Sub-macro '${sub.macroName}' finished (${sub.executedSteps} steps)`
+              : `Sub-macro '${sub.macroName}' failed: ${sub.error}`,
+            output: { logs: sub.logs },
+            latencyMs: Number((performance.now() - t0).toFixed(2)),
+          });
+          executedSteps += sub.executedSteps;
+          skippedSteps += sub.skippedSteps;
+          Object.assign(variables, sub.variables || {});
+          if (!sub.success) {
+            failedSteps++;
+            if (act.continueOnError ?? macro.onError === "continue") continue;
+            return {
+              success: false,
+              macroName: macro.name,
+              totalSteps: macro.actions.length,
+              executedSteps,
+              skippedSteps,
+              failedSteps,
+              totalLatencyMs: Number((performance.now() - tStart).toFixed(2)),
+              logs,
+              error: sub.error,
               variables,
-              promptParams,
-              depth + 1,
-            );
-            logs.push({
-              stepIndex: i + 1,
-              actionId: act.id,
-              action: act.action,
-              condition: act.condition,
-              conditionMet: true,
-              parameters: p,
-              status: sub.success ? "success" : "error",
-              message: sub.success
-                ? `Sub-macro '${sub.macroName}' finished (${sub.executedSteps} steps)`
-                : `Sub-macro '${sub.macroName}' failed: ${sub.error}`,
-              output: { logs: sub.logs },
-              latencyMs: Number((performance.now() - t0).toFixed(2)),
-            });
-            executedSteps += sub.executedSteps;
-            skippedSteps += sub.skippedSteps;
-            Object.assign(variables, sub.variables || {});
-            if (!sub.success) {
-              failedSteps++;
-              if (act.continueOnError ?? macro.onError === "continue") continue;
-              return {
-                success: false,
-                macroName: macro.name,
-                totalSteps: macro.actions.length,
-                executedSteps,
-                skippedSteps,
-                failedSteps,
-                totalLatencyMs: Number((performance.now() - tStart).toFixed(2)),
-                logs,
-                error: sub.error,
-                variables,
-              };
-            }
-            if (sub.halted) {
-              return {
-                success: true,
-                halted: true,
-                macroName: macro.name,
-                totalSteps: macro.actions.length,
-                executedSteps,
-                skippedSteps,
-                failedSteps,
-                totalLatencyMs: Number((performance.now() - tStart).toFixed(2)),
-                logs,
-                variables,
-              };
-            }
-            continue;
+            };
           }
-          case "StopMacro": {
-            const stepLat = Number((performance.now() - t0).toFixed(2));
-            logs.push({
-              stepIndex: i + 1,
-              actionId: act.id,
-              action: act.action,
-              condition: act.condition,
-              conditionMet: true,
-              parameters: p,
-              status: "success",
-              message: `Macro halted: ${p.reason || "Normal"}`,
-              latencyMs: stepLat,
-            });
-            executedSteps++;
+          if (sub.halted) {
             return {
               success: true,
               halted: true,
@@ -3002,182 +3477,352 @@ export class SqliteManager {
               variables,
             };
           }
-          case "Comment": {
-            message = `Remark: ${p.comment || ""}`;
-            break;
+          continue;
+        }
+
+        if (act.action === "StopMacro") {
+          const stepLat = Number((performance.now() - t0).toFixed(2));
+          logs.push({
+            stepIndex: i + 1,
+            actionId: act.id,
+            action: act.action,
+            condition: act.condition,
+            conditionMet: true,
+            parameters: p,
+            status: "success",
+            message: `Macro halted: ${p.reason || "Normal"}`,
+            latencyMs: stepLat,
+          });
+          executedSteps++;
+          return {
+            success: true,
+            halted: true,
+            macroName: macro.name,
+            totalSteps: macro.actions.length,
+            executedSteps,
+            skippedSteps,
+            failedSteps,
+            totalLatencyMs: Number((performance.now() - tStart).toFixed(2)),
+            logs,
+            variables,
+          };
+        }
+
+        if (act.action === "RunCode") {
+          this.assertRunCodeAllowed(macro, loadedFromDb, opts);
+          throw new Error(
+            "RunCode requires async isolated Worker execution via runMacroAsync()",
+          );
+        }
+
+        const { output, message } = this.executeSyncMacroStep(
+          act,
+          variables,
+          promptParams,
+        );
+        const stepLat = Number((performance.now() - t0).toFixed(2));
+        logs.push({
+          stepIndex: i + 1,
+          actionId: act.id,
+          action: act.action,
+          condition: act.condition,
+          conditionMet: true,
+          parameters: p,
+          status: "success",
+          message,
+          output,
+          latencyMs: stepLat,
+        });
+        executedSteps++;
+      } catch (err: any) {
+        const stepLat = Number((performance.now() - t0).toFixed(2));
+        failedSteps++;
+        logs.push({
+          stepIndex: i + 1,
+          actionId: act.id,
+          action: act.action,
+          condition: act.condition,
+          conditionMet: true,
+          parameters: act.parameters || {},
+          status: "error",
+          message: err?.message || String(err),
+          latencyMs: stepLat,
+        });
+        if (act.continueOnError ?? macro.onError === "continue") continue;
+        return {
+          success: false,
+          macroName: macro.name,
+          totalSteps: macro.actions.length,
+          executedSteps,
+          skippedSteps,
+          failedSteps,
+          totalLatencyMs: Number((performance.now() - tStart).toFixed(2)),
+          logs,
+          error: err?.message || String(err),
+          variables,
+        };
+      }
+    }
+
+    return {
+      success: true,
+      macroName: macro.name,
+      totalSteps: macro.actions.length,
+      executedSteps,
+      skippedSteps,
+      failedSteps,
+      totalLatencyMs: Number((performance.now() - tStart).toFixed(2)),
+      logs,
+      variables,
+    };
+  }
+
+  private async runMacroCoreAsync(
+    macroOrId: MacroDefinition | string,
+    initialVariables: Record<string, any>,
+    promptParams: Record<string, any>,
+    depth: number,
+    opts: SqliteRunMacroOptions = {},
+  ): Promise<MacroExecutionResult & { requiresConsent?: boolean }> {
+    const pre = this.resolveMacroAndCheckConsent(macroOrId, opts);
+    if (!pre.ok) return pre.result;
+    const { macro, loadedFromDb } = pre;
+
+    if (depth > 8) {
+      return {
+        success: false,
+        macroName: macro.name,
+        totalSteps: macro.actions.length,
+        executedSteps: 0,
+        skippedSteps: 0,
+        failedSteps: 1,
+        totalLatencyMs: 0,
+        logs: [],
+        error: "RunMacro nesting too deep (possible recursion)",
+      };
+    }
+    const knownNames = this.getMacros().map((m) => m.name);
+    const blocking = validateMacro(macro, knownNames).filter(
+      (i) => i.severity === "error",
+    );
+    if (blocking.length > 0) {
+      return {
+        success: false,
+        macroName: macro.name,
+        totalSteps: macro.actions.length,
+        executedSteps: 0,
+        skippedSteps: 0,
+        failedSteps: blocking.length,
+        totalLatencyMs: 0,
+        logs: [],
+        error:
+          "Validation failed: " +
+          blocking
+            .map(
+              (i) => (i.stepIndex ? `step ${i.stepIndex}: ` : "") + i.message,
+            )
+            .join("; "),
+      };
+    }
+
+    const tStart = performance.now();
+    const logs: MacroStepExecutionLog[] = [];
+    const variables: Record<string, any> = { ...initialVariables };
+    let executedSteps = 0;
+    let skippedSteps = 0;
+    let failedSteps = 0;
+
+    for (let i = 0; i < macro.actions.length; i++) {
+      const act = macro.actions[i]!;
+      if (act.enabled === false) {
+        skippedSteps++;
+        continue;
+      }
+
+      let conditionMet = true;
+      let conditionError: string | null = null;
+      if (act.condition && act.condition.trim()) {
+        try {
+          conditionMet = evaluateMacroCondition(act.condition, variables);
+        } catch (err: any) {
+          conditionError = `Invalid condition [${act.condition}]: ${err?.message || err}`;
+        }
+      }
+
+      if (!conditionMet) {
+        skippedSteps++;
+        logs.push({
+          stepIndex: i + 1,
+          actionId: act.id,
+          action: act.action,
+          condition: act.condition,
+          conditionMet: false,
+          parameters: act.parameters || {},
+          status: "skipped",
+          message: `Skipped: condition [${act.condition}] evaluated to false`,
+          latencyMs: 0,
+        });
+        continue;
+      }
+
+      const t0 = performance.now();
+      try {
+        if (conditionError) throw new Error(conditionError);
+        const p = act.parameters || {};
+
+        if (act.action === "RunMacro") {
+          const sub = await this.runMacroCoreAsync(
+            p.macroName,
+            variables,
+            promptParams,
+            depth + 1,
+            opts,
+          );
+          logs.push({
+            stepIndex: i + 1,
+            actionId: act.id,
+            action: act.action,
+            condition: act.condition,
+            conditionMet: true,
+            parameters: p,
+            status: sub.success ? "success" : "error",
+            message: sub.success
+              ? `Sub-macro '${sub.macroName}' finished (${sub.executedSteps} steps)`
+              : `Sub-macro '${sub.macroName}' failed: ${sub.error}`,
+            output: { logs: sub.logs },
+            latencyMs: Number((performance.now() - t0).toFixed(2)),
+          });
+          executedSteps += sub.executedSteps;
+          skippedSteps += sub.skippedSteps;
+          Object.assign(variables, sub.variables || {});
+          if (!sub.success) {
+            failedSteps++;
+            if (act.continueOnError ?? macro.onError === "continue") continue;
+            return {
+              success: false,
+              macroName: macro.name,
+              totalSteps: macro.actions.length,
+              executedSteps,
+              skippedSteps,
+              failedSteps,
+              totalLatencyMs: Number((performance.now() - tStart).toFixed(2)),
+              logs,
+              error: sub.error,
+              variables,
+              ...(sub.requiresConsent ? { requiresConsent: true } : {}),
+            };
           }
-          case "RunCode": {
-            const rawCode = String(p.code ?? p.functionName ?? "").trim();
-            if (!rawCode) throw new Error("RunCode requires code");
-            if (forbiddenMacroRe.test(rawCode)) {
-              throw new Error(
-                "RunCode references restricted host or process APIs",
+          if (sub.halted) {
+            return {
+              success: true,
+              halted: true,
+              macroName: macro.name,
+              totalSteps: macro.actions.length,
+              executedSteps,
+              skippedSteps,
+              failedSteps,
+              totalLatencyMs: Number((performance.now() - tStart).toFixed(2)),
+              logs,
+              variables,
+            };
+          }
+          continue;
+        }
+
+        if (act.action === "StopMacro") {
+          const stepLat = Number((performance.now() - t0).toFixed(2));
+          logs.push({
+            stepIndex: i + 1,
+            actionId: act.id,
+            action: act.action,
+            condition: act.condition,
+            conditionMet: true,
+            parameters: p,
+            status: "success",
+            message: `Macro halted: ${p.reason || "Normal"}`,
+            latencyMs: stepLat,
+          });
+          executedSteps++;
+          return {
+            success: true,
+            halted: true,
+            macroName: macro.name,
+            totalSteps: macro.actions.length,
+            executedSteps,
+            skippedSteps,
+            failedSteps,
+            totalLatencyMs: Number((performance.now() - tStart).toFixed(2)),
+            logs,
+            variables,
+          };
+        }
+
+        let output: any = null;
+        let message = `Action ${act.action} executed`;
+
+        if (act.action === "RunCode") {
+          this.assertRunCodeAllowed(macro, loadedFromDb, opts);
+          const rawCode = String(p.code ?? p.functionName ?? "").trim();
+          if (!rawCode) throw new Error("RunCode requires code");
+
+          const rpc: RunCodeRpcHandlers = {
+            dialect: "sqlite",
+            query: async (sql: string) => {
+              const res = this.query(
+                this.resolvePromptParams(sql, promptParams),
               );
+              if (!res.success)
+                throw new Error(res.error || "RunCode.query failed");
+              return res.rows || [];
+            },
+            execute: async (sql: string) => {
+              const res = this.query(
+                this.resolvePromptParams(sql, promptParams),
+              );
+              if (!res.success)
+                throw new Error(res.error || "RunCode.execute failed");
+              const affected = res.rowsAffected ?? 0;
+              variables.lastRowsAffected = affected;
+              return { affectedRows: affected };
+            },
+            tables: async () => {
+              const rows = this.db
+                .query(
+                  "SELECT name FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_studio_%' ORDER BY name;",
+                )
+                .all() as any[];
+              return rows.map((r) => String(r.name));
+            },
+          };
+
+          const isolated = await executeIsolatedRunCode(
+            rawCode,
+            variables,
+            rpc,
+            5_000,
+          );
+          for (const k of Object.keys(variables)) {
+            if (!Object.prototype.hasOwnProperty.call(isolated.variables, k)) {
+              delete variables[k];
             }
-            const transpiler = new Bun.Transpiler({
-              loader: "ts",
-              target: "bun",
-            });
-            transpiler.transformSync(
-              `async function __check() {\n${rawCode}\n}`,
-            );
-            const syncCode = rawCode.replace(/\bawait\s+/g, "");
-            const jsBody = transpiler.transformSync(
-              `function __sqliteRunCode() {\n${syncCode}\n}`,
-            );
-            const debugLogs: string[] = [];
-            const qi = (ident: string) =>
-              `"${String(ident ?? "").replace(/"/g, '""')}"`;
-            const CurrentDb = {
-              dialect: "sqlite",
-              RecordsAffected: 0,
-              query: (sql: string) => {
-                const res = this.query(
-                  this.resolvePromptParams(sql, promptParams),
-                );
-                if (!res.success)
-                  throw new Error(res.error || "RunCode.query failed");
-                return res.rows || [];
-              },
-              execute: (sql: string) => {
-                const res = this.query(
-                  this.resolvePromptParams(sql, promptParams),
-                );
-                if (!res.success)
-                  throw new Error(res.error || "RunCode.execute failed");
-                CurrentDb.RecordsAffected = res.rowsAffected ?? 0;
-                variables.lastRowsAffected = CurrentDb.RecordsAffected;
-                return { affectedRows: CurrentDb.RecordsAffected };
-              },
-              tables: () => {
-                const rows = this.db
-                  .query(
-                    "SELECT name FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_studio_%' ORDER BY name;",
-                  )
-                  .all() as any[];
-                return rows.map((r) => String(r.name));
-              },
-            };
-            const DCount = (expr = "*", domain: string, criteria?: string) => {
-              const w =
-                criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
-              const r = CurrentDb.query(
-                `SELECT COUNT(${expr || "*"}) AS c FROM ${qi(domain)}${w}`,
-              );
-              return Number(r[0]?.c ?? Object.values(r[0] || {})[0] ?? 0);
-            };
-            const DLookup = (
-              expr: string,
-              domain: string,
-              criteria?: string,
-            ) => {
-              const w =
-                criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
-              const r = CurrentDb.query(
-                `SELECT ${expr} AS v FROM ${qi(domain)}${w} LIMIT 1`,
-              );
-              return r[0]?.v ?? (r[0] ? Object.values(r[0])[0] : null) ?? null;
-            };
-            const DSum = (expr: string, domain: string, criteria?: string) => {
-              const w =
-                criteria && criteria.trim() ? ` WHERE ${criteria.trim()}` : "";
-              const r = CurrentDb.query(
-                `SELECT COALESCE(SUM(${expr}), 0) AS s FROM ${qi(domain)}${w}`,
-              );
-              return Number(r[0]?.s ?? Object.values(r[0] || {})[0] ?? 0);
-            };
-            const DoCmd = {
-              RunSQL: (sql: string) => CurrentDb.execute(sql),
-              OpenQuery: (sql: string) => CurrentDb.query(sql),
-              OpenTable: (table: string, where?: string, limit = 200) => {
-                const w = where && where.trim() ? ` WHERE ${where.trim()}` : "";
-                return CurrentDb.query(
-                  `SELECT * FROM ${qi(table)}${w} LIMIT ${Math.max(1, Number(limit) || 200)}`,
-                );
-              },
-              InsertRecord: (table: string, fields: any) =>
-                CurrentDb.execute(parseRecordFieldsToInsertSql(table, fields)),
-              UpdateRecord: (table: string, setVals: string, where?: string) =>
-                CurrentDb.execute(buildUpdateRecordSql(table, setVals, where)),
-              DeleteRecord: (table: string, where?: string) =>
-                CurrentDb.execute(buildDeleteRecordSql(table, where)),
-              EmptyTable: (table: string) =>
-                CurrentDb.execute(buildEmptyTableSql(table)),
-              SetTempVar: (k: string, v: any) => {
-                variables[k] = v;
-              },
-              RemoveTempVar: (k: string) => {
-                delete variables[k];
-              },
-              MessageBox: (msg: any) => {
-                debugLogs.push(String(msg));
-              },
-              Beep: () => {},
-            };
-            const Debug = {
-              print: (...args: any[]) =>
-                debugLogs.push(
-                  args
-                    .map((x) => (typeof x === "string" ? x : JSON.stringify(x)))
-                    .join(" "),
-                ),
-              Print: (...args: any[]) =>
-                debugLogs.push(
-                  args
-                    .map((x) => (typeof x === "string" ? x : JSON.stringify(x)))
-                    .join(" "),
-                ),
-            };
-            const fn = new Function(
-              "CurrentDb",
-              "db",
-              "DoCmd",
-              "TempVars",
-              "vars",
-              "DCount",
-              "DLookup",
-              "DSum",
-              "MsgBox",
-              "Debug",
-              "process",
-              "globalThis",
-              "global",
-              "Bun",
-              "Function",
-              "eval",
-              "require",
-              `${jsBody}\n return __sqliteRunCode();`,
-            );
-            const ret = fn(
-              CurrentDb,
-              CurrentDb,
-              DoCmd,
-              variables,
-              variables,
-              DCount,
-              DLookup,
-              DSum,
-              DoCmd.MessageBox,
-              Debug,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-              undefined,
-            );
-            output = { returnValue: ret, debugLogs };
-            message =
-              debugLogs.length > 0
-                ? `RunCode: ${debugLogs.join(" | ")}`
-                : `Executed Bun JS RunCode`;
-            break;
           }
-          default: {
-            message = `Validated action '${act.action}' for execution`;
-            break;
-          }
+          Object.assign(variables, isolated.variables);
+          output = {
+            returnValue: isolated.returnValue,
+            debugLogs: isolated.debugLogs,
+          };
+          message =
+            isolated.debugLogs.length > 0
+              ? `RunCode: ${isolated.debugLogs.join(" | ")}`
+              : `Executed Bun JS RunCode`;
+        } else {
+          const syncRes = this.executeSyncMacroStep(
+            act,
+            variables,
+            promptParams,
+          );
+          output = syncRes.output;
+          message = syncRes.message;
         }
 
         const stepLat = Number((performance.now() - t0).toFixed(2));
@@ -3593,8 +4238,85 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
 
       // 8d. Upload Database File (Browser & Drag-Drop Mode)
       if (url.pathname === "/api/upload-database" && req.method === "POST") {
+        const MAX_UPLOAD_DB_BYTES = 256 * 1024 * 1024; // 256 MiB hard cap
+        const SQLITE_MAGIC_HEADER = [
+          0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d,
+          0x61, 0x74, 0x20, 0x33, 0x00,
+        ]; // "SQLite format 3\0"
         try {
-          const formData = await req.formData();
+          const clHeader = req.headers.get("content-length");
+          if (clHeader !== null) {
+            const declaredLength = Number(clHeader);
+            if (
+              !Number.isFinite(declaredLength) ||
+              declaredLength < 0 ||
+              declaredLength > MAX_UPLOAD_DB_BYTES
+            ) {
+              return Response.json(
+                {
+                  success: false,
+                  error: "Database upload exceeds 256 MiB size limit",
+                },
+                { status: 413, headers: corsHeaders },
+              );
+            }
+          }
+
+          if (!req.body) {
+            return Response.json(
+              { success: false, error: "No upload payload provided" },
+              { status: 400, headers: corsHeaders },
+            );
+          }
+
+          const bodyChunks: Uint8Array[] = [];
+          let receivedBytes = 0;
+          const reader = req.body.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value) {
+              receivedBytes += value.byteLength;
+              if (receivedBytes > MAX_UPLOAD_DB_BYTES) {
+                try {
+                  await reader.cancel();
+                } catch {}
+                return Response.json(
+                  {
+                    success: false,
+                    error: "Database upload exceeds 256 MiB size limit",
+                  },
+                  { status: 413, headers: corsHeaders },
+                );
+              }
+              bodyChunks.push(value);
+            }
+          }
+
+          const rawBody = new Uint8Array(receivedBytes);
+          let writeOffset = 0;
+          for (const chunk of bodyChunks) {
+            rawBody.set(chunk, writeOffset);
+            writeOffset += chunk.byteLength;
+          }
+
+          const boundedReq = new Request(req.url, {
+            method: req.method,
+            headers: req.headers,
+            body: rawBody,
+          });
+          let formData: FormData;
+          try {
+            formData = await boundedReq.formData();
+          } catch {
+            return Response.json(
+              {
+                success: false,
+                error: "Expected multipart/form-data upload payload",
+              },
+              { status: 400, headers: corsHeaders },
+            );
+          }
           const file = formData.get("file") as File | null;
           if (!file) {
             return Response.json(
@@ -3602,16 +4324,27 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
               { status: 400, headers: corsHeaders },
             );
           }
+          if (file.size > MAX_UPLOAD_DB_BYTES) {
+            return Response.json(
+              {
+                success: false,
+                error: "Database file exceeds 256 MiB size limit",
+              },
+              { status: 413, headers: corsHeaders },
+            );
+          }
 
           const arrayBuffer = await file.arrayBuffer();
           const bytes = new Uint8Array(arrayBuffer);
-          const header = new TextDecoder().decode(bytes.slice(0, 15));
-          if (!header.startsWith("SQLite format 3")) {
+          const hasValidMagic =
+            bytes.byteLength >= 16 &&
+            SQLITE_MAGIC_HEADER.every((b, idx) => bytes[idx] === b);
+          if (!hasValidMagic) {
             return Response.json(
               {
                 success: false,
                 error:
-                  "Invalid SQLite database file (missing 'SQLite format 3' header magic bytes)",
+                  "Invalid SQLite database file (missing 16-byte 'SQLite format 3\\0' header magic bytes)",
               },
               { status: 400, headers: corsHeaders },
             );
@@ -3621,9 +4354,13 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
           try {
             mkdirSync(uploadDir, { recursive: true });
           } catch {}
-          const safeName = file.name
-            ? basename(file.name)
-            : `uploaded_${Date.now()}.db`;
+          const rawBase = file.name
+            ? basename(file.name).replace(/[^a-zA-Z0-9._-]/g, "_")
+            : "";
+          const safeName =
+            !rawBase || rawBase === "." || rawBase === ".."
+              ? `uploaded_${Date.now()}.db`
+              : rawBase;
           const savePath = resolve(uploadDir, safeName);
           writeFileSync(savePath, bytes);
 
@@ -3640,6 +4377,8 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
               success: true,
               path: savePath,
               name: safeName,
+              trusted: manager.isDatabaseTrusted(),
+              hasEmbeddedMacros: manager.hasPreExistingEmbeddedMacros,
               kpis: manager.getKpis(),
               schema: manager.getSchema(),
             },
@@ -3662,6 +4401,12 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
           switch (op) {
             case "create-table":
               result = manager.createTable(body.name, body.columns);
+              break;
+            case "add-column":
+              result = manager.addColumn(
+                body.table || body.name,
+                body.column || body,
+              );
               break;
             case "redesign-table":
               result = manager.redesignTable(
@@ -4028,13 +4773,19 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
             });
             rowsToInsert = parsed.records;
           }
-          let inserted = 0;
-          for (const row of rowsToInsert) {
-            manager.mutateRow(body.table, "insert", { data: row });
-            inserted++;
+          const batchRes = manager.batchInsertRows(body.table, rowsToInsert);
+          if (!batchRes.success) {
+            return Response.json(
+              { success: false, error: batchRes.error },
+              { status: 400, headers: corsHeaders },
+            );
           }
           return Response.json(
-            { success: true, count: inserted, inserted },
+            {
+              success: true,
+              count: batchRes.inserted,
+              inserted: batchRes.inserted,
+            },
             { headers: corsHeaders },
           );
         } catch (err: any) {
@@ -4288,9 +5039,37 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
         (req.method === "GET" || req.method === "POST")
       ) {
         return Response.json(
-          { success: true, macros: manager.getMacros() },
+          {
+            success: true,
+            macros: manager.getMacros(),
+            trusted: manager.isDatabaseTrusted(),
+            hasEmbeddedMacros: manager.hasPreExistingEmbeddedMacros,
+          },
           { headers: corsHeaders },
         );
+      }
+
+      if (url.pathname === "/api/macros/trust" && req.method === "POST") {
+        try {
+          const body = (await req.json().catch(() => ({}))) as {
+            trusted?: boolean;
+          };
+          const trusted = body.trusted !== false;
+          manager.setDatabaseTrusted(trusted);
+          return Response.json(
+            {
+              success: true,
+              trusted: manager.isDatabaseTrusted(),
+              hasEmbeddedMacros: manager.hasPreExistingEmbeddedMacros,
+            },
+            { headers: corsHeaders },
+          );
+        } catch (err: any) {
+          return Response.json(
+            { success: false, error: err.message },
+            { status: 400, headers: corsHeaders },
+          );
+        }
       }
 
       if (url.pathname === "/api/macros/save" && req.method === "POST") {
@@ -4329,15 +5108,33 @@ export function startSqliteStudioServer(options: ServerOptions = {}) {
             transaction?: boolean;
             dryRun?: boolean;
             params?: Record<string, any>;
+            confirmRunCode?: boolean;
+            confirmedAutoExec?: boolean;
+            autoExec?: boolean;
+            trigger?: string;
           };
           const target = body.macro || body.id || body.name || "";
-          const result = manager.runMacro(target, body.variables || {}, {
-            transaction: body.transaction,
-            dryRun: body.dryRun,
-            params: body.params,
-          });
+          const result = await manager.runMacroAsync(
+            target,
+            body.variables || {},
+            {
+              transaction: body.transaction,
+              dryRun: body.dryRun,
+              params: body.params,
+              confirmRunCode: body.confirmRunCode,
+              confirmedAutoExec: body.confirmedAutoExec,
+              autoExec: body.autoExec,
+              trigger: body.trigger,
+            },
+          );
           return Response.json(
-            { success: result.success, result },
+            {
+              ok: result.success,
+              success: result.success,
+              ...(result.requiresConsent ? { requiresConsent: true } : {}),
+              ...(result.error ? { error: result.error } : {}),
+              result,
+            },
             { headers: corsHeaders },
           );
         } catch (err: any) {

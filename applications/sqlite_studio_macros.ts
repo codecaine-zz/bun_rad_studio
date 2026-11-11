@@ -289,6 +289,649 @@ export function applyPromptParams(
 }
 
 // -------------------------------------------------------------------------------------------------
+// Pure Safe Condition Evaluator (shared by browser script and server macro engines — zero eval/Function)
+// -------------------------------------------------------------------------------------------------
+
+export function evaluateMacroCondition(
+  condStr?: string,
+  scope?: Record<string, any>,
+): boolean {
+  if (!condStr || !String(condStr).trim()) return true;
+  const raw = String(condStr).trim();
+  const vars = scope && typeof scope === "object" ? scope : {};
+  const hasOwn = Object.prototype.hasOwnProperty;
+
+  const FORBIDDEN_NAMES: Record<string, boolean> = {
+    ["__proto__"]: true,
+    prototype: true,
+    constructor: true,
+    mainModule: true,
+    __defineGetter__: true,
+    __defineSetter__: true,
+    __lookupGetter__: true,
+    __lookupSetter__: true,
+    Bun: true,
+    Deno: true,
+    process: true,
+    require: true,
+    import: true,
+    eval: true,
+    Function: true,
+    AsyncFunction: true,
+    GeneratorFunction: true,
+    globalThis: true,
+    global: true,
+    window: true,
+    self: true,
+    document: true,
+    frames: true,
+    top: true,
+    parent: true,
+    fetch: true,
+    XMLHttpRequest: true,
+    WebSocket: true,
+    Worker: true,
+    Reflect: true,
+    Proxy: true,
+  };
+
+  const STRING_METHODS: Record<string, boolean> = {
+    includes: true,
+    startsWith: true,
+    endsWith: true,
+    trim: true,
+    trimStart: true,
+    trimEnd: true,
+    toLowerCase: true,
+    toUpperCase: true,
+    slice: true,
+    substring: true,
+    indexOf: true,
+    charAt: true,
+  };
+
+  const ARRAY_METHODS: Record<string, boolean> = {
+    includes: true,
+    indexOf: true,
+    slice: true,
+  };
+
+  const MATH_METHODS: Record<string, boolean> = {
+    abs: true,
+    min: true,
+    max: true,
+    floor: true,
+    ceil: true,
+    round: true,
+    sqrt: true,
+    pow: true,
+    trunc: true,
+    sign: true,
+  };
+
+  const NUMBER_METHODS: Record<string, boolean> = {
+    isFinite: true,
+    isInteger: true,
+    isNaN: true,
+    parseFloat: true,
+    parseInt: true,
+  };
+
+  const SAFE_CALLABLES: Record<string, (...args: any[]) => any> = {
+    Number: (x: any) => Number(x),
+    String: (x: any) => String(x),
+    Boolean: (x: any) => Boolean(x),
+    parseInt: (x: any, r?: any) =>
+      r === undefined
+        ? Number.parseInt(String(x))
+        : Number.parseInt(String(x), Number(r)),
+    parseFloat: (x: any) => Number.parseFloat(String(x)),
+    isNaN: (x: any) => isNaN(x),
+    isFinite: (x: any) => isFinite(x),
+  };
+
+  const MATH_SENTINEL = { __kind: "Math" };
+  const NUMBER_SENTINEL = { __kind: "Number" };
+  const ARRAY_SENTINEL = { __kind: "Array" };
+
+  try {
+    if (raw.length > 4096) throw new Error("Condition too long");
+    const tokens: Array<{ t: string; v?: any }> = [];
+    let i = 0;
+    while (i < raw.length) {
+      const ch = raw[i]!;
+      if (/\s/.test(ch)) {
+        i++;
+        continue;
+      }
+      if (
+        (ch === "/" && (raw[i + 1] === "/" || raw[i + 1] === "*")) ||
+        ch === ";" ||
+        ch === "`"
+      ) {
+        throw new Error("Disallowed syntax '" + ch + "'");
+      }
+      if (ch === "'" || ch === '"') {
+        let j = i + 1;
+        let str = "";
+        while (j < raw.length && raw[j] !== ch) {
+          if (raw[j] === "\\") {
+            j++;
+            if (j >= raw.length) throw new Error("Unterminated string escape");
+            const esc = raw[j]!;
+            if (esc === "n") str += "\n";
+            else if (esc === "r") str += "\r";
+            else if (esc === "t") str += "\t";
+            else if (esc === "0") str += "\0";
+            else if (esc === "x") {
+              const hex = raw.slice(j + 1, j + 3);
+              if (!/^[0-9a-fA-F]{2}$/.test(hex))
+                throw new Error("Invalid hex escape");
+              str += String.fromCharCode(Number.parseInt(hex, 16));
+              j += 2;
+            } else if (esc === "u") {
+              const hex = raw.slice(j + 1, j + 5);
+              if (!/^[0-9a-fA-F]{4}$/.test(hex))
+                throw new Error("Invalid unicode escape");
+              str += String.fromCharCode(Number.parseInt(hex, 16));
+              j += 4;
+            } else {
+              str += esc;
+            }
+          } else {
+            str += raw[j]!;
+          }
+          j++;
+        }
+        if (j >= raw.length) throw new Error("Unterminated string literal");
+        tokens.push({ t: "str", v: str });
+        i = j + 1;
+        continue;
+      }
+      if (
+        (ch >= "0" && ch <= "9") ||
+        (ch === "." && raw[i + 1]! >= "0" && raw[i + 1]! <= "9")
+      ) {
+        const m = raw
+          .slice(i)
+          .match(/^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/);
+        if (!m) throw new Error("Invalid number");
+        const nextCh = raw[i + m[0].length];
+        if (nextCh && /[A-Za-z_$]/.test(nextCh))
+          throw new Error("Invalid identifier after number");
+        tokens.push({ t: "num", v: Number(m[0]) });
+        i += m[0].length;
+        continue;
+      }
+      if (/[A-Za-z_$]/.test(ch)) {
+        const m = raw.slice(i).match(/^[A-Za-z_$][A-Za-z0-9_$]*/)!;
+        const word = m[0];
+        const prevTok = tokens[tokens.length - 1];
+        const isBareKeyword =
+          !prevTok || (prevTok.t !== "." && prevTok.t !== "[");
+        if (isBareKeyword && raw[i + word.length] !== "]") {
+          const upper = word.toUpperCase();
+          if (upper === "AND") {
+            tokens.push({ t: "op", v: "&&" });
+            i += word.length;
+            continue;
+          }
+          if (upper === "OR") {
+            tokens.push({ t: "op", v: "||" });
+            i += word.length;
+            continue;
+          }
+          if (upper === "NOT") {
+            tokens.push({ t: "!", v: "!" });
+            i += word.length;
+            continue;
+          }
+        }
+        tokens.push({ t: "id", v: word });
+        i += word.length;
+        continue;
+      }
+      if (raw.startsWith("===", i)) {
+        if (raw[i + 3] === "=") throw new Error("Unexpected '='");
+        tokens.push({ t: "op", v: "===" });
+        i += 3;
+        continue;
+      }
+      if (raw.startsWith("!==", i)) {
+        if (raw[i + 3] === "=") throw new Error("Unexpected '='");
+        tokens.push({ t: "op", v: "!==" });
+        i += 3;
+        continue;
+      }
+      const two = raw.slice(i, i + 2);
+      if (
+        two === "==" ||
+        two === "!=" ||
+        two === "<>" ||
+        two === "<=" ||
+        two === ">=" ||
+        two === "&&" ||
+        two === "||" ||
+        two === "??"
+      ) {
+        if ((two === "==" || two === "!=") && raw[i + 2] === "=")
+          throw new Error("Unexpected '='");
+        tokens.push({ t: "op", v: two === "<>" ? "!=" : two });
+        i += 2;
+        continue;
+      }
+      if (
+        two === "++" ||
+        two === "--" ||
+        two === "+=" ||
+        two === "-=" ||
+        two === "*=" ||
+        two === "/=" ||
+        two === "=>"
+      ) {
+        throw new Error("Disallowed operator '" + two + "'");
+      }
+      if (ch === "=") {
+        throw new Error("Assignment '=' is not allowed in conditions");
+      }
+      if ("+-*/%!<>?:().,[]".indexOf(ch) !== -1) {
+        tokens.push({ t: ch, v: ch });
+        i++;
+        continue;
+      }
+      throw new Error("Unexpected character '" + ch + "'");
+    }
+
+    if (tokens.length > 512) throw new Error("Condition too complex");
+    let pos = 0;
+    let depth = 0;
+    const peek = () => tokens[pos];
+    const next = () => tokens[pos++];
+    const expectTok = (t: string) => {
+      const tok = next();
+      if (!tok || tok.t !== t)
+        throw new Error(
+          "Expected '" + t + "'" + (tok ? ", got '" + tok.v + "'" : ""),
+        );
+      return tok;
+    };
+
+    const parseExpr = (): any => {
+      if (++depth > 48) throw new Error("Expression nesting too deep");
+      const node = parseTernary();
+      depth--;
+      return node;
+    };
+
+    const parseTernary = (): any => {
+      const test = parseNullishOr();
+      if (peek() && peek()!.t === "?") {
+        next();
+        const consequent = parseExpr();
+        expectTok(":");
+        const alternate = parseExpr();
+        return { k: "cond", test, consequent, alternate };
+      }
+      return test;
+    };
+
+    const parseNullishOr = (): any => {
+      let left = parseAnd();
+      while (
+        peek() &&
+        peek()!.t === "op" &&
+        (peek()!.v === "||" || peek()!.v === "??")
+      ) {
+        const op = next()!.v;
+        const right = parseAnd();
+        left = { k: "bin", op, left, right };
+      }
+      return left;
+    };
+
+    const parseAnd = (): any => {
+      let left = parseEquality();
+      while (peek() && peek()!.t === "op" && peek()!.v === "&&") {
+        const op = next()!.v;
+        const right = parseEquality();
+        left = { k: "bin", op, left, right };
+      }
+      return left;
+    };
+
+    const parseEquality = (): any => {
+      let left = parseRelational();
+      while (
+        peek() &&
+        peek()!.t === "op" &&
+        (peek()!.v === "===" ||
+          peek()!.v === "!==" ||
+          peek()!.v === "==" ||
+          peek()!.v === "!=")
+      ) {
+        const op = next()!.v;
+        const right = parseRelational();
+        left = { k: "bin", op, left, right };
+      }
+      return left;
+    };
+
+    const parseRelational = (): any => {
+      let left = parseAdditive();
+      while (
+        peek() &&
+        ((peek()!.t === "op" && (peek()!.v === "<=" || peek()!.v === ">=")) ||
+          peek()!.t === "<" ||
+          peek()!.t === ">")
+      ) {
+        const op = next()!.v;
+        const right = parseAdditive();
+        left = { k: "bin", op, left, right };
+      }
+      return left;
+    };
+
+    const parseAdditive = (): any => {
+      let left = parseMultiplicative();
+      while (peek() && (peek()!.t === "+" || peek()!.t === "-")) {
+        const op = next()!.v;
+        const right = parseMultiplicative();
+        left = { k: "bin", op, left, right };
+      }
+      return left;
+    };
+
+    const parseMultiplicative = (): any => {
+      let left = parseUnary();
+      while (
+        peek() &&
+        (peek()!.t === "*" || peek()!.t === "/" || peek()!.t === "%")
+      ) {
+        const op = next()!.v;
+        const right = parseUnary();
+        left = { k: "bin", op, left, right };
+      }
+      return left;
+    };
+
+    const parseUnary = (): any => {
+      const tok = peek();
+      if (tok && (tok.t === "!" || tok.t === "+" || tok.t === "-")) {
+        next();
+        return { k: "un", op: tok.v, arg: parseUnary() };
+      }
+      if (tok && tok.t === "id" && tok.v === "typeof") {
+        next();
+        return { k: "typeof", arg: parseUnary() };
+      }
+      return parsePostfix();
+    };
+
+    const parsePostfix = (): any => {
+      let expr = parsePrimary();
+      while (peek()) {
+        const tok = peek()!;
+        if (tok.t === ".") {
+          next();
+          const propTok = expectTok("id");
+          if (hasOwn.call(FORBIDDEN_NAMES, propTok.v)) {
+            throw new Error("Forbidden property '" + propTok.v + "'");
+          }
+          expr = { k: "mem", obj: expr, prop: propTok.v, computed: false };
+        } else if (tok.t === "[") {
+          next();
+          const idxExpr = parseExpr();
+          expectTok("]");
+          expr = { k: "mem", obj: expr, prop: idxExpr, computed: true };
+        } else if (tok.t === "(") {
+          next();
+          const args: any[] = [];
+          if (!peek() || peek()!.t !== ")") {
+            args.push(parseExpr());
+            while (peek() && peek()!.t === ",") {
+              next();
+              args.push(parseExpr());
+            }
+          }
+          expectTok(")");
+          if (args.length > 16) throw new Error("Too many arguments");
+          expr = { k: "call", callee: expr, args };
+        } else {
+          break;
+        }
+      }
+      return expr;
+    };
+
+    const parsePrimary = (): any => {
+      const tok = next();
+      if (!tok) throw new Error("Unexpected end of condition");
+      if (tok.t === "num" || tok.t === "str") return { k: "lit", v: tok.v };
+      if (tok.t === "(") {
+        const inner = parseExpr();
+        expectTok(")");
+        return inner;
+      }
+      if (tok.t === "[") {
+        // Access-style [varName] reference when [identifier]
+        if (
+          peek() &&
+          peek()!.t === "id" &&
+          tokens[pos + 1] &&
+          tokens[pos + 1]!.t === "]"
+        ) {
+          const idTok = next()!;
+          next(); // consume ']'
+          if (hasOwn.call(FORBIDDEN_NAMES, idTok.v)) {
+            throw new Error("Forbidden variable '" + idTok.v + "'");
+          }
+          return { k: "bvar", name: idTok.v };
+        }
+        const elems: any[] = [];
+        if (!peek() || peek()!.t !== "]") {
+          elems.push(parseExpr());
+          while (peek() && peek()!.t === ",") {
+            next();
+            elems.push(parseExpr());
+          }
+        }
+        expectTok("]");
+        return { k: "arr", elems };
+      }
+      if (tok.t === "id") {
+        const name = tok.v;
+        if (name === "true") return { k: "lit", v: true };
+        if (name === "false") return { k: "lit", v: false };
+        if (name === "null") return { k: "lit", v: null };
+        if (name === "undefined") return { k: "lit", v: undefined };
+        if (name === "NaN") return { k: "lit", v: NaN };
+        if (name === "Infinity") return { k: "lit", v: Infinity };
+        if (hasOwn.call(FORBIDDEN_NAMES, name)) {
+          throw new Error("Forbidden identifier '" + name + "'");
+        }
+        return { k: "id", name };
+      }
+      throw new Error("Unexpected token '" + tok.v + "'");
+    };
+
+    const ast = parseExpr();
+    if (pos < tokens.length) {
+      throw new Error("Unexpected token '" + tokens[pos]!.v + "'");
+    }
+
+    const evalNode = (node: any): any => {
+      switch (node.k) {
+        case "lit":
+          return node.v;
+        case "bvar":
+          return hasOwn.call(vars, node.name) ? vars[node.name] : 0;
+        case "arr":
+          return node.elems.map(evalNode);
+        case "id": {
+          if (node.name === "vars" || node.name === "scope") return vars;
+          if (node.name === "Math") return MATH_SENTINEL;
+          if (node.name === "Array") return ARRAY_SENTINEL;
+          if (hasOwn.call(vars, node.name)) return vars[node.name];
+          if (hasOwn.call(SAFE_CALLABLES, node.name))
+            return node.name === "Number"
+              ? NUMBER_SENTINEL
+              : SAFE_CALLABLES[node.name];
+          throw new Error("Unknown identifier '" + node.name + "'");
+        }
+        case "typeof": {
+          if (node.arg.k === "id" && !hasOwn.call(vars, node.arg.name)) {
+            if (node.arg.name === "Math") return "object";
+            if (
+              node.arg.name === "Array" ||
+              hasOwn.call(SAFE_CALLABLES, node.arg.name)
+            )
+              return "function";
+            return "undefined";
+          }
+          return typeof evalNode(node.arg);
+        }
+        case "un": {
+          const v = evalNode(node.arg);
+          if (node.op === "!") return !v;
+          if (node.op === "+") return +v;
+          if (node.op === "-") return -v;
+          throw new Error("Unknown unary operator");
+        }
+        case "bin": {
+          if (node.op === "&&")
+            return evalNode(node.left) && evalNode(node.right);
+          if (node.op === "||")
+            return evalNode(node.left) || evalNode(node.right);
+          if (node.op === "??") {
+            const l = evalNode(node.left);
+            return l !== null && l !== undefined ? l : evalNode(node.right);
+          }
+          const l = evalNode(node.left);
+          const r = evalNode(node.right);
+          switch (node.op) {
+            case "===":
+              return l === r;
+            case "!==":
+              return l !== r;
+            case "==":
+              // eslint-disable-next-line eqeqeq
+              return l == r;
+            case "!=":
+              // eslint-disable-next-line eqeqeq
+              return l != r;
+            case "<":
+              return l < r;
+            case "<=":
+              return l <= r;
+            case ">":
+              return l > r;
+            case ">=":
+              return l >= r;
+            case "+":
+              return l + r;
+            case "-":
+              return l - r;
+            case "*":
+              return l * r;
+            case "/":
+              return l / r;
+            case "%":
+              return l % r;
+            default:
+              throw new Error("Unknown operator '" + node.op + "'");
+          }
+        }
+        case "cond":
+          return evalNode(node.test)
+            ? evalNode(node.consequent)
+            : evalNode(node.alternate);
+        case "mem": {
+          const obj = evalNode(node.obj);
+          const prop = String(node.computed ? evalNode(node.prop) : node.prop);
+          if (hasOwn.call(FORBIDDEN_NAMES, prop)) {
+            throw new Error("Forbidden property '" + prop + "'");
+          }
+          if (obj === null || obj === undefined) {
+            throw new Error("Cannot read property '" + prop + "' of " + obj);
+          }
+          if (obj === MATH_SENTINEL) {
+            if (prop === "PI" || prop === "E") return (Math as any)[prop];
+            throw new Error("Unsupported Math property '" + prop + "'");
+          }
+          if (typeof obj === "string" || Array.isArray(obj)) {
+            if (prop === "length") return obj.length;
+            const idx = Number(prop);
+            if (Number.isInteger(idx) && idx >= 0 && idx < obj.length) {
+              return obj[idx];
+            }
+            return undefined;
+          }
+          if (typeof obj === "object") {
+            return hasOwn.call(obj, prop) ? obj[prop] : undefined;
+          }
+          return undefined;
+        }
+        case "call": {
+          const argVals = node.args.map(evalNode);
+          if (node.callee.k === "id") {
+            const fnName = node.callee.name;
+            if (hasOwn.call(SAFE_CALLABLES, fnName)) {
+              return SAFE_CALLABLES[fnName]!(...argVals);
+            }
+            throw new Error("Disallowed function call '" + fnName + "'");
+          }
+          if (node.callee.k === "mem") {
+            const target = evalNode(node.callee.obj);
+            const method = String(
+              node.callee.computed
+                ? evalNode(node.callee.prop)
+                : node.callee.prop,
+            );
+            if (hasOwn.call(FORBIDDEN_NAMES, method)) {
+              throw new Error("Forbidden method '" + method + "'");
+            }
+            if (target === MATH_SENTINEL && hasOwn.call(MATH_METHODS, method)) {
+              return (Math as any)[method](...argVals);
+            }
+            if (
+              target === NUMBER_SENTINEL &&
+              hasOwn.call(NUMBER_METHODS, method)
+            ) {
+              return (Number as any)[method](...argVals);
+            }
+            if (target === ARRAY_SENTINEL && method === "isArray") {
+              return Array.isArray(argVals[0]);
+            }
+            if (
+              typeof target === "string" &&
+              hasOwn.call(STRING_METHODS, method)
+            ) {
+              return (String.prototype as any)[method].apply(target, argVals);
+            }
+            if (Array.isArray(target) && hasOwn.call(ARRAY_METHODS, method)) {
+              return (Array.prototype as any)[method].apply(target, argVals);
+            }
+            throw new Error("Disallowed method call '" + method + "'");
+          }
+          throw new Error("Disallowed call expression");
+        }
+        default:
+          throw new Error("Invalid AST node");
+      }
+    };
+
+    return Boolean(evalNode(ast));
+  } catch (err: any) {
+    throw new Error(
+      "Invalid condition [" +
+        condStr +
+        "]: " +
+        (err && err.message ? err.message : String(err)),
+    );
+  }
+}
+
+// -------------------------------------------------------------------------------------------------
 // Macro validation & export (SQL script / VBA module)
 // -------------------------------------------------------------------------------------------------
 
@@ -465,15 +1108,136 @@ function stepToSql(
   }
 }
 
+function singleLineCommentText(s: any): string {
+  return String(s ?? "").replace(/[\r\n\u2028\u2029]+/g, " ");
+}
+
+function safeExportCondition(
+  exprRaw: string,
+  target: "vba" | "bun",
+): string | null {
+  const expr = String(exprRaw || "").trim();
+  if (!expr || /[\r\n\u2028\u2029;`]/.test(expr)) return null;
+  let out = "";
+  let i = 0;
+  while (i < expr.length) {
+    const c = expr[i]!;
+    if (c === "'" || c === '"') {
+      let j = i + 1;
+      let str = "";
+      while (j < expr.length && expr[j] !== c) {
+        if (expr[j] === "\\") {
+          j++;
+          if (j >= expr.length) return null;
+          const esc = expr[j]!;
+          if (esc === "n") str += "\n";
+          else if (esc === "r") str += "\r";
+          else if (esc === "t") str += "\t";
+          else str += esc;
+        } else {
+          str += expr[j]!;
+        }
+        j++;
+      }
+      if (j >= expr.length) return null;
+      if (target === "vba") {
+        if (/[\r\n]/.test(str)) return null;
+        out += `"${str.replace(/"/g, '""')}"`;
+      } else {
+        out += JSON.stringify(str);
+      }
+      i = j + 1;
+    } else if (expr.startsWith("//", i) || expr.startsWith("/*", i)) {
+      return null;
+    } else if (c === "[") {
+      const j = expr.indexOf("]", i);
+      if (j === -1) return null;
+      const vName = expr.slice(i + 1, j).trim();
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(vName)) return null;
+      if (
+        vName === "__proto__" ||
+        vName === "constructor" ||
+        vName === "prototype"
+      )
+        return null;
+      out += target === "vba" ? vName : `TempVars.${vName}`;
+      i = j + 1;
+    } else if (expr.startsWith("===", i) || expr.startsWith("==", i)) {
+      const len = expr.startsWith("===", i) ? 3 : 2;
+      if (expr[i + len] === "=") return null;
+      out += target === "vba" ? "=" : "===";
+      i += len;
+    } else if (
+      expr.startsWith("!==", i) ||
+      expr.startsWith("!=", i) ||
+      expr.startsWith("<>", i)
+    ) {
+      const len = expr.startsWith("!==", i) ? 3 : 2;
+      if (expr[i + len] === "=") return null;
+      out += target === "vba" ? "<>" : "!==";
+      i += len;
+    } else if (expr.startsWith("&&", i) || expr.startsWith("||", i)) {
+      const isAnd = expr.startsWith("&&", i);
+      out =
+        out.trimEnd() +
+        (target === "vba"
+          ? isAnd
+            ? " And "
+            : " Or "
+          : isAnd
+            ? " && "
+            : " || ");
+      i += 2;
+      while (expr[i] === " ") i++;
+    } else if (c === "!" && expr[i + 1] !== "=") {
+      out += target === "vba" ? "Not " : "!";
+      i++;
+    } else if (c >= "0" && c <= "9") {
+      const m = expr.slice(i).match(/^\d+(?:\.\d+)?/);
+      if (!m) return null;
+      out += m[0];
+      i += m[0].length;
+    } else if (/[A-Za-z_]/.test(c)) {
+      const m = expr.slice(i).match(/^[A-Za-z_]\w*/)!;
+      const w = m[0];
+      if (w === "true" || w === "false") {
+        out += target === "vba" ? (w === "true" ? "True" : "False") : w;
+      } else if (w === "null" && target === "bun") {
+        out += "null";
+      } else {
+        return null;
+      }
+      i += w.length;
+    } else if (" <>+-*/%()".indexOf(c) !== -1) {
+      if ((c === "<" || c === ">") && expr[i + 1] === "=") {
+        out += c + "=";
+        i += 2;
+      } else {
+        out += c;
+        i++;
+      }
+    } else {
+      return null;
+    }
+  }
+  try {
+    // Also ensure balanced parentheses and valid syntax via our AST condition parser
+    evaluateMacroCondition(expr, {});
+  } catch {
+    return null;
+  }
+  return out.trim() || null;
+}
+
 /** Serializes a macro into a plain SQL script (data-changing steps wrapped in one transaction). */
 export function macroToSqlScript(
   macro: MacroDefinition,
   queries: SavedQueryDefinition[] = [],
   d: MacroDialect = "sqlite",
 ): string {
-  const lines: string[] = [`-- Macro: ${macro.name}`];
+  const lines: string[] = [`-- Macro: ${singleLineCommentText(macro.name)}`];
   if (macro.description)
-    lines.push(`-- ${String(macro.description).replace(/\r?\n/g, " ")}`);
+    lines.push(`-- ${singleLineCommentText(macro.description)}`);
   lines.push(
     "",
     d === "mysql"
@@ -490,10 +1254,10 @@ export function macroToSqlScript(
     );
   const trailing: string[] = [];
   (macro.actions || []).forEach((act, i) => {
-    const label = `-- Step ${i + 1}: ${act.action}${act.enabled === false ? " (disabled)" : ""}${act.condition ? ` [If ${act.condition}]` : ""}`;
+    const label = `-- Step ${i + 1}: ${singleLineCommentText(act.action)}${act.enabled === false ? " (disabled)" : ""}${act.condition ? ` [If ${singleLineCommentText(act.condition)}]` : ""}`;
     if (act.action === "Comment") {
       lines.push(
-        `-- ${String((act.parameters || {}).comment || "").replace(/\r?\n/g, " ")}`,
+        `-- ${singleLineCommentText((act.parameters || {}).comment || "")}`,
         "",
       );
       return;
@@ -509,7 +1273,7 @@ export function macroToSqlScript(
       trailing.push(label, prefix + body, "");
       return;
     }
-    lines.push(label, ...body.split("\n").map((l) => prefix + l), "");
+    lines.push(label, ...body.split(/\r?\n|\r/).map((l) => prefix + l), "");
   });
   lines.push("COMMIT;", "");
   if (trailing.length)
@@ -527,7 +1291,7 @@ export function macroToVba(
     '"' +
     String(s ?? "")
       .replace(/"/g, '""')
-      .replace(/\r?\n/g, '" & vbCrLf & "') +
+      .replace(/\r\n|\r|\n/g, '" & vbCrLf & "') +
     '"';
   const subName = String(macro.name || "Macro")
     .replace(/[^A-Za-z0-9_]/g, "_")
@@ -545,7 +1309,7 @@ export function macroToVba(
     const body: string[] = [];
     switch (act.action) {
       case "Comment":
-        body.push(`' ${String(p.comment || "").replace(/\r?\n/g, " ")}`);
+        body.push(`' ${singleLineCommentText(p.comment || "")}`);
         break;
       case "OpenTable":
         body.push(`DoCmd.OpenTable ${vbaStr(p.table)}`);
@@ -580,22 +1344,30 @@ export function macroToVba(
         break;
       case "RunCode":
         body.push(
-          `' [Bun JS RunCode]: ${String(p.code ?? p.functionName ?? "").replace(/\r?\n/g, " | ")}`,
+          `' [Bun JS RunCode]: ${singleLineCommentText(String(p.code ?? p.functionName ?? ""))}`,
         );
         break;
       default: {
         const sql = stepToSql(act, queries, d);
         if (sql !== null) body.push(`DoCmd.RunSQL ${vbaStr(sql)}`);
-        else body.push(`' ${act.action}: no direct VBA equivalent`);
+        else
+          body.push(
+            `' ${singleLineCommentText(act.action)}: no direct VBA equivalent`,
+          );
       }
     }
-    out.push(`    ' Step ${i + 1}: ${act.action}`);
-    if (act.condition) {
-      out.push(
-        `    If ${act.condition.replace(/\[([A-Za-z0-9_]+)\]/g, "$1")} Then`,
-      );
-      body.forEach((l) => out.push(`        ${l}`));
-      out.push(`    End If`);
+    out.push(`    ' Step ${i + 1}: ${singleLineCommentText(act.action)}`);
+    if (act.condition && String(act.condition).trim()) {
+      const vbaCond = safeExportCondition(act.condition, "vba");
+      if (vbaCond === null) {
+        out.push(
+          `    ' Condition could not be translated safely; step skipped: ${singleLineCommentText(act.condition)}`,
+        );
+      } else {
+        out.push(`    If ${vbaCond} Then`);
+        body.forEach((l) => out.push(`        ${l}`));
+        out.push(`    End If`);
+      }
     } else {
       body.forEach((l) => out.push(`    ${l}`));
     }
@@ -623,20 +1395,22 @@ export function macroToBunJs(
     .replace(/[^A-Za-z0-9_]/g, "_")
     .replace(/^(\d)/, "_$1");
   const out: string[] = [
-    `// Macro: ${macro.name || "Untitled"}`,
-    `// Converted to Bun JavaScript Runtime (${d})`,
+    `// Macro: ${singleLineCommentText(macro.name || "Untitled")}`,
+    `// Converted to Bun JavaScript Runtime (${singleLineCommentText(d)})`,
     `export async function ${fnName}({ CurrentDb, db, DoCmd, TempVars, DCount, DLookup, DSum, MsgBox, Debug }) {`,
   ];
   (macro.actions || []).forEach((act, i) => {
     if (act.enabled === false) {
-      out.push(`  // Step ${i + 1}: ${act.action} (disabled)`);
+      out.push(
+        `  // Step ${i + 1}: ${singleLineCommentText(act.action)} (disabled)`,
+      );
       return;
     }
     const p = act.parameters || {};
     const lines: string[] = [];
     switch (act.action) {
       case "Comment":
-        lines.push(`// ${String(p.comment || "").replace(/\r?\n/g, " ")}`);
+        lines.push(`// ${singleLineCommentText(p.comment || "")}`);
         break;
       case "OpenTable":
         lines.push(`await DoCmd.OpenTable(${JSON.stringify(p.table || "")});`);
@@ -677,24 +1451,28 @@ export function macroToBunJs(
         break;
       case "RunCode": {
         const code = String(p.code ?? p.functionName ?? "").trim();
-        for (const cl of code.split(/\r?\n/)) lines.push(cl);
+        for (const cl of code.split(/\r\n|\r|\n/)) lines.push(cl);
         break;
       }
       default: {
         const sql = stepToSql(act, queries, d);
         if (sql !== null)
           lines.push(`await DoCmd.RunSQL(${JSON.stringify(sql)});`);
-        else lines.push(`// ${act.action}`);
+        else lines.push(`// ${singleLineCommentText(act.action)}`);
       }
     }
-    out.push(`  // Step ${i + 1}: ${act.action}`);
+    out.push(`  // Step ${i + 1}: ${singleLineCommentText(act.action)}`);
     if (act.condition && act.condition.trim()) {
-      const jsCond = act.condition
-        .trim()
-        .replace(/\[([A-Za-z0-9_]+)\]/g, "TempVars.$1");
-      out.push(`  if (${jsCond}) {`);
-      lines.forEach((l) => out.push(`    ${l}`));
-      out.push(`  }`);
+      const jsCond = safeExportCondition(act.condition, "bun");
+      if (jsCond === null) {
+        out.push(
+          `  // Condition could not be translated safely; step skipped: ${singleLineCommentText(act.condition)}`,
+        );
+      } else {
+        out.push(`  if (${jsCond}) {`);
+        lines.forEach((l) => out.push(`    ${l}`));
+        out.push(`  }`);
+      }
     } else {
       lines.forEach((l) => out.push(`  ${l}`));
     }
@@ -2363,17 +3141,26 @@ async function deleteNamedQueryById(idOrName) {
 // -------------------------------------------------------------------------------------------------
 // Audio Synthesizer (Beep / Chime)
 // -------------------------------------------------------------------------------------------------
+let __studioSharedAudioCtx = null;
 function playAccessBeep(frequency = 800, count = 1) {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    for (let i = 0; i < count; i++) {
+    if (!__studioSharedAudioCtx || __studioSharedAudioCtx.state === "closed") {
+      __studioSharedAudioCtx = new AudioCtx();
+    }
+    const ctx = __studioSharedAudioCtx;
+    if (ctx.state === "suspended" && typeof ctx.resume === "function") {
+      ctx.resume().catch(() => {});
+    }
+    const safeCount = Math.min(Math.max(1, Math.floor(Number(count) || 1)), 10);
+    const safeFreq = Math.min(Math.max(100, Number(frequency) || 800), 8000);
+    for (let i = 0; i < safeCount; i++) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine";
       const startT = ctx.currentTime + i * 0.18;
-      osc.frequency.setValueAtTime(frequency, startT);
+      osc.frequency.setValueAtTime(safeFreq, startT);
       gain.gain.setValueAtTime(0.18, startT);
       gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.12);
       osc.connect(gain);
@@ -2385,10 +3172,14 @@ function playAccessBeep(frequency = 800, count = 1) {
     console.log("Audio chime simulated:", err);
   }
 }
+const playStudioBeep = playAccessBeep;
 
 // -------------------------------------------------------------------------------------------------
 // Macro Loading & Persistence
 // -------------------------------------------------------------------------------------------------
+let macroDbTrusted = true;
+let macroHasEmbedded = false;
+
 async function loadMacrosFromServer() {
   if (typeof loadSavedQueriesFromServer === "function") {
     try { await loadSavedQueriesFromServer(); } catch {}
@@ -2397,11 +3188,17 @@ async function loadMacrosFromServer() {
     const res = await apiRequest('/api/macros/list');
     if (res && res.success && Array.isArray(res.macros)) {
       macroStore = res.macros;
+      macroDbTrusted = res.trusted !== false;
+      macroHasEmbedded = Boolean(res.hasEmbeddedMacros);
     } else {
       macroStore = getDefaultSampleMacros();
+      macroDbTrusted = true;
+      macroHasEmbedded = false;
     }
   } catch (e) {
     macroStore = getDefaultSampleMacros();
+    macroDbTrusted = true;
+    macroHasEmbedded = false;
   }
 
   if (macroStore.length === 0) {
@@ -2739,16 +3536,32 @@ function renderMacroMatrixTable() {
     // 6. Order (Up / Down buttons)
     const tdOrder = document.createElement("td");
     tdOrder.style.textAlign = "center";
-    tdOrder.innerHTML = \`
-      <button class="sidebar-mini-btn" onclick="moveActionRow('\${act.id}', -1)" \${idx === 0 ? 'disabled' : ''} title="Move Up">▲</button>
-      <button class="sidebar-mini-btn" onclick="moveActionRow('\${act.id}', 1)" \${idx === currentMacro.actions.length - 1 ? 'disabled' : ''} title="Move Down">▼</button>
-    \`;
+    const upBtn = document.createElement("button");
+    upBtn.className = "sidebar-mini-btn";
+    upBtn.disabled = idx === 0;
+    upBtn.title = "Move Up";
+    upBtn.textContent = "▲";
+    upBtn.onclick = () => moveActionRow(act.id, -1);
+    const downBtn = document.createElement("button");
+    downBtn.className = "sidebar-mini-btn";
+    downBtn.disabled = idx === currentMacro.actions.length - 1;
+    downBtn.title = "Move Down";
+    downBtn.textContent = "▼";
+    downBtn.onclick = () => moveActionRow(act.id, 1);
+    tdOrder.appendChild(upBtn);
+    tdOrder.appendChild(document.createTextNode(" "));
+    tdOrder.appendChild(downBtn);
     tr.appendChild(tdOrder);
 
     // 7. Delete Button
     const tdDel = document.createElement("td");
     tdDel.style.textAlign = "center";
-    tdDel.innerHTML = \`<button class="sidebar-mini-btn" onclick="deleteActionRow('\${act.id}')" title="Delete action">✕</button>\`;
+    const delBtn = document.createElement("button");
+    delBtn.className = "sidebar-mini-btn";
+    delBtn.title = "Delete action";
+    delBtn.textContent = "✕";
+    delBtn.onclick = () => deleteActionRow(act.id);
+    tdDel.appendChild(delBtn);
     tr.appendChild(tdDel);
 
     tbody.appendChild(tr);
@@ -3529,15 +4342,15 @@ function renderActionCatalog() {
       item.className = "macro-catalog-item";
       item.innerHTML = \`
         <div class="macro-catalog-item-title">
-          <span>\${act.icon}</span>
-          <span>\${act.name}</span>
+          <span>\${escapeHtml(act.icon)}</span>
+          <span>\${escapeHtml(act.name)}</span>
         </div>
         <button class="sidebar-mini-btn" style="padding: 1px 5px;" title="Add action">+ Add</button>
       \`;
 
       item.onmouseenter = () => {
         const descBox = document.getElementById("catalogDescBox");
-        if (descBox) descBox.innerHTML = \`<b>\${act.icon} \${act.name}</b> (\${act.category})<br><span style="color:var(--text-main)">\${act.desc}</span>\`;
+        if (descBox) descBox.innerHTML = \`<b>\${escapeHtml(act.icon)} \${escapeHtml(act.name)}</b> (\${escapeHtml(act.category)})<br><span style="color:var(--text-main)">\${escapeHtml(act.desc)}</span>\`;
       };
 
       item.onclick = () => {
@@ -3590,12 +4403,28 @@ function renderMacroTreeGroup(container, query) {
   filtered.forEach(m => {
     const row = document.createElement("div");
     row.className = "tree-item" + (currentMacro && m.id === currentMacro.id ? " active" : "");
+    const isUntrustedEmbedded = Boolean((m.embedded && m.trusted === false) || (macroHasEmbedded && !macroDbTrusted));
     row.innerHTML = \`
-      <span class="tree-item-title">\${m.isAutoExec ? "⚡ " : "📜 "}\${escapeHtml(m.name)}</span>
-      <span class="badge" style="font-size: 9px; padding: 1px 4px;">\${m.actions.length} steps</span>
-      <button class="tree-item-macro-run" onclick="event.stopPropagation(); executeSpecificMacroById('\${m.id}')" title="Execute macro now">▶</button>
-      <button class="tree-item-macro-run" onclick="event.stopPropagation(); openCodeGenForMacroId('\${m.id}')" title="Translate to Python / Bun / V">🧬</button>
+      <span class="tree-item-title">\${m.isAutoExec ? "⚡ " : "📜 "}\${escapeHtml(m.name)}\${isUntrustedEmbedded ? ' <span class="badge" style="font-size: 9px; padding: 1px 4px; background: rgba(244,63,94,0.18); color: var(--rose);" title="Embedded macro in untrusted database file">⚠️ Untrusted</span>' : ""}</span>
+      <span class="badge" style="font-size: 9px; padding: 1px 4px;">\${Number(m.actions ? m.actions.length : 0)} steps</span>
+      <button class="tree-item-macro-run btn-exec-macro" title="Execute macro now">▶</button>
+      <button class="tree-item-macro-run btn-codegen-macro" title="Translate to Python / Bun / V">🧬</button>
     \`;
+
+    const execBtn = row.querySelector(".btn-exec-macro");
+    if (execBtn) {
+      execBtn.onclick = (e) => {
+        e.stopPropagation();
+        executeSpecificMacroById(m.id);
+      };
+    }
+    const cgBtn = row.querySelector(".btn-codegen-macro");
+    if (cgBtn) {
+      cgBtn.onclick = (e) => {
+        e.stopPropagation();
+        openCodeGenForMacroId(m.id);
+      };
+    }
 
     row.onclick = () => {
       currentMacro = m;
@@ -3627,32 +4456,9 @@ async function executeSpecificMacroById(id) {
 }
 
 // -------------------------------------------------------------------------------------------------
-// Condition Evaluation Engine
+// Condition Evaluation Engine (Pure AST / Recursive-Descent — Zero new Function / eval)
 // -------------------------------------------------------------------------------------------------
-function evaluateMacroCondition(condStr, scope) {
-  if (!condStr || !condStr.trim()) return true;
-  let expr = condStr.trim();
-
-  // Replace [variable] syntax with scope values
-  const varRegex = /\\[([a-zA-Z0-9_]+)\\]/g;
-  expr = expr.replace(varRegex, (_, varName) => {
-    if (varName in scope) {
-      const val = scope[varName];
-      if (typeof val === "string") return JSON.stringify(val);
-      if (typeof val === "number" || typeof val === "boolean") return String(val);
-      return JSON.stringify(val);
-    }
-    return "0";
-  });
-
-  try {
-    const fn = new Function("scope", "with(scope) { return Boolean(" + expr + "); }");
-    return Boolean(fn(scope));
-  } catch (err) {
-    // A broken condition must never silently run a (possibly destructive) step.
-    throw new Error("Invalid condition [" + condStr + "]: " + (err.message || err));
-  }
-}
+${evaluateMacroCondition.toString()}
 
 // -------------------------------------------------------------------------------------------------
 // [Enter ...] parameter prompts (helpers shared with the server module)
@@ -3833,6 +4639,20 @@ async function runCurrentMacroOnServer(mode) {
     }
   } catch (e) {}
 
+  const hasRunCode = (currentMacro.actions || []).some(a => a.enabled !== false && a.action === "RunCode");
+  if (hasRunCode) {
+    const okRunCode = await macroAskConfirm(
+      "Confirm RunCode Execution",
+      "Macro '" + currentMacro.name + "' contains RunCode action(s) that execute isolated JavaScript on the Studio server.\\n\\nAllow RunCode execution?",
+      "Allow RunCode",
+      true
+    );
+    if (!okRunCode) {
+      showToast("Macro RunCode execution cancelled.");
+      return;
+    }
+  }
+
   const label = mode === "dryRun" ? "Dry Run (rolled back)" : "Atomic Run";
   logMacroConsole("=== " + label + ": " + currentMacro.name + " ===", "info");
   const res = await apiRequest('/api/macros/run', {
@@ -3840,6 +4660,7 @@ async function runCurrentMacroOnServer(mode) {
     params,
     dryRun: mode === "dryRun",
     transaction: mode === "transaction",
+    confirmRunCode: hasRunCode,
     variables: { activeTable: activeTable || "" },
   });
   const r = (res && res.result) || {};
@@ -4285,9 +5106,20 @@ async function executeMacroAction(action) {
     }
 
     case "RunCode": {
+      const snippet = String(p.code || p.functionName || "").trim();
+      const confirmed = await macroAskConfirm(
+        "Confirm RunCode Execution",
+        "Allow this macro step to execute isolated Bun JS RunCode?\\n\\n" + snippet.slice(0, 240),
+        "Allow RunCode",
+        true
+      );
+      if (!confirmed) {
+        throw new Error("RunCode execution cancelled by user");
+      }
       const res = await apiRequest('/api/macros/run', {
         macro: { id: "adhoc_runcode", name: "RunCode", description: "", actions: [action] },
         variables: macroVariables,
+        confirmRunCode: true,
       });
       const r = (res && res.result) || {};
       if (!res || !r.success) throw new Error(r.error || (res && res.error) || "RunCode failed");
@@ -4632,12 +5464,15 @@ function logMacroConsole(msg, type = "info") {
 
   const now = new Date();
   const timeStr = "[" + now.toTimeString().split(" ")[0] + "]";
+  const safeType = /^(info|success|error|warning|skipped)$/.test(String(type))
+    ? String(type)
+    : "info";
 
   const line = document.createElement("div");
   line.className = "macro-log-line";
   line.innerHTML = \`
-    <span class="macro-log-time">\${timeStr}</span>
-    <span class="macro-log-tag \${type}">\${type}</span>
+    <span class="macro-log-time">\${escapeHtml(timeStr)}</span>
+    <span class="macro-log-tag \${safeType}">\${escapeHtml(safeType)}</span>
     <span>\${escapeHtml(msg)}</span>
   \`;
   box.appendChild(line);
@@ -4833,7 +5668,7 @@ function downloadJsonFile(filename, content) {
 }
 
 // -------------------------------------------------------------------------------------------------
-// AutoExec Startup Hook
+// AutoExec Startup Hook (Explicit Consent Required — Zero-Click AutoExec Disabled)
 // -------------------------------------------------------------------------------------------------
 let autoExecTriggered = false;
 async function checkAndRunAutoExec() {
@@ -4845,12 +5680,57 @@ async function checkAndRunAutoExec() {
   }
 
   const autoExecMacro = macroStore.find(m => m.isAutoExec || m.name.toLowerCase() === "autoexec");
-  if (autoExecMacro) {
-    logMacroConsole("⚡ Found AutoExec startup macro. Executing initialization actions...", "info");
-    currentMacro = autoExecMacro;
-    populateMacroSelector();
-    await runCurrentMacro(false);
+  if (!autoExecMacro) return;
+
+  currentMacro = autoExecMacro;
+  populateMacroSelector();
+
+  const isUntrusted = Boolean(
+    (autoExecMacro.embedded && autoExecMacro.trusted === false) ||
+    (macroHasEmbedded && !macroDbTrusted)
+  );
+  // Only prompt automatically when an embedded/custom AutoExec is present; never auto-run silently!
+  if (!isUntrusted && autoExecMacro.id === "macro_autoexec") {
+    logMacroConsole("⚡ Sample AutoExec macro ready (click Run to execute).", "info");
+    return;
   }
+
+  const actionSummary = (autoExecMacro.actions || [])
+    .filter(a => a.enabled !== false)
+    .slice(0, 6)
+    .map((a, idx) => (idx + 1) + ". " + a.action)
+    .join(", ");
+
+  logMacroConsole(
+    "⚡ Startup AutoExec macro '" + autoExecMacro.name + "' paused pending explicit user consent.",
+    "warning"
+  );
+
+  const allowed = await macroAskConfirm(
+    isUntrusted ? "⚠️ Untrusted Database AutoExec Macro" : "Confirm AutoExec Startup Macro",
+    "This database contains a startup AutoExec macro '" + autoExecMacro.name + "' (" +
+      (autoExecMacro.actions ? autoExecMacro.actions.length : 0) + " step(s): " + (actionSummary || "none") + ").\\n\\n" +
+      (isUntrusted
+        ? "WARNING: This macro is embedded inside an external database file. Only allow execution if you trust the source of this file."
+        : "Do you want to run this startup macro now?"),
+    "Trust & Run AutoExec",
+    isUntrusted
+  );
+
+  if (!allowed) {
+    logMacroConsole("AutoExec macro skipped (not approved by user).", "skipped");
+    return;
+  }
+
+  if (isUntrusted) {
+    try {
+      await apiRequest('/api/macros/trust', { trusted: true, confirmedAutoExec: true });
+      macroDbTrusted = true;
+    } catch {}
+  }
+
+  logMacroConsole("⚡ User approved AutoExec startup macro. Executing...", "info");
+  await runCurrentMacro(false);
 }
 
 // Initial boot for macros
@@ -4887,8 +5767,9 @@ function macroDialectPrelude(d: MacroDialect): string {
     if (analyze) await apiRequest('/api/query', { sql: 'ANALYZE TABLE ' + macroQuoteId(t) });
   }
   return "Optimized" + (analyze ? " and analyzed " : " ") + tables.length + " table(s)";`
-        : `await apiRequest('/api/pragma', { command: 'VACUUM;' });
-  if (analyze) await apiRequest('/api/pragma', { command: 'PRAGMA optimize;' });
+        : `const vRes = await apiRequest('/api/query', { sql: 'VACUUM;' });
+  if (!vRes || vRes.success === false) throw new Error((vRes && vRes.error) || "VACUUM failed");
+  if (analyze) await apiRequest('/api/pragma', { pragma: 'optimize' });
   return "Executed VACUUM and database optimization";`;
   const backup =
     d === "sqlite"
