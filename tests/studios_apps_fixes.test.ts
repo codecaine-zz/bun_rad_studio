@@ -51,6 +51,32 @@ import { buryTargetsSync } from "../applications/rip_engine";
 import { startMediaPlayerStudioServer } from "../applications/media_player_studio";
 import { startSubprocessPipeStudioServer } from "../applications/subprocess_pipe_studio_server";
 import { probeHttpSync } from "../applications/network_studio";
+import { Database } from "bun:sqlite";
+import {
+  evaluateMacroCondition,
+  macroToBunJs,
+  macroToSqlScript,
+  macroToVba,
+  type MacroDefinition,
+} from "../applications/sqlite_studio_macros";
+import {
+  SqliteManager,
+  startSqliteStudioServer,
+} from "../applications/sqlite_studio_server";
+import {
+  executeIsolatedRunCode,
+  transpileSafeRunCode,
+} from "../applications/studio_macros_server";
+import { generateMacroCode } from "../applications/studio_codegen";
+import { startPostgresStudioServer } from "../applications/postgres_studio_server";
+import {
+  parseMysqlEnumValues,
+  shouldAllowPublicKeyRetrieval,
+} from "../applications/mysql_studio_server";
+import {
+  maskUrlPassword,
+  RedisManager,
+} from "../applications/redis_studio_server";
 
 function extractCalculatorEvalFn(): (expr: string, x: number) => number {
   const src = readFileSync(
@@ -654,6 +680,365 @@ describe("Slice 4 Studios & Non-FM Resources Regression Suite", () => {
       } finally {
         srv.stop(true);
         rmSync(join(tmpFile, ".."), { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe("[V-SEC-01] SQLite AutoExec consent gate, AST macro conditions & isolated Worker RunCode", () => {
+    test("blocks zero-click AutoExec from untrusted .sqlite files and exposes _studio_macros in schema", async () => {
+      const tmp = mkdtempSync(join(tmpdir(), "sqlite-autoexec-"));
+      try {
+        const dbPath = join(tmp, "untrusted_payload.sqlite");
+        const seedDb = new Database(dbPath);
+        seedDb.run(`
+          CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT);
+          CREATE TABLE _studio_macros (
+            id TEXT PRIMARY KEY,
+            name TEXT UNIQUE NOT NULL,
+            description TEXT,
+            actions_json TEXT NOT NULL,
+            is_autoexec INTEGER DEFAULT 0,
+            on_error TEXT DEFAULT 'stop',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+        const evilActions = JSON.stringify([
+          {
+            id: "s1",
+            action: "RunSQL",
+            enabled: true,
+            parameters: { sql: "CREATE TABLE autoexec_pwned (x INT);" },
+          },
+        ]);
+        seedDb.run(
+          "INSERT INTO _studio_macros (id, name, description, actions_json, is_autoexec) VALUES (?, ?, ?, ?, 1);",
+          ["m_auto", "AutoExec", "embedded payload", evilActions],
+        );
+        seedDb.close();
+
+        const mgr = new SqliteManager(dbPath);
+        try {
+          expect(mgr.hasPreExistingEmbeddedMacros).toBe(true);
+          expect(mgr.isDatabaseTrusted()).toBe(false);
+
+          const schema = mgr.getSchema();
+          expect(schema.tables.some((t) => t.name === "_studio_macros")).toBe(
+            true,
+          );
+
+          const blocked = await mgr.runMacroAsync(
+            "AutoExec",
+            {},
+            {
+              autoExec: true,
+            },
+          );
+          expect(blocked.success).toBe(false);
+          expect(blocked.requiresConsent).toBe(true);
+
+          const pwnCheck = mgr.db
+            .query(
+              "SELECT name FROM sqlite_master WHERE type='table' AND name='autoexec_pwned';",
+            )
+            .get();
+          expect(pwnCheck).toBeNull();
+
+          const allowed = await mgr.runMacroAsync(
+            "AutoExec",
+            {},
+            {
+              autoExec: true,
+              confirmedAutoExec: true,
+            },
+          );
+          expect(allowed.success).toBe(true);
+          const pwnAfterConsent = mgr.db
+            .query(
+              "SELECT name FROM sqlite_master WHERE type='table' AND name='autoexec_pwned';",
+            )
+            .get();
+          expect(pwnAfterConsent).not.toBeNull();
+        } finally {
+          mgr.db.close();
+        }
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    test("evaluateMacroCondition uses pure AST parsing and blocks code/prototype escapes", () => {
+      expect(
+        evaluateMacroCondition(
+          "count > 2 && (status === 'ok' || [rows] >= 10)",
+          {
+            count: 5,
+            status: "ok",
+            rows: 3,
+          },
+        ),
+      ).toBe(true);
+      expect(
+        evaluateMacroCondition("count > 10 || status === 'fail'", {
+          count: 5,
+          status: "ok",
+        }),
+      ).toBe(false);
+
+      expect(() =>
+        evaluateMacroCondition("constructor.constructor('return 1')()", {}),
+      ).toThrow();
+      expect(() =>
+        evaluateMacroCondition("globalThis.process !== undefined", {}),
+      ).toThrow();
+      expect(() =>
+        evaluateMacroCondition("count = 99", { count: 1 }),
+      ).toThrow();
+      expect(() =>
+        evaluateMacroCondition('obj["__proto__"] !== null', { obj: {} }),
+      ).toThrow();
+    });
+
+    test("transpileSafeRunCode and executeIsolatedRunCode block Unicode/AsyncFunction/this escapes while supporting RPC", async () => {
+      expect(() => transpileSafeRunCode("\\u0070rocess.exit(1)")).toThrow();
+      expect(() => transpileSafeRunCode("\\x42un.spawnSync(['id'])")).toThrow();
+      expect(() => transpileSafeRunCode("await import('fs')")).toThrow();
+
+      await expect(
+        executeIsolatedRunCode(
+          "const fn = (async () => {})['con' + 'structor']; return fn('return 1')();",
+          {},
+          {
+            dialect: "sqlite",
+            query: async () => [],
+            execute: async () => ({ affectedRows: 0 }),
+            tables: async () => [],
+          },
+        ),
+      ).rejects.toThrow();
+
+      const ok = await executeIsolatedRunCode(
+        `
+        const rows = await CurrentDb.query("SELECT 42 AS answer");
+        DoCmd.SetTempVar("computed", rows[0].answer + 8);
+        DoCmd.SetTempVar("strictThisIsUndefined", this === undefined);
+        return TempVars.computed;
+        `,
+        { seed: 1 },
+        {
+          dialect: "sqlite",
+          query: async () => [{ answer: 42 }],
+          execute: async () => ({ affectedRows: 1 }),
+          tables: async () => ["orders"],
+        },
+      );
+      expect(ok.returnValue).toBe(50);
+      expect(ok.variables.computed).toBe(50);
+      expect(ok.variables.strictThisIsUndefined).toBe(true);
+    });
+  });
+
+  describe("[V-SEC-03] Multi-language studio_codegen & macro exporter escaping", () => {
+    test("escapes backslashes, Python triple-quotes, block comments, V interpolation, and single-line newlines", () => {
+      const trickyMacro: MacroDefinition = {
+        id: "m_codegen",
+        name: 'Evil */ Macro\r\nInjected(); """ ${os.system(\'id\')}',
+        description: 'Line1\nLine2 */ """ \\\' \\" ${bad}',
+        actions: [
+          {
+            id: "st1",
+            action: "RunSQL",
+            enabled: true,
+            comment: "Step comment\r\nDROP TABLE x; */",
+            parameters: {
+              sql: `SELECT 'a\\'' AS q, """triple""" AS t, '\${not_v_interp}' AS v;`,
+            },
+          },
+        ],
+      };
+
+      const py = generateMacroCode(trickyMacro, "python", {
+        sourceDialect: "sqlite",
+      });
+      expect(py.code).not.toContain("\nInjected();");
+      expect(py.code).not.toContain("\nDROP TABLE x;");
+
+      const vlang = generateMacroCode(trickyMacro, "vlang", {
+        sourceDialect: "sqlite",
+      });
+      const vlangCodeLines = vlang.code
+        .split("\n")
+        .filter((line) => !line.trimStart().startsWith("//"))
+        .join("\n");
+      expect(vlang.code).toContain("\\${os.system");
+      expect(vlang.code).toContain("\\${not_v_interp}");
+      expect(/(?<!\\)\$\{os\.system/.test(vlangCodeLines)).toBe(false);
+      expect(/(?<!\\)\$\{not_v_interp\}/.test(vlangCodeLines)).toBe(false);
+
+      const sqlScript = macroToSqlScript(trickyMacro, [], "sqlite");
+      expect(sqlScript).not.toContain("\nDROP TABLE x;");
+      const vba = macroToVba(trickyMacro, [], "sqlite");
+      expect(vba).not.toContain("\nDROP TABLE x;");
+      const bunJs = macroToBunJs(trickyMacro, [], "sqlite");
+      expect(bunJs).not.toContain("\nInjected();");
+    });
+  });
+
+  describe("[V-SEC-07], [V-SEC-15], [V-SEC-19], [V-QA-10] & [V-OPT-08] DB Studio Server Guards & Redesign", () => {
+    test("MySQL ENUM tokenizer, publicKeyRetrieval gate, Redis URL password redaction & SETBIT cap", async () => {
+      expect(
+        parseMysqlEnumValues("'alpha,beta','it''s','x\\'y','plain'"),
+      ).toEqual(["alpha,beta", "it's", "x'y", "plain"]);
+
+      expect(shouldAllowPublicKeyRetrieval("127.0.0.1", false)).toBe(true);
+      expect(shouldAllowPublicKeyRetrieval("localhost", false)).toBe(true);
+      expect(shouldAllowPublicKeyRetrieval("::1", false)).toBe(true);
+      expect(shouldAllowPublicKeyRetrieval("db.prod.internal", true)).toBe(
+        true,
+      );
+      expect(shouldAllowPublicKeyRetrieval("db.prod.internal", false)).toBe(
+        false,
+      );
+
+      const masked = maskUrlPassword(
+        "redis://admin:s3cr3t@p/ass@cache.internal:6379/2",
+      );
+      expect(masked).not.toContain("s3cr3t");
+      expect(masked).toContain("cache.internal:6379");
+
+      const fakeRedis = Object.create(RedisManager.prototype) as RedisManager;
+      (fakeRedis as any).client = {
+        setbit: async () => 0,
+      };
+      const badNeg = await fakeRedis.setKeyValue({
+        key: "bm:test",
+        type: "bitmap",
+        field: "-5",
+        value: 1,
+      });
+      expect(badNeg.success).toBe(false);
+
+      const badHuge = await fakeRedis.setKeyValue({
+        key: "bm:test",
+        type: "bitmap",
+        field: "500000000",
+        value: 1,
+      });
+      expect(badHuge.success).toBe(false);
+    });
+
+    test("SQLite /api/upload-database validates magic header & size cap and Postgres /api/seed rejects GET", async () => {
+      const sqliteSrv = startSqliteStudioServer({
+        port: 0,
+        host: "127.0.0.1",
+        initialDbPath: ":memory:",
+      });
+      const pgSrv = startPostgresStudioServer({
+        port: 0,
+        host: "127.0.0.1",
+      });
+      try {
+        const fd = new FormData();
+        fd.append(
+          "file",
+          new File(
+            [new TextEncoder().encode("NOT A SQLITE FILE AT ALL")],
+            "bad.sqlite",
+          ),
+        );
+        const badMagicRes = await fetch(
+          `http://127.0.0.1:${sqliteSrv.port}/api/upload-database`,
+          {
+            method: "POST",
+            body: fd,
+          },
+        );
+        expect(badMagicRes.status).toBe(400);
+
+        const getSeedRes = await fetch(
+          `http://127.0.0.1:${pgSrv.port}/api/seed`,
+          {
+            method: "GET",
+          },
+        );
+        expect(getSeedRes.status).toBe(405);
+      } finally {
+        sqliteSrv.stop(true);
+        pgSrv.stop(true);
+      }
+    });
+
+    test("SqliteManager.redesignTable preserves secondary indexes & triggers and importRows handles SAVEPOINT ignore", () => {
+      const mgr = new SqliteManager(":memory:");
+      try {
+        mgr.db.run(`
+          CREATE TABLE widgets (id INTEGER PRIMARY KEY, code TEXT UNIQUE, qty INTEGER);
+          CREATE INDEX idx_widgets_qty ON widgets(qty);
+          CREATE TRIGGER trg_widgets_audit AFTER INSERT ON widgets BEGIN
+            INSERT INTO audit_logs (action, entity, details) VALUES ('W_INS', 'widgets', CAST(NEW.qty AS TEXT));
+          END;
+          INSERT INTO widgets (id, code, qty) VALUES (1, 'A-1', 10);
+        `);
+
+        const redesign = mgr.redesignTable("widgets", "widgets_v2", [
+          {
+            name: "id",
+            origName: "id",
+            type: "INTEGER",
+            pk: true,
+            notnull: true,
+          },
+          {
+            name: "sku",
+            origName: "code",
+            type: "TEXT",
+            notnull: true,
+            unique: true,
+          },
+          {
+            name: "qty",
+            origName: "qty",
+            type: "INTEGER",
+            notnull: false,
+          },
+        ]);
+        expect(redesign.success).toBe(true);
+
+        const idxRow = mgr.db
+          .query(
+            "SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='widgets_v2' AND name='idx_widgets_qty';",
+          )
+          .get() as any;
+        expect(idxRow).not.toBeNull();
+
+        const trgRow = mgr.db
+          .query(
+            "SELECT sql FROM sqlite_master WHERE type='trigger' AND tbl_name='widgets_v2' AND name='trg_widgets_audit';",
+          )
+          .get() as any;
+        expect(trgRow).not.toBeNull();
+
+        const imp = mgr.importRows({
+          table: "widgets_v2",
+          columns: ["id", "sku", "qty"],
+          rows: [
+            [1, "DUP-SKU", 99],
+            [2, "B-2", 25],
+            [3, "C-3", 30],
+          ],
+          onConflict: "ignore",
+        });
+        expect(imp.success).toBe(true);
+        expect(imp.inserted).toBe(2);
+
+        const dump = mgr.generateDatabaseDump({
+          mode: "all",
+          tables: ["widgets_v2"],
+        });
+        expect(dump.sql).toContain("CREATE TRIGGER");
+        expect(dump.sql).toContain("B-2");
+      } finally {
+        mgr.db.close();
       }
     });
   });
