@@ -836,6 +836,70 @@ describe("Slice 4 Studios & Non-FM Resources Regression Suite", () => {
       expect(ok.variables.computed).toBe(50);
       expect(ok.variables.strictThisIsUndefined).toBe(true);
     });
+
+    test("blocks ShadowRealm / importValue sandbox escape and early '}' + function Object() {} scope breakouts", async () => {
+      const dummyRpc = {
+        dialect: "sqlite" as const,
+        query: async () => [],
+        execute: async () => ({ affectedRows: 0 }),
+        tables: async () => [],
+      };
+
+      expect(() =>
+        transpileSafeRunCode(
+          'const sr = new ShadowRealm(); const fn = await sr["im" + "portValue"]("fs", "readFileSync"); return String(fn("/etc/hosts", "utf8"));',
+        ),
+      ).toThrow();
+
+      await expect(
+        executeIsolatedRunCode(
+          'const sr = new ShadowRealm(); const fn = await sr["im" + "portValue"]("fs", "readFileSync"); return String(fn("/etc/hosts", "utf8"));',
+          {},
+          dummyRpc,
+        ),
+      ).rejects.toThrow();
+
+      expect(() =>
+        transpileSafeRunCode("\\u0053hadowRealm.prototype"),
+      ).toThrow();
+
+      expect(() =>
+        transpileSafeRunCode(
+          "return 1;\n}\nfunction Object() { return {}; }\nasync function __tail() {\nreturn 2;",
+        ),
+      ).toThrow();
+
+      await expect(
+        executeIsolatedRunCode(
+          "return 1;\n}\nfunction Object() { return {}; }\nasync function __tail() {\nreturn 2;",
+          {},
+          dummyRpc,
+        ),
+      ).rejects.toThrow();
+
+      const nonAllowlistedCheck = await executeIsolatedRunCode(
+        `
+        return {
+          urlUndef: typeof URL === "undefined",
+          blobUndef: typeof Blob === "undefined",
+          abortUndef: typeof AbortController === "undefined",
+          cryptoUndef: typeof crypto === "undefined",
+          perfUndef: typeof performance === "undefined",
+          runnerUndef: typeof __registerStudioRunner === "undefined",
+        };
+        `,
+        {},
+        dummyRpc,
+      );
+      expect(nonAllowlistedCheck.returnValue).toEqual({
+        urlUndef: true,
+        blobUndef: true,
+        abortUndef: true,
+        cryptoUndef: true,
+        perfUndef: true,
+        runnerUndef: true,
+      });
+    });
   });
 
   describe("[V-SEC-03] Multi-language studio_codegen & macro exporter escaping", () => {

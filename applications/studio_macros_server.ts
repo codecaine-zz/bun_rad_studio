@@ -240,7 +240,7 @@ export interface RunMacroOptions {
 const MAX_MACRO_DEPTH = 8;
 const DDL_PATTERN = /^\s*(CREATE|DROP|ALTER|TRUNCATE|RENAME)\b/i;
 export const FORBIDDEN_STUDIO_MACRO_RE =
-  /(?:\b(?:process|Bun|Deno|globalThis|global|window|self|frames|parent|top|Reflect|Proxy|constructor|__proto__|prototype|mainModule|require|import|child_process|Function|AsyncFunction|GeneratorFunction|AsyncGeneratorFunction|eval|WebSocket|XMLHttpRequest|EventSource|fetch|Worker|SharedArrayBuffer|Atomics|WebAssembly|__dirname|__filename)\b|\bnode:)/;
+  /(?:\b(?:process|Bun|Deno|ShadowRealm|importValue|BroadcastChannel|MessageChannel|MessagePort|FinalizationRegistry|WeakRef|HTMLRewriter|Loader|globalThis|global|window|self|frames|parent|top|Reflect|Proxy|constructor|__proto__|prototype|mainModule|require|import|child_process|Function|AsyncFunction|GeneratorFunction|AsyncGeneratorFunction|eval|WebSocket|XMLHttpRequest|EventSource|fetch|Worker|SharedArrayBuffer|Atomics|WebAssembly|__dirname|__filename)\b|\bnode:)/;
 
 function decodeJsEscapesForAudit(src: string): string {
   return src
@@ -260,7 +260,8 @@ function decodeJsEscapesForAudit(src: string): string {
 
 /**
  * Validates and transpiles a RunCode snippet, checking FORBIDDEN_STUDIO_MACRO_RE
- * BEFORE and AFTER transpilation (and after decoding unicode/hex escapes).
+ * BEFORE and AFTER transpilation (and after decoding unicode/hex escapes), and
+ * verifying dual-context brace containment so user code cannot close __studioRunCode early.
  */
 export function transpileSafeRunCode(rawCode: string): string {
   const code = String(rawCode || "").trim();
@@ -275,9 +276,26 @@ export function transpileSafeRunCode(rawCode: string): string {
     loader: "ts",
     target: "browser",
   });
-  const transpiled = transpiler.transformSync(
-    `async function __studioRunCode(CurrentDb, db, DoCmd, TempVars, vars, DCount, DLookup, DSum, MsgBox, Debug) {\n"use strict";\n${code}\n}`,
-  );
+  // Dual-context parse check: inside an object-literal method, only `,` or `}` can follow
+  // an early closing `}`, whereas in top-level statement position `,` or unmatched `}` is a SyntaxError.
+  // No snippet with an unmatched `}` escaping the function body can satisfy both grammars.
+  try {
+    transpiler.transformSync(
+      `({\nasync __guard() {\n"use strict";\n${code}\n}\n})`,
+    );
+  } catch (err: any) {
+    throw new Error(
+      `RunCode syntax or scope breakout error: ${err?.message || String(err)}`,
+    );
+  }
+  let transpiled: string;
+  try {
+    transpiled = transpiler.transformSync(
+      `async function __studioRunCode(CurrentDb, db, DoCmd, TempVars, vars, DCount, DLookup, DSum, MsgBox, Debug) {\n"use strict";\n${code}\n}`,
+    );
+  } catch (err: any) {
+    throw new Error(`RunCode syntax error: ${err?.message || String(err)}`);
+  }
   if (
     FORBIDDEN_STUDIO_MACRO_RE.test(transpiled) ||
     FORBIDDEN_STUDIO_MACRO_RE.test(decodeJsEscapesForAudit(transpiled))
@@ -315,13 +333,14 @@ export async function executeIsolatedRunCode(
   const d = rpc.dialect;
 
   const workerScript = `"use strict";
-(() => {
+let __registerStudioRunner = (() => {
   const _postMessage = self.postMessage.bind(self);
   const _addEventListener = self.addEventListener.bind(self);
   const _Object = Object;
   const _Array = Array;
   const _Promise = Promise;
   const _Map = Map;
+  const _Set = Set;
   const _JSON = JSON;
   const _Number = Number;
   const _String = String;
@@ -329,66 +348,7 @@ export async function executeIsolatedRunCode(
   const _Error = Error;
   const _Math = Math;
 
-  const blockedCtor = function BlockedConstructor() {
-    throw new _Error("Dynamic Function constructor is disabled in RunCode sandbox");
-  };
-  const protos = [
-    Function.prototype,
-    _Object.getPrototypeOf(async function () {}),
-    _Object.getPrototypeOf(function* () {}),
-    _Object.getPrototypeOf(async function* () {}),
-  ];
-  for (const proto of protos) {
-    if (proto) {
-      try {
-        _Object.defineProperty(proto, "constructor", {
-          value: blockedCtor,
-          writable: false,
-          configurable: false,
-        });
-      } catch {}
-    }
-  }
-
-  const scrubGlobals = [
-    "Bun",
-    "Deno",
-    "process",
-    "require",
-    "fetch",
-    "WebSocket",
-    "XMLHttpRequest",
-    "EventSource",
-    "Worker",
-    "SharedArrayBuffer",
-    "Atomics",
-    "WebAssembly",
-    "Blob",
-    "URL",
-    "caches",
-    "indexedDB",
-    "navigator",
-    "eval",
-    "Function",
-    "importScripts",
-    "postMessage",
-    "onmessage",
-    "addEventListener",
-    "removeEventListener",
-    "dispatchEvent",
-    "close",
-  ];
-  for (const key of scrubGlobals) {
-    try { delete globalThis[key]; } catch {}
-    try {
-      _Object.defineProperty(globalThis, key, {
-        value: undefined,
-        writable: false,
-        configurable: false,
-      });
-    } catch {}
-  }
-
+  let _userRunner = null;
   let nextId = 1;
   const pending = new _Map();
 
@@ -408,8 +368,6 @@ export async function executeIsolatedRunCode(
       return _String(val);
     }
   }
-
-  ${transpiledFn}
 
   _addEventListener("message", async (ev) => {
     const msg = ev.data;
@@ -497,7 +455,10 @@ export async function executeIsolatedRunCode(
       }));
 
       try {
-        const ret = await __studioRunCode(
+        if (typeof _userRunner !== "function") {
+          throw new _Error("RunCode runner failed to initialize");
+        }
+        const ret = await _userRunner(
           CurrentDb,
           CurrentDb,
           DoCmd,
@@ -525,7 +486,134 @@ export async function executeIsolatedRunCode(
       }
     }
   });
-})();`;
+
+  const blockedCtor = function BlockedConstructor() {
+    throw new _Error("Dynamic Function constructor is disabled in RunCode sandbox");
+  };
+  const protos = [
+    Function.prototype,
+    _Object.getPrototypeOf(async function () {}),
+    _Object.getPrototypeOf(function* () {}),
+    _Object.getPrototypeOf(async function* () {}),
+  ];
+  for (const proto of protos) {
+    if (proto) {
+      try {
+        _Object.defineProperty(proto, "constructor", {
+          value: blockedCtor,
+          writable: false,
+          configurable: false,
+        });
+      } catch {}
+    }
+  }
+
+  const ALLOWED_GLOBALS = new _Set([
+    "Object",
+    "Array",
+    "String",
+    "Number",
+    "Boolean",
+    "Math",
+    "Date",
+    "JSON",
+    "RegExp",
+    "Map",
+    "Set",
+    "WeakMap",
+    "WeakSet",
+    "Promise",
+    "Symbol",
+    "BigInt",
+    "Error",
+    "EvalError",
+    "RangeError",
+    "ReferenceError",
+    "SyntaxError",
+    "TypeError",
+    "URIError",
+    "AggregateError",
+    "ArrayBuffer",
+    "DataView",
+    "Int8Array",
+    "Uint8Array",
+    "Uint8ClampedArray",
+    "Int16Array",
+    "Uint16Array",
+    "Int32Array",
+    "Uint32Array",
+    "Float16Array",
+    "Float32Array",
+    "Float64Array",
+    "BigInt64Array",
+    "BigUint64Array",
+    "Intl",
+    "TextEncoder",
+    "TextDecoder",
+    "parseInt",
+    "parseFloat",
+    "isNaN",
+    "isFinite",
+    "encodeURI",
+    "decodeURI",
+    "encodeURIComponent",
+    "decodeURIComponent",
+    "atob",
+    "btoa",
+    "structuredClone",
+    "setTimeout",
+    "clearTimeout",
+    "queueMicrotask",
+    "globalThis",
+    "undefined",
+    "NaN",
+    "Infinity",
+  ]);
+
+  let protoCursor = _Object.getPrototypeOf(globalThis);
+  while (protoCursor && protoCursor !== _Object.prototype) {
+    const nextProto = _Object.getPrototypeOf(protoCursor);
+    for (const key of _Object.getOwnPropertyNames(protoCursor)) {
+      if (key === "constructor") continue;
+      try { delete protoCursor[key]; } catch {}
+      try {
+        _Object.defineProperty(protoCursor, key, {
+          value: undefined,
+          writable: false,
+          configurable: false,
+        });
+      } catch {}
+    }
+    protoCursor = nextProto;
+  }
+  try { _Object.setPrototypeOf(globalThis, _Object.prototype); } catch {}
+
+  for (const key of _Object.getOwnPropertyNames(globalThis)) {
+    if (ALLOWED_GLOBALS.has(key)) continue;
+    try { delete globalThis[key]; } catch {}
+    try {
+      _Object.defineProperty(globalThis, key, {
+        value: undefined,
+        writable: false,
+        configurable: false,
+      });
+    } catch {}
+  }
+
+  let registered = false;
+  return function registerOnce(fn) {
+    if (registered) return;
+    registered = true;
+    _userRunner = fn;
+  };
+})();
+
+__registerStudioRunner((() => {
+  "use strict";
+  ${transpiledFn}
+  return __studioRunCode;
+})());
+__registerStudioRunner = undefined;`;
 
   const blob = new Blob([workerScript], { type: "application/javascript" });
   const blobUrl = URL.createObjectURL(blob);
