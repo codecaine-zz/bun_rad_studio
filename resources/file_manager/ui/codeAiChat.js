@@ -575,6 +575,7 @@ export function createCodeAiChat(ctx) {
             cleanCode,
             docId: d.id,
             docName: d.name,
+            docPath: d.path || "",
             targetMode: target.mode,
             targetLabel,
             originalBaseText: target.baseText,
@@ -598,6 +599,7 @@ export function createCodeAiChat(ctx) {
             cleanCode,
             docId: d?.id ?? 0,
             docName: d?.name || "",
+            docPath: d?.path || "",
             targetMode: "cursor",
             targetLabel: "",
             originalBaseText: "",
@@ -664,18 +666,47 @@ export function createCodeAiChat(ctx) {
     }
 
     function applyHunkSetToEditor(cs, hunkIdsToApply, snapshotLabel, toastMsg) {
+      const normDocPath = (p) => String(p || "").replace(/\\/g, "/");
+      const expectedPath = normDocPath(cs.docPath);
       let d = ctx.getDoc?.();
-      if (cs.docId && d && d.id !== cs.docId) {
-        const targetDoc = ctx.docs?.get?.(cs.docId);
+      if (cs.docId && (!d || d.id !== cs.docId)) {
+        let targetDoc = ctx.docs?.get?.(cs.docId) || null;
+        if (!targetDoc && expectedPath) {
+          targetDoc =
+            ctx.docs?.byPath?.(cs.docPath) ||
+            (ctx.docs?.list?.() || []).find(
+              (cand) => normDocPath(cand?.path) === expectedPath,
+            ) ||
+            null;
+        }
         if (targetDoc) {
-          ctx.docs.activate(cs.docId);
-          d = ctx.getDoc?.();
-        } else if (cs.docName && d.name !== cs.docName) {
+          ctx.docs?.activate?.(targetDoc.id);
+          d = ctx.getDoc?.() || targetDoc;
+        } else if (expectedPath) {
+          if (!d || normDocPath(d.path) !== expectedPath) {
+            ctx.toast?.(
+              `Target file "${cs.docPath || cs.docName}" is no longer open.`,
+              { kind: "error" },
+            );
+            return false;
+          }
+        } else if (cs.docName && (!d || d.name !== cs.docName)) {
           ctx.toast?.(`Target file "${cs.docName}" is no longer open.`, {
             kind: "error",
           });
           return false;
         }
+      } else if (
+        expectedPath &&
+        d &&
+        d.path &&
+        normDocPath(d.path) !== expectedPath
+      ) {
+        ctx.toast?.(
+          `Target file "${cs.docPath || cs.docName}" does not match the active editor tab.`,
+          { kind: "error" },
+        );
+        return false;
       }
       if (!d || d.kind === "diff") {
         d = ctx.docs?.newUntitled?.();
@@ -1341,15 +1372,29 @@ export function createCodeAiChat(ctx) {
       }
       case "a": {
         const href = String(node.href || "").trim();
+        const safeHref = /^(?:https?:\/\/|mailto:|#)/i.test(href) ? href : "";
+        const children = (node.children || []).map((c) =>
+          renderAstNode(c, ctxMeta),
+        );
+        if (!safeHref) {
+          return h(
+            "span",
+            {
+              class: "bionic-md-link is-blocked-href",
+              title: "Blocked unsafe link scheme",
+            },
+            children,
+          );
+        }
         return h(
           "a",
           {
-            href: href || "#",
+            href: safeHref,
             class: "bionic-md-link",
-            target: "_blank",
+            target: safeHref.startsWith("#") ? null : "_blank",
             rel: "noopener noreferrer",
           },
-          (node.children || []).map((c) => renderAstNode(c, ctxMeta)),
+          children,
         );
       }
       case "blockquote":
@@ -1752,33 +1797,64 @@ export function createCodeAiChat(ctx) {
       } catch {}
     };
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        buffer += decoder.decode();
-        if (buffer.trim()) {
-          for (const line of buffer.split("\n")) processOllamaLine(line);
+    const scheduleFrame =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame
+        : (cb) => setTimeout(cb, 16);
+    const cancelFrame =
+      typeof cancelAnimationFrame === "function"
+        ? cancelAnimationFrame
+        : clearTimeout;
+    let streamFrameId = 0;
+    const flushStreamRender = () => {
+      if (streamFrameId) {
+        cancelFrame(streamFrameId);
+        streamFrameId = 0;
+      }
+      renderThreadOnly();
+    };
+    const scheduleStreamRender = () => {
+      if (streamFrameId) return;
+      streamFrameId = scheduleFrame(() => {
+        streamFrameId = 0;
+        renderThreadOnly();
+      });
+    };
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          buffer += decoder.decode();
+          if (buffer.trim()) {
+            for (const line of buffer.split("\n")) processOllamaLine(line);
+          }
+          const split = splitThinkBlocks(rawAccum);
+          assistantMsg.reasoning = [explicitThinking, split.reasoning]
+            .filter(Boolean)
+            .join("\n\n");
+          assistantMsg.content = split.content;
+          flushStreamRender();
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          processOllamaLine(line);
         }
         const split = splitThinkBlocks(rawAccum);
         assistantMsg.reasoning = [explicitThinking, split.reasoning]
           .filter(Boolean)
           .join("\n\n");
         assistantMsg.content = split.content;
-        renderThreadOnly();
-        break;
+        scheduleStreamRender();
       }
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-      for (const line of lines) {
-        processOllamaLine(line);
+    } finally {
+      if (streamFrameId) {
+        cancelFrame(streamFrameId);
+        streamFrameId = 0;
       }
-      const split = splitThinkBlocks(rawAccum);
-      assistantMsg.reasoning = [explicitThinking, split.reasoning]
-        .filter(Boolean)
-        .join("\n\n");
-      assistantMsg.content = split.content;
-      renderThreadOnly();
     }
   }
 

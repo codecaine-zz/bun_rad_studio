@@ -800,7 +800,7 @@ export class SecretsService {
             setPasswordWrap(s.keys, kek);
             s.audit("rekey");
           },
-          rotate,
+          true,
         );
         if (rotate && hadDevice)
           await this.hooks.store

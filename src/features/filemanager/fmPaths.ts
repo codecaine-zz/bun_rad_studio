@@ -225,6 +225,30 @@ const WIN_SYSTEM_INSIDE = [
   "recovery",
 ];
 
+function normalizeWinProtectedInput(raw: string): string {
+  let s = raw.replace(/\//g, "\\");
+  // Strip Win32 extended-length / device UNC prefix: \\?\UNC\server\share\... -> \\server\share\...
+  const uncExt = /^\\\\[?.]\\UNC\\([^\\]+)\\([^\\]+)(.*)$/i.exec(s);
+  if (uncExt) {
+    s = `\\\\${uncExt[1]}\\${uncExt[2]}${uncExt[3] ?? ""}`;
+  } else {
+    // Strip Win32 extended-length / device drive prefix: \\?\C:\... or \\.\C:\... -> C:\...
+    s = s.replace(/^\\\\[?.]\\(?=[A-Za-z]:(?:\\|$))/i, "");
+    s = s.replace(/^\\\\[?.]\\GlobalRoot\\/i, "\\\\?\\");
+  }
+  // Normalize loopback administrative drive shares (\\localhost\C$\Windows -> C:\Windows)
+  const localShare =
+    /^\\\\(?:localhost|127(?:\.\d{1,3}){3}|::1|\.)\\([A-Za-z])\$(?:\\(.*))?$/i.exec(
+      s,
+    );
+  if (localShare) {
+    const drive = localShare[1]!.toUpperCase();
+    const rest = localShare[2] ?? "";
+    s = rest ? `${drive}:\\${rest}` : `${drive}:\\`;
+  }
+  return s;
+}
+
 function sameOrInside(
   child: string,
   parent: string,
@@ -248,19 +272,32 @@ export function protectedReason(
   kind: "modify" | "create" = "modify",
 ): string | null {
   const platform = ctx.platform ?? platformName();
-  const p = pathFor(platform, target);
+  const normalizedTarget =
+    platform === "win32" ? normalizeWinProtectedInput(target) : target;
+  const normalizedHome =
+    platform === "win32" ? normalizeWinProtectedInput(ctx.home) : ctx.home;
+  const p = pathFor(platform, normalizedTarget);
   const ci = platform !== "linux";
-  const t = p.resolve(target);
-  const home = p.resolve(ctx.home);
+  const t = p.resolve(normalizedTarget);
+  const home = p.resolve(normalizedHome);
 
   for (const extra of ctx.extraProtected ?? []) {
-    if (sameOrInside(t, p.resolve(extra), p, ci))
+    const normExtra =
+      platform === "win32" ? normalizeWinProtectedInput(extra) : extra;
+    if (sameOrInside(t, p.resolve(normExtra), p, ci))
       return "This folder belongs to the File Manager's Recycle Bin. Use the Recycle Bin to restore or delete items.";
   }
 
   if (platform === "win32") {
+    if (/^\\\\[?.]\\/i.test(normalizedTarget)) {
+      return "This device or volume path can't be changed from here.";
+    }
     const { root } = p.parse(t);
-    const segments = t.slice(root.length).split("\\").filter(Boolean);
+    const segments = t
+      .slice(root.length)
+      .split("\\")
+      .filter(Boolean)
+      .map((seg) => seg.replace(/[. ]+$/, ""));
     if (/^\\\\/.test(root) && segments.length === 0)
       return "This is the top of a network location and can't be changed here.";
     if (kind === "modify" && segments.length === 0)
@@ -304,10 +341,14 @@ export function isSameOrInside(
   parent: string,
   platform: Platform = platformName(),
 ): boolean {
-  const p = pathFor(platform, child);
+  const normChild =
+    platform === "win32" ? normalizeWinProtectedInput(child) : child;
+  const normParent =
+    platform === "win32" ? normalizeWinProtectedInput(parent) : parent;
+  const p = pathFor(platform, normChild);
   return sameOrInside(
-    p.resolve(child),
-    p.resolve(parent),
+    p.resolve(normChild),
+    p.resolve(normParent),
     p,
     platform !== "linux",
   );
@@ -762,19 +803,43 @@ const BY_EXT = new Map<string, (typeof EXT_GROUPS)[number]>();
 for (const g of EXT_GROUPS)
   for (const e of g[3]) if (!BY_EXT.has(e)) BY_EXT.set(e, g);
 
-/** Opening any of these would start a program or an installer. */
+/** Opening any of these would start a program, script, shortcut, or installer. */
 const PROGRAM_EXTS = new Set([
   "exe",
   "msi",
+  "msp",
+  "msix",
+  "appx",
   "bat",
   "cmd",
   "com",
   "scr",
+  "pif",
+  "cpl",
+  "msc",
+  "scf",
+  "reg",
+  "hta",
+  "lnk",
+  "url",
   "ps1",
   "vbs",
+  "vbe",
+  "js",
+  "jse",
+  "wsf",
+  "wsh",
   "jar",
   "app",
   "command",
+  "terminal",
+  "workflow",
+  "action",
+  "scpt",
+  "applescript",
+  "webloc",
+  "inetloc",
+  "desktop",
   "sh",
   "bash",
   "zsh",
@@ -827,7 +892,11 @@ export function classify(
 ): FileKind {
   if (isDir) {
     const lower = name.toLowerCase();
-    if (lower.endsWith(".app"))
+    if (
+      lower.endsWith(".app") ||
+      lower.endsWith(".workflow") ||
+      lower.endsWith(".action")
+    )
       return {
         kind: "program",
         icon: "⚙️",

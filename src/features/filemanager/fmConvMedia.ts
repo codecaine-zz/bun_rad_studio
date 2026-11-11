@@ -2026,10 +2026,20 @@ export const VIDEO_DEFS: ConvDef[] = [
     [
       ffEngine(
         (c) => {
+          for (const p of c.inputs) {
+            if (/[\r\n\0]/.test(p)) {
+              throw new Error(
+                "Video file paths cannot contain line breaks or NUL bytes when joining videos.",
+              );
+            }
+          }
           const list = c.tmpFile(
             "list.txt",
             c.inputs
-              .map((p) => `file '${p.replace(/'/g, "'\\''")}'`)
+              .map(
+                (p) =>
+                  `file '${p.replace(/[\\']/g, (ch) => (ch === "\\" ? "'\\\\'" : "'\\''"))}'`,
+              )
               .join("\n"),
           );
           if (optStr(c.opts, "method") !== "reencode")

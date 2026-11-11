@@ -113,11 +113,13 @@ const rel = (parent: string, name: string) =>
   parent ? `${parent}/${name}` : name;
 
 async function scanSide(
+  ctx: FmContext,
   root: string,
   ignore: IgnoreSet[],
   job: DevJob,
   label: "left" | "right",
 ): Promise<Scan> {
+  const p = pathApi(ctx);
   const entries = new Map<string, ScanEntry>();
   const unreadable = new Map<string, string>();
   const queue: Array<{ abs: string; relPath: string; depth: number }> = [
@@ -136,7 +138,7 @@ async function scanSide(
     }
     for (const name of names) {
       if (job.cancelled) break;
-      const full = nodePath.join(abs, name);
+      const full = p.join(abs, name);
       const r = rel(relPath, name);
       let st;
       try {
@@ -274,19 +276,21 @@ function ancestorUnreadable(
 }
 
 async function runCompare(
+  ctx: FmContext,
   job: DevJob,
   left: string,
   right: string,
   ignoreLines: string[],
   mode: CompareMode,
 ): Promise<CompareSummary> {
+  const p = pathApi(ctx);
   const sets = (root: string) =>
     ignoreLines.length
       ? [ignoreSetFromText(root.replace(/\\/g, "/"), ignoreLines.join("\n"))]
       : [];
   const [l, r] = await Promise.all([
-    scanSide(left, sets(left), job, "left"),
-    scanSide(right, sets(right), job, "right"),
+    scanSide(ctx, left, sets(left), job, "left"),
+    scanSide(ctx, right, sets(right), job, "right"),
   ]);
   const cancelledSummary = (): CompareSummary => {
     job.data = { left, right, entries: [] } satisfies CompareData;
@@ -531,8 +535,8 @@ async function runCompare(
       );
       toVerify.push({
         entry,
-        a: nodePath.join(left, ...relPath.split("/")),
-        b: nodePath.join(right, ...relPath.split("/")),
+        a: p.join(left, ...relPath.split("/")),
+        b: p.join(right, ...relPath.split("/")),
       });
       continue;
     }
@@ -653,12 +657,30 @@ async function folderRoot(
   which: string,
 ): Promise<string> {
   const path = absolutePath(ctx, input);
+  if (ctx.sandboxRoot && !isSameOrInside(path, ctx.sandboxRoot, ctx.platform)) {
+    throw new FmError(
+      "FORBIDDEN",
+      `The ${which} folder is outside the allowed workspace folder.`,
+    );
+  }
   const st = await lstatOrNull(path);
   if (!st) throw new FmError("NOT_FOUND", `The ${which} folder doesn't exist.`);
   // Only a folder that is itself a link is resolved; the rest of the path stays as the person typed it.
   const real = st.isSymbolicLink()
     ? await fsp.realpath(path).catch(() => path)
     : path;
+  if (ctx.sandboxRoot) {
+    const realSandbox = await fsp
+      .realpath(ctx.sandboxRoot)
+      .catch(() => ctx.sandboxRoot!);
+    const checkReal = await fsp.realpath(real).catch(() => real);
+    if (!isSameOrInside(checkReal, realSandbox, ctx.platform)) {
+      throw new FmError(
+        "FORBIDDEN",
+        `The ${which} folder points outside the allowed workspace folder.`,
+      );
+    }
+  }
   const stat = await fsp.stat(real).catch(() => null);
   if (!stat?.isDirectory())
     throw new FmError("NOT_A_FOLDER", `The ${which} location isn't a folder.`);
@@ -705,7 +727,7 @@ export async function startCompare(
   const mode: CompareMode = body.mode === "verified" ? "verified" : "quick";
   const ignore = cleanIgnoreLines(body.ignore);
   const job = startDevJob(ctx, "compare", `${left}  ↔  ${right}`, (j) =>
-    runCompare(j, left, right, ignore, mode),
+    runCompare(ctx, j, left, right, ignore, mode),
   );
   return { id: job.id };
 }

@@ -6,13 +6,20 @@
  *   Uses ONLY pure Bun APIs (`Bun.spawn`, `Bun.spawnSync`, `Bun.file`, `Bun.write`, `Bun.which`,
  *   `Bun.CryptoHasher`, and native `fetch`).
  */
+import { homedir } from "os";
 import {
   absolutePath,
   assertCreatable,
   assertModifiable,
   type FmContext,
 } from "./fmCore";
-import { FmError } from "./fmPaths";
+import {
+  assertRealpathInsideSandboxSync,
+  createSessionTempDirSync,
+  removePathForceSync,
+  writeNewFileExclusiveAsync,
+} from "./fmNativeFs";
+import { FmError, validateName } from "./fmPaths";
 import {
   basenamePath,
   cleanTextForPhononSpeech,
@@ -150,24 +157,133 @@ export interface BionicPendingAction {
 // 2. Session State, Audio Cache & Tool Action Staging
 // ---------------------------------------------------------------------------------------------------------------
 
-const bionicAudioCache = new Map<
+const MAX_BIONIC_AUDIO_CACHE_PER_CTX = 60;
+const BIONIC_AUDIO_TTL_MS = 30 * 60 * 1000;
+const MAX_BIONIC_PENDING_ACTIONS_PER_CTX = 128;
+const BIONIC_PENDING_ACTION_TTL_MS = 30 * 60 * 1000;
+
+interface BionicAudioSessionCache {
+  tempDir: string;
+  entries: Map<string, { absPath: string; mime: string; createdAt: number }>;
+}
+
+const bionicAudioCacheByCtx = new WeakMap<FmContext, BionicAudioSessionCache>();
+const fallbackBionicAudioLookup = new Map<
   string,
   { absPath: string; mime: string; createdAt: number }
 >();
-const bionicPendingActions = new Map<string, BionicPendingAction>();
+const bionicPendingActionsByCtx = new WeakMap<
+  FmContext,
+  Map<string, BionicPendingAction>
+>();
+
+function getBionicAudioSession(ctx: FmContext): BionicAudioSessionCache {
+  let state = bionicAudioCacheByCtx.get(ctx);
+  if (!state) {
+    const tempDir = createSessionTempDirSync("fm-bionic-audio-");
+    const entries = new Map<
+      string,
+      { absPath: string; mime: string; createdAt: number }
+    >();
+    state = { tempDir, entries };
+    bionicAudioCacheByCtx.set(ctx, state);
+    ctx.disposers?.push(() => {
+      for (const [id, entry] of entries) {
+        removePathForceSync(entry.absPath);
+        fallbackBionicAudioLookup.delete(id);
+      }
+      entries.clear();
+      removePathForceSync(tempDir);
+    });
+  }
+  const now = Date.now();
+  for (const [id, entry] of state.entries) {
+    if (now - entry.createdAt > BIONIC_AUDIO_TTL_MS) {
+      removePathForceSync(entry.absPath);
+      state.entries.delete(id);
+      fallbackBionicAudioLookup.delete(id);
+    }
+  }
+  return state;
+}
+
+function cacheBionicAudioEntry(
+  ctx: FmContext,
+  audioId: string,
+  entry: { absPath: string; mime: string; createdAt: number },
+): void {
+  const session = getBionicAudioSession(ctx);
+  while (session.entries.size >= MAX_BIONIC_AUDIO_CACHE_PER_CTX) {
+    const oldestId = session.entries.keys().next().value;
+    if (!oldestId) break;
+    const oldest = session.entries.get(oldestId);
+    if (oldest) removePathForceSync(oldest.absPath);
+    session.entries.delete(oldestId);
+    fallbackBionicAudioLookup.delete(oldestId);
+  }
+  session.entries.set(audioId, entry);
+  while (fallbackBionicAudioLookup.size >= MAX_BIONIC_AUDIO_CACHE_PER_CTX * 2) {
+    const oldestId = fallbackBionicAudioLookup.keys().next().value;
+    if (!oldestId) break;
+    fallbackBionicAudioLookup.delete(oldestId);
+  }
+  fallbackBionicAudioLookup.set(audioId, entry);
+}
+
+function getBionicPendingActionsMap(
+  ctx: FmContext,
+): Map<string, BionicPendingAction> {
+  let map = bionicPendingActionsByCtx.get(ctx);
+  if (!map) {
+    map = new Map<string, BionicPendingAction>();
+    bionicPendingActionsByCtx.set(ctx, map);
+    ctx.disposers?.push(() => map!.clear());
+  }
+  const now = Date.now();
+  for (const [id, act] of map) {
+    if (
+      now - act.createdAt > BIONIC_PENDING_ACTION_TTL_MS ||
+      (act.status !== "pending" && now - act.createdAt > 5 * 60 * 1000)
+    ) {
+      map.delete(id);
+    }
+  }
+  while (map.size >= MAX_BIONIC_PENDING_ACTIONS_PER_CTX) {
+    const oldestId = map.keys().next().value;
+    if (!oldestId) break;
+    map.delete(oldestId);
+  }
+  return map;
+}
 
 let bionicExitPolicy: BionicExitPolicy = "smart";
 let bionicServerStartedByFm = false;
 const bionicSessionLoadedModels = new Set<string>();
 
-/** Looks up a synthesized TTS audio file in the in-memory Bionic audio cache by ID. */
+/** Looks up a synthesized TTS audio file in the in-memory Bionic audio cache by ID (scoped to `ctx` when provided). */
 export function getCachedBionicAudioFile(
   audioId: string,
+  ctx?: FmContext,
 ): { absPath: string; mime: string } | null {
   const cleanId = String(audioId || "").trim();
   if (!cleanId) return null;
-  const entry = bionicAudioCache.get(cleanId);
+  if (ctx) {
+    const entry = bionicAudioCacheByCtx.get(ctx)?.entries.get(cleanId);
+    if (!entry) return null;
+    if (Date.now() - entry.createdAt > BIONIC_AUDIO_TTL_MS) {
+      removePathForceSync(entry.absPath);
+      bionicAudioCacheByCtx.get(ctx)?.entries.delete(cleanId);
+      fallbackBionicAudioLookup.delete(cleanId);
+      return null;
+    }
+    return { absPath: entry.absPath, mime: entry.mime };
+  }
+  const entry = fallbackBionicAudioLookup.get(cleanId);
   if (!entry) return null;
+  if (Date.now() - entry.createdAt > BIONIC_AUDIO_TTL_MS) {
+    fallbackBionicAudioLookup.delete(cleanId);
+    return null;
+  }
   return { absPath: entry.absPath, mime: entry.mime };
 }
 
@@ -220,10 +336,7 @@ export function getBionicLifecycleStatus(): {
 export function getLmStudioHomeDir(ctx?: FmContext): string {
   if (process.env.LMSTUDIO_HOME) return process.env.LMSTUDIO_HOME;
   const home =
-    ctx?.home ||
-    process.env.HOME ||
-    process.env.USERPROFILE ||
-    "/Users/codecaine";
+    ctx?.home || process.env.HOME || process.env.USERPROFILE || homedir();
   return joinPath([home, ".lmstudio"], ctx?.platform || process.platform);
 }
 
@@ -242,20 +355,17 @@ export function resolveLmsCliPath(ctx?: FmContext): string | null {
   const fromPath = Bun.which("lms");
   if (fromPath) return fromPath;
   const home =
-    ctx?.home ||
-    process.env.HOME ||
-    process.env.USERPROFILE ||
-    "/Users/codecaine";
+    ctx?.home || process.env.HOME || process.env.USERPROFILE || homedir();
   const fallbackCandidates =
     platform === "win32"
       ? [
           joinPath([home, ".local", "bin", "lms.exe"], "win32"),
-          "C:\\Users\\codecaine\\.lmstudio\\bin\\lms.exe",
+          joinPath([home, ".lmstudio", "bin", "lms.exe"], "win32"),
         ]
       : [
           joinPath([home, ".local", "bin", "lms"], platform),
+          joinPath([home, ".lmstudio", "bin", "lms"], platform),
           "/usr/local/bin/lms",
-          "/Users/codecaine/.lmstudio/bin/lms",
         ];
   for (const fb of fallbackCandidates) {
     try {
@@ -1070,7 +1180,7 @@ export async function listBionicModelsAndHardwareStatus(
   >();
 
   const osHome =
-    process.env.HOME || process.env.USERPROFILE || "/Users/codecaine";
+    ctx.home || process.env.HOME || process.env.USERPROFILE || homedir();
   const osLmHome = joinPath([osHome, ".lmstudio"], ctx.platform);
   const candidateLmHomes = [...new Set([lmHome, osLmHome].filter(Boolean))];
 
@@ -1204,10 +1314,10 @@ export async function loadBionicModel(
   },
 ): Promise<any> {
   const modelKey = String(payload.model || "").trim();
-  if (!modelKey) {
+  if (!modelKey || modelKey.startsWith("-") || /[\0\r\n]/.test(modelKey)) {
     throw new FmError(
       "INVALID_INPUT",
-      "Model identifier is required to load into Metal RAM.",
+      "A valid model identifier is required to load into Metal RAM.",
     );
   }
 
@@ -1277,7 +1387,21 @@ export async function loadBionicModel(
     args.push("--ttl", String(payload.ttlSeconds));
   }
   if (payload.gpuOffload !== undefined && String(payload.gpuOffload) !== "") {
-    args.push("--gpu", String(payload.gpuOffload));
+    const rawGpu = payload.gpuOffload;
+    const validGpu =
+      rawGpu === "max" ||
+      rawGpu === "off" ||
+      (typeof rawGpu === "number" &&
+        Number.isFinite(rawGpu) &&
+        rawGpu >= 0 &&
+        rawGpu <= 1);
+    if (!validGpu) {
+      throw new FmError(
+        "INVALID_INPUT",
+        'gpuOffload must be "max", "off", or a number between 0 and 1.',
+      );
+    }
+    args.push("--gpu", String(rawGpu));
   }
 
   const res = Bun.spawnSync([lmsCli, ...args], {
@@ -1318,6 +1442,9 @@ export async function unloadBionicModel(
   const lmsCli = resolveLmsCliPath(ctx);
   const target = String(payload.model || "").trim();
   const unloadAll = Boolean(payload.all || !target);
+  if (!unloadAll && (target.startsWith("-") || /[\0\r\n]/.test(target))) {
+    throw new FmError("INVALID_INPUT", "Invalid model identifier to unload.");
+  }
 
   if (!lmsCli || process.env.BIONIC_HOST) {
     const list = unloadAll ? [...bionicSessionLoadedModels] : [target];
@@ -1346,7 +1473,10 @@ export async function unloadBionicModel(
     };
   }
 
-  Bun.spawnSync([lmsCli, "unload", target], { stdout: "pipe", stderr: "pipe" });
+  Bun.spawnSync([lmsCli, "unload", "--", target], {
+    stdout: "pipe",
+    stderr: "pipe",
+  });
   bionicSessionLoadedModels.delete(target);
   return {
     ok: true,
@@ -1366,10 +1496,10 @@ export async function downloadBionicModel(
   verdict: HardwareGuardVerdict;
 }> {
   const modelSpec = String(payload.model || "").trim();
-  if (!modelSpec) {
+  if (!modelSpec || modelSpec.startsWith("-") || /[\0\r\n]/.test(modelSpec)) {
     throw new FmError(
       "INVALID_INPUT",
-      "Specify a model name or HuggingFace / LM Studio Hub identifier (e.g. qwen/qwen3.5-9b).",
+      "Specify a valid model name or HuggingFace / LM Studio Hub identifier (e.g. qwen/qwen3.5-9b).",
     );
   }
   const hw = inspectOllamaHardware(ctx);
@@ -1399,16 +1529,31 @@ export async function downloadBionicModel(
     };
   }
 
-  const res = Bun.spawnSync([lmsCli, "get", modelSpec, "--mlx", "-y"], {
+  const proc = Bun.spawn([lmsCli, "get", modelSpec, "--mlx", "-y"], {
     stdout: "pipe",
     stderr: "pipe",
+    stdin: "ignore",
   });
-  const out = res.stdout.toString("utf8").trim();
-  const err = res.stderr.toString("utf8").trim();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    try {
+      proc.kill();
+    } catch {}
+  }, 600_000);
+  const [outRaw, errRaw, exitCode] = await Promise.all([
+    new Response(proc.stdout).text().catch(() => ""),
+    new Response(proc.stderr).text().catch(() => ""),
+    proc.exited,
+  ]).finally(() => clearTimeout(timer));
+  const out = outRaw.trim();
+  const err = errRaw.trim();
   return {
-    ok: res.exitCode === 0,
+    ok: !timedOut && exitCode === 0,
     model: modelSpec,
-    status: out || err || `Completed lms get ${modelSpec}`,
+    status: timedOut
+      ? `Model download timed out after 10 minutes (${modelSpec}).`
+      : out || err || `Completed lms get ${modelSpec}`,
     verdict,
   };
 }
@@ -2118,14 +2263,15 @@ export async function runBionicSpeech(
       const totalSamples = merged.length;
 
       const wavBytes = encodeFloat32SamplesToWav(merged, sampleRate);
+      const audioSession = getBionicAudioSession(ctx);
       const audioId = `bionic_tts_${Date.now()}_${sha256Hex(cleanedText).slice(0, 10)}`;
       const tempWavPath = joinPath(
-        [tempDirPath(ctx.platform), `${audioId}.wav`],
+        [audioSession.tempDir, `${audioId}.wav`],
         ctx.platform,
       );
       await Bun.write(tempWavPath, wavBytes);
 
-      bionicAudioCache.set(audioId, {
+      cacheBionicAudioEntry(ctx, audioId, {
         absPath: tempWavPath,
         mime: "audio/wav",
         createdAt: Date.now(),
@@ -2177,9 +2323,10 @@ export async function runBionicSpeech(
 
   // Standalone Bionic fallback (zero dependency on Ollama): uses macOS /usr/bin/say (24kHz LEI16 WAV), Linux espeak-ng/pico2wave, or pure Bun 24kHz WAV synthesis
   const sampleRate = 24000;
+  const audioSession = getBionicAudioSession(ctx);
   const audioId = `bionic_tts_${Date.now()}_${sha256Hex(cleanedText).slice(0, 10)}`;
   const tempWavPath = joinPath(
-    [tempDirPath(ctx.platform), `${audioId}.wav`],
+    [audioSession.tempDir, `${audioId}.wav`],
     ctx.platform,
   );
   let wavBytes: Uint8Array | null = null;
@@ -2260,7 +2407,7 @@ export async function runBionicSpeech(
     await Bun.write(tempWavPath, wavBytes);
   }
 
-  bionicAudioCache.set(audioId, {
+  cacheBionicAudioEntry(ctx, audioId, {
     absPath: tempWavPath,
     mime: "audio/wav",
     createdAt: Date.now(),
@@ -2683,6 +2830,194 @@ export function getBionicAsrStatus(ctx?: FmContext): {
   };
 }
 
+function findLocalWhisperBinary(
+  ctx: FmContext,
+): { bin: string; kind: "whisper-cli" | "mlx_whisper" | "whisper" } | null {
+  const candidates: Array<{
+    names: string[];
+    kind: "whisper-cli" | "mlx_whisper" | "whisper";
+  }> = [
+    { names: ["mlx_whisper"], kind: "mlx_whisper" },
+    { names: ["whisper-cli", "whisper-cpp"], kind: "whisper-cli" },
+    { names: ["whisper"], kind: "whisper" },
+  ];
+  const isWin = ctx.platform === "win32";
+  if (ctx.toolDirs && ctx.toolDirs.length > 0) {
+    for (const spec of candidates) {
+      for (const dir of ctx.toolDirs) {
+        for (const base of spec.names) {
+          const full = joinPath(
+            [dir, isWin ? `${base}.exe` : base],
+            ctx.platform,
+          );
+          try {
+            if (Bun.file(full).size > 0) return { bin: full, kind: spec.kind };
+          } catch {}
+          if (isWin) {
+            const plain = joinPath([dir, base], ctx.platform);
+            try {
+              if (Bun.file(plain).size > 0) {
+                return { bin: plain, kind: spec.kind };
+              }
+            } catch {}
+          }
+        }
+      }
+    }
+    return null;
+  }
+  for (const spec of candidates) {
+    for (const base of spec.names) {
+      const found = Bun.which(base);
+      if (found) return { bin: found, kind: spec.kind };
+    }
+  }
+  return null;
+}
+
+function findLocalFfmpegForWhisper(ctx: FmContext): string | null {
+  if (ctx.toolDirs && ctx.toolDirs.length > 0) {
+    for (const dir of ctx.toolDirs) {
+      const cand = joinPath(
+        [dir, ctx.platform === "win32" ? "ffmpeg.exe" : "ffmpeg"],
+        ctx.platform,
+      );
+      try {
+        if (Bun.file(cand).size > 0) return cand;
+      } catch {}
+    }
+    return null;
+  }
+  return Bun.which("ffmpeg");
+}
+
+/**
+ * Runs a genuine local Whisper/ASR binary (`mlx_whisper`, `whisper-cli`, or `whisper`) on `mediaAbsPath`,
+ * throwing an honest `ASR_ENGINE_UNAVAILABLE` error instead of fabricating transcripts when no ASR binary is installed.
+ */
+export async function runBionicWhisper(
+  ctx: FmContext,
+  mediaAbsPath: string,
+): Promise<{ transcript: string; engine: string }> {
+  const engineSpec = findLocalWhisperBinary(ctx);
+  if (!engineSpec) {
+    throw new FmError(
+      "ASR_ENGINE_UNAVAILABLE",
+      "No local Whisper/ASR binary (mlx_whisper, whisper-cli, or whisper) is installed on this machine, and no companion .srt/.vtt/.txt transcript file was found alongside the media file.",
+    );
+  }
+  const tmpDir = createSessionTempDirSync("fm-bionic-whisper-");
+  try {
+    let inputPath = mediaAbsPath;
+    const ext = extnameLower(mediaAbsPath);
+    const ffmpegBin = findLocalFfmpegForWhisper(ctx);
+    if (ffmpegBin && ext !== "wav") {
+      const wavPath = joinPath([tmpDir, "input_16k.wav"], ctx.platform);
+      const ff = Bun.spawn(
+        [
+          ffmpegBin,
+          "-hide_banner",
+          "-nostdin",
+          "-y",
+          "-i",
+          mediaAbsPath,
+          "-ar",
+          "16000",
+          "-ac",
+          "1",
+          "-c:a",
+          "pcm_s16le",
+          wavPath,
+        ],
+        { stdout: "ignore", stderr: "pipe", stdin: "ignore" },
+      );
+      const ffTimer = setTimeout(() => {
+        try {
+          ff.kill();
+        } catch {}
+      }, 120_000);
+      const ffCode = await ff.exited.finally(() => clearTimeout(ffTimer));
+      if (ffCode === 0 && (await fileExistsPure(wavPath))) {
+        inputPath = wavPath;
+      }
+    }
+
+    const outPrefix = joinPath([tmpDir, "transcript"], ctx.platform);
+    const argv =
+      engineSpec.kind === "whisper-cli"
+        ? [engineSpec.bin, "-nt", "-otxt", "-of", outPrefix, "-f", inputPath]
+        : engineSpec.kind === "mlx_whisper"
+          ? [
+              engineSpec.bin,
+              "--output-format",
+              "txt",
+              "--output-dir",
+              tmpDir,
+              "--output-name",
+              "transcript",
+              "--",
+              inputPath,
+            ]
+          : [
+              engineSpec.bin,
+              "--output_format",
+              "txt",
+              "--output_dir",
+              tmpDir,
+              "--",
+              inputPath,
+            ];
+
+    const proc = Bun.spawn(argv, {
+      stdout: "pipe",
+      stderr: "pipe",
+      stdin: "ignore",
+    });
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      try {
+        proc.kill();
+      } catch {}
+    }, 300_000);
+    const [stdoutTxt, stderrTxt, exitCode] = await Promise.all([
+      new Response(proc.stdout).text().catch(() => ""),
+      new Response(proc.stderr).text().catch(() => ""),
+      proc.exited,
+    ]).finally(() => clearTimeout(timer));
+
+    if (timedOut) {
+      throw new FmError(
+        "ASR_TIMEOUT",
+        `Local ${engineSpec.kind} transcription timed out after 5 minutes.`,
+      );
+    }
+
+    let text = "";
+    const outCandidates = [
+      `${outPrefix}.txt`,
+      joinPath([tmpDir, `${stemName(inputPath)}.txt`], ctx.platform),
+    ];
+    for (const cand of outCandidates) {
+      if (await fileExistsPure(cand)) {
+        text = (await Bun.file(cand).text()).trim();
+        if (text) break;
+      }
+    }
+    if (!text) text = stdoutTxt.trim();
+    if (exitCode !== 0 || !text) {
+      throw new FmError(
+        "ASR_FAILED",
+        stderrTxt.trim() ||
+          `Local ${engineSpec.kind} exited without producing a transcript (exit ${exitCode}).`,
+      );
+    }
+    return { transcript: text, engine: engineSpec.kind };
+  } finally {
+    removePathForceSync(tmpDir);
+  }
+}
+
 /** Transcribes an audio or video file using Bionic ASR or local Whisper and optionally summarizes or saves the result. */
 export async function transcribeWithBionicAsr(
   ctx: FmContext,
@@ -2721,8 +3056,9 @@ export async function transcribeWithBionicAsr(
   const stem = stemName(abs);
   const format = payload.format || "markdown";
 
-  // Check if there is a companion .srt / .vtt / .txt or extract media metadata via ffprobe/ffmpeg
+  // Check if the input itself or a companion .srt / .vtt / .txt / .md contains a real transcript
   let rawTranscript = "";
+  let engineUsed = "companion-transcript";
   const parentDir = dirnamePath(abs, ctx.platform);
   for (const candExt of ["srt", "vtt", "txt", "md"]) {
     if (ext === candExt) {
@@ -2736,35 +3072,10 @@ export async function transcribeWithBionicAsr(
     }
   }
 
-  if (!rawTranscript) {
-    // Probe audio duration & metadata using ffprobe if available
-    let durationInfo = "";
-    const ffprobe = Bun.which("ffprobe");
-    if (ffprobe) {
-      try {
-        const pr = Bun.spawnSync(
-          [
-            ffprobe,
-            "-v",
-            "quiet",
-            "-print_format",
-            "json",
-            "-show_format",
-            "-show_streams",
-            abs,
-          ],
-          { stdout: "pipe", stderr: "ignore" },
-        );
-        if (pr.exitCode === 0) {
-          const meta = JSON.parse(pr.stdout.toString("utf8"));
-          const dur = Number(meta?.format?.duration || 0);
-          const codec = meta?.streams?.[0]?.codec_name || ext;
-          const sr = meta?.streams?.[0]?.sample_rate || "24000";
-          durationInfo = `Duration: ${dur.toFixed(1)}s | Codec: ${codec} | Sample Rate: ${sr} Hz`;
-        }
-      } catch {}
-    }
-    rawTranscript = `[Bionic ExecuTorch Whisper Metal ASR — Media File: ${baseName}]\n${durationInfo || `Format: .${ext.toUpperCase()}`}`;
+  if (!rawTranscript.trim()) {
+    const asrRes = await runBionicWhisper(ctx, abs);
+    rawTranscript = asrRes.transcript;
+    engineUsed = asrRes.engine;
   }
 
   let summary: string | null = null;
@@ -2772,7 +3083,7 @@ export async function transcribeWithBionicAsr(
     try {
       const chatRes = await runBionicChat(ctx, {
         model: payload.model,
-        prompt: `Format and summarize the following audio/media transcript or metadata for "${baseName}" into a clean ${format.toUpperCase()} document with key points and action items:\n\n${rawTranscript}`,
+        prompt: `Format and summarize the following audio/media transcript for "${baseName}" into a clean ${format.toUpperCase()} document with key points and action items:\n\n${rawTranscript}`,
         maxTokens: 700,
       });
       summary = chatRes.content;
@@ -2784,7 +3095,7 @@ export async function transcribeWithBionicAsr(
       ? JSON.stringify(
           {
             file: baseName,
-            engine: "executorch-asr-mac-arm64-apple-metal-advsimd-0.0.8",
+            engine: engineUsed,
             transcript: rawTranscript,
             summary,
           },
@@ -2793,7 +3104,7 @@ export async function transcribeWithBionicAsr(
         )
       : format === "srt"
         ? `1\n00:00:00,000 --> 00:00:10,000\n${rawTranscript.slice(0, 500)}\n`
-        : `# Bionic ASR Transcript: ${baseName}\n\n## Raw Transcript / Audio Metadata\n${rawTranscript}\n\n${
+        : `# Bionic ASR Transcript: ${baseName}\n\n## Raw Transcript\n${rawTranscript}\n\n${
             summary ? `## Bionic AI Summary & Notes\n${summary}\n` : ""
           }`;
 
@@ -2807,11 +3118,13 @@ export async function transcribeWithBionicAsr(
           : format === "txt"
             ? "txt"
             : "md";
-    const outAbs = joinPath(
-      [parentDir, `${stem}-bionic-transcript.${outExt}`],
-      ctx.platform,
-    );
-    await assertCreatable(ctx, outAbs);
+    const outName = `${stem}-bionic-transcript.${outExt}`;
+    const nameErr = validateName(outName, ctx.platform);
+    if (nameErr) throw new FmError("BAD_NAME", nameErr);
+    const outAbs = joinPath([parentDir, outName], ctx.platform);
+    assertRealpathInsideSandboxSync(outAbs, ctx.sandboxRoot, ctx.platform);
+    assertCreatable(ctx, parentDir);
+    assertModifiable(ctx, outAbs);
     await Bun.write(outAbs, finalOutput);
     savedRelativePath = toSandboxRelative(ctx, outAbs);
   }
@@ -2823,7 +3136,7 @@ export async function transcribeWithBionicAsr(
     transcript: finalOutput,
     summary,
     savedRelativePath,
-    engine: "executorch-asr-mac-arm64-apple-metal-advsimd-0.0.8",
+    engine: engineUsed,
   };
 }
 
@@ -3841,24 +4154,27 @@ export async function runBionicChat(
         rawPrompt,
       );
     if (createMatch) {
-      const fileName = createMatch[1]!.trim();
-      const fileBody = createMatch[2]!.trim();
-      const actionId = `bionic_act_${Date.now()}`;
-      const act: BionicPendingAction = {
-        actionId,
-        toolName: "create_file",
-        title: `Create File: ${fileName}`,
-        description: `Bionic staged creating "${fileName}" (${fileBody.length} chars) in the active folder.`,
-        args: {
-          dirPath: payload.dirPath || ".",
-          name: fileName,
-          content: fileBody,
-        },
-        createdAt: Date.now(),
-        status: "pending",
-      };
-      bionicPendingActions.set(actionId, act);
-      stagedActions.push(act);
+      const rawFileName = createMatch[1]!.trim();
+      const nameErr = validateName(rawFileName, ctx.platform);
+      if (!nameErr) {
+        const fileBody = createMatch[2]!.trim();
+        const actionId = `bionic_act_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const act: BionicPendingAction = {
+          actionId,
+          toolName: "create_file",
+          title: `Create File: ${rawFileName}`,
+          description: `Bionic staged creating "${rawFileName}" (${fileBody.length} chars) in the active folder.`,
+          args: {
+            dirPath: payload.dirPath || ".",
+            name: rawFileName,
+            content: fileBody,
+          },
+          createdAt: Date.now(),
+          status: "pending",
+        };
+        getBionicPendingActionsMap(ctx).set(actionId, act);
+        stagedActions.push(act);
+      }
     }
   }
 
@@ -3930,7 +4246,8 @@ export async function executeConfirmedBionicAction(
   actionId: string,
   decision: "confirm" | "cancel",
 ): Promise<{ ok: boolean; action: BionicPendingAction; createdPath?: string }> {
-  const act = bionicPendingActions.get(actionId);
+  const pendingMap = getBionicPendingActionsMap(ctx);
+  const act = pendingMap.get(actionId);
   if (!act) {
     throw new FmError(
       "ACTION_NOT_FOUND",
@@ -3943,13 +4260,22 @@ export async function executeConfirmedBionicAction(
   }
 
   if (act.toolName === "create_file") {
+    const rawName = String(act.args.name || "bionic-note.txt").trim();
+    const nameErr = validateName(rawName, ctx.platform);
+    if (nameErr) {
+      throw new FmError("BAD_NAME", nameErr);
+    }
     const dirAbs = resolveSandboxPath(ctx, act.args.dirPath || ".");
-    const targetAbs = joinPath(
-      [dirAbs, String(act.args.name || "bionic-note.txt")],
-      ctx.platform,
+    const targetAbs = resolveSandboxPath(
+      ctx,
+      joinPath([dirAbs, rawName], ctx.platform),
     );
-    await assertCreatable(ctx, targetAbs);
-    await Bun.write(targetAbs, String(act.args.content || ""));
+    assertRealpathInsideSandboxSync(dirAbs, ctx.sandboxRoot, ctx.platform);
+    assertRealpathInsideSandboxSync(targetAbs, ctx.sandboxRoot, ctx.platform);
+    assertCreatable(ctx, dirAbs);
+    assertModifiable(ctx, targetAbs);
+    ensureDirectoryPure(dirAbs, ctx.platform);
+    await writeNewFileExclusiveAsync(targetAbs, String(act.args.content || ""));
     act.status = "confirmed";
     return {
       ok: true,
@@ -4924,7 +5250,7 @@ export async function getFullBionicStatus(
     tts: ttsInfo,
     asr: asrInfo,
     lifecycle: getBionicLifecycleStatus(),
-    pendingActions: [...bionicPendingActions.values()].filter(
+    pendingActions: [...getBionicPendingActionsMap(ctx).values()].filter(
       (a) => a.status === "pending",
     ),
   };

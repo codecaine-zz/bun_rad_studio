@@ -367,14 +367,28 @@ export function entryMatchesQuickFilter(
 }
 
 const folderSizeCache = new Map();
+const MAX_FOLDER_SIZE_CACHE = 500;
+
+function setFolderSizeCache(key, value) {
+  if (folderSizeCache.has(key)) folderSizeCache.delete(key);
+  while (folderSizeCache.size >= MAX_FOLDER_SIZE_CACHE) {
+    const oldestKey = folderSizeCache.keys().next().value;
+    if (oldestKey === undefined) break;
+    folderSizeCache.delete(oldestKey);
+  }
+  folderSizeCache.set(key, value);
+}
 
 /** Applies any previously calculated folder sizes from this session's cache when listing a folder. */
 export function applyCachedFolderSizes(entries) {
   if (!Array.isArray(entries)) return;
   for (const e of entries) {
     if (!e || !e.isDir) continue;
-    const cached = folderSizeCache.get(`${e.path}:${e.mtimeMs}`);
+    const key = `${e.path}:${e.mtimeMs}`;
+    const cached = folderSizeCache.get(key);
     if (cached) {
+      folderSizeCache.delete(key);
+      folderSizeCache.set(key, cached);
       e.size = cached.bytes;
       e.folderSizeCalculated = true;
       e.folderFiles = cached.files;
@@ -419,7 +433,7 @@ export async function calculateFolderSizes(
             e.folderFiles = st.files;
             e.folderFolders = st.folders;
             e.folderSizePartial = st.partial;
-            folderSizeCache.set(`${e.path}:${e.mtimeMs}`, st);
+            setFolderSizeCache(`${e.path}:${e.mtimeMs}`, st);
           }
         }
       };

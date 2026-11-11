@@ -16,6 +16,7 @@ import {
 } from "../watchexec/watchexecDoers";
 import type { FmContext } from "./fmCore";
 import { FmError, describeFsError } from "./fmPaths";
+import { childEnv } from "./fmTools";
 import { LogBuffer, MAX_LOG_CHARS, createTextCleaner } from "./fmWatchLog";
 
 /** Maximum number of recent command run history entries kept per watcher. */
@@ -117,6 +118,7 @@ export class Watcher {
     private readonly platform: FmContext["platform"],
     readonly config: WatchConfig,
     logCap = MAX_LOG_CHARS,
+    private readonly baseEnv: Record<string, string | undefined> = process.env,
   ) {
     this.log = new LogBuffer(logCap);
   }
@@ -244,7 +246,7 @@ export class Watcher {
         {
           cwd: config.cwd,
           env: {
-            ...process.env,
+            ...this.baseEnv,
             ...buildWatchexecEnv(change?.abs, config.watchPath),
           },
           stdin: "ignore",
@@ -441,6 +443,7 @@ export function getWatchHub(ctx: FmContext): WatchHub {
         ctx.platform,
         config,
         logCap,
+        childEnv(ctx),
       );
       watcher.start();
       watchers.set(watcher.id, watcher);

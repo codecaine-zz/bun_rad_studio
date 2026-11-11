@@ -11,6 +11,8 @@
  * something else meanwhile; items that belong to someone else are reported, not attempted.
  */
 import { randomBytes } from "crypto";
+import { realpathSync } from "fs";
+import * as nodePath from "path";
 import { absolutePath, pathApi, type FmContext } from "./fmCore";
 import {
   FmError,
@@ -68,31 +70,88 @@ const HOME_SUBFOLDERS = [
   "Templates",
 ];
 
+function deepestRealParent(target: string): string | null {
+  try {
+    const resolved = nodePath.resolve(target);
+    const base = nodePath.basename(resolved);
+    let cur = nodePath.dirname(resolved);
+    if (cur === resolved) return realpathSync(resolved);
+    const tail: string[] = [base];
+    for (let i = 0; i < 64; i++) {
+      try {
+        const real = realpathSync(cur);
+        return nodePath.join(real, ...tail.reverse());
+      } catch {
+        const parent = nodePath.dirname(cur);
+        if (parent === cur) return null;
+        tail.push(nodePath.basename(cur));
+        cur = parent;
+      }
+    }
+  } catch {}
+  return null;
+}
+
 /** Why this item's permissions must not be changed, or null. Your home folder and main personal folders may be changed, but not all at once. */
 export function protectedChangeReason(
   ctx: FmContext,
   path: string,
   recursive: boolean,
 ): string | null {
-  const reason = protectedReason(
-    path,
-    { platform: ctx.platform, home: ctx.home, extraProtected: [ctx.trashRoot] },
-    "modify",
-  );
-  if (!reason) return null;
-  const p = pathApi(ctx);
-  const norm = (x: string) => (ctx.platform === "linux" ? x : x.toLowerCase());
-  const t = norm(p.resolve(path));
-  if (t === norm(p.resolve(ctx.home)))
-    return recursive
-      ? "This is your home folder. Changing everything inside it in one go is too risky. Choose the folders inside it instead."
-      : null;
-  if (
-    !reason.includes("Recycle Bin") &&
-    HOME_SUBFOLDERS.some((n) => t === norm(p.join(ctx.home, n)))
-  )
-    return null;
-  return reason;
+  if (ctx.sandboxRoot) {
+    if (!isSameOrInside(path, ctx.sandboxRoot, ctx.platform)) {
+      return "This item is outside the allowed workspace folder.";
+    }
+    try {
+      const realSandbox = realpathSync(ctx.sandboxRoot);
+      const realCandidate = deepestRealParent(path);
+      if (
+        realCandidate &&
+        !isSameOrInside(realCandidate, realSandbox, ctx.platform)
+      ) {
+        return "This item points outside the allowed workspace folder.";
+      }
+    } catch {}
+  }
+  const realTrash = (() => {
+    try {
+      return realpathSync(ctx.trashRoot);
+    } catch {
+      return ctx.trashRoot;
+    }
+  })();
+  const extraProtected =
+    realTrash !== ctx.trashRoot ? [ctx.trashRoot, realTrash] : [ctx.trashRoot];
+  const checkOne = (candidate: string): string | null => {
+    const reason = protectedReason(
+      candidate,
+      { platform: ctx.platform, home: ctx.home, extraProtected },
+      "modify",
+    );
+    if (!reason) return null;
+    const p = pathApi(ctx);
+    const norm = (x: string) =>
+      ctx.platform === "linux" ? x : x.toLowerCase();
+    const t = norm(p.resolve(candidate));
+    if (t === norm(p.resolve(ctx.home)))
+      return recursive
+        ? "This is your home folder. Changing everything inside it in one go is too risky. Choose the folders inside it instead."
+        : null;
+    if (
+      !reason.includes("Recycle Bin") &&
+      HOME_SUBFOLDERS.some((n) => t === norm(p.join(ctx.home, n)))
+    )
+      return null;
+    return reason;
+  };
+  const direct = checkOne(path);
+  if (direct) return direct;
+  const realViaParent = deepestRealParent(path);
+  if (realViaParent && realViaParent !== path) {
+    const viaParentReason = checkOne(realViaParent);
+    if (viaParentReason) return viaParentReason;
+  }
+  return null;
 }
 
 function checkedPaths(
@@ -339,6 +398,13 @@ async function scan(
   const win = ctx.platform === "win32";
   const riskSet = new Set<RiskCode>();
   const trashRoot = p.resolve(ctx.trashRoot);
+  const realTrashRoot = (() => {
+    try {
+      return realpathSync(trashRoot);
+    } catch {
+      return trashRoot;
+    }
+  })();
 
   const tick = () => {
     if (ctl.signal.aborted) throw new Stop("cancelled");
@@ -415,7 +481,11 @@ async function scan(
     const isDir = st.isDirectory();
     if (!isDir && !st.isFile()) return skip("not an ordinary file or folder");
     if (!isRoot && st.dev !== rootDev) return skip("on another disk");
-    if (isSameOrInside(path, trashRoot, ctx.platform))
+    if (
+      isSameOrInside(path, trashRoot, ctx.platform) ||
+      (realTrashRoot !== trashRoot &&
+        isSameOrInside(path, realTrashRoot, ctx.platform))
+    )
       return skip("in the Recycle Bin");
     const inScope =
       !recursive ||

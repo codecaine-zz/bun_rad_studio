@@ -38,6 +38,10 @@ import {
   recordSessionLoadedModel,
   registerSpawnedOllamaDaemon,
 } from "./fmOllama";
+import {
+  streamDownloadWithSha256,
+  verifyDownloadedArchiveIntegrity,
+} from "./fmNativeFs";
 
 async function publishStagedFile(
   srcPath: string,
@@ -2793,7 +2797,7 @@ async function runExternalTextExtractor(
     const pandoc = resolveTool(ctx, "pandoc");
     if (pandoc) {
       const res = Bun.spawnSync(
-        [pandoc, "--wrap=none", "-t", "plain", filePath],
+        [pandoc, "--wrap=none", "-t", "plain", "--", filePath],
         { stdout: "pipe", stderr: "pipe", timeout: 60_000 },
       );
       const out = res.stdout.toString("utf8").trim();
@@ -3382,8 +3386,20 @@ function buildExecEnv(ctx: FmContext): Record<string, string> {
   return env;
 }
 
+const CMD_META_RE = /[&|<>^%\r\n\0]/;
+
 function buildSpawnArgv(exe: string, args: string[]): string[] {
   if (process.platform === "win32" && /\.(?:cmd|bat)$/i.test(exe)) {
+    const siblingExe = exe.replace(/\.(?:cmd|bat)$/i, ".exe");
+    if (existsSync(siblingExe)) {
+      return [siblingExe, ...args];
+    }
+    if (CMD_META_RE.test(exe) || args.some((a) => CMD_META_RE.test(a))) {
+      throw new FmError(
+        "UNSAFE_COMMAND_ARGS",
+        "Rejected unsafe shell metacharacters for Windows .cmd/.bat launcher.",
+      );
+    }
     return [process.env.ComSpec || "cmd.exe", "/d", "/s", "/c", exe, ...args];
   }
   return [exe, ...args];
@@ -7140,23 +7156,31 @@ export async function ensureLinuxPiperNeuralTts(
   if (!existsSync(piperExe) || !existsSync(espeakDataDir)) {
     if (!linuxPiperBinaryPromise) {
       linuxPiperBinaryPromise = (async () => {
+        const arch =
+          (ctx.arch || process.arch) === "arm64" ? "aarch64" : "x86_64";
+        const assetName = `piper_linux_${arch}.tar.gz`;
+        const tarUrl = `https://github.com/rhasspy/piper/releases/download/2023.11.14-2/${assetName}`;
+        const tarPath = nodePath.join(
+          piperRoot,
+          `piper_linux_${arch}.${process.pid}.tar.gz`,
+        );
         try {
-          const arch =
-            (ctx.arch || process.arch) === "arm64" ? "aarch64" : "x86_64";
-          const tarUrl = `https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_${arch}.tar.gz`;
-          const tarPath = nodePath.join(
-            piperRoot,
-            `piper_linux_${arch}.${process.pid}.tar.gz`,
-          );
           log?.(`Downloading Linux Piper Neural TTS engine (${arch})…\n`);
-          const res = await fetch(tarUrl, {
-            redirect: "follow",
+          const dlMeta = await streamDownloadWithSha256(tarUrl, tarPath, {
+            maxBytes: 256 * 1024 ** 2,
             signal: signal ?? AbortSignal.timeout(90_000),
           });
-          if (!res.ok) return false;
-          await Bun.write(tarPath, Buffer.from(await res.arrayBuffer()));
+          await verifyDownloadedArchiveIntegrity({
+            downloadUrl: tarUrl,
+            assetName,
+            actualSha256: dlMeta.sha256,
+            bytesWritten: dlMeta.bytesWritten,
+            magicCheckPath: tarPath,
+            expectedMagic: "gzip",
+            signal,
+          });
           const extractProc = Bun.spawn(
-            ["tar", "-xzf", tarPath, "-C", piperRoot],
+            ["tar", "--no-same-owner", "-xzf", tarPath, "-C", piperRoot],
             {
               stdout: "ignore",
               stderr: "ignore",
@@ -7164,7 +7188,6 @@ export async function ensureLinuxPiperNeuralTts(
             },
           );
           const code = await extractProc.exited;
-          await fsp.rm(tarPath, { force: true }).catch(() => {});
           if (code !== 0 || !existsSync(piperExe)) return false;
           await fsp.chmod(piperExe, 0o755).catch(() => {});
           if (existsSync(bundledEspeakExe)) {
@@ -7174,6 +7197,7 @@ export async function ensureLinuxPiperNeuralTts(
         } catch {
           return false;
         } finally {
+          await fsp.rm(tarPath, { force: true }).catch(() => {});
           linuxPiperBinaryPromise = null;
         }
       })();
@@ -7198,34 +7222,43 @@ export async function ensureLinuxPiperNeuralTts(
     let voiceProm = linuxPiperVoicePromises.get(vSpec.stem);
     if (!voiceProm) {
       voiceProm = (async () => {
+        const jsonPart = `${jsonPath}.${process.pid}.part`;
+        const onnxPart = `${onnxPath}.${process.pid}.part`;
         try {
           log?.(`Downloading Piper neural voice model (${vSpec.stem})…\n`);
-          const jsonPart = `${jsonPath}.${process.pid}.part`;
-          const onnxPart = `${onnxPath}.${process.pid}.part`;
-          const [jRes, oRes] = await Promise.all([
-            fetch(vSpec.jsonUrl, {
-              redirect: "follow",
+          const [jMeta, oMeta] = await Promise.all([
+            streamDownloadWithSha256(vSpec.jsonUrl, jsonPart, {
+              maxBytes: 4 * 1024 ** 2,
               signal: signal ?? AbortSignal.timeout(30_000),
             }),
-            fetch(vSpec.onnxUrl, {
-              redirect: "follow",
+            streamDownloadWithSha256(vSpec.onnxUrl, onnxPart, {
+              maxBytes: 256 * 1024 ** 2,
               signal: signal ?? AbortSignal.timeout(120_000),
             }),
           ]);
-          if (!jRes.ok || !oRes.ok) return false;
-          const [jBuf, oBuf] = await Promise.all([
-            jRes.arrayBuffer(),
-            oRes.arrayBuffer(),
-          ]);
-          if (oBuf.byteLength < 1_000_000) return false;
-          await Bun.write(jsonPart, Buffer.from(jBuf));
-          await Bun.write(onnxPart, Buffer.from(oBuf));
+          if (oMeta.bytesWritten < 1_000_000 || jMeta.bytesWritten < 32) {
+            return false;
+          }
+          const parsedCfg = JSON.parse(await fsp.readFile(jsonPart, "utf8"));
+          if (!parsedCfg || typeof parsedCfg !== "object" || !parsedCfg.audio) {
+            return false;
+          }
+          await verifyDownloadedArchiveIntegrity({
+            downloadUrl: vSpec.onnxUrl,
+            assetName: `${vSpec.stem}.onnx`,
+            actualSha256: oMeta.sha256,
+            bytesWritten: oMeta.bytesWritten,
+            minBytes: 1_000_000,
+            signal,
+          });
           await fsp.rename(jsonPart, jsonPath);
           await fsp.rename(onnxPart, onnxPath);
           return true;
         } catch {
           return false;
         } finally {
+          await fsp.rm(jsonPart, { force: true }).catch(() => {});
+          await fsp.rm(onnxPart, { force: true }).catch(() => {});
           linuxPiperVoicePromises.delete(vSpec.stem);
         }
       })();
@@ -9141,6 +9174,26 @@ async function runSpawnLogged(
   }
 }
 
+async function hashFileSha256(
+  filePath: string,
+): Promise<{ sha256: string; bytesWritten: number }> {
+  const hash = createHash("sha256");
+  let bytesWritten = 0;
+  const fh = await fsp.open(filePath, "r");
+  try {
+    const buf = Buffer.alloc(256 * 1024);
+    while (true) {
+      const { bytesRead } = await fh.read(buf, 0, buf.length, bytesWritten);
+      if (bytesRead <= 0) break;
+      hash.update(buf.subarray(0, bytesRead));
+      bytesWritten += bytesRead;
+    }
+  } finally {
+    await fh.close().catch(() => {});
+  }
+  return { sha256: hash.digest("hex").toLowerCase(), bytesWritten };
+}
+
 async function downloadFileToPath(
   ctx: FmContext,
   url: string,
@@ -9148,8 +9201,10 @@ async function downloadFileToPath(
   env: Record<string, string>,
   signal: AbortSignal,
   log: (text: string) => void,
-): Promise<void> {
+  expectedMagic?: "gzip" | "zstd" | "zip" | "pe",
+): Promise<{ sha256: string; bytesWritten: number }> {
   if (signal.aborted) throw new Error("Cancelled");
+  const assetName = nodePath.basename(destPath);
   const curlExe = findExecutable(ctx.platform, ["curl"], searchDirs(ctx));
   if (curlExe) {
     log(`Downloading ${url}…\n`);
@@ -9171,34 +9226,38 @@ async function downloadFileToPath(
     if (signal.aborted) throw new Error("Cancelled");
     if (res.code === 0 && existsSync(destPath)) {
       const st = await fsp.stat(destPath).catch(() => null);
-      if (st && st.size > 1024) return;
+      if (st && st.size > 1024) {
+        const meta = await hashFileSha256(destPath);
+        await verifyDownloadedArchiveIntegrity({
+          downloadUrl: url,
+          assetName,
+          actualSha256: meta.sha256,
+          bytesWritten: meta.bytesWritten,
+          magicCheckPath: destPath,
+          expectedMagic,
+          signal,
+        });
+        return meta;
+      }
     }
   }
 
-  // Fallback to Bun's native streaming fetch
+  // Fallback to streaming fetch + SHA-256 verification
   log(`Downloading ${url} via HTTP stream…\n`);
-  const res = await fetch(url, { redirect: "follow", signal });
-  if (!res.ok || !res.body) {
-    throw new Error(
-      `Download failed (${res.status} ${res.statusText}) from ${url}`,
-    );
-  }
-  const fh = await fsp.open(destPath, "w");
-  try {
-    let offset = 0;
-    const reader = res.body.getReader();
-    while (true) {
-      if (signal.aborted) throw new Error("Cancelled");
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (value && value.byteLength > 0) {
-        await fh.write(value, 0, value.byteLength, offset);
-        offset += value.byteLength;
-      }
-    }
-  } finally {
-    await fh.close();
-  }
+  const meta = await streamDownloadWithSha256(url, destPath, {
+    maxBytes: 2 * 1024 ** 3,
+    signal,
+  });
+  await verifyDownloadedArchiveIntegrity({
+    downloadUrl: url,
+    assetName,
+    actualSha256: meta.sha256,
+    bytesWritten: meta.bytesWritten,
+    magicCheckPath: destPath,
+    expectedMagic,
+    signal,
+  });
+  return meta;
 }
 
 function detectCpuArch(archOverride?: string): "arm64" | "amd64" {
@@ -9267,7 +9326,15 @@ export async function installOllamaBinaryCrossPlatform(
       log(
         `Installing Ollama for Linux (${arch}) into ${installRoot} (no root password needed)…\n`,
       );
-      await downloadFileToPath(ctx, url, archiveZst, env, signal, log);
+      const zstMeta = await downloadFileToPath(
+        ctx,
+        url,
+        archiveZst,
+        env,
+        signal,
+        log,
+        "zstd",
+      );
       if (signal.aborted) throw new Error("Cancelled");
 
       const search = searchDirs(ctx);
@@ -9281,9 +9348,24 @@ export async function installOllamaBinaryCrossPlatform(
         "/bin/sh";
 
       let extracted = false;
-      if (zstdExe) {
+      const directTar = await runSpawnLogged(
+        [
+          tarExe,
+          "--no-same-owner",
+          "--zstd",
+          "-xf",
+          archiveZst,
+          "-C",
+          installRoot,
+        ],
+        env,
+        signal,
+        log,
+      );
+      extracted = directTar.code === 0;
+      if (!extracted && zstdExe) {
         log("Extracting archive with zstd + tar…\n");
-        const cmd = `"$1" -dc "$2" | "$3" -xf - -C "$4"`;
+        const cmd = `"$1" -dc "$2" | "$3" --no-same-owner -xf - -C "$4"`;
         const r = await runSpawnLogged(
           [shExe, "-c", cmd, "--", zstdExe, archiveZst, tarExe, installRoot],
           env,
@@ -9295,7 +9377,7 @@ export async function installOllamaBinaryCrossPlatform(
       if (!extracted && bsdtarExe) {
         log("Extracting archive with bsdtar…\n");
         const r = await runSpawnLogged(
-          [bsdtarExe, "-xf", archiveZst, "-C", installRoot],
+          [bsdtarExe, "--no-same-owner", "-xf", archiveZst, "-C", installRoot],
           env,
           signal,
           log,
@@ -9303,6 +9385,11 @@ export async function installOllamaBinaryCrossPlatform(
         extracted = r.code === 0;
       }
       if (!extracted) {
+        if (zstMeta.bytesWritten > 512 * 1024 ** 2) {
+          throw new Error(
+            "Archive exceeds 512 MB and requires GNU tar --zstd, zstd, or bsdtar for streaming extraction.",
+          );
+        }
         log("Decompressing .tar.zst with built-in Zstandard decoder…\n");
         const zstBytes = await fsp.readFile(archiveZst);
         await fsp.rm(archiveZst, { force: true }).catch(() => {});
@@ -9310,7 +9397,7 @@ export async function installOllamaBinaryCrossPlatform(
         const archiveTar = nodePath.join(stageDir, `ollama-linux-${arch}.tar`);
         await fsp.writeFile(archiveTar, tarBytes);
         const r = await runSpawnLogged(
-          [tarExe, "-xf", archiveTar, "-C", installRoot],
+          [tarExe, "--no-same-owner", "-xf", archiveTar, "-C", installRoot],
           env,
           signal,
           log,
@@ -9350,7 +9437,7 @@ export async function installOllamaBinaryCrossPlatform(
         `ollama-windows-${arch}.zip`,
       );
       log(`Downloading Ollama for Windows (${arch}) into ${installDir}…\n`);
-      await downloadFileToPath(ctx, zipUrl, zipPath, env, signal, log);
+      await downloadFileToPath(ctx, zipUrl, zipPath, env, signal, log, "zip");
       if (signal.aborted) throw new Error("Cancelled");
 
       const sys32 = "C:\\Windows\\System32";
@@ -9363,7 +9450,7 @@ export async function installOllamaBinaryCrossPlatform(
       if (tarExe) {
         log("Extracting Ollama archive with Windows tar…\n");
         const r = await runSpawnLogged(
-          [tarExe, "-xf", zipPath, "-C", installDir],
+          [tarExe, "--no-same-owner", "-xf", zipPath, "-C", installDir],
           env,
           signal,
           log,
@@ -9403,6 +9490,7 @@ export async function installOllamaBinaryCrossPlatform(
           env,
           signal,
           log,
+          "pe",
         );
         log("Running OllamaSetup.exe silently…\n");
         await runSpawnLogged(
@@ -9431,6 +9519,7 @@ export async function installOllamaBinaryCrossPlatform(
         env,
         signal,
         log,
+        "zip",
       );
       if (signal.aborted) throw new Error("Cancelled");
       const unzipExe =
@@ -9447,31 +9536,65 @@ export async function installOllamaBinaryCrossPlatform(
       );
       const extractedApp = nodePath.join(stageDir, "Ollama.app");
       if (existsSync(extractedApp)) {
+        const swapBundleSafely = async (
+          targetApp: string,
+        ): Promise<boolean> => {
+          const parentApps = nodePath.dirname(targetApp);
+          const stagedApp = nodePath.join(
+            parentApps,
+            `.Ollama.app.stage-${process.pid}-${randomBytes(3).toString("hex")}`,
+          );
+          const backupApp = nodePath.join(
+            parentApps,
+            `.Ollama.app.old-${process.pid}`,
+          );
+          try {
+            // Stage into target directory BEFORE touching any existing bundle so unwritable/cross-device paths fail safely.
+            const cpRes = await runSpawnLogged(
+              ["/bin/cp", "-R", extractedApp, stagedApp],
+              env,
+              signal,
+              log,
+            );
+            if (cpRes.code !== 0 || !existsSync(stagedApp)) {
+              await fsp
+                .rm(stagedApp, { recursive: true, force: true })
+                .catch(() => {});
+              return false;
+            }
+            const hadExisting = existsSync(targetApp);
+            if (hadExisting) {
+              await fsp.rename(targetApp, backupApp);
+            }
+            try {
+              await fsp.rename(stagedApp, targetApp);
+            } catch (swapErr) {
+              if (hadExisting && existsSync(backupApp)) {
+                await fsp.rename(backupApp, targetApp).catch(() => {});
+              }
+              throw swapErr;
+            }
+            if (hadExisting) {
+              await fsp
+                .rm(backupApp, { recursive: true, force: true })
+                .catch(() => {});
+            }
+            return true;
+          } catch {
+            await fsp
+              .rm(stagedApp, { recursive: true, force: true })
+              .catch(() => {});
+            return false;
+          }
+        };
+
         const userApps = nodePath.join(ctx.home, "Applications");
         await fsp.mkdir(userApps, { recursive: true });
         const targetSystem = "/Applications/Ollama.app";
         const targetUser = nodePath.join(userApps, "Ollama.app");
-        let moved = false;
-        try {
-          if (existsSync(targetSystem))
-            await fsp.rm(targetSystem, { recursive: true, force: true });
-          await fsp.rename(extractedApp, targetSystem);
-          moved = true;
-        } catch {
-          try {
-            if (existsSync(targetUser))
-              await fsp.rm(targetUser, { recursive: true, force: true });
-            await fsp.rename(extractedApp, targetUser);
-            moved = true;
-          } catch {}
-        }
+        let moved = await swapBundleSafely(targetSystem);
         if (!moved) {
-          await runSpawnLogged(
-            ["/bin/cp", "-R", extractedApp, targetUser],
-            env,
-            signal,
-            log,
-          );
+          moved = await swapBundleSafely(targetUser);
         }
       }
     } finally {
@@ -10159,14 +10282,15 @@ export function buildReadAlongSlideBmpFallback(params: {
   const [ctxR, ctxG, ctxB] = parseHexRgb(pal.contextText);
   const [hudR, hudG, hudB] = parseHexRgb(pal.hudTrack);
 
+  const bgScanline = Buffer.alloc(rowStride);
+  for (let x = 0; x < width; x++) {
+    const p = x * 3;
+    bgScanline[p] = bgB;
+    bgScanline[p + 1] = bgG;
+    bgScanline[p + 2] = bgR;
+  }
   for (let y = 0; y < height; y++) {
-    const rowOff = 54 + y * rowStride;
-    for (let x = 0; x < width; x++) {
-      const p = rowOff + x * 3;
-      buf[p] = bgB;
-      buf[p + 1] = bgG;
-      buf[p + 2] = bgR;
-    }
+    bgScanline.copy(buf, 54 + y * rowStride);
   }
 
   const fillRect = (
@@ -10182,14 +10306,18 @@ export function buildReadAlongSlideBmpFallback(params: {
     const xe = Math.min(width, Math.round(x0 + w));
     const ys = Math.max(0, Math.round(y0));
     const ye = Math.min(height, Math.round(y0 + h));
-    for (let y = ys; y < ye; y++) {
-      const rowOff = 54 + y * rowStride;
-      for (let x = xs; x < xe; x++) {
-        const p = rowOff + x * 3;
-        buf[p] = b;
-        buf[p + 1] = g;
-        buf[p + 2] = r;
-      }
+    if (xs >= xe || ys >= ye) return;
+    const firstRowOff = 54 + ys * rowStride;
+    for (let x = xs; x < xe; x++) {
+      const p = firstRowOff + x * 3;
+      buf[p] = b;
+      buf[p + 1] = g;
+      buf[p + 2] = r;
+    }
+    const spanStart = firstRowOff + xs * 3;
+    const spanEnd = firstRowOff + xe * 3;
+    for (let y = ys + 1; y < ye; y++) {
+      buf.copy(buf, 54 + y * rowStride + xs * 3, spanStart, spanEnd);
     }
   };
 
@@ -11368,7 +11496,7 @@ export async function renderBurnedInReadAlongVideoParallel(params: {
   );
 
   // 1. Fast path: In-process native Cairo + Pango (`bun:ffi`) 3-level delta-band rasterizer (~30x faster than spawning rsvg-convert)
-  let slideFiles = await tryRenderSlidesWithNativeCairoPango({
+  const nativeSlideFiles = await tryRenderSlidesWithNativeCairoPango({
     tmpDir,
     timeline,
     slides,
@@ -11380,30 +11508,36 @@ export async function renderBurnedInReadAlongVideoParallel(params: {
     signal,
   });
 
-  if (!slideFiles) {
-    const rsvgExe = findExecutable(
-      ctx.platform,
-      ["rsvg-convert"],
-      [...searchDirs(ctx), "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"],
-    );
-    const env = buildExecEnv(ctx);
-    const slideExt = rsvgExe ? "png" : "bmp";
-    const rasterConcurrency = Math.min(slides.length, Math.max(2, cpuCount));
-    onStageLog?.(
-      `Rendering ${slides.length} centered Read-Along slides across ${rasterConcurrency} CPU cores…`,
-    );
+  const rsvgExe = nativeSlideFiles
+    ? null
+    : findExecutable(
+        ctx.platform,
+        ["rsvg-convert"],
+        [...searchDirs(ctx), "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"],
+      );
+  const env = buildExecEnv(ctx);
+  const fallbackSlideExt = rsvgExe ? "png" : "bmp";
 
-    let nextSlideIdx = 0;
-    slideFiles = new Array<string>(slides.length);
-
-    const rasterWorker = async () => {
+  const rasterizeSlideRange = async (
+    startIdx: number,
+    endIdx: number,
+  ): Promise<string[]> => {
+    if (nativeSlideFiles) {
+      return nativeSlideFiles.slice(startIdx, endIdx);
+    }
+    const count = Math.max(0, endIdx - startIdx);
+    if (count === 0) return [];
+    const outNames = new Array<string>(count);
+    let cursor = startIdx;
+    const concurrency = Math.min(count, Math.max(2, cpuCount));
+    const worker = async () => {
       while (true) {
         if (signal?.aborted) throw new Error("Cancelled");
-        const idx = nextSlideIdx++;
-        if (idx >= slides.length) break;
+        const idx = cursor++;
+        if (idx >= endIdx) break;
         const slide = slides[idx]!;
         const baseName = `slide_${String(idx).padStart(4, "0")}`;
-        const outImgName = `${baseName}.${slideExt}`;
+        const outImgName = `${baseName}.${fallbackSlideExt}`;
         const outImgPath = nodePath.join(tmpDir, outImgName);
 
         if (rsvgExe) {
@@ -11425,6 +11559,7 @@ export async function renderBurnedInReadAlongVideoParallel(params: {
             env,
           });
           const code = await proc.exited;
+          await fsp.rm(svgPath, { force: true }).catch(() => {});
           if (code !== 0 || !existsSync(outImgPath)) {
             const bmpName = `${baseName}.bmp`;
             const bmpPath = nodePath.join(tmpDir, bmpName);
@@ -11437,7 +11572,7 @@ export async function renderBurnedInReadAlongVideoParallel(params: {
                 videoTheme,
               }),
             );
-            slideFiles![idx] = bmpName;
+            outNames[idx - startIdx] = bmpName;
             continue;
           }
         } else {
@@ -11451,14 +11586,20 @@ export async function renderBurnedInReadAlongVideoParallel(params: {
             }),
           );
         }
-        slideFiles![idx] = outImgName;
+        outNames[idx - startIdx] = outImgName;
       }
     };
+    await Promise.all(Array.from({ length: concurrency }, () => worker()));
+    return outNames;
+  };
 
+  const cleanupSlideFiles = async (names: string[], extra: string[] = []) => {
     await Promise.all(
-      Array.from({ length: rasterConcurrency }, () => rasterWorker()),
+      [...names, ...extra].map((name) =>
+        fsp.rm(nodePath.join(tmpDir, name), { force: true }).catch(() => {}),
+      ),
     );
-  }
+  };
 
   // 2. Lock slide durations onto an integer constant-frame-rate grid (1/25 = 0.04s or 1/20 = 0.05s) so video and audio have zero drift
   const totalFrames = Math.max(
@@ -11467,7 +11608,7 @@ export async function renderBurnedInReadAlongVideoParallel(params: {
   );
   let curFrame = 0;
   const frameSlides: Array<{
-    fileName: string;
+    slideIdx: number;
     frames: number;
     durationSec: number;
   }> = [];
@@ -11487,14 +11628,15 @@ export async function renderBurnedInReadAlongVideoParallel(params: {
     const frames = Math.max(1, targetEndFrame - curFrame);
     curFrame += frames;
     frameSlides.push({
-      fileName: slideFiles[i]!,
+      slideIdx: i,
       frames,
       durationSec: frames / fps,
     });
   }
 
-  // 3. Multi-segment parallel video encoding across CPU cores using `-vf fps=${fps}` for exact per-slide frame counts
-  const numShards =
+  // 3. Multi-segment parallel video encoding with bounded temporary slide spooling (max ~24 slides per shard, unlinked immediately after encode)
+  const MAX_SPOOL_SLIDES_PER_SHARD = 24;
+  const baseShards =
     frameSlides.length >= 6
       ? Math.min(
           8,
@@ -11507,151 +11649,201 @@ export async function renderBurnedInReadAlongVideoParallel(params: {
           ),
         )
       : 1;
+  const numShards =
+    frameSlides.length > MAX_SPOOL_SLIDES_PER_SHARD
+      ? Math.max(
+          baseShards,
+          Math.ceil(frameSlides.length / MAX_SPOOL_SLIDES_PER_SHARD),
+        )
+      : baseShards;
 
   const canEmbedSoftSubs =
     hasSrtFile && (format === "mp4" || format === "mov" || format === "mkv");
   const subCodec = format === "mkv" ? "srt" : "mov_text";
 
   if (numShards === 1) {
-    const concatLines = ["ffconcat version 1.0"];
-    for (let i = 0; i < frameSlides.length; i++) {
-      const fs = frameSlides[i]!;
-      const dur =
-        i === frameSlides.length - 1
-          ? fs.durationSec + 1 / fps
-          : fs.durationSec;
-      concatLines.push(`file '${fs.fileName}'`);
-      concatLines.push(`duration ${dur.toFixed(6)}`);
+    if (!nativeSlideFiles) {
+      onStageLog?.(
+        `Rendering ${slides.length} centered Read-Along slides across ${Math.min(slides.length, Math.max(2, cpuCount))} CPU cores…`,
+      );
     }
-    concatLines.push(
-      `file '${frameSlides[frameSlides.length - 1]!.fileName}'`,
-      "",
-    );
-    await fsp.writeFile(
-      nodePath.join(tmpDir, "concat_0.txt"),
-      concatLines.join("\n"),
-      "utf8",
-    );
+    const renderedNames = await rasterizeSlideRange(0, frameSlides.length);
+    try {
+      const concatLines = ["ffconcat version 1.0"];
+      for (let i = 0; i < frameSlides.length; i++) {
+        const fs = frameSlides[i]!;
+        const dur =
+          i === frameSlides.length - 1
+            ? fs.durationSec + 1 / fps
+            : fs.durationSec;
+        concatLines.push(`file '${renderedNames[i]!}'`);
+        concatLines.push(`duration ${dur.toFixed(6)}`);
+      }
+      concatLines.push(
+        `file '${renderedNames[renderedNames.length - 1]!}'`,
+        "",
+      );
+      await fsp.writeFile(
+        nodePath.join(tmpDir, "concat_0.txt"),
+        concatLines.join("\n"),
+        "utf8",
+      );
 
-    const singleArgs = [
-      "-hide_banner",
-      "-nostdin",
-      "-y",
-      "-f",
-      "concat",
-      "-safe",
-      "0",
-      "-i",
-      "concat_0.txt",
-      "-i",
-      "stitched.wav",
-      ...(canEmbedSoftSubs
-        ? [
-            "-i",
-            "subtitles.srt",
-            "-map",
-            "0:v:0",
-            "-map",
-            "1:a:0",
-            "-map",
-            "2:s:0",
-          ]
-        : ["-map", "0:v:0", "-map", "1:a:0"]),
-      "-vf",
-      `fps=${fps}`,
-      "-frames:v",
-      String(curFrame),
-      "-threads",
-      "0",
-      ...videoOnlyEncoderArgsForFormat(format),
-      ...audioOnlyEncoderArgsForVideoFormat(format, speed, pitch, sampleRate),
-      ...(canEmbedSoftSubs
-        ? [
-            "-c:s",
-            subCodec,
-            "-metadata:s:s:0",
-            "language=eng",
-            "-disposition:s:0",
-            "0",
-          ]
-        : []),
-      ...(format === "mp4" || format === "mov"
-        ? ["-movflags", "+faststart"]
-        : []),
-      `out.${format}`,
-    ];
-    return runFfmpegWithAbort(singleArgs, tmpDir);
+      const singleArgs = [
+        "-hide_banner",
+        "-nostdin",
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        "concat_0.txt",
+        "-i",
+        "stitched.wav",
+        ...(canEmbedSoftSubs
+          ? [
+              "-i",
+              "subtitles.srt",
+              "-map",
+              "0:v:0",
+              "-map",
+              "1:a:0",
+              "-map",
+              "2:s:0",
+            ]
+          : ["-map", "0:v:0", "-map", "1:a:0"]),
+        "-vf",
+        `fps=${fps}`,
+        "-frames:v",
+        String(curFrame),
+        "-threads",
+        "0",
+        ...videoOnlyEncoderArgsForFormat(format),
+        ...audioOnlyEncoderArgsForVideoFormat(format, speed, pitch, sampleRate),
+        ...(canEmbedSoftSubs
+          ? [
+              "-c:s",
+              subCodec,
+              "-metadata:s:s:0",
+              "language=eng",
+              "-disposition:s:0",
+              "0",
+            ]
+          : []),
+        ...(format === "mp4" || format === "mov"
+          ? ["-movflags", "+faststart"]
+          : []),
+        `out.${format}`,
+      ];
+      return await runFfmpegWithAbort(singleArgs, tmpDir);
+    } finally {
+      await cleanupSlideFiles(renderedNames, ["concat_0.txt"]);
+    }
   }
 
   onStageLog?.(
-    `Encoding ${format.toUpperCase()} video across ${numShards} parallel encoder shards…`,
+    `Encoding ${format.toUpperCase()} video across ${numShards} bounded encoder shards…`,
   );
   const shardSize = Math.ceil(frameSlides.length / numShards);
   const shardSpecs: Array<{
     shardIdx: number;
+    startIdx: number;
+    endIdx: number;
     segFileName: string;
     concatFileName: string;
     shardFrames: number;
   }> = [];
 
   for (let sIdx = 0; sIdx < numShards; sIdx++) {
-    const slice = frameSlides.slice(sIdx * shardSize, (sIdx + 1) * shardSize);
+    const startIdx = sIdx * shardSize;
+    const endIdx = Math.min(frameSlides.length, (sIdx + 1) * shardSize);
+    const slice = frameSlides.slice(startIdx, endIdx);
     if (!slice.length) continue;
     const shardFrames = slice.reduce((sum, item) => sum + item.frames, 0);
-    const concatFileName = `concat_${sIdx}.txt`;
-    const segFileName = `seg_${sIdx}.${format}`;
-    const concatLines = ["ffconcat version 1.0"];
-    for (let i = 0; i < slice.length; i++) {
-      const fs = slice[i]!;
-      const dur =
-        i === slice.length - 1 ? fs.durationSec + 1 / fps : fs.durationSec;
-      concatLines.push(`file '${fs.fileName}'`);
-      concatLines.push(`duration ${dur.toFixed(6)}`);
-    }
-    concatLines.push(`file '${slice[slice.length - 1]!.fileName}'`, "");
-    await fsp.writeFile(
-      nodePath.join(tmpDir, concatFileName),
-      concatLines.join("\n"),
-      "utf8",
-    );
     shardSpecs.push({
       shardIdx: sIdx,
-      segFileName,
-      concatFileName,
+      startIdx,
+      endIdx,
+      segFileName: `seg_${sIdx}.${format}`,
+      concatFileName: `concat_${sIdx}.txt`,
       shardFrames,
     });
   }
 
+  const maxActiveShards = Math.min(
+    shardSpecs.length,
+    Math.max(2, Math.min(4, Math.floor(cpuCount / 2))),
+  );
   const threadsPerShard = Math.max(
     1,
-    Math.floor(cpuCount / Math.max(1, shardSpecs.length)),
+    Math.floor(cpuCount / Math.max(1, maxActiveShards)),
   );
-  const shardResults = await Promise.all(
-    shardSpecs.map((spec) =>
-      runFfmpegWithAbort(
-        [
-          "-hide_banner",
-          "-nostdin",
-          "-y",
-          "-f",
-          "concat",
-          "-safe",
-          "0",
-          "-i",
-          spec.concatFileName,
-          "-vf",
-          `fps=${fps}`,
-          "-frames:v",
-          String(spec.shardFrames),
-          "-threads",
-          String(threadsPerShard),
-          "-an",
-          ...videoOnlyEncoderArgsForFormat(format),
-          spec.segFileName,
-        ],
-        tmpDir,
-      ),
-    ),
+  const shardResults = new Array<
+    Awaited<ReturnType<typeof runFfmpegWithAbort>>
+  >(shardSpecs.length);
+  let nextShardCursor = 0;
+
+  const shardWorker = async () => {
+    while (true) {
+      if (signal?.aborted) throw new Error("Cancelled");
+      const idx = nextShardCursor++;
+      if (idx >= shardSpecs.length) break;
+      const spec = shardSpecs[idx]!;
+      const renderedNames = await rasterizeSlideRange(
+        spec.startIdx,
+        spec.endIdx,
+      );
+      try {
+        const slice = frameSlides.slice(spec.startIdx, spec.endIdx);
+        const concatLines = ["ffconcat version 1.0"];
+        for (let i = 0; i < slice.length; i++) {
+          const fs = slice[i]!;
+          const dur =
+            i === slice.length - 1 ? fs.durationSec + 1 / fps : fs.durationSec;
+          concatLines.push(`file '${renderedNames[i]!}'`);
+          concatLines.push(`duration ${dur.toFixed(6)}`);
+        }
+        concatLines.push(
+          `file '${renderedNames[renderedNames.length - 1]!}'`,
+          "",
+        );
+        await fsp.writeFile(
+          nodePath.join(tmpDir, spec.concatFileName),
+          concatLines.join("\n"),
+          "utf8",
+        );
+        shardResults[idx] = await runFfmpegWithAbort(
+          [
+            "-hide_banner",
+            "-nostdin",
+            "-y",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            spec.concatFileName,
+            "-vf",
+            `fps=${fps}`,
+            "-frames:v",
+            String(spec.shardFrames),
+            "-threads",
+            String(threadsPerShard),
+            "-an",
+            ...videoOnlyEncoderArgsForFormat(format),
+            spec.segFileName,
+          ],
+          tmpDir,
+        );
+      } finally {
+        await cleanupSlideFiles(renderedNames, [spec.concatFileName]);
+      }
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: maxActiveShards }, () => shardWorker()),
   );
 
   for (let i = 0; i < shardResults.length; i++) {

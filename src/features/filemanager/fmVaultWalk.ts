@@ -12,6 +12,7 @@ import {
   MAX_ENTRIES,
   MAX_PATH_BYTES,
   MAX_WARNINGS,
+  collisionKey,
   componentProblem,
   encodeDirEntry,
   encodeFileEntry,
@@ -151,7 +152,7 @@ export async function scanSource(
 ): Promise<ScanResult> {
   const st = await fsp.lstat(source);
   const name = nodePath.basename(source);
-  const problem = componentProblem(name);
+  const problem = componentProblem(name) ?? componentProblem(name, "win32");
   if (problem)
     throw new VaultError(
       "BAD_SOURCE",
@@ -177,10 +178,29 @@ export async function scanSource(
       "That isn't an ordinary file or folder, so it can't be encrypted.",
     );
   const warnings = new Warnings();
+  const seenKeys = new Map<string, string>();
   let entries = 0;
   let files = 0;
   let bytes = 0;
   for await (const e of walk(source, signal, warnings)) {
+    for (const part of e.rel.split("/")) {
+      const winProblem = componentProblem(part, "win32");
+      if (winProblem) {
+        throw new VaultError(
+          "BAD_SOURCE",
+          `"${short(e.rel)}" can't be encrypted safely across platforms: it has ${winProblem}. Rename it before encrypting.`,
+        );
+      }
+    }
+    const key = collisionKey(e.rel, "darwin");
+    const prior = seenKeys.get(key);
+    if (prior !== undefined) {
+      throw new VaultError(
+        "BAD_SOURCE",
+        `"${short(prior)}" and "${short(e.rel)}" differ only in letter case or accent normalization and would collide on macOS/Windows when unlocking. Rename one of them before encrypting.`,
+      );
+    }
+    seenKeys.set(key, e.rel);
     if (++entries > MAX_ENTRIES)
       throw new VaultError(
         "TOO_MANY",

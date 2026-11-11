@@ -452,10 +452,11 @@ async function convert(job: BuiltinJob): Promise<string> {
     case "md-html": {
       const bytes = await readInput(input);
       const baseTitle = nodePath.basename(input).replace(/\.[^.]*$/, "");
-      const cleanedMd = stripBackMatterPromoAndDuplicateChapters(
-        decodeBytes(bytes, "auto", true).text,
-        baseTitle,
-      );
+      const rawMd = decodeBytes(bytes, "auto", true).text;
+      const cleanedMd =
+        bool(o, "cleanEpubClutter", false) || bool(o, "audiobookMode", false)
+          ? stripBackMatterPromoAndDuplicateChapters(rawMd, baseTitle)
+          : rawMd;
       const page = renderMarkdownPage(cleanedMd, baseTitle);
       await writeNew(job.output, page.html);
       return `Raw HTML in the Markdown is shown as text, and only web, mail and relative links are kept.${page.engine === "builtin" ? " The simpler built-in renderer was used." : ""}`;

@@ -9,7 +9,14 @@
  * Passwords are resolved on the server from the OS keychain and redacted from all logs,
  * results, and error messages.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "fs";
 import { dirname, join } from "path";
 import { RedisClient } from "bun";
 import { createAdapter } from "../../db";
@@ -26,6 +33,13 @@ import type {
 import type { FmContext, FmHandler } from "./fmCore";
 import { effectiveFor, isObject, profileFor, testInputFor } from "./fmDbCommon";
 import type { CloneRedisClient } from "./fmDbHooks";
+import {
+  evalCondition,
+  runMacroCodeInWorker,
+  validateConditionAst,
+} from "./fmDbMacroWorker";
+
+export { evalCondition } from "./fmDbMacroWorker";
 import { ENGINES, isEngine, type DbEngine } from "./fmDbModel";
 import { checkSqlitePath, dbState } from "./fmDbState";
 import type { DbProfile } from "./fmDbStore";
@@ -707,7 +721,9 @@ function sanitizeActionRow(raw: unknown, idx: number): DbMacroActionRow {
     ? obj.params
     : isObject(obj.parameters)
       ? obj.parameters
-      : null;
+      : isObject(obj.args)
+        ? obj.args
+        : null;
   if (srcParams) {
     for (const [k, v] of Object.entries(srcParams)) {
       if (v !== undefined && v !== null) {
@@ -830,7 +846,12 @@ export function loadMacros(ctx: FmContext): DbMacro[] {
         ),
       );
     }
-  } catch {}
+  } catch {
+    try {
+      copyFileSync(file, `${file}.corrupt`);
+    } catch {}
+    return defaultBuiltinMacros();
+  }
   const defaults = defaultBuiltinMacros();
   saveMacrosFile(ctx, defaults);
   return defaults;
@@ -839,9 +860,11 @@ export function loadMacros(ctx: FmContext): DbMacro[] {
 function saveMacrosFile(ctx: FmContext, macros: DbMacro[]): void {
   const file = macroFilePath(ctx);
   mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, JSON.stringify({ version: 1, macros }, null, 2), {
+  const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
+  writeFileSync(tmp, JSON.stringify({ version: 1, macros }, null, 2), {
     mode: 0o600,
   });
+  renameSync(tmp, file);
 }
 
 /**
@@ -883,9 +906,25 @@ export interface MacroValidationResult {
 
 const tsTranspiler = new Bun.Transpiler({ loader: "ts", target: "bun" });
 
-/** Regular expression matching restricted process, filesystem, or prototype-escape tokens forbidden in database macros. */
+/** Regular expression matching restricted process, filesystem, network, or prototype-escape tokens forbidden in database macros. */
 export const FORBIDDEN_MACRO_CODE_RE =
-  /(?:\b(?:process\s*\.\s*(?:env|binding|dlopen|exit|kill|mainModule)|Bun\s*\.\s*(?:spawn|spawnSync|serve|file|write|mmap|dlopen|unsafe|plugin)|globalThis\b|Reflect\b|Proxy\b|constructor\b|__proto__\b|prototype\b|import\s*\.\s*meta\b|require\s*\(|import\s*\(|child_process\b|Function\s*\(|eval\s*\(|WebSocket\b|XMLHttpRequest\b|SharedArrayBuffer\b|FinalizationRegistry\b|WeakRef\b|Worker\b|Deno\b)|\[\s*["'`]\s*(?:constructor|__proto__|prototype)\b|["'`]con["'`]\s*\+\s*["'`]structor["'`])/;
+  /(?:\b(?:process\b|Bun\s*\.\s*(?!(?:version|nanoseconds|sleep|hash|inspect|escapeHTML|deepEquals|randomUUIDv7)\b)|globalThis\b|Reflect\b|Proxy\b|ShadowRealm\b|importValue\b|constructor\b|__proto__\b|prototype\b|import\s*\.\s*meta\b|require\s*\(|import\s*(?:\/\*[\s\S]*?\*\/\s*)*\(|child_process\b|Function\b|eval\s*\(|fetch\b|WebSocket\b|XMLHttpRequest\b|BroadcastChannel\b|MessageChannel\b|MessagePort\b|SharedArrayBuffer\b|FinalizationRegistry\b|WeakRef\b|HTMLRewriter\b|Loader\b|Worker\b|Deno\b)|\[\s*["'`]\s*(?:constructor|__proto__|prototype|ShadowRealm|importValue)\b|["'`]con["'`]\s*\+\s*["'`]structor["'`])/;
+
+function decodeMacroJsEscapes(src: string): string {
+  return src
+    .replace(/\\u\{([0-9a-fA-F]{1,6})\}/g, (_m, hex) => {
+      const cp = Number.parseInt(hex, 16);
+      return Number.isFinite(cp) && cp >= 0 && cp <= 0x10ffff
+        ? String.fromCodePoint(cp)
+        : _m;
+    })
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex) =>
+      String.fromCharCode(Number.parseInt(hex, 16)),
+    )
+    .replace(/\\x([0-9a-fA-F]{2})/g, (_m, hex) =>
+      String.fromCharCode(Number.parseInt(hex, 16)),
+    );
+}
 
 /** Validates and transpiles Bun JS/TS macro source code, rejecting forbidden host APIs and syntax errors. */
 export function validateBunMacroCode(code: string): MacroValidationResult {
@@ -897,7 +936,10 @@ export function validateBunMacroCode(code: string): MacroValidationResult {
     return { valid: false, warnings, errors };
   }
 
-  if (FORBIDDEN_MACRO_CODE_RE.test(trimmed)) {
+  if (
+    FORBIDDEN_MACRO_CODE_RE.test(trimmed) ||
+    FORBIDDEN_MACRO_CODE_RE.test(decodeMacroJsEscapes(trimmed))
+  ) {
     errors.push({
       message:
         "Access to host process, filesystem, or OS process APIs is restricted inside database macros.",
@@ -907,9 +949,24 @@ export function validateBunMacroCode(code: string): MacroValidationResult {
 
   const normalized = normalizeMacroSourceForAsyncBody(code);
   const wrapped = `async function __userMain(__ctx: any) {\n${normalized}\n}`;
+  const methodGuard = `({ async __guard(__ctx: any) {\n${normalized}\n} })`;
 
   try {
+    tsTranspiler.transformSync(methodGuard);
     const js = tsTranspiler.transformSync(wrapped);
+    const innerJs = js
+      .replace(/^\s*async\s+function\s+__userMain\s*\([^)]*\)\s*\{/, "")
+      .replace(/\}\s*$/, "");
+    if (
+      FORBIDDEN_MACRO_CODE_RE.test(innerJs) ||
+      FORBIDDEN_MACRO_CODE_RE.test(decodeMacroJsEscapes(innerJs))
+    ) {
+      errors.push({
+        message:
+          "Access to host process, filesystem, or OS process APIs is restricted inside database macros.",
+      });
+      return { valid: false, warnings, errors };
+    }
     if (/\bDROP\s+TABLE\b/i.test(code)) {
       warnings.push(
         "Macro contains DROP TABLE — consider running with Dry Run enabled first.",
@@ -1036,32 +1093,24 @@ export function validateMacroActions(
       }
     }
     if ((row.condition ?? "").trim()) {
-      const condCheck = validateBunMacroCode(
-        row.condition!.replace(/\[([A-Za-z0-9_]+)\]/g, "TempVars.$1"),
-      );
+      const condCheck = validateConditionAst(row.condition!);
       if (!condCheck.valid) {
-        for (const e of condCheck.errors) {
-          errors.push({
-            message: `Step ${i + 1} (Condition): ${e.message}`,
-            line: i + 1,
-          });
-        }
+        errors.push({
+          message: `Step ${i + 1} (Condition): ${condCheck.error ?? "Invalid condition."}`,
+          line: i + 1,
+        });
       }
     }
     if (
       (row.action === "SetTempVar" || row.action === "Assert") &&
       (row.params.expression ?? "").trim()
     ) {
-      const exprCheck = validateBunMacroCode(
-        `return (${row.params.expression!});`,
-      );
+      const exprCheck = validateConditionAst(row.params.expression!);
       if (!exprCheck.valid) {
-        for (const e of exprCheck.errors) {
-          errors.push({
-            message: `Step ${i + 1} (${row.action}): ${e.message}`,
-            line: i + 1,
-          });
-        }
+        errors.push({
+          message: `Step ${i + 1} (${row.action}): ${exprCheck.error ?? "Invalid expression."}`,
+          line: i + 1,
+        });
       }
     }
   }
@@ -1472,6 +1521,7 @@ export function exportMacroArtifact(
 }
 
 class MacroStopSignal extends Error {
+  readonly __isMacroStop = true;
   reason: string;
   constructor(reason = "Macro stopped") {
     super(reason);
@@ -1567,14 +1617,18 @@ async function resolveMacroTarget(
 async function openMacroSqlAdapter(
   ctx: FmContext,
   target: ResolvedMacroTarget,
+  forceReadOnly = false,
 ): Promise<DbAdapter> {
   const i = target.testInput;
+  const isMemory = i.path === ":memory:";
+  const useReadOnly = forceReadOnly && !isMemory;
   const config: ConnectionConfig = {
     engine: target.engine as Engine,
     path: i.path,
-    sqliteMode:
-      i.path === ":memory:"
-        ? "memory"
+    sqliteMode: isMemory
+      ? "memory"
+      : useReadOnly
+        ? "readonly"
         : i.sqliteMode === "create"
           ? "readwrite"
           : (i.sqliteMode ?? "readwrite"),
@@ -1585,7 +1639,7 @@ async function openMacroSqlAdapter(
     database: i.database ?? (target.engine === "sqlite" ? i.path : undefined),
     schema: i.schema,
     tls: i.tls,
-    readOnly: false,
+    readOnly: useReadOnly,
     connectTimeoutMs: Math.min(
       i.connectTimeoutMs ?? TEST_TIMEOUT_MS,
       TEST_TIMEOUT_MS,
@@ -1598,6 +1652,9 @@ async function openMacroSqlAdapter(
   await adapter.connect();
   if (target.kind === "memory") {
     await seedScratchDatabase(adapter);
+  }
+  if (useReadOnly && target.engine === "sqlite") {
+    await adapter.query("PRAGMA query_only = ON", []).catch(() => {});
   }
   return adapter;
 }
@@ -1726,34 +1783,215 @@ async function openMacroRedisClient(
   };
 }
 
+const SQL_PLACEHOLDER_PRECEDING_KEYWORDS = new Set([
+  "WHERE",
+  "AND",
+  "OR",
+  "NOT",
+  "LIMIT",
+  "OFFSET",
+  "VALUES",
+  "SET",
+  "LIKE",
+  "ILIKE",
+  "SIMILAR",
+  "TO",
+  "BETWEEN",
+  "IS",
+  "IN",
+  "CASE",
+  "WHEN",
+  "THEN",
+  "ELSE",
+  "HAVING",
+  "RETURNING",
+  "BY",
+  "TOP",
+  "SELECT",
+  "CAST",
+  "COALESCE",
+  "NULLIF",
+  "DISTINCT",
+  "FROM",
+  "ESCAPE",
+]);
+
 /**
  * Replaces `?` positional placeholders with `$1, $2, ...` when running on PostgreSQL
- * so user macros can write portable parameterized SQL (`WHERE points >= ?`) across SQLite, MySQL, and Postgres.
+ * while preserving PostgreSQL JSONB `?`, `?|`, `?&` operators, quoted literals, dollar quotes, and SQL comments.
  */
-function adaptSqlPlaceholders(
+export function adaptSqlPlaceholders(
   engine: Engine,
   sql: string,
   paramCount: number,
+  startIndex = 0,
 ): string {
-  if (engine !== "postgres" || paramCount === 0 || !sql.includes("?"))
+  if (engine !== "postgres" || paramCount <= 0 || !sql.includes("?"))
     return sql;
-  let idx = 0;
-  let inSingle = false;
-  let inDouble = false;
+  let idx = startIndex;
+  let replaced = 0;
   let out = "";
-  for (let i = 0; i < sql.length; i++) {
+  let prevNonSpace = "";
+  let prevIdent = "";
+  const len = sql.length;
+
+  for (let i = 0; i < len; i++) {
     const ch = sql[i]!;
-    if (ch === "'" && !inDouble) {
-      inSingle = !inSingle;
-      out += ch;
-    } else if (ch === '"' && !inSingle) {
-      inDouble = !inDouble;
-      out += ch;
-    } else if (ch === "?" && !inSingle && !inDouble) {
+
+    // Single-line comment --
+    if (ch === "-" && sql[i + 1] === "-") {
+      const nl = sql.indexOf("\n", i + 2);
+      if (nl < 0) {
+        out += sql.slice(i);
+        break;
+      }
+      out += sql.slice(i, nl + 1);
+      i = nl;
+      continue;
+    }
+
+    // Block comment /* ... */ (supports nested comments)
+    if (ch === "/" && sql[i + 1] === "*") {
+      const start = i;
+      i += 2;
+      let depth = 1;
+      while (i < len && depth > 0) {
+        if (sql[i] === "/" && sql[i + 1] === "*") {
+          depth++;
+          i += 2;
+        } else if (sql[i] === "*" && sql[i + 1] === "/") {
+          depth--;
+          i += 2;
+        } else {
+          i++;
+        }
+      }
+      out += sql.slice(start, i);
+      i--;
+      continue;
+    }
+
+    // Single-quoted literal (supports '' and E'...')
+    if (ch === "'") {
+      const isEscapedLiteral = prevIdent.toUpperCase() === "E";
+      const start = i++;
+      while (i < len) {
+        if (isEscapedLiteral && sql[i] === "\\") {
+          i += 2;
+          continue;
+        }
+        if (sql[i] === "'") {
+          if (sql[i + 1] === "'") {
+            i += 2;
+            continue;
+          }
+          i++;
+          break;
+        }
+        i++;
+      }
+      out += sql.slice(start, i);
+      prevNonSpace = "'";
+      prevIdent = "";
+      i--;
+      continue;
+    }
+
+    // Double-quoted identifier
+    if (ch === '"') {
+      const start = i++;
+      while (i < len) {
+        if (sql[i] === '"') {
+          if (sql[i + 1] === '"') {
+            i += 2;
+            continue;
+          }
+          i++;
+          break;
+        }
+        i++;
+      }
+      out += sql.slice(start, i);
+      prevNonSpace = '"';
+      prevIdent = "";
+      i--;
+      continue;
+    }
+
+    // PostgreSQL dollar-quoted string $tag$...$tag$
+    if (ch === "$") {
+      const rest = sql.slice(i);
+      const dm = /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.exec(rest);
+      if (dm) {
+        const tag = dm[0];
+        const closePos = sql.indexOf(tag, i + tag.length);
+        if (closePos >= 0) {
+          out += sql.slice(i, closePos + tag.length);
+          i = closePos + tag.length - 1;
+          prevNonSpace = "$";
+          prevIdent = "";
+          continue;
+        }
+      }
+    }
+
+    // Identifiers / keywords tracking
+    if ((ch >= "A" && ch <= "Z") || (ch >= "a" && ch <= "z") || ch === "_") {
+      const start = i++;
+      while (
+        i < len &&
+        ((sql[i]! >= "A" && sql[i]! <= "Z") ||
+          (sql[i]! >= "a" && sql[i]! <= "z") ||
+          (sql[i]! >= "0" && sql[i]! <= "9") ||
+          sql[i] === "_")
+      ) {
+        i++;
+      }
+      const word = sql.slice(start, i);
+      out += word;
+      prevIdent = word;
+      prevNonSpace = word[word.length - 1]!;
+      i--;
+      continue;
+    }
+
+    if (ch === "?") {
+      // Preserve PostgreSQL JSONB ?| and ?& multi-char operators
+      const nextCh = sql[i + 1];
+      if (nextCh === "|" || nextCh === "&") {
+        out += ch + nextCh;
+        prevNonSpace = nextCh;
+        prevIdent = "";
+        i++;
+        continue;
+      }
+      // Preserve PostgreSQL JSONB single-? existence operator (e.g., payload ? 'key' or (doc->'tags') ? 'x')
+      const precededByValueExpr =
+        (prevIdent.length > 0 &&
+          !SQL_PLACEHOLDER_PRECEDING_KEYWORDS.has(prevIdent.toUpperCase())) ||
+        prevNonSpace === ")" ||
+        prevNonSpace === "]" ||
+        prevNonSpace === "'" ||
+        prevNonSpace === '"' ||
+        prevNonSpace === "$";
+      if (precededByValueExpr || replaced >= paramCount) {
+        out += ch;
+        prevNonSpace = "?";
+        prevIdent = "";
+        continue;
+      }
       idx++;
+      replaced++;
       out += `$${idx}`;
-    } else {
-      out += ch;
+      prevNonSpace = "?";
+      prevIdent = "";
+      continue;
+    }
+
+    out += ch;
+    if (ch !== " " && ch !== "\t" && ch !== "\r" && ch !== "\n") {
+      prevNonSpace = ch;
+      prevIdent = "";
     }
   }
   return out;
@@ -1888,7 +2126,9 @@ export interface RunMacroRequest {
   params?: Record<string, unknown>;
   dryRun?: boolean;
   transaction?: boolean;
+  timeoutMs?: number;
   confirmWrites?: boolean;
+  confirmCode?: boolean;
 }
 
 /** Executes a database macro against a profile, SQLite file, or in-memory database with optional transaction wrapping and dry-run rollback. */
@@ -1935,19 +2175,32 @@ export async function executeDbMacro(
     );
   }
 
-  // Guard production and read-only connections when not running in Dry Run mode
-  if (
-    !dryRun &&
-    (target.production || target.readOnly) &&
-    req.confirmWrites !== true
-  ) {
+  // Guard production and read-only connections EVEN in Dry Run mode
+  if ((target.production || target.readOnly) && req.confirmWrites !== true) {
     const reason = target.readOnly ? "readonly" : "production";
     throw new FmError(
       "NEEDS_CONFIRM",
       target.readOnly
-        ? `'${target.label}' is marked Read-Only. Confirm if you want to run '${macro.name}' against it (or enable Dry Run).`
-        : `'${target.label}' is a Production ${target.engineLabel} connection. Confirm before executing '${macro.name}' (or enable Dry Run).`,
+        ? `'${target.label}' is marked Read-Only. Confirm before running '${macro.name}' against it.`
+        : `'${target.label}' is a Production ${target.engineLabel} connection. Confirm before executing '${macro.name}'.`,
       { reason, name: target.label, engine: target.engine },
+    );
+  }
+
+  // Require explicit confirmation before executing visual RunCode steps on non-builtin macros
+  const hasEnabledRunCodeStep =
+    macro.mode === "actions" &&
+    !macro.builtin &&
+    macro.actions.some((a) => a.enabled !== false && a.action === "RunCode");
+  if (
+    hasEnabledRunCodeStep &&
+    req.confirmCode !== true &&
+    req.confirmWrites !== true
+  ) {
+    throw new FmError(
+      "NEEDS_CONFIRM",
+      `Macro '${macro.name}' contains a RunCode JavaScript step. Confirm before executing custom code.`,
+      { reason: "run_code", name: macro.name, engine: target.engine },
     );
   }
 
@@ -2035,16 +2288,66 @@ export async function executeDbMacro(
       return sqlAdapter;
     };
 
-    const guardMysqlDryRunDdl = (sql: string) => {
-      if (
-        dryRun &&
-        engine === "mysql" &&
-        /^\s*(CREATE|ALTER|DROP|TRUNCATE|RENAME)\b/i.test(sql)
-      ) {
-        throw new FmError(
-          "BAD_REQUEST",
-          "MySQL implicitly commits DDL statements (CREATE/ALTER/DROP/TRUNCATE), which cannot be rolled back in Dry Run mode.",
-        );
+    const guardDryRunSql = (sql: string) => {
+      if (!dryRun && !epTarget.readOnly) return;
+      const stripped = sql
+        .replace(/--[^\n]*/g, " ")
+        .replace(/\/\*[\s\S]*?\*\//g, " ")
+        .trim();
+      if (!stripped) return;
+      if (dryRun) {
+        if (
+          /^(?:COMMIT|END|ROLLBACK(?!\s+TO\b)|BEGIN|START\s+TRANSACTION|SET\s+(?:GLOBAL\s+|SESSION\s+|LOCAL\s+)?(?:AUTOCOMMIT|TRANSACTION)|LOCK\s+TABLES|UNLOCK\s+TABLES)\b/i.test(
+            stripped,
+          )
+        ) {
+          throw new FmError(
+            "BAD_REQUEST",
+            "Explicit transaction control statements (COMMIT/ROLLBACK/BEGIN) are not allowed in Dry Run mode.",
+          );
+        }
+        if (
+          /\b(?:ATTACH\s+DATABASE|DETACH\s+DATABASE|VACUUM|REINDEX|COPY\s+[\s\S]*?\bTO\b|INTO\s+(?:OUTFILE|DUMPFILE))\b/i.test(
+            stripped,
+          ) ||
+          /^PRAGMA\s+(?:[A-Za-z0-9_]+\s*\.\s*)?[A-Za-z0-9_]+\s*(?:=|\()/i.test(
+            stripped,
+          ) ||
+          /^PRAGMA\s+(?:wal_checkpoint|writable_schema|shrink_memory|optimize)\b/i.test(
+            stripped,
+          )
+        ) {
+          throw new FmError(
+            "BAD_REQUEST",
+            "Database-level side-effect statements (ATTACH/VACUUM/writable PRAGMA/OUTFILE) are blocked in Dry Run mode.",
+          );
+        }
+        if (
+          engine === "mysql" &&
+          /^(?:CREATE|ALTER|DROP|TRUNCATE|RENAME|GRANT|REVOKE|ANALYZE|OPTIMIZE|REPAIR|LOAD\s+DATA)\b/i.test(
+            stripped,
+          )
+        ) {
+          throw new FmError(
+            "BAD_REQUEST",
+            "MySQL implicitly commits DDL statements (CREATE/ALTER/DROP/TRUNCATE), which cannot be rolled back in Dry Run mode.",
+          );
+        }
+      }
+      if (epTarget.readOnly && dryRun) {
+        if (
+          !/^(?:SELECT|WITH|EXPLAIN(?!\s+ANALYZE\b)|SHOW|DESCRIBE|DESC|VALUES)\b/i.test(
+            stripped,
+          ) ||
+          /\b(?:INSERT|UPDATE|DELETE|REPLACE|MERGE|CREATE|ALTER|DROP|TRUNCATE)\b/i.test(
+            stripped,
+          )
+        ) {
+          throw new FmError(
+            "BAD_REQUEST",
+            `Write or DDL statements are blocked on read-only connection '${epTarget.label}' in Dry Run mode.`,
+          );
+        }
       }
     };
 
@@ -2071,6 +2374,7 @@ export async function executeDbMacro(
             `Provide parameter value(s): ${[...missingPrompts].join(", ")}`,
           );
         }
+        guardDryRunSql(interpolated);
         const sql = adaptSqlPlaceholders(
           sqlEngine,
           interpolated,
@@ -2124,7 +2428,7 @@ export async function executeDbMacro(
             `Provide parameter value(s): ${[...missingPrompts].join(", ")}`,
           );
         }
-        guardMysqlDryRunDdl(interpolated);
+        guardDryRunSql(interpolated);
         const sql = adaptSqlPlaceholders(
           sqlEngine,
           interpolated,
@@ -2154,6 +2458,7 @@ export async function executeDbMacro(
           inputParams,
           missingPrompts,
         );
+        guardDryRunSql(interpolated);
         const sql = adaptSqlPlaceholders(
           sqlEngine,
           interpolated,
@@ -2184,6 +2489,7 @@ export async function executeDbMacro(
           inputParams,
           missingPrompts,
         );
+        guardDryRunSql(interpolated);
         const sql = adaptSqlPlaceholders(
           sqlEngine,
           interpolated,
@@ -2303,12 +2609,7 @@ export async function executeDbMacro(
             inputParams,
             missingPrompts,
           );
-          if (sqlEngine === "postgres" && interpolatedWhere.includes("?")) {
-            let pIdx = cols.length;
-            whereSql = ` WHERE ${interpolatedWhere.replace(/\?/g, () => `$${++pIdx}`)}`;
-          } else {
-            whereSql = ` WHERE ${interpolatedWhere}`;
-          }
+          whereSql = ` WHERE ${adaptSqlPlaceholders(sqlEngine, interpolatedWhere, whereParams.length, cols.length)}`;
         }
         const sql = `UPDATE ${quoteIdent(sqlEngine, tableName)} SET ${setParts.join(", ")}${whereSql}`;
         const res = await dbApi.execute(
@@ -2392,6 +2693,7 @@ export async function executeDbMacro(
           : "";
       if (fnName === "LOOKUP") {
         const sql = `SELECT ${cleanExpr} AS __val FROM ${fromSql}${wherePart} LIMIT 1`;
+        guardDryRunSql(sql);
         const res = await ad.query(sql);
         return res.rows[0]?.__val ?? null;
       }
@@ -2400,23 +2702,24 @@ export async function executeDbMacro(
           ? "COUNT(*)"
           : `${fnName}(${cleanExpr})`;
       const sql = `SELECT ${aggExpr} AS __val FROM ${fromSql}${wherePart}`;
+      guardDryRunSql(sql);
       const res = await ad.query(sql);
       const rawVal = res.rows[0]?.__val;
       if (fnName === "COUNT" || fnName === "SUM") return Number(rawVal ?? 0);
       return rawVal !== undefined && rawVal !== null ? Number(rawVal) : null;
     };
 
-    const DCount = (expr = "*", domain: string, criteria?: string) =>
+    const DCount = (expr = "*", domain = "", criteria?: string) =>
       domainAggregate("COUNT", expr, domain, criteria);
-    const DLookup = (expr: string, domain: string, criteria?: string) =>
+    const DLookup = (expr = "*", domain = "", criteria?: string) =>
       domainAggregate("LOOKUP", expr, domain, criteria);
-    const DSum = (expr: string, domain: string, criteria?: string) =>
+    const DSum = (expr = "*", domain = "", criteria?: string) =>
       domainAggregate("SUM", expr, domain, criteria);
-    const DAvg = (expr: string, domain: string, criteria?: string) =>
+    const DAvg = (expr = "*", domain = "", criteria?: string) =>
       domainAggregate("AVG", expr, domain, criteria);
-    const DMin = (expr: string, domain: string, criteria?: string) =>
+    const DMin = (expr = "*", domain = "", criteria?: string) =>
       domainAggregate("MIN", expr, domain, criteria);
-    const DMax = (expr: string, domain: string, criteria?: string) =>
+    const DMax = (expr = "*", domain = "", criteria?: string) =>
       domainAggregate("MAX", expr, domain, criteria);
 
     const MsgBox = (
@@ -2762,15 +3065,36 @@ export async function executeDbMacro(
   let stoppedEarly = false;
   let returnValue: unknown = undefined;
 
+  const beginTargetTransaction = async (
+    ad: DbAdapter,
+    epTarget: ResolvedMacroTarget,
+  ) => {
+    const readOnlyTx = epTarget.readOnly && dryRun;
+    if (readOnlyTx && epTarget.engine === "postgres") {
+      await ad.query("BEGIN READ ONLY", []);
+    } else if (readOnlyTx && epTarget.engine === "mysql") {
+      await ad.query("START TRANSACTION READ ONLY", []);
+    } else {
+      await ad.query("BEGIN", []);
+    }
+  };
+
   try {
     if (target.engine === "redis") {
       primaryRedisClient = await openMacroRedisClient(ctx, target);
       openedRedisClients.push(primaryRedisClient);
     } else {
-      primarySqlAdapter = await openMacroSqlAdapter(ctx, target);
+      primarySqlAdapter = await openMacroSqlAdapter(
+        ctx,
+        target,
+        target.readOnly && dryRun,
+      );
       openedAdapters.push(primarySqlAdapter);
-      if (useTransaction) {
-        await primarySqlAdapter.query("BEGIN", []);
+      if (
+        useTransaction &&
+        !(target.readOnly && dryRun && target.engine === "sqlite")
+      ) {
+        await beginTargetTransaction(primarySqlAdapter, target);
       }
     }
 
@@ -2779,6 +3103,8 @@ export async function executeDbMacro(
       primarySqlAdapter,
       primaryRedisClient,
     );
+    const subEnvs = new Map<string, ReturnType<typeof createDatabaseApi>>();
+    let nextSubConnSeq = 1;
 
     const connectionsApi = {
       list() {
@@ -2811,7 +3137,6 @@ export async function executeDbMacro(
         });
         if (subTarget.passwordSecret) secrets.push(subTarget.passwordSecret);
         if (
-          !dryRun &&
           (subTarget.production || subTarget.readOnly) &&
           req.confirmWrites !== true
         ) {
@@ -2825,18 +3150,34 @@ export async function executeDbMacro(
             },
           );
         }
+        let env: ReturnType<typeof createDatabaseApi>;
         if (subTarget.engine === "redis") {
           const rc = await openMacroRedisClient(ctx, subTarget);
           openedRedisClients.push(rc);
-          return createDatabaseApi(subTarget, null, rc);
+          env = createDatabaseApi(subTarget, null, rc);
         } else {
-          const sa = await openMacroSqlAdapter(ctx, subTarget);
+          const sa = await openMacroSqlAdapter(
+            ctx,
+            subTarget,
+            subTarget.readOnly && dryRun,
+          );
           openedAdapters.push(sa);
-          if (useTransaction) {
-            await sa.query("BEGIN", []);
+          if (
+            useTransaction &&
+            !(subTarget.readOnly && dryRun && subTarget.engine === "sqlite")
+          ) {
+            await beginTargetTransaction(sa, subTarget);
           }
-          return createDatabaseApi(subTarget, sa, null);
+          env = createDatabaseApi(subTarget, sa, null);
         }
+        const connId = `sub_${nextSubConnSeq++}`;
+        subEnvs.set(connId, env);
+        return {
+          env,
+          connId,
+          engine: subTarget.engine,
+          label: subTarget.label,
+        };
       },
     };
 
@@ -2863,102 +3204,149 @@ export async function executeDbMacro(
       },
     };
 
-    const DebugApi = {
-      print: (...args: unknown[]) => pushLog("debug", args),
-      Print: (...args: unknown[]) => pushLog("debug", args),
-      Assert: (cond: unknown, msg?: string) =>
-        primaryEnv.DoCmd.Assert(cond, msg),
-      assert: (cond: unknown, msg?: string) =>
-        primaryEnv.DoCmd.Assert(cond, msg),
-    };
-
-    const safeBun = {
-      version: Bun.version,
-      nanoseconds: () => Bun.nanoseconds(),
-      sleep: (ms: number) =>
-        Bun.sleep(Math.min(Math.max(0, Number(ms) || 0), 2_000)),
-      hash: (v: string | ArrayBufferView) => Bun.hash(v as any),
-      inspect: (v: unknown) => Bun.inspect(v),
-      escapeHTML: (s: string) => Bun.escapeHTML(s),
-      deepEquals: (a: unknown, b: unknown) => Bun.deepEquals(a, b),
-      randomUUIDv7: () => Bun.randomUUIDv7(),
-    };
-
     const evaluateExpr = async (exprCode: string): Promise<unknown> => {
-      const trimmed = (exprCode ?? "").trim();
-      if (!trimmed) return undefined;
-      if (FORBIDDEN_MACRO_CODE_RE.test(trimmed)) {
+      return await evalCondition(exprCode, {
+        tempVars: tempVarsStore,
+        params: inputParams,
+        recordsAffected: Number(primaryEnv.db.RecordsAffected ?? 0),
+        engine: target.engine,
+        connectionName: target.label,
+        domainFns: {
+          DCount: primaryEnv.DCount,
+          DLookup: primaryEnv.DLookup,
+          DSum: primaryEnv.DSum,
+          DAvg: primaryEnv.DAvg,
+          DMin: primaryEnv.DMin,
+          DMax: primaryEnv.DMax,
+        },
+      });
+    };
+
+    const dispatchWorkerRpc = async (
+      connId: string,
+      method: string,
+      args: any[],
+    ): Promise<unknown> => {
+      if (method === "syncTempVars") {
+        if (isObject(args[0])) {
+          for (const k of Object.keys(tempVarsStore)) delete tempVarsStore[k];
+          Object.assign(tempVarsStore, args[0]);
+        }
+        return true;
+      }
+      if (method === "connections.use") {
+        const opened = await connectionsApi.use(String(args[0] ?? ""));
+        return {
+          connId: opened.connId,
+          engine: opened.engine,
+          label: opened.label,
+        };
+      }
+      if (method === "Bun.hash") {
+        return String(Bun.hash(String(args[0] ?? "")));
+      }
+
+      const env = connId === "primary" ? primaryEnv : subEnvs.get(connId);
+      if (!env) {
         throw new FmError(
-          "SYNTAX_ERROR",
-          "Access to host process, filesystem, or OS process APIs is restricted inside database macros.",
+          "NOT_FOUND",
+          `Unknown connection handle '${connId}'.`,
         );
       }
-      const js = tsTranspiler.transformSync(
-        `async function __eval(__c: any) { return (\n${trimmed}\n); }`,
-      );
-      const body = `${js}\nreturn await __eval(__ctx);`;
-      const fn = new Function(
-        "__ctx",
-        "db",
-        "CurrentDb",
-        "DoCmd",
-        "DCount",
-        "DLookup",
-        "DSum",
-        "DAvg",
-        "DMin",
-        "DMax",
-        "TempVars",
-        "vars",
-        "params",
-        "MsgBox",
-        "Debug",
-        "console",
-        "redis",
-        "connections",
-        "Bun",
-        "process",
-        "globalThis",
-        "global",
-        "window",
-        "self",
-        "Function",
-        "eval",
-        "require",
-        `return (async () => { ${body} })();`,
-      );
-      return await fn(
-        runtimeCtx,
-        primaryEnv.db,
-        primaryEnv.CurrentDb,
-        primaryEnv.DoCmd,
-        primaryEnv.DCount,
-        primaryEnv.DLookup,
-        primaryEnv.DSum,
-        primaryEnv.DAvg,
-        primaryEnv.DMin,
-        primaryEnv.DMax,
-        tempVarsProxy,
-        tempVarsProxy,
-        inputParams,
-        primaryEnv.MsgBox,
-        DebugApi,
-        consoleProxy,
-        primaryEnv.redis,
-        connectionsApi,
-        safeBun,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-      );
+
+      switch (method) {
+        case "db.query":
+          return await env.db.query(args[0], args[1], args[2]);
+        case "db.execute":
+          return await env.db.execute(args[0], args[1], args[2]);
+        case "db.scalar":
+          return await env.db.scalar(args[0], args[1]);
+        case "db.openRecordsetRows": {
+          const rs = await env.db.OpenRecordset(args[0], args[1]);
+          return rs.rows;
+        }
+        case "db.tables":
+          return await env.db.tables();
+        case "db.describe":
+          return await env.db.describe(args[0]);
+        case "db.insert":
+          return await env.db.insert(args[0], args[1]);
+        case "db.update":
+          return await env.db.update(args[0], args[1], args[2], args[3]);
+        case "db.delete":
+          return await env.db.delete(args[0], args[1], args[2]);
+        case "DCount":
+          return await env.DCount(args[0], args[1], args[2]);
+        case "DLookup":
+          return await env.DLookup(args[0], args[1], args[2]);
+        case "DSum":
+          return await env.DSum(args[0], args[1], args[2]);
+        case "DAvg":
+          return await env.DAvg(args[0], args[1], args[2]);
+        case "DMin":
+          return await env.DMin(args[0], args[1], args[2]);
+        case "DMax":
+          return await env.DMax(args[0], args[1], args[2]);
+        case "redis.command":
+          return await env.redis.command(args[0], ...args.slice(1));
+        case "redis.get":
+          return await env.redis.get(args[0]);
+        case "redis.set":
+          return await env.redis.set(args[0], args[1], args[2]);
+        case "redis.del":
+          return await env.redis.del(...args);
+        case "redis.keys":
+          return await env.redis.keys(args[0]);
+        case "redis.hgetall":
+          return await env.redis.hgetall(args[0]);
+        case "redis.hset":
+          return await env.redis.hset(args[0], args[1]);
+        case "redis.incr":
+          return await env.redis.incr(args[0]);
+        case "redis.ttl":
+          return await env.redis.ttl(args[0]);
+        case "DoCmd.OpenTable":
+          return await env.DoCmd.OpenTable(args[0], args[1], args[2]);
+        case "DoCmd.MakeTable":
+          return await env.DoCmd.MakeTable(args[0], args[1], args[2]);
+        case "DoCmd.SetTempVar":
+          return await env.DoCmd.SetTempVar(args[0], args[1]);
+        case "DoCmd.RemoveTempVar":
+          return await env.DoCmd.RemoveTempVar(args[0]);
+        case "DoCmd.RemoveAllTempVars":
+          return await env.DoCmd.RemoveAllTempVars();
+        case "DoCmd.RunCode": {
+          const out = await primaryEnv.DoCmd.RunCode(args[0]);
+          return { out, __tempVars: { ...tempVarsStore } };
+        }
+        case "DoCmd.RunMacro": {
+          const out = await primaryEnv.DoCmd.RunMacro(args[0], args[1]);
+          return { out, __tempVars: { ...tempVarsStore } };
+        }
+        default:
+          throw new FmError(
+            "BAD_REQUEST",
+            `Unsupported macro RPC '${method}'.`,
+          );
+      }
     };
 
-    const runCodeSnippet = async (codeSource: string): Promise<unknown> => {
+    const runCodeSnippet = async (
+      codeSource: string,
+      requireExplicitConfirm = false,
+    ): Promise<unknown> => {
+      if (
+        requireExplicitConfirm &&
+        !macro.builtin &&
+        req.confirmCode !== true &&
+        req.confirmWrites !== true
+      ) {
+        throw new FmError(
+          "NEEDS_CONFIRM",
+          `Executing RunCode in '${macro.name}' requires explicit confirmation.`,
+          { reason: "run_code", name: macro.name, engine: target.engine },
+        );
+      }
       const check = validateBunMacroCode(codeSource);
       if (!check.valid) {
         const first = check.errors[0]!;
@@ -2983,65 +3371,62 @@ export async function executeDbMacro(
         }
         return __res;
       `;
-      const fn = new Function(
-        "__ctx",
-        "db",
-        "CurrentDb",
-        "DoCmd",
-        "DCount",
-        "DLookup",
-        "DSum",
-        "DAvg",
-        "DMin",
-        "DMax",
-        "TempVars",
-        "vars",
-        "params",
-        "MsgBox",
-        "Debug",
-        "console",
-        "redis",
-        "connections",
-        "Bun",
-        "process",
-        "globalThis",
-        "global",
-        "window",
-        "self",
-        "Function",
-        "eval",
-        "require",
-        `return (async () => { ${runnerSource} })();`,
-      );
-      return await fn(
-        runtimeCtx,
-        primaryEnv.db,
-        primaryEnv.CurrentDb,
-        primaryEnv.DoCmd,
-        primaryEnv.DCount,
-        primaryEnv.DLookup,
-        primaryEnv.DSum,
-        primaryEnv.DAvg,
-        primaryEnv.DMin,
-        primaryEnv.DMax,
-        tempVarsProxy,
-        tempVarsProxy,
+      const effectiveTimeoutMs =
+        typeof req.timeoutMs === "number" && Number.isFinite(req.timeoutMs)
+          ? Math.max(100, Math.min(MAX_TIMEOUT_MS, Math.trunc(req.timeoutMs)))
+          : macro.timeoutMs;
+      const elapsedSoFar = Math.round(performance.now() - startedAt);
+      const remainingTimeout = Math.max(100, effectiveTimeoutMs - elapsedSoFar);
+      return await runMacroCodeInWorker(runnerSource, {
+        engine: target.engine,
+        label: target.label,
+        bunVersion: Bun.version,
+        timeoutMs: remainingTimeout,
+        tempVarsStore,
         inputParams,
-        primaryEnv.MsgBox,
-        DebugApi,
-        consoleProxy,
-        primaryEnv.redis,
-        connectionsApi,
-        safeBun,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-      );
+        connectionsList: connectionsApi.list(),
+        onSyncEvent(ev) {
+          if (ev.kind === "log") {
+            const lvl = (ev.level as DbMacroLogEntry["level"]) || "log";
+            pushLog(lvl, ev.args);
+          } else if (ev.kind === "consoleTable") {
+            consoleProxy.table(ev.args[0]);
+          } else if (ev.kind === "MsgBox") {
+            primaryEnv.MsgBox(
+              ev.args[0],
+              typeof ev.args[1] === "string" ? ev.args[1] : "Macro",
+              (ev.args[2] as any) || "info",
+            );
+          } else if (ev.kind === "Beep") {
+            primaryEnv.DoCmd.Beep();
+          } else if (ev.kind === "SetWarnings") {
+            primaryEnv.DoCmd.SetWarnings(Boolean(ev.args[0]));
+          } else if (ev.kind === "AssertOk") {
+            steps.push({
+              index: steps.length + 1,
+              action: "Assert",
+              status: "ok",
+              detail: String(ev.args[0] ?? "Macro assertion passed"),
+              elapsedMs: 0,
+            });
+          }
+        },
+        onRpc: dispatchWorkerRpc,
+        createStopSignal: (reason: string) => {
+          steps.push({
+            index: steps.length + 1,
+            action: "StopMacro",
+            status: "stopped",
+            detail: reason,
+            elapsedMs: 0,
+          });
+          return new MacroStopSignal(reason);
+        },
+      });
+    };
+
+    const executeRunCodeStep = async (codeSource: string): Promise<unknown> => {
+      return await runCodeSnippet(codeSource, true);
     };
 
     const runActionRows = async (
@@ -3205,7 +3590,7 @@ export async function executeDbMacro(
             primaryEnv.DoCmd.Beep();
             break;
           case "RunCode":
-            lastResult = await runCodeSnippet(p.code ?? "");
+            lastResult = await executeRunCodeStep(p.code ?? "");
             break;
           case "RunMacro":
             lastResult = await primaryEnv.DoCmd.RunMacro(
@@ -3232,7 +3617,7 @@ export async function executeDbMacro(
 
     primaryEnv.DoCmd.RunCode = async (codeOrExpr: string) => {
       const stepStart = performance.now();
-      const out = await runCodeSnippet(String(codeOrExpr ?? ""));
+      const out = await executeRunCodeStep(String(codeOrExpr ?? ""));
       steps.push({
         index: steps.length + 1,
         action: "RunCode",
@@ -3276,27 +3661,6 @@ export async function executeDbMacro(
       return await runCodeSnippet(sub.code);
     };
 
-    const runtimeCtx = {
-      db: primaryEnv.db,
-      CurrentDb: primaryEnv.CurrentDb,
-      DoCmd: primaryEnv.DoCmd,
-      DCount: primaryEnv.DCount,
-      DLookup: primaryEnv.DLookup,
-      DSum: primaryEnv.DSum,
-      DAvg: primaryEnv.DAvg,
-      DMin: primaryEnv.DMin,
-      DMax: primaryEnv.DMax,
-      TempVars: tempVarsProxy,
-      vars: tempVarsProxy,
-      params: inputParams,
-      MsgBox: primaryEnv.MsgBox,
-      Debug: DebugApi,
-      console: consoleProxy,
-      redis: primaryEnv.redis,
-      connections: connectionsApi,
-      Bun: safeBun,
-    };
-
     const execPromise = (async () => {
       if (macro.mode === "actions") {
         return await runActionRows(macro.actions, 1);
@@ -3304,16 +3668,20 @@ export async function executeDbMacro(
       return await runCodeSnippet(macro.code);
     })();
 
+    const effectiveMacroTimeoutMs =
+      typeof req.timeoutMs === "number" && Number.isFinite(req.timeoutMs)
+        ? Math.max(100, Math.min(MAX_TIMEOUT_MS, Math.trunc(req.timeoutMs)))
+        : macro.timeoutMs;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<never>((_resolve, reject) => {
       timer = setTimeout(() => {
         reject(
           new FmError(
             "TIMEOUT",
-            `Macro execution timed out after ${macro.timeoutMs} ms.`,
+            `Macro execution timed out after ${effectiveMacroTimeoutMs} ms.`,
           ),
         );
-      }, macro.timeoutMs);
+      }, effectiveMacroTimeoutMs);
     });
 
     try {
@@ -3378,6 +3746,9 @@ export async function executeDbMacro(
           await ad.query("ROLLBACK", []).catch(() => {});
         }
         rolledBack = true;
+      }
+      if (err instanceof FmError && err.code === "NEEDS_CONFIRM") {
+        throw err;
       }
       const rawMsg = err instanceof Error ? err.message : String(err);
       const safeMsg = redact(rawMsg, secrets);
@@ -3612,6 +3983,7 @@ export const macroOperations: Record<string, FmHandler> = {
       transaction:
         typeof b.transaction === "boolean" ? b.transaction : undefined,
       confirmWrites: b.confirmWrites === true,
+      confirmCode: b.confirmCode === true || b.confirm === true,
     });
   },
 };

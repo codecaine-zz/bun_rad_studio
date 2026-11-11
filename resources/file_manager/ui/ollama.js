@@ -1711,79 +1711,117 @@ async function runLiveStreamChat() {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+    let pendingThinking = false;
+    let pendingAnswer = false;
+    let streamFrameId = 0;
+    const scheduleFrame =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame
+        : (cb) => setTimeout(cb, 16);
+    const cancelFrame =
+      typeof cancelAnimationFrame === "function"
+        ? cancelAnimationFrame
+        : clearTimeout;
+    const flushStreamUi = () => {
+      if (streamFrameId) {
+        cancelFrame(streamFrameId);
+        streamFrameId = 0;
+      }
+      if (!pendingThinking && !pendingAnswer) return;
+      const didThink = pendingThinking;
+      const didAnswer = pendingAnswer;
+      pendingThinking = false;
+      pendingAnswer = false;
+      const thinkingBox = rootContainer?.querySelector(".ollama-thinking-box");
+      const outputBox = rootContainer?.querySelector(".ollama-output-box");
+      if (
+        uiState.markdownView ||
+        (didThink && !thinkingBox) ||
+        (didAnswer && !outputBox)
+      ) {
+        renderOllamaPanel();
+      } else {
+        if (didThink && thinkingBox) {
+          const stickBottom =
+            thinkingBox.scrollHeight -
+              thinkingBox.scrollTop -
+              thinkingBox.clientHeight <=
+            80;
+          thinkingBox.textContent = uiState.thinkingOutput;
+          if (stickBottom) thinkingBox.scrollTop = thinkingBox.scrollHeight;
+        }
+        if (didAnswer && outputBox) {
+          const stickBottom =
+            outputBox.scrollHeight -
+              outputBox.scrollTop -
+              outputBox.clientHeight <=
+            80;
+          outputBox.textContent = uiState.answerOutput;
+          if (stickBottom) outputBox.scrollTop = outputBox.scrollHeight;
+        }
+      }
+    };
+    const scheduleStreamUi = () => {
+      if (streamFrameId) return;
+      streamFrameId = scheduleFrame(() => {
+        streamFrameId = 0;
+        flushStreamUi();
+      });
+    };
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        buffer += decoder.decode();
-        if (buffer.trim()) {
-          for (const line of buffer.split("\n")) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
-            try {
-              const pkt = JSON.parse(trimmed);
-              if (pkt.message?.thinking)
-                uiState.thinkingOutput += pkt.message.thinking;
-              if (pkt.message?.content)
-                uiState.answerOutput += pkt.message.content;
-            } catch {}
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          buffer += decoder.decode();
+          if (buffer.trim()) {
+            for (const line of buffer.split("\n")) {
+              const trimmed = line.trim();
+              if (!trimmed) continue;
+              try {
+                const pkt = JSON.parse(trimmed);
+                if (pkt.message?.thinking) {
+                  uiState.thinkingOutput += pkt.message.thinking;
+                  pendingThinking = true;
+                }
+                if (pkt.message?.content) {
+                  uiState.answerOutput += pkt.message.content;
+                  pendingAnswer = true;
+                }
+              } catch {}
+            }
+          }
+          flushStreamUi();
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            const pkt = JSON.parse(trimmed);
+            if (pkt.message?.thinking) {
+              uiState.thinkingOutput += pkt.message.thinking;
+              pendingThinking = true;
+            }
+            if (pkt.message?.content) {
+              uiState.answerOutput += pkt.message.content;
+              pendingAnswer = true;
+            }
+          } catch {
+            // ignore partial JSON line
           }
         }
-        break;
+        if (pendingThinking || pendingAnswer) {
+          scheduleStreamUi();
+        }
       }
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-      let updatedThinking = false;
-      let updatedAnswer = false;
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-        try {
-          const pkt = JSON.parse(trimmed);
-          if (pkt.message?.thinking) {
-            uiState.thinkingOutput += pkt.message.thinking;
-            updatedThinking = true;
-          }
-          if (pkt.message?.content) {
-            uiState.answerOutput += pkt.message.content;
-            updatedAnswer = true;
-          }
-        } catch {
-          // ignore partial JSON line
-        }
-      }
-      if (updatedThinking || updatedAnswer) {
-        const thinkingBox = rootContainer?.querySelector(
-          ".ollama-thinking-box",
-        );
-        const outputBox = rootContainer?.querySelector(".ollama-output-box");
-        if (
-          uiState.markdownView ||
-          (updatedThinking && !thinkingBox) ||
-          (updatedAnswer && !outputBox)
-        ) {
-          renderOllamaPanel();
-        } else {
-          if (updatedThinking && thinkingBox) {
-            const stickBottom =
-              thinkingBox.scrollHeight -
-                thinkingBox.scrollTop -
-                thinkingBox.clientHeight <=
-              80;
-            thinkingBox.textContent = uiState.thinkingOutput;
-            if (stickBottom) thinkingBox.scrollTop = thinkingBox.scrollHeight;
-          }
-          if (updatedAnswer && outputBox) {
-            const stickBottom =
-              outputBox.scrollHeight -
-                outputBox.scrollTop -
-                outputBox.clientHeight <=
-              80;
-            outputBox.textContent = uiState.answerOutput;
-            if (stickBottom) outputBox.scrollTop = outputBox.scrollHeight;
-          }
-        }
+    } finally {
+      if (streamFrameId) {
+        cancelFrame(streamFrameId);
+        streamFrameId = 0;
       }
     }
 

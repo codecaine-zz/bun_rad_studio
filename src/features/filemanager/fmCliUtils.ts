@@ -13,6 +13,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  realpathSync,
   statSync,
   unlinkSync,
   writeFileSync,
@@ -25,7 +26,7 @@ import {
   type FmContext,
   type FmHandler,
 } from "./fmCore";
-import { FmError } from "./fmPaths";
+import { FmError, isSameOrInside } from "./fmPaths";
 
 /** Metadata describing a command-line flag supported by a built-in RAD Studio CLI utility. */
 export interface CliFlagInfo {
@@ -316,11 +317,11 @@ const KNOWN_FLAGS: Record<string, CliFlagInfo[]> = {
       description: "Comma-separated extensions to watch",
     },
     {
-      name: "once",
-      short: "1",
+      name: "postpone",
+      short: "p",
       type: "bool",
       defaultValue: false,
-      description: "Run command once and exit",
+      description: "Wait until first file change before running command",
     },
   ],
 };
@@ -947,12 +948,6 @@ function discoverCatalog(): Array<
     const dashedName = stem.replace(/_/g, "-");
     const suiteName = `codecaine-${id.replace(/_/g, "-")}`;
     const scriptPath = nodePath.join(loc.cliDir, file);
-    if (loc.ext === ".ts" && process.platform !== "win32") {
-      try {
-        const mode = statSync(scriptPath).mode;
-        if ((mode & 0o111) === 0) chmodSync(scriptPath, 0o755);
-      } catch {}
-    }
     let sourceHead = "";
     try {
       sourceHead = readFileSync(scriptPath, "utf8").slice(0, 8192);
@@ -1264,6 +1259,127 @@ async function readStreamBounded(
     : text;
 }
 
+const PURE_INLINE_CLI_IDS = new Set([
+  "calc",
+  "sed",
+  "tr",
+  "cut",
+  "regex",
+  "color",
+  "crypto",
+  "markdown",
+  "json",
+]);
+
+const SANDBOX_BLOCKED_CLI_IDS = new Set([
+  "watchexec",
+  "watcher",
+  "rip",
+  "port_kill",
+  "process",
+  "procs",
+  "task_manager",
+  "docker",
+  "brew",
+  "launchd",
+  "launcher",
+  "app_bundler",
+  "bundler",
+  "multirepo_git_pilot",
+  "terminal_recorder_studio",
+]);
+
+function isUnconfirmedInlineCliAllowed(
+  entry: CliUtilEntry,
+  argv: string[],
+  ctx: FmContext,
+): boolean {
+  if (ctx.sandboxRoot) return false;
+  if (
+    argv.length > 0 &&
+    argv.every(
+      (a) => a === "--help" || a === "-h" || a === "--version" || a === "-V",
+    )
+  ) {
+    return true;
+  }
+  if (!PURE_INLINE_CLI_IDS.has(entry.id)) return false;
+  const riskyFlagRe =
+    /^(-i|--in-place|-f|--file|-o|--output|--out|-w|--write|--eval|--exec|--path|--dir|--db|--delete|--force)(?:=|$)/;
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]!;
+    if (riskyFlagRe.test(arg)) return false;
+    if (arg === "--") return false;
+  }
+  return true;
+}
+
+function enforceCliSandboxContainment(
+  ctx: FmContext,
+  entry: CliUtilEntry,
+  cwd: string,
+  argv: string[],
+): void {
+  if (!ctx.sandboxRoot) return;
+  if (SANDBOX_BLOCKED_CLI_IDS.has(entry.id)) {
+    throw new FmError(
+      "FORBIDDEN",
+      `CLI utility "${entry.id}" is restricted when a workspace sandbox root is active.`,
+    );
+  }
+  const realSandbox = (() => {
+    try {
+      return realpathSync(ctx.sandboxRoot!);
+    } catch {
+      return ctx.sandboxRoot!;
+    }
+  })();
+  const realCwd = (() => {
+    try {
+      return realpathSync(cwd);
+    } catch {
+      return cwd;
+    }
+  })();
+  if (!isSameOrInside(realCwd, realSandbox, ctx.platform)) {
+    throw new FmError(
+      "FORBIDDEN",
+      "Working folder is outside the allowed sandbox root.",
+    );
+  }
+  const p = pathApi(ctx);
+  for (const arg of argv) {
+    if (!arg || arg.startsWith("-") || arg === ":memory:") continue;
+    if (
+      arg.includes("..") ||
+      arg.includes("/") ||
+      arg.includes("\\") ||
+      /^[A-Za-z]:/.test(arg)
+    ) {
+      const resolvedArg = p.isAbsolute(arg)
+        ? p.resolve(arg)
+        : p.resolve(realCwd, arg);
+      if (!isSameOrInside(resolvedArg, realSandbox, ctx.platform)) {
+        throw new FmError(
+          "FORBIDDEN",
+          `Argument "${arg}" resolves outside the allowed sandbox root.`,
+        );
+      }
+      try {
+        const realArg = realpathSync(resolvedArg);
+        if (!isSameOrInside(realArg, realSandbox, ctx.platform)) {
+          throw new FmError(
+            "FORBIDDEN",
+            `Argument "${arg}" points outside the allowed sandbox root.`,
+          );
+        }
+      } catch (err) {
+        if (err instanceof FmError) throw err;
+      }
+    }
+  }
+}
+
 /**
  * Runs a built-in CLI utility directly via `Bun.spawn` (without a shell) and captures its output.
  */
@@ -1294,12 +1410,13 @@ export async function runCliUtil(
     argv = [];
   }
 
-  let cwd = ensureCliUtilsFolder(ctx);
+  let cwd = ctx.sandboxRoot || ensureCliUtilsFolder(ctx);
   if (typeof options.cwd === "string" && options.cwd.trim()) {
     const resolved = absolutePath(ctx, options.cwd);
     await assertFolder(resolved, "That working folder");
     cwd = resolved;
   }
+  enforceCliSandboxContainment(ctx, entry, cwd, argv);
 
   const timeoutMs = Math.max(
     500,
@@ -1376,13 +1493,29 @@ export const cliUtilsOperations: Record<string, FmHandler> = {
     return listCliUtils(ctx, { force: b.force === true });
   },
   async "cliutils/run"(ctx, b) {
+    const toolName = typeof b.tool === "string" ? b.tool : "";
+    const entry = resolveCliTool(ctx, toolName);
+    const rawArgs = Array.isArray(b.args)
+      ? b.args.map(String)
+      : typeof b.args === "string"
+        ? b.args
+        : "";
+    const parsedArgv = Array.isArray(rawArgs)
+      ? rawArgs
+      : parseCliArgsString(rawArgs);
+    if (
+      b.confirm !== true &&
+      !isUnconfirmedInlineCliAllowed(entry, parsedArgv, ctx)
+    ) {
+      throw new FmError(
+        "NEEDS_CONFIRM",
+        `Running CLI utility "${entry.id}" requires confirmation.`,
+        { tool: entry.id },
+      );
+    }
     return runCliUtil(ctx, {
-      tool: typeof b.tool === "string" ? b.tool : "",
-      args: Array.isArray(b.args)
-        ? b.args.map(String)
-        : typeof b.args === "string"
-          ? b.args
-          : "",
+      tool: toolName,
+      args: rawArgs,
       cwd: typeof b.cwd === "string" && b.cwd.trim() ? b.cwd : undefined,
       timeoutMs: typeof b.timeoutMs === "number" ? b.timeoutMs : undefined,
     });

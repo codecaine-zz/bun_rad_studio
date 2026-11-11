@@ -23,7 +23,26 @@ import {
   type FmContext,
   type FmHandler,
 } from "./fmCore";
-import { FmError, isDocumentPackageName, isSameOrInside } from "./fmPaths";
+import { archivePaths } from "./fmFindArchive";
+import {
+  assertRealpathInsideSandboxSync,
+  chmodSafeSync,
+  createSessionTempDirSync,
+  ensureDirectorySyncNative,
+  listDirectoryEntriesSyncNative,
+  moveFileSafeExclusiveAsync,
+  readTextFileSyncNative,
+  removePathForceSync,
+  streamDownloadWithSha256,
+  verifyDownloadedArchiveIntegrity,
+  writeNewFileExclusiveAsync,
+} from "./fmNativeFs";
+import {
+  FmError,
+  isDocumentPackageName,
+  isSameOrInside,
+  validateName,
+} from "./fmPaths";
 import { extractReadableDocumentText } from "./fmPreview";
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -146,81 +165,32 @@ export async function fileExistsPure(filePath: string): Promise<boolean> {
 }
 
 /**
- * Synchronously reads a UTF-8 text file using pure Bun process spawning without Node `fs`.
+ * Synchronously reads a UTF-8 text file via native filesystem I/O without spawning shell subprocesses.
  */
 export function readTextFileSyncPure(filePath: string): string {
-  if (!filePath || filePath.includes("\0")) return "";
-  try {
-    if (Bun.file(filePath).size <= 0) return "";
-    if (process.platform === "win32") {
-      const winPath = normalizeSlashes(filePath, "win32");
-      const res = Bun.spawnSync(["cmd.exe", "/d", "/c", "type", winPath], {
-        stdout: "pipe",
-        stderr: "ignore",
-      });
-      return res.exitCode === 0 ? res.stdout.toString("utf8") : "";
-    }
-    const res = Bun.spawnSync(["cat", "--", filePath], {
-      stdout: "pipe",
-      stderr: "ignore",
-    });
-    return res.exitCode === 0 ? res.stdout.toString("utf8") : "";
-  } catch {
-    return "";
-  }
+  return readTextFileSyncNative(filePath);
 }
 
 /**
- * Synchronously creates a directory and any missing parent directories using pure Bun spawning.
+ * Synchronously creates a directory and any missing parent directories without spawning shell subprocesses.
  */
 export function ensureDirectoryPure(
   dirPath: string,
   _platform = process.platform,
 ): void {
-  if (!dirPath || dirPath.includes("\0")) return;
-  try {
-    new Bun.Glob("*").scanSync({ cwd: dirPath, onlyFiles: false }).next();
-    return;
-  } catch {}
-  if (process.platform === "win32") {
-    const winPath = normalizeSlashes(dirPath, "win32");
-    Bun.spawnSync(["cmd.exe", "/d", "/c", "mkdir", winPath], {
-      stdout: "ignore",
-      stderr: "ignore",
-    });
-  } else {
-    Bun.spawnSync(["mkdir", "-p", "--", dirPath], {
-      stdout: "ignore",
-      stderr: "ignore",
-    });
-  }
+  ensureDirectorySyncNative(dirPath);
 }
 
 /**
- * Synchronously lists immediate entries in a directory using pure Bun APIs.
+ * Synchronously lists immediate entries in a directory via native `withFileTypes` directory reads.
  */
 export function listDirectoryEntriesPure(
   dirPath: string,
   platform = process.platform,
 ): Array<{ name: string; path: string; isDir: boolean }> {
-  if (!dirPath || dirPath.includes("\0")) return [];
-  try {
-    const glob = new Bun.Glob("*");
-    const allNames = [
-      ...glob.scanSync({ cwd: dirPath, dot: true, onlyFiles: false }),
-    ];
-    if (allNames.length === 0) return [];
-    const fileNames = new Set(
-      glob.scanSync({ cwd: dirPath, dot: true, onlyFiles: true }),
-    );
-    return allNames.map((name) => ({
-      name,
-      path: joinPath([dirPath, name], platform),
-      isDir: !fileNames.has(name),
-    }));
-  } catch {
-    return [];
-  }
+  return listDirectoryEntriesSyncNative(dirPath, (name) =>
+    joinPath([dirPath, name], platform),
+  );
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -536,6 +506,7 @@ export function resolveSandboxPath(ctx: FmContext, relOrAbs: string): string {
       "The Recycle Bin can only be changed through Recycle Bin actions.",
     );
   }
+  assertRealpathInsideSandboxSync(resolved, ctx.sandboxRoot, ctx.platform);
   return resolved;
 }
 
@@ -589,9 +560,11 @@ export async function readImageAsBase64(absPath: string): Promise<string> {
     file.size > 120_000 &&
     Bun.which("sips")
   ) {
+    let tmpDir = "";
     try {
+      tmpDir = createSessionTempDirSync("fm-vlm-thumb-");
       const ext = extnameLower(absPath) === "png" ? "png" : "jpg";
-      const tmpOut = `${tempDirPath()}/fm_vlm_thumb_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.${ext}`;
+      const tmpOut = joinPath([tmpDir, `thumb.${ext}`], "darwin");
       await Bun.write(tmpOut, file);
       const sipsRes = Bun.spawnSync(["/usr/bin/sips", "-Z", "768", tmpOut], {
         stdout: "ignore",
@@ -603,16 +576,13 @@ export async function readImageAsBase64(absPath: string): Promise<string> {
           const b64 = Buffer.from(await resizedFile.arrayBuffer()).toString(
             "base64",
           );
-          try {
-            Bun.spawnSync(["/bin/rm", "-f", tmpOut], {
-              stdout: "ignore",
-              stderr: "ignore",
-            });
-          } catch {}
           if (b64.length > 0) return b64;
         }
       }
-    } catch {}
+    } catch {
+    } finally {
+      if (tmpDir) removePathForceSync(tmpDir);
+    }
   }
   return Buffer.from(await file.arrayBuffer()).toString("base64");
 }
@@ -4188,7 +4158,7 @@ export async function runOllamaAutoInstall(
         binPath = hooked.installedPath;
         if (ctx.ollama) ctx.ollama.ollamaBinPath = binPath;
       } else if (hw.platform === "linux") {
-        // Pure-Bun Linux user-space install into ~/.local/bin/ollama (no root/sudo needed!)
+        // User-space Linux install into ~/.local/bin/ollama (streamed to disk, no root/sudo needed!)
         const home =
           (ctx as any).homeDir || ctx.home || process.env.HOME || "/tmp";
         const localDir = joinPath([home, ".local"], "linux");
@@ -4196,97 +4166,126 @@ export async function runOllamaAutoInstall(
         ensureDirectoryPure(localBinDir, "linux");
         const archSlug =
           hw.arch === "arm64" || hw.arch === "aarch64" ? "arm64" : "amd64";
-        const downloadUrl = `https://ollama.com/download/ollama-linux-${archSlug}.tar.zst`;
+        const assetName = `ollama-linux-${archSlug}.tar.zst`;
+        const downloadUrl = `https://ollama.com/download/${assetName}`;
+        const tmpZstPath = joinPath(
+          [localDir, `.ollama-linux-${process.pid}-${Date.now()}.tar.zst`],
+          "linux",
+        );
+        const tmpTarPath = joinPath(
+          [localDir, `.ollama-linux-${process.pid}-${Date.now()}.tar`],
+          "linux",
+        );
 
         updateOllamaLongTask({
           step: `Downloading Linux package (${downloadUrl}) into ~/.local...`,
           percent: 18,
         });
 
-        const dlRes = await fetch(downloadUrl, {
-          redirect: "follow",
-          signal: AbortSignal.timeout(300_000),
-        });
-        if (!dlRes.ok) {
-          throw new FmError(
-            "OLLAMA_LINUX_INSTALL_FAILED",
-            `Failed to download ${downloadUrl} (HTTP ${dlRes.status}).`,
-          );
-        }
+        try {
+          let dlMeta: { bytesWritten: number; sha256: string };
+          try {
+            dlMeta = await streamDownloadWithSha256(downloadUrl, tmpZstPath, {
+              maxBytes: 2 * 1024 ** 3,
+              signal: AbortSignal.timeout(300_000),
+              onProgress: (received, totalBytes) => {
+                const dlPct =
+                  totalBytes > 0
+                    ? Math.min(
+                        42,
+                        18 + Math.round((received / totalBytes) * 24),
+                      )
+                    : 30;
+                updateOllamaLongTask({
+                  step: `Downloading ${assetName} (${(received / 1024 ** 2).toFixed(1)} MB)...`,
+                  percent: dlPct,
+                  completedBytes: received,
+                  totalBytes,
+                });
+              },
+            });
+            await verifyDownloadedArchiveIntegrity({
+              downloadUrl,
+              assetName,
+              actualSha256: dlMeta.sha256,
+              bytesWritten: dlMeta.bytesWritten,
+              magicCheckPath: tmpZstPath,
+              expectedMagic: "zstd",
+            });
+          } catch (dlErr) {
+            throw new FmError(
+              "OLLAMA_LINUX_INSTALL_FAILED",
+              (dlErr as Error)?.message || `Failed to download ${downloadUrl}.`,
+            );
+          }
 
-        const totalBytes = Number(dlRes.headers.get("content-length") || 0);
-        const chunks: Uint8Array[] = [];
-        const MAX_INSTALL_ARCHIVE_BYTES = 2 * 1024 ** 3;
-        let received = 0;
-        if (dlRes.body) {
-          const reader = dlRes.body.getReader();
-          while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            if (value) {
-              received += value.byteLength;
-              if (received > MAX_INSTALL_ARCHIVE_BYTES) {
-                throw new FmError(
-                  "OLLAMA_LINUX_INSTALL_FAILED",
-                  "Downloaded archive exceeded maximum allowed size (2 GB).",
-                );
-              }
-              chunks.push(value);
-              const dlPct =
-                totalBytes > 0
-                  ? Math.min(42, 18 + Math.round((received / totalBytes) * 24))
-                  : 30;
-              updateOllamaLongTask({
-                step: `Downloading ollama-linux-${archSlug}.tar.zst (${(received / 1024 ** 2).toFixed(1)} MB)...`,
-                percent: dlPct,
-                completedBytes: received,
-                totalBytes,
-              });
+          updateOllamaLongTask({
+            step: `Extracting Ollama into ${localDir}...`,
+            percent: 46,
+          });
+          let extracted = false;
+          const directTar = Bun.spawnSync(
+            [
+              "tar",
+              "--no-same-owner",
+              "--zstd",
+              "-xf",
+              tmpZstPath,
+              "-C",
+              localDir,
+            ],
+            { stdout: "ignore", stderr: "pipe" },
+          );
+          if (directTar.exitCode === 0) {
+            extracted = true;
+          } else if (Bun.which("zstd")) {
+            const pipeRes = Bun.spawnSync(
+              [
+                "/bin/sh",
+                "-c",
+                '"$1" -dc "$2" | tar --no-same-owner -xf - -C "$3"',
+                "--",
+                Bun.which("zstd")!,
+                tmpZstPath,
+                localDir,
+              ],
+              { stdout: "ignore", stderr: "pipe" },
+            );
+            extracted = pipeRes.exitCode === 0;
+          }
+          if (!extracted) {
+            if (dlMeta.bytesWritten > 512 * 1024 ** 2) {
+              throw new FmError(
+                "OLLAMA_LINUX_INSTALL_FAILED",
+                `Archive requires zstd or GNU tar --zstd to extract without buffering >512 MB in memory (${directTar.stderr.toString()}).`,
+              );
+            }
+            const compressed = new Uint8Array(
+              await Bun.file(tmpZstPath).arrayBuffer(),
+            );
+            removePathForceSync(tmpZstPath);
+            const tarBytes = Bun.zstdDecompressSync(compressed);
+            await Bun.write(tmpTarPath, tarBytes);
+            const tarRes = Bun.spawnSync(
+              ["tar", "--no-same-owner", "-xf", tmpTarPath, "-C", localDir],
+              { stdout: "ignore", stderr: "pipe" },
+            );
+            if (tarRes.exitCode !== 0) {
+              throw new FmError(
+                "OLLAMA_LINUX_INSTALL_FAILED",
+                `Failed to extract Linux archive: ${tarRes.stderr.toString()}`,
+              );
             }
           }
-        }
-        const compressed = new Uint8Array(Buffer.concat(chunks, received));
-
-        updateOllamaLongTask({
-          step: `Decompressing ollama-linux-${archSlug}.tar.zst with Bun.zstdDecompressSync...`,
-          percent: 45,
-        });
-        const tarBytes = Bun.zstdDecompressSync(compressed);
-        const tmpTarPath = joinPath(
-          [localDir, `.ollama-linux-${process.pid}-${Date.now()}.tar`],
-          "linux",
-        );
-        await Bun.write(tmpTarPath, tarBytes);
-
-        updateOllamaLongTask({
-          step: `Extracting Ollama into ${localDir}...`,
-          percent: 49,
-        });
-        const tarRes = Bun.spawnSync(
-          ["tar", "-xf", tmpTarPath, "-C", localDir],
-          {
-            stdout: "ignore",
-            stderr: "pipe",
-          },
-        );
-        Bun.spawnSync(["rm", "-f", "--", tmpTarPath], {
-          stdout: "ignore",
-          stderr: "ignore",
-        });
-        if (tarRes.exitCode !== 0) {
-          throw new FmError(
-            "OLLAMA_LINUX_INSTALL_FAILED",
-            `Failed to extract Linux archive: ${tarRes.stderr.toString()}`,
-          );
+        } finally {
+          removePathForceSync(tmpZstPath);
+          removePathForceSync(tmpTarPath);
         }
         const candidateBin = joinPath([localBinDir, "ollama"], "linux");
-        Bun.spawnSync(["chmod", "0755", "--", candidateBin], {
-          stdout: "ignore",
-          stderr: "ignore",
-        });
+        chmodSafeSync(candidateBin, 0o755);
         binPath = candidateBin;
       } else if (hw.platform === "win32") {
-        // Pure-Bun Windows user-space install (supports both native Windows 11 ARM64 in Parallels and Windows x64)
+        // Windows user-space install (supports both native Windows 11 ARM64 in Parallels and Windows x64)
         const home =
           (ctx as any).homeDir ||
           ctx.home ||
@@ -4305,119 +4304,88 @@ export async function runOllamaAutoInstall(
 
         const archSlug =
           hw.arch === "arm64" || hw.arch === "aarch64" ? "arm64" : "amd64";
-        const zipUrl = `https://ollama.com/download/ollama-windows-${archSlug}.zip`;
+        const assetName = `ollama-windows-${archSlug}.zip`;
+        const zipUrl = `https://ollama.com/download/${assetName}`;
         updateOllamaLongTask({
           step: `Downloading Windows ${archSlug.toUpperCase()} package (${zipUrl})...`,
           percent: 16,
         });
 
+        const tmpZipPath = joinPath(
+          [
+            installDir,
+            `.ollama-windows-${archSlug}-${process.pid}-${Date.now()}.zip`,
+          ],
+          "win32",
+        );
         try {
-          const dlRes = await fetch(zipUrl, {
-            redirect: "follow",
+          const dlMeta = await streamDownloadWithSha256(zipUrl, tmpZipPath, {
+            maxBytes: 2 * 1024 ** 3,
             signal: AbortSignal.timeout(300_000),
+            onProgress: (received, totalBytes) => {
+              const dlPct =
+                totalBytes > 0
+                  ? Math.min(42, 16 + Math.round((received / totalBytes) * 26))
+                  : 30;
+              updateOllamaLongTask({
+                step: `Downloading ${assetName} (${(received / 1024 ** 2).toFixed(1)} MB)...`,
+                percent: dlPct,
+                completedBytes: received,
+                totalBytes,
+              });
+            },
           });
-          if (dlRes.ok) {
-            const MAX_INSTALL_ARCHIVE_BYTES = 2 * 1024 ** 3;
-            const totalBytes = Number(dlRes.headers.get("content-length") || 0);
-            const chunks: Uint8Array[] = [];
-            let received = 0;
-            if (dlRes.body) {
-              const reader = dlRes.body.getReader();
-              while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-                if (value) {
-                  received += value.byteLength;
-                  if (received > MAX_INSTALL_ARCHIVE_BYTES) {
-                    throw new FmError(
-                      "OLLAMA_WINDOWS_INSTALL_FAILED",
-                      "Downloaded archive exceeded maximum allowed size (2 GB).",
-                    );
-                  }
-                  chunks.push(value);
-                  const dlPct =
-                    totalBytes > 0
-                      ? Math.min(
-                          42,
-                          16 + Math.round((received / totalBytes) * 26),
-                        )
-                      : 30;
-                  updateOllamaLongTask({
-                    step: `Downloading ollama-windows-${archSlug}.zip (${(received / 1024 ** 2).toFixed(1)} MB)...`,
-                    percent: dlPct,
-                    completedBytes: received,
-                    totalBytes,
-                  });
-                }
-              }
-            }
-            const zipBytes = new Uint8Array(Buffer.concat(chunks, received));
-            const tmpZipPath = joinPath(
+          await verifyDownloadedArchiveIntegrity({
+            downloadUrl: zipUrl,
+            assetName,
+            actualSha256: dlMeta.sha256,
+            bytesWritten: dlMeta.bytesWritten,
+            magicCheckPath: tmpZipPath,
+            expectedMagic: "zip",
+          });
+
+          updateOllamaLongTask({
+            step: `Extracting ${assetName} into ${installDir}...`,
+            percent: 45,
+          });
+
+          const sysTar = "C:\\Windows\\System32\\tar.exe";
+          const tarCmd = (await fileExistsPure(sysTar))
+            ? sysTar
+            : Bun.which("tar") || "tar";
+          const tarRes = Bun.spawnSync(
+            [tarCmd, "--no-same-owner", "-xf", tmpZipPath, "-C", installDir],
+            {
+              stdout: "ignore",
+              stderr: "pipe",
+              windowsHide: true,
+            },
+          );
+          if (tarRes.exitCode !== 0 || !(await fileExistsPure(winTarget))) {
+            Bun.spawnSync(
               [
-                installDir,
-                `.ollama-windows-${archSlug}-${process.pid}-${Date.now()}.zip`,
+                "powershell",
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "Expand-Archive -LiteralPath $env:FM_ZIP_PATH -DestinationPath $env:FM_DEST_DIR -Force",
               ],
-              "win32",
-            );
-            await Bun.write(tmpZipPath, zipBytes);
-
-            updateOllamaLongTask({
-              step: `Extracting ollama-windows-${archSlug}.zip into ${installDir}...`,
-              percent: 45,
-            });
-
-            const sysTar = "C:\\Windows\\System32\\tar.exe";
-            const tarCmd = (await fileExistsPure(sysTar))
-              ? sysTar
-              : Bun.which("tar") || "tar";
-            const tarRes = Bun.spawnSync(
-              [tarCmd, "-xf", tmpZipPath, "-C", installDir],
               {
                 stdout: "ignore",
-                stderr: "pipe",
+                stderr: "ignore",
                 windowsHide: true,
+                env: {
+                  ...process.env,
+                  FM_ZIP_PATH: tmpZipPath,
+                  FM_DEST_DIR: installDir,
+                },
               },
             );
-            if (tarRes.exitCode !== 0 || !(await fileExistsPure(winTarget))) {
-              Bun.spawnSync(
-                [
-                  "powershell",
-                  "-NoProfile",
-                  "-NonInteractive",
-                  "-Command",
-                  "Expand-Archive -LiteralPath $env:FM_ZIP_PATH -DestinationPath $env:FM_DEST_DIR -Force",
-                ],
-                {
-                  stdout: "ignore",
-                  stderr: "ignore",
-                  windowsHide: true,
-                  env: {
-                    ...process.env,
-                    FM_ZIP_PATH: tmpZipPath,
-                    FM_DEST_DIR: installDir,
-                  },
-                },
-              );
-            }
-            try {
-              Bun.spawnSync(
-                [
-                  "powershell",
-                  "-NoProfile",
-                  "-NonInteractive",
-                  "-Command",
-                  "Remove-Item -LiteralPath $env:FM_TMP_FILE -Force -ErrorAction SilentlyContinue",
-                ],
-                {
-                  stdout: "ignore",
-                  stderr: "ignore",
-                  windowsHide: true,
-                  env: { ...process.env, FM_TMP_FILE: tmpZipPath },
-                },
-              );
-            } catch {}
           }
-        } catch {}
+        } catch {
+        } finally {
+          removePathForceSync(tmpZipPath);
+        }
 
         // Fallback to winget / OllamaSetup.exe if the standalone zip did not produce ollama.exe
         if (!(await fileExistsPure(winTarget))) {
@@ -4448,54 +4416,39 @@ export async function runOllamaAutoInstall(
             step: `Downloading Windows installer (${setupUrl})...`,
             percent: 49,
           });
+          const tmpExe = joinPath(
+            [installDir, `OllamaSetup-${process.pid}-${Date.now()}.exe`],
+            "win32",
+          );
           try {
-            const dlRes = await fetch(setupUrl, {
-              redirect: "follow",
+            const dlMeta = await streamDownloadWithSha256(setupUrl, tmpExe, {
+              maxBytes: 2 * 1024 ** 3,
               signal: AbortSignal.timeout(300_000),
             });
-            if (dlRes.ok) {
-              const tmpExe = joinPath(
-                [installDir, `OllamaSetup-${process.pid}-${Date.now()}.exe`],
-                "win32",
-              );
-              try {
-                await Bun.write(
-                  tmpExe,
-                  new Uint8Array(await dlRes.arrayBuffer()),
-                );
-                updateOllamaLongTask({
-                  step: "Running silent Windows Ollama installer (/VERYSILENT /SUPPRESSMSGBOXES /NORESTART)...",
-                  percent: 52,
-                });
-                Bun.spawnSync(
-                  [tmpExe, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"],
-                  {
-                    stdout: "ignore",
-                    stderr: "ignore",
-                    windowsHide: true,
-                  },
-                );
-              } finally {
-                try {
-                  Bun.spawnSync(
-                    [
-                      "powershell",
-                      "-NoProfile",
-                      "-NonInteractive",
-                      "-Command",
-                      "Remove-Item -LiteralPath $env:FM_TMP_FILE -Force -ErrorAction SilentlyContinue",
-                    ],
-                    {
-                      stdout: "ignore",
-                      stderr: "ignore",
-                      windowsHide: true,
-                      env: { ...process.env, FM_TMP_FILE: tmpExe },
-                    },
-                  );
-                } catch {}
-              }
-            }
-          } catch {}
+            await verifyDownloadedArchiveIntegrity({
+              downloadUrl: setupUrl,
+              assetName: "OllamaSetup.exe",
+              actualSha256: dlMeta.sha256,
+              bytesWritten: dlMeta.bytesWritten,
+              magicCheckPath: tmpExe,
+              expectedMagic: "pe",
+            });
+            updateOllamaLongTask({
+              step: "Running silent Windows Ollama installer (/VERYSILENT /SUPPRESSMSGBOXES /NORESTART)...",
+              percent: 52,
+            });
+            Bun.spawnSync(
+              [tmpExe, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"],
+              {
+                stdout: "ignore",
+                stderr: "ignore",
+                windowsHide: true,
+              },
+            );
+          } catch {
+          } finally {
+            removePathForceSync(tmpExe);
+          }
         }
 
         if (await fileExistsPure(winTarget)) {
@@ -4524,22 +4477,29 @@ export async function runOllamaAutoInstall(
         binPath = await detectOllamaBinaryPure(ctx);
         if (!binPath) {
           const zipUrl = "https://ollama.com/download/Ollama-darwin.zip";
+          const destDir = joinPath([home, ".ollama", "bin"], "darwin");
+          ensureDirectoryPure(destDir, "darwin");
+          const tmpZip = joinPath(
+            [destDir, `Ollama-${process.pid}-${Date.now()}.zip`],
+            "darwin",
+          );
           updateOllamaLongTask({
             step: `Downloading macOS bundle (${zipUrl})...`,
             percent: 32,
           });
-          const dlRes = await fetch(zipUrl, {
-            redirect: "follow",
-            signal: AbortSignal.timeout(300_000),
-          });
-          if (dlRes.ok) {
-            const destDir = joinPath([home, ".ollama", "bin"], "darwin");
-            ensureDirectoryPure(destDir, "darwin");
-            const tmpZip = joinPath(
-              [destDir, `Ollama-${Date.now()}.zip`],
-              "darwin",
-            );
-            await Bun.write(tmpZip, new Uint8Array(await dlRes.arrayBuffer()));
+          try {
+            const dlMeta = await streamDownloadWithSha256(zipUrl, tmpZip, {
+              maxBytes: 2 * 1024 ** 3,
+              signal: AbortSignal.timeout(300_000),
+            });
+            await verifyDownloadedArchiveIntegrity({
+              downloadUrl: zipUrl,
+              assetName: "Ollama-darwin.zip",
+              actualSha256: dlMeta.sha256,
+              bytesWritten: dlMeta.bytesWritten,
+              magicCheckPath: tmpZip,
+              expectedMagic: "zip",
+            });
             updateOllamaLongTask({
               step: "Extracting Ollama.app into ~/.ollama/bin...",
               percent: 45,
@@ -4548,14 +4508,12 @@ export async function runOllamaAutoInstall(
               stdout: "ignore",
               stderr: "ignore",
             });
-            Bun.spawnSync(["rm", "-f", "--", tmpZip], {
-              stdout: "ignore",
-              stderr: "ignore",
-            });
             binPath = joinPath(
               [destDir, "Ollama.app", "Contents", "Resources", "ollama"],
               "darwin",
             );
+          } finally {
+            removePathForceSync(tmpZip);
           }
         }
       }
@@ -6443,72 +6401,111 @@ export async function executeConfirmedToolAction(
       ctx,
       String(args.path || "untitled.txt"),
     );
+    const nameErr = validateName(bunBasename(targetAbs), ctx.platform);
+    if (nameErr) throw new FmError("BAD_NAME", nameErr);
     const parentDir = bunDirname(targetAbs);
     assertCreatable(ctx, parentDir);
     assertModifiable(ctx, targetAbs);
     ensureDirSyncWithBun(parentDir);
-    await Bun.write(targetAbs, String(args.content ?? ""));
+    assertRealpathInsideSandboxSync(targetAbs, ctx.sandboxRoot, ctx.platform);
+    const content = String(args.content ?? "");
+    await writeNewFileExclusiveAsync(targetAbs, content);
     pending.result = {
       createdPath: toSandboxRelative(ctx, targetAbs),
-      bytesWritten: String(args.content ?? "").length,
+      bytesWritten: Buffer.byteLength(content, "utf8"),
     };
   } else if (pending.toolName === "move_file") {
     const srcAbs = resolveSandboxPath(ctx, String(args.sourcePath || ""));
     const dstAbs = resolveSandboxPath(ctx, String(args.destinationPath || ""));
+    const dstNameErr = validateName(bunBasename(dstAbs), ctx.platform);
+    if (dstNameErr) throw new FmError("BAD_NAME", dstNameErr);
     const dstParent = bunDirname(dstAbs);
     assertModifiable(ctx, srcAbs);
     assertCreatable(ctx, dstParent);
     assertModifiable(ctx, dstAbs);
     ensureDirSyncWithBun(dstParent);
-    const mv = Bun.spawnSync(["mv", "--", srcAbs, dstAbs], {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
-    if (mv.exitCode !== 0) {
-      throw new FmError(
-        "MOVE_FAILED",
-        new TextDecoder().decode(mv.stderr) || "Failed to move file.",
-      );
-    }
+    assertRealpathInsideSandboxSync(srcAbs, ctx.sandboxRoot, ctx.platform);
+    assertRealpathInsideSandboxSync(dstAbs, ctx.sandboxRoot, ctx.platform);
+    await moveFileSafeExclusiveAsync(srcAbs, dstAbs);
     pending.result = {
       movedFrom: toSandboxRelative(ctx, srcAbs),
       movedTo: toSandboxRelative(ctx, dstAbs),
     };
   } else if (pending.toolName === "batch_rename") {
     const renames = Array.isArray(args.renames) ? args.renames : [];
-    const completed: Array<{ from: string; to: string }> = [];
+    const prepared: Array<{
+      fromAbs: string;
+      toAbs: string;
+      toParent: string;
+    }> = [];
     for (const item of renames) {
       const fromAbs = resolveSandboxPath(ctx, String(item.from || ""));
       const toAbs = resolveSandboxPath(ctx, String(item.to || ""));
+      const toNameErr = validateName(bunBasename(toAbs), ctx.platform);
+      if (toNameErr) throw new FmError("BAD_NAME", toNameErr);
       const toParent = bunDirname(toAbs);
       assertModifiable(ctx, fromAbs);
       assertCreatable(ctx, toParent);
       assertModifiable(ctx, toAbs);
-      ensureDirSyncWithBun(toParent);
-      const mv = Bun.spawnSync(["mv", "--", fromAbs, toAbs], {
-        stdout: "pipe",
-        stderr: "pipe",
-      });
-      if (mv.exitCode === 0) {
+      prepared.push({ fromAbs, toAbs, toParent });
+    }
+    const completed: Array<{
+      from: string;
+      to: string;
+      fromAbs: string;
+      toAbs: string;
+    }> = [];
+    try {
+      for (const item of prepared) {
+        ensureDirSyncWithBun(item.toParent);
+        assertRealpathInsideSandboxSync(
+          item.fromAbs,
+          ctx.sandboxRoot,
+          ctx.platform,
+        );
+        assertRealpathInsideSandboxSync(
+          item.toAbs,
+          ctx.sandboxRoot,
+          ctx.platform,
+        );
+        await moveFileSafeExclusiveAsync(item.fromAbs, item.toAbs);
         completed.push({
-          from: toSandboxRelative(ctx, fromAbs),
-          to: toSandboxRelative(ctx, toAbs),
+          from: toSandboxRelative(ctx, item.fromAbs),
+          to: toSandboxRelative(ctx, item.toAbs),
+          fromAbs: item.fromAbs,
+          toAbs: item.toAbs,
         });
       }
+    } catch (err) {
+      for (let i = completed.length - 1; i >= 0; i--) {
+        const doneItem = completed[i]!;
+        await moveFileSafeExclusiveAsync(
+          doneItem.toAbs,
+          doneItem.fromAbs,
+        ).catch(() => {});
+      }
+      throw err;
     }
-    pending.result = { renamedCount: completed.length, completed };
+    pending.result = {
+      renamedCount: completed.length,
+      completed: completed.map(({ from, to }) => ({ from, to })),
+    };
   } else if (pending.toolName === "archive_files") {
     const relPaths: string[] = Array.isArray(args.paths)
       ? args.paths.map(String)
       : [];
     const archiveRel = String(args.archivePath || "archive.tar.gz");
     const archiveAbs = resolveSandboxPath(ctx, archiveRel);
+    const archiveBase = bunBasename(archiveAbs);
+    const archiveNameErr = validateName(archiveBase, ctx.platform);
+    if (archiveNameErr) throw new FmError("BAD_NAME", archiveNameErr);
     const archiveParent = bunDirname(archiveAbs);
     assertCreatable(ctx, archiveParent);
     assertModifiable(ctx, archiveAbs);
     ensureDirSyncWithBun(archiveParent);
+    assertRealpathInsideSandboxSync(archiveAbs, ctx.sandboxRoot, ctx.platform);
     const archiveRoot = ctx.sandboxRoot || ctx.home;
-    const validatedRel = relPaths.map((p) => {
+    const validatedAbs = relPaths.map((p) => {
       const abs = resolveSandboxPath(ctx, p);
       if (!isSameOrInside(abs, archiveRoot, ctx.platform)) {
         throw new FmError(
@@ -6516,28 +6513,25 @@ export async function executeConfirmedToolAction(
           `Cannot archive path outside workspace root: ${p}`,
         );
       }
+      assertRealpathInsideSandboxSync(abs, ctx.sandboxRoot, ctx.platform);
       const rel = toSandboxRelative(ctx, abs);
       if (rel.startsWith("-") || rel.startsWith("..")) {
         throw new FmError("BAD_PATH", `Invalid archive entry path: ${rel}`);
       }
-      return rel;
+      return abs;
     });
-    const tar = Bun.spawnSync(
-      ["tar", "-czf", archiveAbs, "-C", archiveRoot, "--", ...validatedRel],
-      {
-        stdout: "pipe",
-        stderr: "pipe",
-      },
+    const isZip = /\.zip$/i.test(archiveBase);
+    const stem = archiveBase.replace(/\.(zip|tar\.gz|tgz)$/i, "");
+    const created = await archivePaths(
+      ctx,
+      validatedAbs,
+      isZip ? "zip" : "tar.gz",
+      archiveParent,
+      stem,
     );
-    if (tar.exitCode !== 0) {
-      throw new FmError(
-        "ARCHIVE_FAILED",
-        new TextDecoder().decode(tar.stderr) || "Failed to create archive.",
-      );
-    }
     pending.result = {
-      archivePath: toSandboxRelative(ctx, archiveAbs),
-      itemsArchived: validatedRel.length,
+      archivePath: toSandboxRelative(ctx, created.archivePath),
+      itemsArchived: validatedAbs.length,
     };
   }
 

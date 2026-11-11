@@ -240,16 +240,42 @@ export const databaseOperations: Record<string, FmHandler> = {
       profile,
       password,
     );
-    // A draft shown in the editor may be a saved profile being edited: its saved password counts when none was typed.
+    // A draft shown in the editor may be a saved profile being edited: its saved password counts ONLY when
+    // none was typed AND endpoint identity (host, port, user, tls) matches the saved profile.
     if (
       !resolved.values.password &&
       profile.id === "draft" &&
       typeof b.draftOf === "string"
     ) {
       const saved = st.store.get(b.draftOf);
-      if (saved && saved.engine === profile.engine)
-        resolved.values.password =
-          (await st.store.password(saved.id)) ?? undefined;
+      if (saved && saved.engine === profile.engine) {
+        const { resolved: savedResolved } = await effectiveFor(
+          ctx,
+          saved.engine as DbEngine,
+          saved,
+          null,
+        );
+        const sameTls =
+          Boolean(profile.tls) === Boolean(saved.tls) &&
+          Boolean(resolved.values.tls) === Boolean(savedResolved.values.tls) &&
+          (typeof saved.tls === "object" && saved.tls
+            ? typeof profile.tls === "object" &&
+              Boolean(profile.tls) &&
+              JSON.stringify(profile.tls) === JSON.stringify(saved.tls)
+            : true);
+        const sameEndpoint =
+          (profile as any).host === (saved as any).host &&
+          (profile as any).port === (saved as any).port &&
+          (profile as any).user === (saved as any).user &&
+          resolved.values.host === savedResolved.values.host &&
+          resolved.values.port === savedResolved.values.port &&
+          resolved.values.user === savedResolved.values.user &&
+          sameTls;
+        if (sameEndpoint) {
+          resolved.values.password =
+            (await st.store.password(saved.id)) ?? undefined;
+        }
+      }
     }
     const result = await st.hooks.testConnection(
       testInputFor(profile, resolved),

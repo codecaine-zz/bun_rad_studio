@@ -545,7 +545,11 @@ export function parseBinaryPlist(buf: Buffer): unknown {
       }
       case 0x6: {
         const { len, next } = readLen(off + 1);
-        const raw = buf.subarray(next, Math.min(buf.length, next + len * 2));
+        if (next >= buf.length || len <= 0) return "";
+        const avail = Math.min(buf.length - next, len * 2);
+        const evenBytes = avail - (avail % 2);
+        if (evenBytes <= 0) return "";
+        const raw = buf.subarray(next, next + evenBytes);
         return Buffer.from(raw).swap16().toString("utf16le");
       }
       case 0x8: {
@@ -567,13 +571,23 @@ export function parseBinaryPlist(buf: Buffer): unknown {
       case 0xd: {
         const { len, next } = readLen(off + 1);
         visited.add(idx);
-        const obj: Record<string, unknown> = {};
+        const obj: Record<string, unknown> = Object.create(null);
         const valsStart = next + len * objectRefSize;
         for (let i = 0; i < Math.min(len, 500); i++) {
           const kRef = readUInt(next + i * objectRefSize, objectRefSize);
           const vRef = readUInt(valsStart + i * objectRefSize, objectRefSize);
           const k = String(decodeObj(kRef, depth + 1) ?? `key_${i}`);
-          obj[k] = decodeObj(vRef, depth + 1);
+          const val = decodeObj(vRef, depth + 1);
+          if (k === "__proto__" || k === "constructor" || k === "prototype") {
+            Object.defineProperty(obj, k, {
+              value: val,
+              enumerable: true,
+              writable: true,
+              configurable: true,
+            });
+          } else {
+            obj[k] = val;
+          }
         }
         visited.delete(idx);
         return obj;
@@ -1968,6 +1982,10 @@ export async function inspectPackageDirectoryRich(
   const stemTitle = baseName.replace(/\.[^.]+$/, "");
   const maxTotalBlocks = limits.maxTotalBlocks ?? 300;
   const resolvedRoot = nodePath.resolve(dirPath);
+  const realRoot = await fsp.realpath(resolvedRoot).catch(() => resolvedRoot);
+  const isInsideRealRoot = (realCandidate: string): boolean =>
+    realCandidate === realRoot ||
+    realCandidate.startsWith(realRoot + nodePath.sep);
 
   const readPart = async (
     relPath: string,
@@ -1981,10 +1999,12 @@ export async function inspectPackageDirectoryRich(
     if (!full.startsWith(resolvedRoot + nodePath.sep) && full !== resolvedRoot)
       return "";
     try {
-      const st = await fsp.stat(full);
-      if (!st.isFile() || st.size === 0) return "";
-      if (st.size <= limit) return await fsp.readFile(full, "utf8");
-      const h = await fsp.open(full, "r");
+      const lst = await fsp.lstat(full);
+      if (lst.isSymbolicLink() || !lst.isFile() || lst.size === 0) return "";
+      const realFull = await fsp.realpath(full);
+      if (!isInsideRealRoot(realFull)) return "";
+      if (lst.size <= limit) return await fsp.readFile(realFull, "utf8");
+      const h = await fsp.open(realFull, "r");
       try {
         const buf = Buffer.alloc(limit);
         const { bytesRead } = await h.read(buf, 0, limit, 0);
@@ -2009,10 +2029,12 @@ export async function inspectPackageDirectoryRich(
     if (!full.startsWith(resolvedRoot + nodePath.sep) && full !== resolvedRoot)
       return null;
     try {
-      const st = await fsp.stat(full);
-      if (!st.isFile() || st.size === 0) return null;
-      if (st.size <= limit) return await fsp.readFile(full);
-      const h = await fsp.open(full, "r");
+      const lst = await fsp.lstat(full);
+      if (lst.isSymbolicLink() || !lst.isFile() || lst.size === 0) return null;
+      const realFull = await fsp.realpath(full);
+      if (!isInsideRealRoot(realFull)) return null;
+      if (lst.size <= limit) return await fsp.readFile(realFull);
+      const h = await fsp.open(realFull, "r");
       try {
         const buf = Buffer.alloc(limit);
         const { bytesRead } = await h.read(buf, 0, limit, 0);
@@ -2030,7 +2052,7 @@ export async function inspectPackageDirectoryRich(
     if (cachedRelPaths) return cachedRelPaths;
     const out: string[] = [];
     const stack: Array<{ abs: string; rel: string }> = [
-      { abs: resolvedRoot, rel: "" },
+      { abs: realRoot, rel: "" },
     ];
     while (stack.length > 0 && out.length < 2000) {
       const cur = stack.pop()!;
@@ -2038,6 +2060,7 @@ export async function inspectPackageDirectoryRich(
         name: string;
         isDirectory(): boolean;
         isFile(): boolean;
+        isSymbolicLink(): boolean;
       }>;
       try {
         entries = await fsp.readdir(cur.abs, { withFileTypes: true });
@@ -2045,11 +2068,13 @@ export async function inspectPackageDirectoryRich(
         continue;
       }
       for (const d of entries) {
-        if (d.name === ".DS_Store") continue;
+        if (d.name === ".DS_Store" || d.isSymbolicLink()) continue;
         const rel = cur.rel ? `${cur.rel}/${d.name}` : d.name;
         const abs = nodePath.join(cur.abs, d.name);
+        const realAbs = await fsp.realpath(abs).catch(() => null);
+        if (!realAbs || !isInsideRealRoot(realAbs)) continue;
         if (d.isDirectory()) {
-          stack.push({ abs, rel });
+          stack.push({ abs: realAbs, rel });
         } else if (d.isFile()) {
           out.push(rel);
         }

@@ -302,10 +302,16 @@ export async function stageRenames(
       s.finished = true;
     }
   } catch (err) {
-    for (const s of staged)
-      await fsp
-        .rename(s.finished ? s.pair.to : s.temp, s.pair.from)
-        .catch(() => {});
+    // Two-phase rollback: move finished targets back to their unique `.fm-plan-*` temps first so cyclic swaps
+    // (A->B, B->C, C->A) never overwrite a surviving neighbour at `s.pair.from`, then restore every temp to `from`.
+    for (const s of staged) {
+      if (s.finished) {
+        await fsp.rename(s.pair.to, s.temp).catch(() => {});
+      }
+    }
+    for (const s of staged) {
+      await fsp.rename(s.temp, s.pair.from).catch(() => {});
+    }
     throw err;
   }
 }

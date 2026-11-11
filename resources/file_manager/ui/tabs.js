@@ -19,6 +19,7 @@ import { hintOf } from "./keymap.js";
 import { baseName } from "./util.js";
 
 let nextTabSeq = 1;
+let tabSwitchSeq = 0;
 
 function cloneLoc(loc) {
   return loc?.kind === "trash"
@@ -79,28 +80,10 @@ function saveCurrentTabSnapshot() {
 }
 
 async function activateTabObject(tab) {
+  const seq = ++tabSwitchSeq;
   state.activeTabId = tab.id;
   state.history = [...(tab.history ?? [])];
   state.future = [...(tab.future ?? [])];
-  setActivePane("left");
-  if (tab.location?.kind === "trash") {
-    await showTrash({ push: false });
-  } else {
-    const target = tab.location?.path || currentPath() || state.home;
-    const ok = target ? await goTo(target, { push: false }) : false;
-    if (!ok && state.home && target !== state.home) {
-      await goTo(state.home, { push: false });
-    }
-    if (tab.search) {
-      state.search = cloneSearch(tab.search);
-      state.shown = 0;
-      const searchBox = $("#search");
-      if (searchBox) searchBox.value = tab.search.query || "";
-    } else {
-      const searchBox = $("#search");
-      if (searchBox) searchBox.value = "";
-    }
-  }
   state.quickFilter = tab.quickFilter || "";
   state.kindFilter = tab.kindFilter || "all";
   state.tagFilter = tab.tagFilter || "";
@@ -109,13 +92,41 @@ async function activateTabObject(tab) {
     qfInput.value = state.quickFilter;
   const qfClear = $("#quick-filter-clear");
   if (qfClear) qfClear.hidden = !state.quickFilter;
-  emit("view");
-  if (Array.isArray(tab.selection) && tab.selection.length) {
-    selectKeys(tab.selection);
+  setActivePane("left");
+  if (tab.location?.kind === "trash") {
+    await showTrash({ push: false });
+    if (seq !== tabSwitchSeq) return false;
+  } else {
+    const target = tab.location?.path || currentPath() || state.home;
+    const ok = target ? await goTo(target, { push: false }) : false;
+    if (seq !== tabSwitchSeq) return false;
+    if (!ok && state.home && target !== state.home) {
+      await goTo(state.home, { push: false });
+      if (seq !== tabSwitchSeq) return false;
+    }
+    if (tab.search) {
+      state.search = cloneSearch(tab.search);
+      state.shown = 0;
+      const searchBox = $("#search");
+      if (searchBox) searchBox.value = tab.search.query || "";
+    } else {
+      state.search = null;
+      const searchBox = $("#search");
+      if (searchBox) searchBox.value = "";
+    }
   }
+  state.quickFilter = tab.quickFilter || "";
+  state.kindFilter = tab.kindFilter || "all";
+  state.tagFilter = tab.tagFilter || "";
+  if (qfInput && qfInput.value !== state.quickFilter)
+    qfInput.value = state.quickFilter;
+  if (qfClear) qfClear.hidden = !state.quickFilter;
+  emit("view");
+  selectKeys(Array.isArray(tab.selection) ? tab.selection : []);
   const wrap = $("#list-wrap");
   if (wrap && typeof tab.scrollTop === "number") wrap.scrollTop = tab.scrollTop;
   renderTabs();
+  return true;
 }
 
 export async function switchTab(tabId) {

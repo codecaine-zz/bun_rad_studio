@@ -61,7 +61,7 @@ export function presetsFor(platform: FmContext["platform"]): Preset[] {
       id: "changed",
       label: "Show the changed file (demo)",
       command: win
-        ? "echo Changed: %WATCHEXEC_TRIGGERED_PATH%"
+        ? 'echo "Changed: %WATCHEXEC_TRIGGERED_PATH%"'
         : 'echo "Changed: $WATCHEXEC_TRIGGERED_PATH"',
       hint: "Prints the file that changed, using the WATCHEXEC_TRIGGERED_PATH variable that every triggered run receives.",
     },

@@ -53,6 +53,10 @@ export interface FmContext {
   dataDir: string;
   /** Optional sandbox root directory for confining relative or sandboxed file operations. */
   sandboxRoot?: string;
+  /** Allows download manager requests to target private/loopback networks (disabled by default for SSRF safety). */
+  allowPrivateDownloads?: boolean;
+  /** Requires explicit `confirmed: true` when starting a LAN-bound (`0.0.0.0`) dev server. */
+  requireServeLanConfirm?: boolean;
   /** The Recycle Bin folder. Nothing in it may be changed except through the Recycle Bin functions. */
   trashRoot: string;
   /** Starts a program for "Open". Replaceable so tests never launch real applications. */
@@ -118,6 +122,8 @@ export interface FmContextOptions {
   arch?: string;
   home?: string;
   sandboxRoot?: string;
+  allowPrivateDownloads?: boolean;
+  requireServeLanConfirm?: boolean;
   dataDir?: string;
   launch?: FmContext["launch"];
   toolDirs?: string[];
@@ -168,6 +174,8 @@ export function createContext(options: FmContextOptions = {}): FmContext {
     ...(options.arch ? { arch: options.arch } : {}),
     home,
     sandboxRoot,
+    allowPrivateDownloads: options.allowPrivateDownloads === true,
+    requireServeLanConfirm: options.requireServeLanConfirm === true,
     dataDir,
     trashRoot: p.join(dataDir, "file_manager_trash"),
     launch: options.launch ?? defaultLaunch,

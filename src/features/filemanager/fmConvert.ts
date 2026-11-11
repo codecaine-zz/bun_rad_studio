@@ -10,6 +10,7 @@ import { existsSync, promises as fsp } from "fs";
 import * as nodePath from "path";
 import { CATALOG, CATALOG_BY_ID } from "./fmConvCatalog";
 import { formatEpubDocumentOutput, type BuiltinJob } from "./fmConvBuiltin";
+import { probeSecondsAsync } from "./fmConvMediaMore";
 import {
   EXTRACT_LIMITS,
   Stage,
@@ -800,7 +801,11 @@ function stepFor(
           )
         : resolvedOriginals;
       const publish = async () => {
-        if (!folder && (outExt === "md" || outExt === "txt")) {
+        if (
+          !folder &&
+          (outExt === "md" || outExt === "txt") &&
+          (opts.cleanEpubClutter === true || opts.audiobookMode === true)
+        ) {
           try {
             const rawOut = await fsp.readFile(tmpOut, "utf8");
             const cleanedOut = stripBackMatterPromoAndDuplicateChapters(
@@ -817,9 +822,9 @@ function stepFor(
         if (folder) {
           if (engine.limitOutput)
             await sanitizeExtracted(tmpOut, EXTRACT_LIMITS);
-          publishFolder(tmpOut, item.path);
+          await publishFolder(tmpOut, item.path);
           published = true;
-        } else if (tmpOut !== item.path) publishFile(tmpOut, item.path);
+        } else if (tmpOut !== item.path) await publishFile(tmpOut, item.path);
       };
 
       if (engine.tool === "builtin") {
@@ -844,6 +849,18 @@ function stepFor(
         throw new Error(
           "The program could not be found. Was it moved or uninstalled?",
         );
+      let probedDurationSeconds: number | null | undefined;
+      if (
+        inputs.length > 0 &&
+        (def.id === "aud-fade" ||
+          def.id === "vid-fade" ||
+          def.id === "media-studio")
+      ) {
+        probedDurationSeconds = await probeSecondsAsync(
+          resolveTool(ctx, "ffmpeg", "ffprobe"),
+          inputs[0]!,
+        );
+      }
       const bc: BuildContext = {
         exe,
         inputs,
@@ -854,6 +871,9 @@ function stepFor(
         originals: item.originals,
         platform: ctx.platform,
         caps,
+        ...(probedDurationSeconds !== undefined
+          ? { probedDurationSeconds }
+          : {}),
         program: (tool, name) => resolveTool(ctx, tool, name),
         tmpFile: (name, content) => stage.file(name, content),
         tmpDir: (name) => stage.subDir(name),

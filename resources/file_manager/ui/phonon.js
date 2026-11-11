@@ -3100,20 +3100,43 @@ function mountPhononStudio(root, payload) {
     }
   }
 
+  let activeSampleObjectUrl = "";
+
+  function revokeActiveSampleObjectUrl() {
+    if (activeSampleObjectUrl) {
+      try {
+        URL.revokeObjectURL(activeSampleObjectUrl);
+      } catch {}
+      activeSampleObjectUrl = "";
+    }
+  }
+
   function playCurrentRecordedSample() {
     stopReading();
+    revokeActiveSampleObjectUrl();
     if (recordedWavBlob) {
       const url = URL.createObjectURL(recordedWavBlob);
+      activeSampleObjectUrl = url;
       samplePreviewAudioEl.src = url;
-      samplePreviewAudioEl.onended = () => URL.revokeObjectURL(url);
-      void samplePreviewAudioEl.play().catch(() => {});
+      const releaseUrl = () => {
+        if (activeSampleObjectUrl === url) {
+          revokeActiveSampleObjectUrl();
+        } else {
+          try {
+            URL.revokeObjectURL(url);
+          } catch {}
+        }
+      };
+      samplePreviewAudioEl.onended = releaseUrl;
+      samplePreviewAudioEl.onerror = releaseUrl;
+      samplePreviewAudioEl.play().catch(() => {});
       return;
     }
     const activeCustom =
       customVoices.find((cv) => cv.id === selectedVoice) || customVoices[0];
     if (activeCustom?.sampleUrl) {
       samplePreviewAudioEl.src = audioUrlWithToken(activeCustom.sampleUrl);
-      void samplePreviewAudioEl.play().catch(() => {});
+      samplePreviewAudioEl.play().catch(() => {});
     }
   }
 

@@ -3,11 +3,14 @@
  * written the way `diff -u` writes it, with a limit on how much is kept so one huge file can't fill the memory.
  */
 
-type Kind = " " | "-" | "+";
-interface Op {
-  k: Kind;
+export type DiffOpKind = " " | "-" | "+";
+export interface DiffOp {
+  k: DiffOpKind;
   s: string;
 }
+
+type Kind = DiffOpKind;
+type Op = DiffOp;
 
 /** Formatted unified diff result and summary counts for a single file comparison. */
 export interface UnifiedDiff {
@@ -30,8 +33,12 @@ export function splitLines(text: string): string[] {
   return parts;
 }
 
-/** The shortest edit script from `a` to `b`, or null when it needs more than `maxD` edits. */
-function myers(a: string[], b: string[], maxD: number): Op[] | null {
+/** The shortest edit script from `a` to `b` using Myers' $O((N+M)D)$ algorithm, or null when it needs more than `maxD` edits. */
+export function myersOps(
+  a: string[],
+  b: string[],
+  maxD = MAX_EDIT_DISTANCE,
+): Op[] | null {
   const n = a.length;
   const m = b.length;
   if (n === 0) return b.map((s) => ({ k: "+", s }));
@@ -104,7 +111,7 @@ export function editScript(a: string[], b: string[]): Op[] {
   }
   const midA = a.slice(start, endA);
   const midB = b.slice(start, endB);
-  const middle = myers(midA, midB, MAX_EDIT_DISTANCE) ?? [
+  const middle = myersOps(midA, midB, MAX_EDIT_DISTANCE) ?? [
     ...midA.map((s): Op => ({ k: "-", s })),
     ...midB.map((s): Op => ({ k: "+", s })),
   ];

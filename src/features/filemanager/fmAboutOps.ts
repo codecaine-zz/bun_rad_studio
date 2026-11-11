@@ -2,11 +2,12 @@
  * The "About" links: the project on GitHub, its issue tracker, the author's profile and the donation page.
  * The page only ever sends a link's id; the addresses live here, so nothing else can be opened through this.
  */
-import { promises as fsp } from "fs";
+import { createHash } from "crypto";
+import { lstatSync, promises as fsp } from "fs";
 import * as nodePath from "path";
-import { type FmContext, type FmHandler } from "./fmCore";
+import { assertCreatable, type FmContext, type FmHandler } from "./fmCore";
 import { openCommand } from "./fmOpen";
-import { FmError } from "./fmPaths";
+import { FmError, uniqueName, validateName } from "./fmPaths";
 
 /** Metadata for an external project, documentation, or support link shown in the About dialog. */
 export interface AboutLink {
@@ -99,9 +100,26 @@ export interface UpdateCheck {
   releaseUrl: string;
   assetUrl: string | null;
   assetName: string | null;
+  assetDigest?: string | null;
+  checksumUrl?: string | null;
   canAutoUpdate: boolean;
   checkedAt: string;
   error: string | null;
+}
+
+/** Parses a `SHA256SUMS.txt` file into a map of `basename -> lowercase hex sha256`. */
+export function parseSha256Sums(text: string): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const m = /^([0-9a-fA-F]{64})\s+[* ]?(.+?)\s*$/.exec(line);
+    if (!m) continue;
+    const hash = m[1]!.toLowerCase();
+    const file = nodePath.basename(m[2]!.replace(/\\/g, "/"));
+    if (file) map.set(file, hash);
+  }
+  return map;
 }
 
 /** Strips a leading "v" or "V" prefix and whitespace from a semantic version string. */
@@ -129,10 +147,11 @@ export function compareVersions(a: string, b: string): number {
 }
 
 function downloadFolderFor(ctx: FmContext): string {
-  const home = process.env.USERPROFILE ?? process.env.HOME ?? ctx.home;
-  return ctx.platform === "win32"
-    ? nodePath.join(home, "Downloads")
-    : nodePath.join(home, "Downloads");
+  if (ctx.sandboxRoot) {
+    return nodePath.join(ctx.sandboxRoot, "Downloads");
+  }
+  const home = ctx.home || process.env.USERPROFILE || process.env.HOME || "";
+  return nodePath.join(home, "Downloads");
 }
 
 /** Finds the matching downloadable ZIP asset for the given platform and architecture from a GitHub release payload. */
@@ -140,7 +159,12 @@ export function releaseAssetForPlatform(
   release: any,
   platform: string,
   arch: string,
-): { name: string; url: string } | null {
+): {
+  name: string;
+  url: string;
+  digest?: string | null;
+  checksumUrl?: string | null;
+} | null {
   const assetId = assetIdForPlatform(platform, arch);
   if (!assetId || !release || !Array.isArray(release.assets)) return null;
   const pattern = new RegExp(
@@ -151,7 +175,27 @@ export function releaseAssetForPlatform(
     (entry: any) => typeof entry?.name === "string" && pattern.test(entry.name),
   );
   if (!asset || typeof asset.browser_download_url !== "string") return null;
-  return { name: asset.name, url: asset.browser_download_url };
+  const sumsAsset = release.assets.find(
+    (entry: any) =>
+      typeof entry?.name === "string" &&
+      /^sha256sums(?:\.txt)?$/i.test(entry.name) &&
+      typeof entry?.browser_download_url === "string",
+  );
+  const cleanName = nodePath.basename(String(asset.name).replace(/\\/g, "/"));
+  const digest =
+    typeof asset.digest === "string" && asset.digest.trim()
+      ? asset.digest.trim()
+      : undefined;
+  const checksumUrl =
+    typeof sumsAsset?.browser_download_url === "string"
+      ? sumsAsset.browser_download_url
+      : undefined;
+  return {
+    name: cleanName,
+    url: asset.browser_download_url,
+    ...(digest ? { digest } : {}),
+    ...(checksumUrl ? { checksumUrl } : {}),
+  };
 }
 
 /** Queries the latest GitHub release and compares it against the running application version. */
@@ -196,7 +240,11 @@ export async function checkForUpdates(ctx: FmContext): Promise<UpdateCheck> {
         : GITHUB_RELEASES_URL;
     const asset =
       release && typeof release === "object"
-        ? releaseAssetForPlatform(release, ctx.platform, process.arch)
+        ? releaseAssetForPlatform(
+            release,
+            ctx.platform,
+            ctx.arch ?? process.arch,
+          )
         : null;
     const hasUpdate = latestVersion
       ? compareVersions(currentVersion, latestVersion) < 0
@@ -208,6 +256,8 @@ export async function checkForUpdates(ctx: FmContext): Promise<UpdateCheck> {
       releaseUrl,
       assetUrl: asset?.url ?? null,
       assetName: asset?.name ?? null,
+      assetDigest: asset?.digest ?? null,
+      checksumUrl: asset?.checksumUrl ?? null,
       canAutoUpdate: Boolean(asset?.url),
       checkedAt: now,
       error: null,
@@ -220,6 +270,8 @@ export async function checkForUpdates(ctx: FmContext): Promise<UpdateCheck> {
       releaseUrl: GITHUB_RELEASES_URL,
       assetUrl: null,
       assetName: null,
+      assetDigest: null,
+      checksumUrl: null,
       canAutoUpdate: false,
       checkedAt: now,
       error: err?.message ?? String(err ?? "Couldn't check for updates."),
@@ -242,7 +294,7 @@ async function openLink(ctx: FmContext, link: AboutLink): Promise<void> {
 /** Downloads the latest platform release archive into the user's Downloads folder. */
 export async function installLatestUpdate(
   ctx: FmContext,
-): Promise<{ path: string; file: string; releaseUrl: string }> {
+): Promise<{ path: string; file: string; releaseUrl: string; sha256: string }> {
   const update = await checkForUpdates(ctx);
   if (!update.hasUpdate || !update.assetUrl) {
     throw new FmError(
@@ -252,11 +304,15 @@ export async function installLatestUpdate(
         : "There isn't a newer release for your platform yet.",
     );
   }
+  const rawName =
+    update.assetName ?? `Codecaine-File-Manager-v${update.latestVersion}.zip`;
+  const cleanBase = nodePath.basename(rawName.replace(/\\/g, "/"));
+  const badName = validateName(cleanBase, ctx.platform);
+  if (badName) throw new FmError("BAD_NAME", badName);
+
   const folder = downloadFolderFor(ctx);
   await fsp.mkdir(folder, { recursive: true });
-  const name =
-    update.assetName ?? `Codecaine-File-Manager-v${update.latestVersion}.zip`;
-  const target = nodePath.join(folder, name);
+
   const response = await fetch(update.assetUrl, {
     headers: { Accept: "application/octet-stream" },
   });
@@ -266,8 +322,81 @@ export async function installLatestUpdate(
       `GitHub refused the update file (${response.status}).`,
     );
   const bytes = Buffer.from(await response.arrayBuffer());
-  await fsp.writeFile(target, bytes);
-  return { path: folder, file: target, releaseUrl: update.releaseUrl };
+  const actualSha256 = createHash("sha256")
+    .update(bytes)
+    .digest("hex")
+    .toLowerCase();
+
+  let expectedSha256: string | null = null;
+  if (typeof update.assetDigest === "string") {
+    const dm = /^sha256:([0-9a-fA-F]{64})$/i.exec(update.assetDigest.trim());
+    if (dm) expectedSha256 = dm[1]!.toLowerCase();
+  }
+
+  let checksumUrl = update.checksumUrl ?? null;
+  if (!checksumUrl && !expectedSha256) {
+    try {
+      checksumUrl = new URL("SHA256SUMS.txt", update.assetUrl).href;
+    } catch {
+      checksumUrl = null;
+    }
+  }
+  if (checksumUrl) {
+    const sumRes = await fetch(checksumUrl, {
+      headers: { "User-Agent": "Codecaine-File-Manager" },
+    }).catch(() => null);
+    if (sumRes?.ok) {
+      const sums = parseSha256Sums(await sumRes.text());
+      const listed = sums.get(cleanBase);
+      if (!listed) {
+        throw new FmError(
+          "INTEGRITY_FAILED",
+          `SHA256SUMS.txt did not contain a digest for ${cleanBase}.`,
+        );
+      }
+      if (expectedSha256 && expectedSha256 !== listed) {
+        throw new FmError(
+          "INTEGRITY_FAILED",
+          `Conflicting SHA-256 digests reported for ${cleanBase}.`,
+        );
+      }
+      expectedSha256 = listed;
+    } else if (update.checksumUrl) {
+      throw new FmError(
+        "INTEGRITY_FAILED",
+        `Couldn't download SHA256SUMS.txt (${sumRes?.status ?? "network error"}).`,
+      );
+    }
+  }
+
+  if (expectedSha256 && actualSha256 !== expectedSha256) {
+    throw new FmError(
+      "INTEGRITY_FAILED",
+      `Update file failed SHA-256 verification (expected ${expectedSha256.slice(0, 12)}…, got ${actualSha256.slice(0, 12)}…).`,
+    );
+  }
+
+  const finalName = uniqueName(
+    cleanBase,
+    (candidate) => {
+      try {
+        lstatSync(nodePath.join(folder, candidate));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    "number",
+  );
+  const target = nodePath.join(folder, finalName);
+  await assertCreatable(ctx, target);
+  await fsp.writeFile(target, bytes, { flag: "wx", mode: 0o600 });
+  return {
+    path: folder,
+    file: target,
+    releaseUrl: update.releaseUrl,
+    sha256: actualSha256,
+  };
 }
 
 /** File Manager API handlers for the About panel, update checks, update downloads, and external link launching. */

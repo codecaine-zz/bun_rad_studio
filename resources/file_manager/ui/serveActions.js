@@ -73,7 +73,8 @@ export async function startServer(body, { onError } = {}) {
     if (!ok) return null;
   }
   try {
-    const r = await call("serve/start", body);
+    const payload = body.lan ? { ...body, confirmed: true } : body;
+    const r = await call("serve/start", payload);
     await refreshServers();
     toast(
       `${r.server.kind === "php" ? "PHP" : "Live"} server started at ${r.server.url}`,
