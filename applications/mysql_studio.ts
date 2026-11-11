@@ -4066,7 +4066,7 @@ ${STUDIO_STAGING_STYLE}
           '<div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0;">' + badges + '</div>' +
           '<div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-subtle); padding-top:8px;">' +
           '  <span style="font-size:10px; color:var(--text-dim);">' + escapeHtml(e.table) + ' &bull; ' + escapeHtml(e.column) + '</span>' +
-          '  <button class="btn btn-sm" onclick="promptAddEnumValue(&quot;' + escapeHtml(e.table) + '&quot;, &quot;' + escapeHtml(e.column) + '&quot;)">➕ Add Value</button>' +
+          '  <button class="btn btn-sm" data-table="' + escapeHtml(e.table) + '" data-col="' + escapeHtml(e.column) + '" onclick="promptAddEnumValue(this.dataset.table, this.dataset.col)">➕ Add Value</button>' +
           '</div>' +
           '</div>';
       }).join('');
@@ -4167,7 +4167,7 @@ ${STUDIO_STAGING_STYLE}
           return '<div class="card" style="margin-bottom:16px;">' +
             '<div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">' +
             '  <span>📦 Table: <strong style="color:var(--cyan);">' + escapeHtml(parent) + '</strong></span>' +
-            '  <span class="badge" style="background:rgba(245,158,11,0.2); color:#fbbf24;">' + strat + ' PARTITIONED</span>' +
+            '  <span class="badge" style="background:rgba(245,158,11,0.2); color:#fbbf24;">' + escapeHtml(strat) + ' PARTITIONED</span>' +
             '</div>' +
             '<table class="data-grid" style="margin-top:10px;">' +
             '  <thead><tr><th>Partition Name</th><th>Partition Bound Expression</th><th>Size</th><th>Estimated Rows</th></tr></thead>' +
@@ -4241,11 +4241,11 @@ ${STUDIO_STAGING_STYLE}
           '  <div style="display:flex; gap:16px; margin-top:10px; flex-wrap:wrap;">' +
           '    <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:6px; flex:1; min-width:140px;">' +
           '      <div style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">Current Binlog File</div>' +
-          '      <div style="font-size:14px; font-weight:800; color:var(--cyan);">' + (master?.File || master?.FILE || 'None (Disabled)') + '</div>' +
+          '      <div style="font-size:14px; font-weight:800; color:var(--cyan);">' + escapeHtml(String(master?.File || master?.FILE || 'None (Disabled)')) + '</div>' +
           '    </div>' +
           '    <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:6px; flex:1; min-width:140px;">' +
           '      <div style="font-size:10px; color:var(--text-dim); text-transform:uppercase;">Binlog Position</div>' +
-          '      <div style="font-size:14px; font-weight:800; color:var(--emerald);">' + (master?.Position || master?.POSITION || '0') + '</div>' +
+          '      <div style="font-size:14px; font-weight:800; color:var(--emerald);">' + escapeHtml(String(master?.Position ?? master?.POSITION ?? '0')) + '</div>' +
           '    </div>' +
           '  </div>' +
           '</div>';
@@ -4278,13 +4278,15 @@ ${STUDIO_STAGING_STYLE}
             '<thead><tr><th>Blocked PID</th><th>Blocked Query</th><th>Blocking PID</th><th>Blocking Query</th><th>Lock Type</th><th>Action</th></tr></thead>' +
             '<tbody>';
           blockedLocks.forEach(bl => {
+            const safeWaitPid = Number(bl.waitingPid) || 0;
+            const safeBlockPid = Number(bl.blockingPid) || 0;
             alertHtml += '<tr>' +
-              '<td style="font-family: var(--font-mono); color: var(--rose); font-weight: 700;">' + bl.waitingPid + '</td>' +
+              '<td style="font-family: var(--font-mono); color: var(--rose); font-weight: 700;">' + safeWaitPid + '</td>' +
               '<td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono);">' + escapeHtml(bl.waitingQuery || '-') + '</td>' +
-              '<td style="font-family: var(--font-mono); color: var(--amber); font-weight: 700;">' + bl.blockingPid + '</td>' +
+              '<td style="font-family: var(--font-mono); color: var(--amber); font-weight: 700;">' + safeBlockPid + '</td>' +
               '<td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--font-mono);">' + escapeHtml(bl.blockingQuery || '-') + '</td>' +
               '<td><span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">EXCLUSIVE</span></td>' +
-              '<td><button class="btn btn-sm btn-danger" onclick="terminateProcess(' + bl.blockingPid + ')">⚡ Kill ' + bl.blockingPid + '</button></td>' +
+              '<td><button class="btn btn-sm btn-danger" onclick="terminateProcess(' + safeBlockPid + ')">⚡ Kill ' + safeBlockPid + '</button></td>' +
               '</tr>';
           });
           alertHtml += '</tbody></table></div>';
@@ -4307,17 +4309,19 @@ ${STUDIO_STAGING_STYLE}
       }
 
       tbody.innerHTML = processes.map(p => {
-        const stateClass = p.state === "active" ? "state-active" : (p.state.includes("sleep") ? "state-idle" : "state-idle-txn");
+        const stateStr = String(p.state || "");
+        const stateClass = stateStr === "active" ? "state-active" : (stateStr.toLowerCase().includes("sleep") || !stateStr ? "state-idle" : "state-idle-txn");
+        const safePid = Number(p.pid) || 0;
         return '<tr>' +
-          '<td style="font-family: var(--font-mono); color: var(--cyan);">' + p.pid + '</td>' +
+          '<td style="font-family: var(--font-mono); color: var(--cyan);">' + safePid + '</td>' +
           '<td>' + escapeHtml(p.user || 'root') + '</td>' +
           '<td>' + escapeHtml(p.database || '-') + '</td>' +
           '<td>' + escapeHtml(p.client || 'local') + '</td>' +
-          '<td><span class="state-badge ' + stateClass + '">' + escapeHtml(p.state || 'sleep') + '</span></td>' +
-          '<td style="font-family: var(--font-mono); color: var(--amber);">' + (p.duration || '0s') + '</td>' +
+          '<td><span class="state-badge ' + stateClass + '">' + escapeHtml(stateStr || 'sleep') + '</span></td>' +
+          '<td style="font-family: var(--font-mono); color: var(--amber);">' + escapeHtml(p.duration || '0s') + '</td>' +
           '<td style="font-family: var(--font-mono); max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">' + escapeHtml(p.query || p.command || '-') + '</td>' +
           '<td style="text-align: center;">' +
-          '<button class="btn btn-sm" onclick="terminateProcess(' + p.pid + ')" title="Terminate Connection (KILL PID)" style="color: var(--rose);">⚡ Kill</button>' +
+          '<button class="btn btn-sm" onclick="terminateProcess(' + safePid + ')" title="Terminate Connection (KILL PID)" style="color: var(--rose);">⚡ Kill</button>' +
           '</td></tr>';
       }).join('');
     }
@@ -5711,9 +5715,11 @@ ${STUDIO_STAGING_STYLE}
         const cardOff1 = (x2 >= x1 ? 16 : -16);
         const cardOff2 = (x2 >= x1 ? -16 : 16);
 
+        const safeJoinKey = escapeHtml(j.key);
+        const safeJoinType = escapeHtml(type);
         svgContent += \`
-          <path d="\${d}" class="qbe-svg-join-halo" onclick="openJoinPropertiesModal('\${j.key}')" title="Click to edit Join Properties (\${type} JOIN)"></path>
-          <path d="\${d}" class="qbe-svg-join-line" stroke="\${stroke}" \${dash} \${markerAttr} onclick="openJoinPropertiesModal('\${j.key}')" title="Click to edit Join Properties (\${type} JOIN)"></path>
+          <path d="\${d}" class="qbe-svg-join-halo" data-join-key="\${safeJoinKey}" onclick="openJoinPropertiesModal(this.getAttribute('data-join-key'))" title="Click to edit Join Properties (\${safeJoinType} JOIN)"></path>
+          <path d="\${d}" class="qbe-svg-join-line" stroke="\${stroke}" \${dash} \${markerAttr} data-join-key="\${safeJoinKey}" onclick="openJoinPropertiesModal(this.getAttribute('data-join-key'))" title="Click to edit Join Properties (\${safeJoinType} JOIN)"></path>
 
           <!-- Cardinality Indicators (1 to ∞) -->
           <foreignObject x="\${x1 + cardOff1 - 9}" y="\${y1 - 10}" width="18" height="18" style="overflow: visible; pointer-events: none;">
@@ -5728,9 +5734,9 @@ ${STUDIO_STAGING_STYLE}
           </foreignObject>
 
           <foreignObject x="\${mx - 50}" y="\${my - 13}" width="100" height="26" style="overflow: visible;">
-            <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-svg-join-badge" style="border-color:\${stroke}; color:\${stroke};" onclick="openJoinPropertiesModal('\${j.key}')" title="Join Properties (\${type} JOIN): Click to configure">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="qbe-svg-join-badge" style="border-color:\${stroke}; color:\${stroke};" data-join-key="\${safeJoinKey}" onclick="openJoinPropertiesModal(this.getAttribute('data-join-key'))" title="Join Properties (\${safeJoinType} JOIN): Click to configure">
               <span>\${badgeIcon}</span>
-              <span>\${type}</span>
+              <span>\${safeJoinType}</span>
             </div>
           </foreignObject>
         \`;
@@ -6681,7 +6687,7 @@ ${STUDIO_STAGING_STYLE}
             <div style="padding: 20px;">
               <div class="card" style="border-color: var(--rose);">
                 <div class="card-title" style="color: var(--rose);">⚠️ Query Execution Error</div>
-                <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-main); margin: 8px 0;">\${ds.error}</div>
+                <div style="font-family: var(--font-mono); font-size: 12px; color: var(--text-main); margin: 8px 0;">\${escapeHtml(ds.error)}</div>
                 <button class="btn btn-sm btn-primary" onclick="setDesignerActiveView('design')">Return to Design View</button>
               </div>
             </div>
@@ -6696,7 +6702,7 @@ ${STUDIO_STAGING_STYLE}
                 <thead>
                   <tr>
                     <th style="width: 40px; text-align: center;">#</th>
-                    \${cols.map(c => \`<th>\${c}</th>\`).join('')}
+                    \${cols.map(c => \`<th>\${escapeHtml(c)}</th>\`).join('')}
                   </tr>
                 </thead>
                 <tbody>
@@ -6761,25 +6767,30 @@ ${STUDIO_STAGING_STYLE}
         const isView = (currentSchema.views || []).some(v => v.name === tableName);
         const icon = isView ? '👁️' : '🗄️';
         const pos = (queryDesignerState.tablePositions && queryDesignerState.tablePositions[tableName]) || { x: 20, y: 15 };
-        const cardStyle = \`position: absolute; left: \${pos.x}px; top: \${pos.y}px; width: 230px;\`;
-        const columnsHtml = (meta.columns || []).map(c => \`
-          <div class="qbe-field-row" id="qbeFieldRow_\${tableName}_\${c.name}" draggable="true" ondragstart="onDesignerFieldDragStart(event, '\${tableName}', '\${c.name}')" ondragover="onDesignerFieldDragOver(event)" ondragenter="onDesignerFieldDragEnter(event, '\${tableName}', '\${c.name}')" ondragleave="onDesignerFieldDragLeave(event)" ondrop="onDesignerFieldDrop(event, '\${tableName}', '\${c.name}')" onclick="addDesignerQbeColumn('\${tableName}', '\${c.name}')" title="Drag to another field to link, or click to add to QBE Grid">
+        const cardStyle = \`position: absolute; left: \${Number(pos.x) || 0}px; top: \${Number(pos.y) || 0}px; width: 230px;\`;
+        const safeTable = escapeHtml(tableName);
+        const columnsHtml = (meta.columns || []).map(c => {
+          const safeCol = escapeHtml(c.name);
+          const safeType = escapeHtml(c.type || 'ANY');
+          return \`
+          <div class="qbe-field-row" id="qbeFieldRow_\${safeTable}_\${safeCol}" data-table="\${safeTable}" data-col="\${safeCol}" draggable="true" ondragstart="onDesignerFieldDragStart(event, this.dataset.table, this.dataset.col)" ondragover="onDesignerFieldDragOver(event)" ondragenter="onDesignerFieldDragEnter(event, this.dataset.table, this.dataset.col)" ondragleave="onDesignerFieldDragLeave(event)" ondrop="onDesignerFieldDrop(event, this.dataset.table, this.dataset.col)" onclick="addDesignerQbeColumn(this.dataset.table, this.dataset.col)" title="Drag to another field to link, or click to add to QBE Grid">
             <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
               <span class="qbe-field-connector" title="Drag to link this field">●</span>
-              <span>\${c.pk ? '🔑 ' : ''}\${c.name}</span>
+              <span>\${c.pk ? '🔑 ' : ''}\${safeCol}</span>
             </div>
             <div style="display: flex; align-items: center; gap: 4px;">
-              <span style="font-size: 9px; color: var(--text-dim);">\${c.type || 'ANY'}</span>
+              <span style="font-size: 9px; color: var(--text-dim);">\${safeType}</span>
               <span class="qbe-field-add-icon">+</span>
             </div>
           </div>
-        \`).join('');
+        \`;
+        }).join('');
 
         return \`
-          <div class="qbe-table-card" id="qbeTableCard_\${tableName}" style="\${cardStyle}">
-            <div class="qbe-table-card-header" onmousedown="onDesignerTableHeaderMouseDown(event, '\${tableName}')" title="Drag header to move table on canvas">
-              <span style="pointer-events: none;">\${icon} \${tableName}\${isView ? ' <span style="font-size: 9px; opacity: 0.7; font-weight: normal;">(view)</span>' : ''}</span>
-              <button class="sidebar-mini-btn" onclick="removeDesignerTable('\${tableName}')" title="Remove table">✕</button>
+          <div class="qbe-table-card" id="qbeTableCard_\${safeTable}" style="\${cardStyle}">
+            <div class="qbe-table-card-header" data-table="\${safeTable}" onmousedown="onDesignerTableHeaderMouseDown(event, this.dataset.table)" title="Drag header to move table on canvas">
+              <span style="pointer-events: none;">\${icon} \${safeTable}\${isView ? ' <span style="font-size: 9px; opacity: 0.7; font-weight: normal;">(view)</span>' : ''}</span>
+              <button class="sidebar-mini-btn" data-table="\${safeTable}" onclick="removeDesignerTable(this.dataset.table)" title="Remove table">✕</button>
             </div>
             <div class="qbe-table-card-fields">\${columnsHtml}</div>
           </div>
@@ -6822,7 +6833,7 @@ ${STUDIO_STAGING_STYLE}
         } else {
           topologyStatusHtml = \`
             <div style="display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--amber); background: rgba(245, 158, 11, 0.1); padding: 2px 8px; border-radius: 4px; border: 1px solid rgba(245, 158, 11, 0.3);">
-              <span>⚠️ \${unconnectedTables.join(', ')} unconnected</span>
+              <span>⚠️ \${unconnectedTables.map(escapeHtml).join(', ')} unconnected</span>
               <button class="btn btn-sm" onclick="autoJoinDesignerTables()" style="padding: 1px 6px; font-size: 9px;">⚡ Auto-Detect Joins</button>
             </div>
           \`;
@@ -6842,29 +6853,30 @@ ${STUDIO_STAGING_STYLE}
           { val: "FULL", label: "4: ALL records from BOTH (FULL OUTER)" },
           { val: "CROSS", label: "5: Cartesian product (CROSS)" },
         ];
+        const safeJoinKey = escapeHtml(join.key);
 
         return \`
           <div class="qbe-join-badge">
-            <button class="btn btn-sm" onclick="openJoinPropertiesModal('\${join.key}')" title="Configure in Join Properties dialog" style="padding: 2px 7px; font-size: 10px; font-weight: 700; color: var(--cyan); border-color: rgba(56, 189, 248, 0.4);">📐 Properties</button>
-            <select class="qbe-select" onchange="updateDesignerJoin('\${join.key}', 'type', this.value)" style="font-weight: 600; color: var(--cyan);">
-              \${joinTypes.map(j => \`<option value="\${j.val}" \${join.type === j.val ? 'selected' : ''}>\${j.label}</option>\`).join('')}
+            <button class="btn btn-sm" data-join-key="\${safeJoinKey}" onclick="openJoinPropertiesModal(this.dataset.joinKey)" title="Configure in Join Properties dialog" style="padding: 2px 7px; font-size: 10px; font-weight: 700; color: var(--cyan); border-color: rgba(56, 189, 248, 0.4);">📐 Properties</button>
+            <select class="qbe-select" data-join-key="\${safeJoinKey}" onchange="updateDesignerJoin(this.dataset.joinKey, 'type', this.value)" style="font-weight: 600; color: var(--cyan);">
+              \${joinTypes.map(j => \`<option value="\${escapeHtml(j.val)}" \${join.type === j.val ? 'selected' : ''}>\${escapeHtml(j.label)}</option>\`).join('')}
             </select>
-            <select class="qbe-select" onchange="updateDesignerJoinTable('\${join.key}', 'leftTable', this.value)" style="font-weight: 700; color: var(--text-main);">
-              \${selectedTables.map(t => \`<option value="\${t}" \${join.leftTable === t ? 'selected' : ''}>\${t}</option>\`).join('')}
+            <select class="qbe-select" data-join-key="\${safeJoinKey}" onchange="updateDesignerJoinTable(this.dataset.joinKey, 'leftTable', this.value)" style="font-weight: 700; color: var(--text-main);">
+              \${selectedTables.map(t => \`<option value="\${escapeHtml(t)}" \${join.leftTable === t ? 'selected' : ''}>\${escapeHtml(t)}</option>\`).join('')}
             </select>
             <span style="color: var(--text-dim); font-weight: bold;">.</span>
-            <select class="qbe-select" onchange="updateDesignerJoin('\${join.key}', 'leftField', this.value)">
-              \${leftFields.map(f => \`<option value="\${f}" \${join.leftField === f ? 'selected' : ''}>\${f}</option>\`).join('')}
+            <select class="qbe-select" data-join-key="\${safeJoinKey}" onchange="updateDesignerJoin(this.dataset.joinKey, 'leftField', this.value)">
+              \${leftFields.map(f => \`<option value="\${escapeHtml(f)}" \${join.leftField === f ? 'selected' : ''}>\${escapeHtml(f)}</option>\`).join('')}
             </select>
             <span style="color: var(--cyan); font-weight: bold; margin: 0 4px;">=</span>
-            <select class="qbe-select" onchange="updateDesignerJoinTable('\${join.key}', 'rightTable', this.value)" style="font-weight: 700; color: var(--text-main);">
-              \${selectedTables.map(t => \`<option value="\${t}" \${join.rightTable === t ? 'selected' : ''}>\${t}</option>\`).join('')}
+            <select class="qbe-select" data-join-key="\${safeJoinKey}" onchange="updateDesignerJoinTable(this.dataset.joinKey, 'rightTable', this.value)" style="font-weight: 700; color: var(--text-main);">
+              \${selectedTables.map(t => \`<option value="\${escapeHtml(t)}" \${join.rightTable === t ? 'selected' : ''}>\${escapeHtml(t)}</option>\`).join('')}
             </select>
             <span style="color: var(--text-dim); font-weight: bold;">.</span>
-            <select class="qbe-select" onchange="updateDesignerJoin('\${join.key}', 'rightField', this.value)">
-              \${rightFields.map(f => \`<option value="\${f}" \${join.rightField === f ? 'selected' : ''}>\${f}</option>\`).join('')}
+            <select class="qbe-select" data-join-key="\${safeJoinKey}" onchange="updateDesignerJoin(this.dataset.joinKey, 'rightField', this.value)">
+              \${rightFields.map(f => \`<option value="\${escapeHtml(f)}" \${join.rightField === f ? 'selected' : ''}>\${escapeHtml(f)}</option>\`).join('')}
             </select>
-            <button class="sidebar-mini-btn" onclick="removeDesignerJoin('\${join.key}')" title="Delete join">✕</button>
+            <button class="sidebar-mini-btn" data-join-key="\${safeJoinKey}" onclick="removeDesignerJoin(this.dataset.joinKey)" title="Delete join">✕</button>
           </div>
         \`;
       }).join('') || '<div style="color: var(--text-dim); font-size: 11px;">No relationships active. Click <strong>⚡ Auto-Detect Joins</strong> or <strong>+ Link / Join</strong>.</div>';
@@ -6880,11 +6892,12 @@ ${STUDIO_STAGING_STYLE}
           \${columns.map(col => {
             const tableMeta = getEntityMeta(col.table);
             const fields = tableMeta && tableMeta.columns ? tableMeta.columns.map(c => c.name) : [];
+            const safeColId = escapeHtml(col.id);
             return \`
               <td class="qbe-matrix-col-cell">
-                <select onchange="updateDesignerQbeColumn('\${col.id}', 'field', this.value)" style="font-weight: 600; color: var(--cyan);">
+                <select data-col-id="\${safeColId}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'field', this.value)" style="font-weight: 600; color: var(--cyan);">
                   <option value="*" \${col.field === '*' ? 'selected' : ''}>* (All Fields)</option>
-                  \${fields.map(f => \`<option value="\${f}" \${col.field === f ? 'selected' : ''}>\${f}</option>\`).join('')}
+                  \${fields.map(f => \`<option value="\${escapeHtml(f)}" \${col.field === f ? 'selected' : ''}>\${escapeHtml(f)}</option>\`).join('')}
                 </select>
               </td>
             \`;
@@ -6898,8 +6911,8 @@ ${STUDIO_STAGING_STYLE}
           <td class="qbe-matrix-header-cell">Table:</td>
           \${columns.map(col => \`
             <td class="qbe-matrix-col-cell">
-              <select onchange="updateDesignerQbeColumn('\${col.id}', 'table', this.value)">
-                \${selectedTables.map(t => \`<option value="\${t}" \${col.table === t ? 'selected' : ''}>\${t}</option>\`).join('')}
+              <select data-col-id="\${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'table', this.value)">
+                \${selectedTables.map(t => \`<option value="\${escapeHtml(t)}" \${col.table === t ? 'selected' : ''}>\${escapeHtml(t)}</option>\`).join('')}
               </select>
             </td>
           \`).join('')}
@@ -6912,8 +6925,8 @@ ${STUDIO_STAGING_STYLE}
           <td class="qbe-matrix-header-cell" style="color: var(--emerald);">Σ Total:</td>
           \${columns.map(col => \`
             <td class="qbe-matrix-col-cell">
-              <select onchange="updateDesignerQbeColumn('\${col.id}', 'total', this.value)" style="font-weight: 600; color: \${col.total === 'GroupBy' ? 'var(--cyan)' : (['Sum', 'Count', 'Avg'].includes(col.total) ? 'var(--emerald)' : 'var(--text-main)')};">
-                \${totalsList.map(tot => \`<option value="\${tot}" \${col.total === tot ? 'selected' : ''}>\${tot}</option>\`).join('')}
+              <select data-col-id="\${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'total', this.value)" style="font-weight: 600; color: \${col.total === 'GroupBy' ? 'var(--cyan)' : (['Sum', 'Count', 'Avg'].includes(col.total) ? 'var(--emerald)' : 'var(--text-main)')};">
+                \${totalsList.map(tot => \`<option value="\${escapeHtml(tot)}" \${col.total === tot ? 'selected' : ''}>\${escapeHtml(tot)}</option>\`).join('')}
               </select>
             </td>
           \`).join('')}
@@ -6926,7 +6939,7 @@ ${STUDIO_STAGING_STYLE}
           <td class="qbe-matrix-header-cell">Sort:</td>
           \${columns.map(col => \`
             <td class="qbe-matrix-col-cell">
-              <select onchange="updateDesignerQbeColumn('\${col.id}', 'sort', this.value)">
+              <select data-col-id="\${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'sort', this.value)">
                 <option value="" \${!col.sort ? 'selected' : ''}>(not sorted)</option>
                 <option value="ASC" \${col.sort === 'ASC' ? 'selected' : ''}>Ascending</option>
                 <option value="DESC" \${col.sort === 'DESC' ? 'selected' : ''}>Descending</option>
@@ -6942,7 +6955,7 @@ ${STUDIO_STAGING_STYLE}
           <td class="qbe-matrix-header-cell">Show:</td>
           \${columns.map(col => \`
             <td class="qbe-matrix-col-cell qbe-show-checkbox">
-              <input type="checkbox" \${col.show !== false ? 'checked' : ''} onchange="updateDesignerQbeColumn('\${col.id}', 'show', this.checked)">
+              <input type="checkbox" \${col.show !== false ? 'checked' : ''} data-col-id="\${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'show', this.checked)">
             </td>
           \`).join('')}
           <td class="qbe-matrix-col-cell"></td>
@@ -6954,7 +6967,7 @@ ${STUDIO_STAGING_STYLE}
           <td class="qbe-matrix-header-cell">Criteria:</td>
           \${columns.map(col => \`
             <td class="qbe-matrix-col-cell">
-              <input value="\${(col.criteria || '').replace(/"/g, '&quot;')}" placeholder="e.g. > 100, VIP" onchange="updateDesignerQbeColumn('\${col.id}', 'criteria', this.value)">
+              <input value="\${escapeHtml(col.criteria || '')}" placeholder="e.g. > 100, VIP" data-col-id="\${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'criteria', this.value)">
             </td>
           \`).join('')}
           <td class="qbe-matrix-col-cell"></td>
@@ -6966,7 +6979,7 @@ ${STUDIO_STAGING_STYLE}
           <td class="qbe-matrix-header-cell" style="color: var(--text-dim); font-size: 10px;">or:</td>
           \${columns.map(col => \`
             <td class="qbe-matrix-col-cell">
-              <input value="\${(col.or1 || '').replace(/"/g, '&quot;')}" placeholder="or condition" onchange="updateDesignerQbeColumn('\${col.id}', 'or1', this.value)">
+              <input value="\${escapeHtml(col.or1 || '')}" placeholder="or condition" data-col-id="\${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'or1', this.value)">
             </td>
           \`).join('')}
           <td class="qbe-matrix-col-cell"></td>
@@ -6978,7 +6991,7 @@ ${STUDIO_STAGING_STYLE}
           <td class="qbe-matrix-header-cell" style="color: var(--text-dim); font-size: 10px;">or:</td>
           \${columns.map(col => \`
             <td class="qbe-matrix-col-cell">
-              <input value="\${(col.or2 || '').replace(/"/g, '&quot;')}" placeholder="or condition" onchange="updateDesignerQbeColumn('\${col.id}', 'or2', this.value)">
+              <input value="\${escapeHtml(col.or2 || '')}" placeholder="or condition" data-col-id="\${escapeHtml(col.id)}" onchange="updateDesignerQbeColumn(this.dataset.colId, 'or2', this.value)">
             </td>
           \`).join('')}
           <td class="qbe-matrix-col-cell"></td>
@@ -6988,13 +7001,16 @@ ${STUDIO_STAGING_STYLE}
       const actionsRow = \`
         <tr>
           <td class="qbe-matrix-header-cell" style="color: var(--text-dim); font-size: 10px;">Order / Del:</td>
-          \${columns.map((col, idx) => \`
+          \${columns.map((col, idx) => {
+            const safeColId = escapeHtml(col.id);
+            return \`
             <td class="qbe-matrix-col-cell" style="text-align: center;">
-              <button class="sidebar-mini-btn" onclick="moveDesignerQbeColumn('\${col.id}', -1)" \${idx === 0 ? 'disabled' : ''} title="Move left">◀</button>
-              <button class="sidebar-mini-btn" onclick="moveDesignerQbeColumn('\${col.id}', 1)" \${idx === columns.length - 1 ? 'disabled' : ''} title="Move right">▶</button>
-              <button class="sidebar-mini-btn" onclick="removeDesignerQbeColumn('\${col.id}')" title="Remove column">✕</button>
+              <button class="sidebar-mini-btn" data-col-id="\${safeColId}" onclick="moveDesignerQbeColumn(this.dataset.colId, -1)" \${idx === 0 ? 'disabled' : ''} title="Move left">◀</button>
+              <button class="sidebar-mini-btn" data-col-id="\${safeColId}" onclick="moveDesignerQbeColumn(this.dataset.colId, 1)" \${idx === columns.length - 1 ? 'disabled' : ''} title="Move right">▶</button>
+              <button class="sidebar-mini-btn" data-col-id="\${safeColId}" onclick="removeDesignerQbeColumn(this.dataset.colId)" title="Remove column">✕</button>
             </td>
-          \`).join('')}
+          \`;
+          }).join('')}
           <td class="qbe-matrix-col-cell" style="text-align: center;">
             <button class="btn btn-sm btn-primary" onclick="addDesignerQbeColumn()" title="Add column">+ Add</button>
           </td>
@@ -7755,6 +7771,9 @@ export function createMysqlStudio(
         // Start native desktop message loop on main thread
         webview.run();
         try {
+          app.server?.stop(true);
+        } catch {}
+        try {
           app.worker?.terminate();
         } catch {}
         try {
@@ -7765,14 +7784,21 @@ export function createMysqlStudio(
         console.warn(
           `Desktop Webview unavailable (${err?.message || err}). Application running as web workstation at: ${info.url}`,
         );
-      } finally {
-        try {
-          app.worker?.terminate();
-        } catch {}
-        try {
-          serverProc?.kill();
-        } catch {}
-        process.exit(0);
+        const onShutdown = () => {
+          try {
+            app.server?.stop(true);
+          } catch {}
+          try {
+            app.worker?.terminate();
+          } catch {}
+          try {
+            serverProc?.kill();
+          } catch {}
+          process.exit(0);
+        };
+        process.once("SIGINT", onShutdown);
+        process.once("SIGTERM", onShutdown);
+        await new Promise<void>(() => {});
       }
     },
   };
@@ -7792,7 +7818,7 @@ export { startMysqlStudioServer } from "./mysql_studio_server.ts";
 // Standalone Direct Invocation
 // -------------------------------------------------------------------------------------------------
 
-if (process.argv.includes("--server")) {
+if (import.meta.main && process.argv.includes("--server")) {
   const initialDb =
     process.env.MYSQL_STUDIO_DB && process.env.MYSQL_STUDIO_DB !== ":memory:"
       ? process.env.MYSQL_STUDIO_DB
@@ -7801,8 +7827,15 @@ if (process.argv.includes("--server")) {
         process.env.MSQL_DB ||
         process.env.DB_NAME ||
         "my_app_dev";
+  const portIdx = process.argv.indexOf("--port");
+  const port =
+    portIdx !== -1 && process.argv[portIdx + 1]
+      ? parseInt(process.argv[portIdx + 1]!, 10)
+      : process.env.PORT
+        ? parseInt(process.env.PORT, 10)
+        : 0;
   const srv = startMysqlStudioServer({
-    port: 0,
+    port,
     host: "127.0.0.1",
     initialDbPath: initialDb,
   });

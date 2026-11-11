@@ -47,7 +47,7 @@ const pgq = (name: unknown): string =>
   quoteIdent("postgres", String(name ?? ""));
 /** Type names and default expressions are SQL fragments by nature; refuse anything that could start another statement. */
 function assertSafeSqlFragment(what: string, text: string): void {
-  if (/;|--|\/\*/.test(String(text ?? "")))
+  if (/[;\0]|--|\/\*/.test(String(text ?? "")))
     throw new Error(
       `Invalid ${what}: statement separators and comments are not allowed`,
     );
@@ -55,6 +55,177 @@ function assertSafeSqlFragment(what: string, text: string): void {
 /** Quote a PostgreSQL string literal (standard_conforming_strings is on, so only quotes need doubling). */
 const pgl = (value: unknown): string =>
   "'" + String(value ?? "").replace(/'/g, "''") + "'";
+
+const DISALLOWED_PG_TYPE_WORDS = new Set([
+  "PRIMARY",
+  "FOREIGN",
+  "REFERENCES",
+  "CHECK",
+  "DEFAULT",
+  "UNIQUE",
+  "CONSTRAINT",
+  "COLLATE",
+  "GENERATED",
+  "AS",
+  "SELECT",
+  "UNION",
+  "DROP",
+  "ALTER",
+  "CREATE",
+  "INSERT",
+  "UPDATE",
+  "DELETE",
+  "WHERE",
+  "FROM",
+  "INTO",
+  "NOT",
+  "NULL",
+  "ON",
+  "CASCADE",
+  "RESTRICT",
+]);
+
+function validatePgColumnType(rawType: string): string {
+  const t = String(rawType ?? "").trim();
+  if (!t || t.length > 128 || /[;\r\n\0]|--|\/\*/.test(t)) {
+    throw new Error(`Invalid PostgreSQL column type '${rawType}'`);
+  }
+  const qualifiedMatch = t.match(
+    /^(?:(?:"(?:[^"]|"")+"|[A-Za-z_][A-Za-z0-9_$]*)\.)?(?:"(?:[^"]|"")+"|[A-Za-z_][A-Za-z0-9_$]*)(\s*\[\s*\])*$/,
+  );
+  if (qualifiedMatch) {
+    const bareUpper = t.replace(/(?:\s*\[\s*\])+$/, "").toUpperCase();
+    if (!bareUpper.includes(".") && !bareUpper.startsWith('"')) {
+      if (DISALLOWED_PG_TYPE_WORDS.has(bareUpper)) {
+        throw new Error(`Invalid keyword '${t}' in PostgreSQL column type`);
+      }
+    }
+    return t;
+  }
+  const stdMatch = t.match(
+    /^([A-Za-z_][A-Za-z0-9_]*(?:\s+[A-Za-z_][A-Za-z0-9_]*){0,4})(?:\(\s*(\d+(?:\s*,\s*\d+)?)\s*\))?(\s+(?:WITH|WITHOUT)\s+TIME\s+ZONE)?(\s*\[\s*\])*$/i,
+  );
+  if (!stdMatch) {
+    throw new Error(`Invalid PostgreSQL column type '${rawType}'`);
+  }
+  const words = stdMatch[1]!.trim().split(/\s+/);
+  for (const w of words) {
+    if (DISALLOWED_PG_TYPE_WORDS.has(w.toUpperCase())) {
+      throw new Error(
+        `Invalid keyword '${w}' in PostgreSQL column type '${rawType}'`,
+      );
+    }
+  }
+  return t;
+}
+
+function formatSafePgDefault(rawVal: unknown): string {
+  const s = String(rawVal ?? "").trim();
+  if (!s) throw new Error("Empty DEFAULT expression");
+  if (/[;\r\n\0]|--|\/\*/.test(s)) {
+    throw new Error(
+      "Invalid DEFAULT expression: comments or separators disallowed",
+    );
+  }
+  if (/^-?\d+(?:\.\d+)?$/.test(s)) return s;
+  if (
+    /^(?:TRUE|FALSE|NULL|CURRENT_TIMESTAMP|CURRENT_DATE|CURRENT_TIME|LOCALTIME|LOCALTIMESTAMP)$/i.test(
+      s,
+    )
+  ) {
+    return s.toUpperCase();
+  }
+  if (
+    /^(?:now|gen_random_uuid|uuid_generate_v4|clock_timestamp|statement_timestamp|transaction_timestamp)\(\s*\)$/i.test(
+      s,
+    )
+  ) {
+    return s;
+  }
+  const nextvalMatch = s.match(
+    /^nextval\(\s*'((?:[^']|'')+)'(?:::regclass)?\s*\)$/i,
+  );
+  if (nextvalMatch) {
+    const seqName = nextvalMatch[1]!.replace(/''/g, "'");
+    return `nextval(${pgl(seqName)}::regclass)`;
+  }
+  const quotedCastMatch = s.match(/^'((?:[^']|'')*)'(?:::(.+))?$/);
+  if (quotedCastMatch) {
+    const inner = quotedCastMatch[1]!.replace(/''/g, "'");
+    const castPart = quotedCastMatch[2]?.trim();
+    if (castPart) {
+      const validCast = validatePgColumnType(castPart);
+      return `${pgl(inner)}::${validCast}`;
+    }
+    return pgl(inner);
+  }
+  if (
+    /[(),]/.test(s) ||
+    /\b(?:SELECT|UNION|FROM|WHERE|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|COPY|CURRENT_SETTING|PG_READ_FILE|LO_IMPORT|LO_EXPORT)\b/i.test(
+      s,
+    )
+  ) {
+    throw new Error(`Unsafe DEFAULT expression '${s}'`);
+  }
+  return pgl(s);
+}
+
+function parsePgIndexColumns(indexDef: string): string[] {
+  const def = String(indexDef || "");
+  const m =
+    def.match(
+      /\bUSING\s+[A-Za-z_][A-Za-z0-9_]*\s*\((.+)\)\s*(?:WHERE\b|INCLUDE\b|WITH\b|TABLESPACE\b|$)/i,
+    ) || def.match(/\(([^()]+)\)\s*$/);
+  if (!m || !m[1]) return [];
+  const rawList = m[1].trim();
+  const cols: string[] = [];
+  let cur = "";
+  let depth = 0;
+  let inQuotes = false;
+  for (let i = 0; i < rawList.length; i++) {
+    const ch = rawList[i]!;
+    if (inQuotes) {
+      cur += ch;
+      if (ch === '"') {
+        if (rawList[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inQuotes = true;
+      cur += ch;
+    } else if (ch === "(") {
+      depth++;
+      cur += ch;
+    } else if (ch === ")") {
+      depth--;
+      cur += ch;
+    } else if (ch === "," && depth === 0) {
+      cols.push(cur.trim());
+      cur = "";
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur.trim()) cols.push(cur.trim());
+  return cols
+    .map((part) => {
+      const cleaned = part
+        .replace(/\s+(?:ASC|DESC)\b.*$/i, "")
+        .replace(/\s+NULLS\s+(?:FIRST|LAST)\b.*$/i, "")
+        .trim();
+      if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+        return cleaned.slice(1, -1).replace(/""/g, '"');
+      }
+      return /^[A-Za-z_][A-Za-z0-9_$]*$/.test(cleaned) ? cleaned : "";
+    })
+    .filter(Boolean);
+}
 
 export interface PostgresConnectionConfig {
   host?: string;
@@ -984,11 +1155,11 @@ export class PostgresManager {
         const indices = idxRes.map((idx: any) => {
           const iname = idx.indexname;
           const idef = idx.indexdef || "";
-          const isUnique = idef.includes("UNIQUE");
+          const isUnique = /\bUNIQUE\b/i.test(idef);
           return {
             name: iname,
             unique: isUnique,
-            columns: [],
+            columns: parsePgIndexColumns(idef),
             indexDef: idef,
           };
         });
@@ -1000,20 +1171,27 @@ export class PostgresManager {
             tc.constraint_name, 
             kcu.column_name, 
             ccu.table_name AS foreign_table_name,
-            ccu.column_name AS foreign_column_name 
+            ccu.column_name AS foreign_column_name,
+            rc.delete_rule,
+            rc.update_rule
           FROM information_schema.table_constraints AS tc 
           JOIN information_schema.key_column_usage AS kcu 
             ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
           JOIN information_schema.constraint_column_usage AS ccu 
             ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
+          LEFT JOIN information_schema.referential_constraints AS rc
+            ON rc.constraint_name = tc.constraint_name AND rc.constraint_schema = tc.table_schema
           WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = ${pgl(schema)} AND tc.table_name = ${pgl(tname)};
         `);
         const foreignKeys = fkRes.map((fk: any, i: number) => ({
           id: i,
           seq: 0,
+          constraintName: fk.constraint_name,
           table: fk.foreign_table_name,
           from: fk.column_name,
           to: fk.foreign_column_name,
+          onDelete: fk.delete_rule || "NO ACTION",
+          onUpdate: fk.update_rule || "NO ACTION",
         }));
 
         // Estimate row count
@@ -1564,42 +1742,115 @@ export class PostgresManager {
           error: "SQL statement is required for explain",
         };
 
+      const EXPLAIN_ROLLBACK = Symbol("EXPLAIN_ROLLBACK");
+      const runRolledBackExplain = async (
+        explainSql: string,
+      ): Promise<any[]> => {
+        if (typeof this.sql_conn?.begin === "function") {
+          let captured: any[] = [];
+          try {
+            await this.sql_conn.begin(async (tx: any) => {
+              captured = await tx.unsafe(explainSql);
+              throw EXPLAIN_ROLLBACK;
+            });
+          } catch (err) {
+            if (err !== EXPLAIN_ROLLBACK) throw err;
+          }
+          return captured;
+        }
+        return await this.sql_conn.unsafe(explainSql);
+      };
+
       let rawPlan: any = null;
-      try {
+      if (typeof this.sql_conn?.begin === "function") {
+        try {
+          const jsonRes = await runRolledBackExplain(
+            `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${cleanSql};`,
+          );
+          const planJson =
+            jsonRes?.[0]?.["QUERY PLAN"] ||
+            jsonRes?.[0]?.[Object.keys(jsonRes?.[0] || {})[0] ?? ""];
+          rawPlan =
+            typeof planJson === "string" ? JSON.parse(planJson) : planJson;
+        } catch {
+          const jsonRes2 = await runRolledBackExplain(
+            `EXPLAIN (FORMAT JSON) ${cleanSql};`,
+          );
+          const planJson2 =
+            jsonRes2?.[0]?.["QUERY PLAN"] ||
+            jsonRes2?.[0]?.[Object.keys(jsonRes2?.[0] || {})[0] ?? ""];
+          rawPlan =
+            typeof planJson2 === "string" ? JSON.parse(planJson2) : planJson2;
+        }
+      } else {
         const jsonRes = await this.sql_conn.unsafe(
-          `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) ${cleanSql};`,
+          `EXPLAIN (FORMAT JSON) ${cleanSql};`,
         );
         const planJson =
           jsonRes?.[0]?.["QUERY PLAN"] ||
-          jsonRes?.[0]?.[Object.keys(jsonRes[0])[0] ?? ""];
+          jsonRes?.[0]?.[Object.keys(jsonRes?.[0] || {})[0] ?? ""];
         rawPlan =
           typeof planJson === "string" ? JSON.parse(planJson) : planJson;
-      } catch (errJson) {
-        // Fallback without ANALYZE (e.g., if query fails in analyze mode or write statement)
-        const jsonRes2 = await this.sql_conn.unsafe(
-          `EXPLAIN (FORMAT JSON) ${cleanSql};`,
-        );
-        const planJson2 =
-          jsonRes2?.[0]?.["QUERY PLAN"] ||
-          jsonRes2?.[0]?.[Object.keys(jsonRes2[0])[0] ?? ""];
-        rawPlan =
-          typeof planJson2 === "string" ? JSON.parse(planJson2) : planJson2;
       }
 
-      let rawTextLines = "";
-      try {
-        const textRes = await this.sql_conn.unsafe(
-          `EXPLAIN (ANALYZE, BUFFERS) ${cleanSql};`,
+      const formatPlanNodeLines = (
+        node: any,
+        indent: number,
+        linesOut: string[],
+      ) => {
+        if (!node || typeof node !== "object") return;
+        const prefix = indent === 0 ? "" : `${"  ".repeat(indent)}->  `;
+        const nodeType = node["Node Type"] || "Plan Node";
+        const rel = node["Relation Name"] ? ` on ${node["Relation Name"]}` : "";
+        const alias =
+          node["Alias"] && node["Alias"] !== node["Relation Name"]
+            ? ` ${node["Alias"]}`
+            : "";
+        const costPart = `(cost=${node["Startup Cost"] ?? 0}..${node["Total Cost"] ?? 0} rows=${node["Plan Rows"] ?? 0} width=${node["Plan Width"] ?? 0})`;
+        const actualPart =
+          node["Actual Total Time"] !== undefined
+            ? ` (actual time=${node["Actual Startup Time"] ?? 0}..${node["Actual Total Time"]} rows=${node["Actual Rows"] ?? 0} loops=${node["Actual Loops"] ?? 1})`
+            : "";
+        linesOut.push(
+          `${prefix}${nodeType}${rel}${alias}  ${costPart}${actualPart}`,
         );
-        rawTextLines = (textRes || [])
-          .map((r: any) => Object.values(r)[0])
-          .join("\n");
-      } catch {
-        const textRes2 = await this.sql_conn.unsafe(`EXPLAIN ${cleanSql};`);
-        rawTextLines = (textRes2 || [])
-          .map((r: any) => Object.values(r)[0])
-          .join("\n");
+        if (node["Filter"]) {
+          linesOut.push(`${"  ".repeat(indent + 1)}Filter: ${node["Filter"]}`);
+        }
+        if (node["Index Cond"]) {
+          linesOut.push(
+            `${"  ".repeat(indent + 1)}Index Cond: ${node["Index Cond"]}`,
+          );
+        }
+        if (
+          node["Shared Hit Blocks"] !== undefined ||
+          node["Shared Read Blocks"] !== undefined
+        ) {
+          linesOut.push(
+            `${"  ".repeat(indent + 1)}Buffers: shared hit=${node["Shared Hit Blocks"] ?? 0} read=${node["Shared Read Blocks"] ?? 0}`,
+          );
+        }
+        if (Array.isArray(node["Plans"])) {
+          for (const child of node["Plans"]) {
+            formatPlanNodeLines(child, indent + 1, linesOut);
+          }
+        }
+      };
+
+      const planEnvelope = Array.isArray(rawPlan) ? rawPlan[0] : rawPlan;
+      const derivedLines: string[] = [];
+      if (planEnvelope?.["Plan"]) {
+        formatPlanNodeLines(planEnvelope["Plan"], 0, derivedLines);
       }
+      if (planEnvelope?.["Planning Time"] !== undefined) {
+        derivedLines.push(`Planning Time: ${planEnvelope["Planning Time"]} ms`);
+      }
+      if (planEnvelope?.["Execution Time"] !== undefined) {
+        derivedLines.push(
+          `Execution Time: ${planEnvelope["Execution Time"]} ms`,
+        );
+      }
+      const rawTextLines = derivedLines.join("\n");
 
       const latencyMs = Number((performance.now() - t0).toFixed(2));
 
@@ -1999,22 +2250,27 @@ export class PostgresManager {
       if (!tableName || columns.length === 0)
         throw new Error("Table name and columns required");
 
+      const pkCols = columns.filter((c) => c.pk);
+      const inlinePk = pkCols.length === 1;
       const colDefs = columns.map((c) => {
-        assertSafeSqlFragment("column type", c.type);
-        if (c.dflt_value !== undefined && c.dflt_value !== null)
-          assertSafeSqlFragment("default expression", String(c.dflt_value));
-        let def = `${pgq(c.name)} ${c.type}`;
-        if (c.pk) def += " PRIMARY KEY";
-        if (c.notnull) def += " NOT NULL";
+        const validType = validatePgColumnType(c.type || "TEXT");
+        let def = `${pgq(c.name)} ${validType}`;
+        if (inlinePk && c.pk) def += " PRIMARY KEY";
+        if (c.notnull && !(inlinePk && c.pk)) def += " NOT NULL";
         if (
           c.dflt_value !== undefined &&
           c.dflt_value !== null &&
           c.dflt_value !== ""
         ) {
-          def += ` DEFAULT ${c.dflt_value}`;
+          def += ` DEFAULT ${formatSafePgDefault(c.dflt_value)}`;
         }
         return def;
       });
+      if (pkCols.length > 1) {
+        colDefs.push(
+          `PRIMARY KEY (${pkCols.map((c) => pgq(c.name)).join(", ")})`,
+        );
+      }
 
       const sql = `CREATE TABLE ${pgq(schema)}.${pgq(tableName)} (\n  ${colDefs.join(",\n  ")}\n);`;
       await this.sql_conn.unsafe(sql);
@@ -2035,6 +2291,7 @@ export class PostgresManager {
     newTable: string,
     columns: {
       name: string;
+      origName?: string;
       type: string;
       notnull?: boolean;
       pk?: boolean;
@@ -2043,60 +2300,259 @@ export class PostgresManager {
     schemaName?: string,
   ): Promise<{ success: boolean; error?: string }> {
     const schema = schemaName || this.activeSchema || "public";
-    const tmpName = `_tmp_redesign_${Date.now()}`;
-    let tmpCreated = false;
     try {
-      const targetName = newTable || oldTable;
-      const created = await this.createTable(tmpName, columns, schema);
-      if (!created.success) return created;
-      tmpCreated = true;
-
-      try {
-        const oldColsRes = await this.sql_conn.unsafe(
-          "SELECT column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2",
-          [schema, oldTable],
-        );
-        const oldCols = new Set(oldColsRes.map((r: any) => r.column_name));
-        const sharedCols = columns
-          .filter((c) => oldCols.has(c.name))
-          .map((c) => `${pgq(c.name)}`);
-
-        if (sharedCols.length > 0) {
-          const colList = sharedCols.join(", ");
-          await this.sql_conn.unsafe(
-            `INSERT INTO ${pgq(schema)}.${pgq(tmpName)} (${colList}) SELECT ${colList} FROM ${pgq(schema)}.${pgq(oldTable)};`,
-          );
-        }
-      } catch (err: any) {
-        // Never drop the original table when its data could not be copied.
-        await this.sql_conn
-          .unsafe(`DROP TABLE IF EXISTS ${pgq(schema)}.${pgq(tmpName)};`)
-          .catch(() => {});
-        return {
-          success: false,
-          error: `Data could not be copied to the new structure; the original table was left unchanged. ${err.message}`,
-        };
+      const sourceName = String(oldTable || "").trim();
+      const targetName = String(newTable || oldTable || "").trim();
+      if (!sourceName || !targetName || !columns || columns.length === 0) {
+        throw new Error("Table name and at least one column are required");
       }
 
-      // PostgreSQL DDL is transactional: swap the tables atomically.
-      await this.sql_conn.begin(async (tx: any) => {
-        await tx.unsafe(`DROP TABLE ${pgq(schema)}.${pgq(oldTable)} CASCADE;`);
-        await tx.unsafe(
-          `ALTER TABLE ${pgq(schema)}.${pgq(tmpName)} RENAME TO ${pgq(targetName)};`,
-        );
+      const seenNames = new Set<string>();
+      const validatedCols = columns.map((c) => {
+        const colName = String(c.name || "").trim();
+        if (!colName) throw new Error("Every column requires a name");
+        const lower = colName.toLowerCase();
+        if (seenNames.has(lower)) {
+          throw new Error(`Duplicate column name '${colName}'`);
+        }
+        seenNames.add(lower);
+        const validType = validatePgColumnType(c.type || "TEXT");
+        const hasDefault =
+          c.dflt_value !== undefined &&
+          c.dflt_value !== null &&
+          String(c.dflt_value) !== "";
+        const safeDefault = hasDefault
+          ? formatSafePgDefault(c.dflt_value)
+          : null;
+        return {
+          ...c,
+          name: colName,
+          origName: c.origName ? String(c.origName).trim() : undefined,
+          validType,
+          safeDefault,
+        };
       });
+
+      const oldColsRes = await this.sql_conn.unsafe(
+        `SELECT column_name, data_type, udt_name, character_maximum_length, numeric_precision, numeric_scale, is_nullable, column_default
+         FROM information_schema.columns
+         WHERE table_schema = $1 AND table_name = $2
+         ORDER BY ordinal_position;`,
+        [schema, sourceName],
+      );
+      if (!oldColsRes || oldColsRes.length === 0) {
+        throw new Error(`Table '${schema}.${sourceName}' does not exist`);
+      }
+
+      const pkRes = await this.sql_conn.unsafe(
+        `SELECT tc.constraint_name, kcu.column_name
+         FROM information_schema.table_constraints tc
+         JOIN information_schema.key_column_usage kcu
+           ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+         WHERE tc.table_schema = $1 AND tc.table_name = $2 AND tc.constraint_type = 'PRIMARY KEY'
+         ORDER BY kcu.ordinal_position;`,
+        [schema, sourceName],
+      );
+      const existingPkConstraint = pkRes?.[0]?.constraint_name
+        ? String(pkRes[0].constraint_name)
+        : null;
+      const existingPkCols = (pkRes || []).map((r: any) =>
+        String(r.column_name),
+      );
+
+      const existingMap = new Map<string, any>();
+      for (const row of oldColsRes) {
+        existingMap.set(String(row.column_name), row);
+      }
+
+      const matchedOldNames = new Set<string>();
+      for (const col of validatedCols) {
+        if (col.origName && existingMap.has(col.origName)) {
+          matchedOldNames.add(col.origName);
+        } else if (!col.origName && existingMap.has(col.name)) {
+          matchedOldNames.add(col.name);
+        }
+      }
+
+      const normalizePgType = (t: string): string =>
+        t
+          .trim()
+          .toUpperCase()
+          .replace(/\s+/g, " ")
+          .replace(/^INT4$/, "INTEGER")
+          .replace(/^INT8$/, "BIGINT")
+          .replace(/^INT2$/, "SMALLINT")
+          .replace(/^BOOL$/, "BOOLEAN")
+          .replace(/^FLOAT8$/, "DOUBLE PRECISION")
+          .replace(/^FLOAT4$/, "REAL")
+          .replace(/^VARCHAR(?=\(|$)/, "CHARACTER VARYING")
+          .replace(/^TIMESTAMPTZ$/, "TIMESTAMP WITH TIME ZONE");
+
+      const formatExistingType = (row: any): string => {
+        const dt = String(row.data_type || "").toUpperCase();
+        if (dt === "USER-DEFINED")
+          return String(row.udt_name || "").toUpperCase();
+        if (dt === "ARRAY") {
+          const base = String(row.udt_name || "").replace(/^_/, "");
+          return `${normalizePgType(base)}[]`;
+        }
+        if (dt === "CHARACTER VARYING" && row.character_maximum_length) {
+          return `CHARACTER VARYING(${row.character_maximum_length})`;
+        }
+        if (
+          dt === "NUMERIC" &&
+          row.numeric_precision !== null &&
+          row.numeric_precision !== undefined
+        ) {
+          return row.numeric_scale
+            ? `NUMERIC(${row.numeric_precision},${row.numeric_scale})`
+            : `NUMERIC(${row.numeric_precision})`;
+        }
+        return normalizePgType(dt);
+      };
+
+      const runAlterBatch = async (runner: any) => {
+        const qTable = `${pgq(schema)}.${pgq(sourceName)}`;
+
+        // 1. Drop removed columns (without CASCADE so dependent views/FKs are never silently destroyed)
+        for (const oldName of existingMap.keys()) {
+          if (!matchedOldNames.has(oldName)) {
+            await runner.unsafe(
+              `ALTER TABLE ${qTable} DROP COLUMN ${pgq(oldName)};`,
+            );
+          }
+        }
+
+        // 2. Rename columns where origName -> name changed
+        for (const col of validatedCols) {
+          if (
+            col.origName &&
+            col.origName !== col.name &&
+            existingMap.has(col.origName)
+          ) {
+            await runner.unsafe(
+              `ALTER TABLE ${qTable} RENAME COLUMN ${pgq(col.origName)} TO ${pgq(col.name)};`,
+            );
+          }
+        }
+
+        // 3. Add newly introduced columns & alter existing column types/constraints/defaults
+        for (const col of validatedCols) {
+          const prevKey =
+            col.origName && existingMap.has(col.origName)
+              ? col.origName
+              : existingMap.has(col.name)
+                ? col.name
+                : null;
+
+          if (!prevKey) {
+            let addDef = `${pgq(col.name)} ${col.validType}`;
+            if (col.notnull) addDef += " NOT NULL";
+            if (col.safeDefault !== null) {
+              addDef += ` DEFAULT ${col.safeDefault}`;
+            }
+            await runner.unsafe(`ALTER TABLE ${qTable} ADD COLUMN ${addDef};`);
+            continue;
+          }
+
+          const prev = existingMap.get(prevKey)!;
+          const prevNormType = formatExistingType(prev);
+          const nextNormType = normalizePgType(
+            col.validType.replace(/\s*,\s*/g, ","),
+          );
+          const isSerialUnchanged =
+            (nextNormType === "SERIAL" && prevNormType === "INTEGER") ||
+            (nextNormType === "BIGSERIAL" && prevNormType === "BIGINT") ||
+            (nextNormType === "SMALLSERIAL" && prevNormType === "SMALLINT");
+
+          if (nextNormType !== prevNormType && !isSerialUnchanged) {
+            const targetCastType =
+              nextNormType === "SERIAL"
+                ? "INTEGER"
+                : nextNormType === "BIGSERIAL"
+                  ? "BIGINT"
+                  : nextNormType === "SMALLSERIAL"
+                    ? "SMALLINT"
+                    : col.validType;
+            await runner.unsafe(
+              `ALTER TABLE ${qTable} ALTER COLUMN ${pgq(col.name)} TYPE ${targetCastType} USING ${pgq(col.name)}::${targetCastType};`,
+            );
+          }
+
+          const prevNotNull = String(prev.is_nullable).toUpperCase() === "NO";
+          const nextNotNull = Boolean(col.notnull || col.pk);
+          if (nextNotNull !== prevNotNull) {
+            await runner.unsafe(
+              `ALTER TABLE ${qTable} ALTER COLUMN ${pgq(col.name)} ${nextNotNull ? "SET NOT NULL" : "DROP NOT NULL"};`,
+            );
+          }
+
+          const prevDefault =
+            prev.column_default !== null && prev.column_default !== undefined
+              ? String(prev.column_default).trim()
+              : null;
+          const prevIsSequence =
+            prevDefault !== null && /^nextval\(/i.test(prevDefault);
+          if (col.safeDefault !== null) {
+            if (col.safeDefault !== prevDefault) {
+              await runner.unsafe(
+                `ALTER TABLE ${qTable} ALTER COLUMN ${pgq(col.name)} SET DEFAULT ${col.safeDefault};`,
+              );
+            }
+          } else if (prevDefault !== null && !(prevIsSequence && col.pk)) {
+            await runner.unsafe(
+              `ALTER TABLE ${qTable} ALTER COLUMN ${pgq(col.name)} DROP DEFAULT;`,
+            );
+          }
+        }
+
+        // 4. Reconcile Primary Key constraint if PK columns changed
+        const desiredPkCols = validatedCols
+          .filter((c) => c.pk)
+          .map((c) => c.name);
+        const mappedExistingPkCols = existingPkCols.map((oldPk: string) => {
+          const renamed = validatedCols.find((c) => c.origName === oldPk);
+          return renamed ? renamed.name : oldPk;
+        });
+        const pkChanged =
+          desiredPkCols.length !== mappedExistingPkCols.length ||
+          desiredPkCols.some((c, idx) => c !== mappedExistingPkCols[idx]);
+        if (pkChanged) {
+          if (existingPkConstraint) {
+            await runner.unsafe(
+              `ALTER TABLE ${qTable} DROP CONSTRAINT ${pgq(existingPkConstraint)};`,
+            );
+          }
+          if (desiredPkCols.length > 0) {
+            await runner.unsafe(
+              `ALTER TABLE ${qTable} ADD PRIMARY KEY (${desiredPkCols.map(pgq).join(", ")});`,
+            );
+          }
+        }
+
+        // 5. Rename table if requested
+        if (targetName !== sourceName) {
+          await runner.unsafe(
+            `ALTER TABLE ${qTable} RENAME TO ${pgq(targetName)};`,
+          );
+        }
+      };
+
+      if (typeof this.sql_conn?.begin === "function") {
+        await this.sql_conn.begin(async (tx: any) => {
+          await runAlterBatch(tx);
+        });
+      } else {
+        await runAlterBatch(this.sql_conn);
+      }
 
       await this.logAudit(
         "REDESIGN_TABLE",
         targetName,
-        `Redesigned table structure`,
+        `Redesigned table structure via transactional ALTER TABLE`,
       );
       return { success: true };
     } catch (err: any) {
-      if (tmpCreated)
-        await this.sql_conn
-          .unsafe(`DROP TABLE IF EXISTS ${pgq(schema)}.${pgq(tmpName)};`)
-          .catch(() => {});
       return { success: false, error: err.message };
     }
   }
@@ -2150,24 +2606,22 @@ export class PostgresManager {
     try {
       if (!tableName || !column?.name)
         throw new Error("Table name and column name required");
-      assertSafeSqlFragment("column type", column.type || "");
-      if (column.dflt_value !== undefined && column.dflt_value !== null)
-        assertSafeSqlFragment("default expression", String(column.dflt_value));
-      let def = `${pgq(column.name)} ${column.type || "text"}`;
+      const validType = validatePgColumnType(column.type || "text");
+      let def = `${pgq(column.name)} ${validType}`;
       if (column.notnull) def += " NOT NULL";
       if (
         column.dflt_value !== undefined &&
         column.dflt_value !== null &&
         column.dflt_value !== ""
       ) {
-        def += ` DEFAULT ${column.dflt_value}`;
+        def += ` DEFAULT ${formatSafePgDefault(column.dflt_value)}`;
       }
       const sql = `ALTER TABLE ${pgq(schema)}.${pgq(tableName)} ADD COLUMN ${def};`;
       await this.sql_conn.unsafe(sql);
       await this.logAudit(
         "ADD_COLUMN",
         tableName,
-        `Added column ${pgq(column.name)} (${column.type})`,
+        `Added column ${pgq(column.name)} (${validType})`,
       );
       return { success: true };
     } catch (err: any) {
@@ -2410,8 +2864,12 @@ export class PostgresManager {
       `-- 🐘 POSTGRES STUDIO PRO - ENTERPRISE DATABASE DUMP & RECOVERY SCRIPT`,
     );
     out.push(`-- Generated: ${new Date().toISOString()}`);
-    out.push(`-- Schema: ${pgq(s)} | Mode: ${mode.toUpperCase()}`);
-    out.push(`-- Database: ${this.dbConfig?.database ?? ""}`);
+    const safeCommentText = (v: unknown) =>
+      String(v ?? "").replace(/[\r\n]+/g, " ");
+    out.push(
+      `-- Schema: ${safeCommentText(pgq(s))} | Mode: ${safeCommentText(mode.toUpperCase())}`,
+    );
+    out.push(`-- Database: ${safeCommentText(this.dbConfig?.database ?? "")}`);
     out.push(
       `-- =========================================================================\n`,
     );
@@ -2452,8 +2910,12 @@ export class PostgresManager {
       const tName = tblMeta.name;
 
       if (mode === "all" || mode === "schema") {
-        out.push(`-- Table: ${pgq(s)}.${pgq(tName)}`);
+        out.push(
+          `-- Table: ${safeCommentText(pgq(s))}.${safeCommentText(pgq(tName))}`,
+        );
         out.push(`CREATE TABLE IF NOT EXISTS ${pgq(s)}.${pgq(tName)} (`);
+        const pkCols = tblMeta.columns.filter((c) => c.pk);
+        const inlinePk = pkCols.length === 1;
         const colDefs: string[] = [];
         for (const col of tblMeta.columns) {
           let line = `  ${pgq(col.name)} ${col.type}`;
@@ -2465,10 +2927,15 @@ export class PostgresManager {
           ) {
             line += ` DEFAULT ${col.dflt_value}`;
           }
-          if (col.pk) {
+          if (inlinePk && col.pk) {
             line += ` PRIMARY KEY`;
           }
           colDefs.push(line);
+        }
+        if (pkCols.length > 1) {
+          colDefs.push(
+            `  PRIMARY KEY (${pkCols.map((c) => pgq(c.name)).join(", ")})`,
+          );
         }
         out.push(colDefs.join(",\n"));
         out.push(`);\n`);
@@ -2477,27 +2944,51 @@ export class PostgresManager {
         if (tblMeta.indices && tblMeta.indices.length > 0) {
           for (const idx of tblMeta.indices) {
             if (idx.name.endsWith("_pkey")) continue;
-            const unique = idx.unique ? "UNIQUE " : "";
-            out.push(
-              `CREATE ${unique}INDEX IF NOT EXISTS ${pgq(idx.name)} ON ${pgq(s)}.${pgq(tName)} (${idx.columns.map((c) => `${pgq(c)}`).join(", ")});`,
-            );
+            const rawIdxDef = String((idx as any).indexDef || "").trim();
+            if (rawIdxDef) {
+              const idempotentDef = rawIdxDef
+                .replace(
+                  /^CREATE\s+UNIQUE\s+INDEX\s+(?!IF\s+NOT\s+EXISTS\b)/i,
+                  "CREATE UNIQUE INDEX IF NOT EXISTS ",
+                )
+                .replace(
+                  /^CREATE\s+INDEX\s+(?!IF\s+NOT\s+EXISTS\b)/i,
+                  "CREATE INDEX IF NOT EXISTS ",
+                )
+                .replace(/;?\s*$/, ";");
+              out.push(idempotentDef);
+            } else if (idx.columns && idx.columns.length > 0) {
+              const unique = idx.unique ? "UNIQUE " : "";
+              out.push(
+                `CREATE ${unique}INDEX IF NOT EXISTS ${pgq(idx.name)} ON ${pgq(s)}.${pgq(tName)} (${idx.columns.map((c) => `${pgq(c)}`).join(", ")});`,
+              );
+            }
           }
           out.push("");
         }
       }
 
-      // 3. Table Data
+      // 3. Table Data (paginated batch streaming with no silent row cap)
       if (mode === "all" || mode === "data") {
         try {
-          const rows = await this.sql_conn.unsafe(
-            `SELECT * FROM ${pgq(s)}.${pgq(tName)} LIMIT 5000;`,
-          );
-          if (rows && rows.length > 0) {
-            out.push(
-              `-- Data for Table: ${pgq(s)}.${pgq(tName)} (${rows.length} rows)`,
+          const DUMP_BATCH_SIZE = 2000;
+          let offset = 0;
+          let headerWritten = false;
+          let colNames: string[] = [];
+          let escapedCols = "";
+          while (true) {
+            const rows = await this.sql_conn.unsafe(
+              `SELECT * FROM ${pgq(s)}.${pgq(tName)} LIMIT ${DUMP_BATCH_SIZE} OFFSET ${offset};`,
             );
-            const colNames = Object.keys(rows[0]);
-            const escapedCols = colNames.map((c) => `${pgq(c)}`).join(", ");
+            if (!rows || rows.length === 0) break;
+            if (!headerWritten) {
+              out.push(
+                `-- Data for Table: ${safeCommentText(pgq(s))}.${safeCommentText(pgq(tName))}`,
+              );
+              colNames = Object.keys(rows[0]);
+              escapedCols = colNames.map((c) => `${pgq(c)}`).join(", ");
+              headerWritten = true;
+            }
             out.push(
               `INSERT INTO ${pgq(s)}.${pgq(tName)} (${escapedCols}) VALUES`,
             );
@@ -2515,10 +3006,14 @@ export class PostgresManager {
               rowValues.push(`  (${vals.join(", ")})`);
             }
             out.push(rowValues.join(",\n") + `;`);
-            out.push("");
+            offset += rows.length;
+            if (rows.length < DUMP_BATCH_SIZE) break;
           }
+          if (headerWritten) out.push("");
         } catch (err: any) {
-          out.push(`-- Error dumping data for ${pgq(tName)}: ${err.message}\n`);
+          out.push(
+            `-- Error dumping data for ${safeCommentText(pgq(tName))}: ${safeCommentText(err?.message || err)}\n`,
+          );
         }
       }
     }
@@ -2526,14 +3021,35 @@ export class PostgresManager {
     // 4. Foreign Keys
     if (mode === "all" || mode === "schema") {
       out.push(`-- Foreign Key Constraints`);
+      const validFkRule = (r: unknown): string => {
+        const up = String(r || "NO ACTION")
+          .trim()
+          .toUpperCase();
+        return [
+          "CASCADE",
+          "SET NULL",
+          "SET DEFAULT",
+          "RESTRICT",
+          "NO ACTION",
+        ].includes(up)
+          ? up
+          : "NO ACTION";
+      };
       for (const tblMeta of schemaRes.tables) {
         if (!tableNames.includes(tblMeta.name)) continue;
         if (tblMeta.foreignKeys && tblMeta.foreignKeys.length > 0) {
-          for (const fk of tblMeta.foreignKeys) {
+          for (const fk of tblMeta.foreignKeys as any[]) {
             if (!tableNames.includes(fk.table)) continue;
-            const constraintName = `${tblMeta.name}_${fk.from}_fkey`;
+            const constraintName =
+              fk.constraintName || `${tblMeta.name}_${fk.from}_fkey`;
+            const onDelete = validFkRule(fk.onDelete);
+            const onUpdate = validFkRule(fk.onUpdate);
+            const deleteClause =
+              onDelete !== "NO ACTION" ? ` ON DELETE ${onDelete}` : "";
+            const updateClause =
+              onUpdate !== "NO ACTION" ? ` ON UPDATE ${onUpdate}` : "";
             out.push(
-              `DO $$ BEGIN ALTER TABLE ${pgq(s)}.${pgq(tblMeta.name)} ADD CONSTRAINT ${pgq(constraintName)} FOREIGN KEY (${pgq(fk.from)}) REFERENCES ${pgq(s)}.${pgq(fk.table)} (${pgq(fk.to)}) ON DELETE CASCADE; EXCEPTION WHEN duplicate_object THEN null; END $$;`,
+              `DO $$ BEGIN ALTER TABLE ${pgq(s)}.${pgq(tblMeta.name)} ADD CONSTRAINT ${pgq(constraintName)} FOREIGN KEY (${pgq(fk.from)}) REFERENCES ${pgq(s)}.${pgq(fk.table)} (${pgq(fk.to)})${deleteClause}${updateClause}; EXCEPTION WHEN duplicate_object THEN null; END $$;`,
             );
           }
         }
@@ -2606,16 +3122,16 @@ export class PostgresManager {
         if (isNum) {
           numericCols.push(c.column_name);
           aggSelects.push(
-            `ROUND(SUM(${pgq(c.column_name)})::numeric, 2) AS "${c.column_name}__sum"`,
+            `ROUND(SUM(${pgq(c.column_name)})::numeric, 2) AS ${pgq(`${c.column_name}__sum`)}`,
           );
           aggSelects.push(
-            `ROUND(AVG(${pgq(c.column_name)})::numeric, 2) AS "${c.column_name}__avg"`,
+            `ROUND(AVG(${pgq(c.column_name)})::numeric, 2) AS ${pgq(`${c.column_name}__avg`)}`,
           );
           aggSelects.push(
-            `MIN(${pgq(c.column_name)}) AS "${c.column_name}__min"`,
+            `MIN(${pgq(c.column_name)}) AS ${pgq(`${c.column_name}__min`)}`,
           );
           aggSelects.push(
-            `MAX(${pgq(c.column_name)}) AS "${c.column_name}__max"`,
+            `MAX(${pgq(c.column_name)}) AS ${pgq(`${c.column_name}__max`)}`,
           );
         }
       }
@@ -2784,17 +3300,99 @@ export class PostgresManager {
         );
       }
 
+      // Reflect target table columns ONCE (instead of per-row getSchema())
+      const colTypeMap = new Map<string, string>();
+      try {
+        const metaRows = await this.sql_conn.unsafe(
+          `SELECT column_name, data_type, udt_name
+           FROM information_schema.columns
+           WHERE table_schema = $1 AND table_name = $2
+           ORDER BY ordinal_position;`,
+          [schema, tableName],
+        );
+        for (const r of metaRows || []) {
+          const dt =
+            r.data_type === "USER-DEFINED"
+              ? String(r.udt_name || "")
+              : String(r.data_type || "");
+          colTypeMap.set(String(r.column_name), dt.toUpperCase());
+        }
+      } catch {}
+
+      const validInsertCols =
+        colTypeMap.size > 0
+          ? columns.filter((c) => colTypeMap.has(c))
+          : [...columns];
+      if (recordRows.length > 0 && validInsertCols.length === 0) {
+        throw new Error(
+          `No matching columns found on '${schema}.${tableName}'`,
+        );
+      }
+
       let imported = 0;
       let skipped = 0;
-      for (const row of recordRows) {
-        const res = await this.insertRow(tableName, row, schema);
-        if (res.success) {
-          imported++;
-        } else if (spec.onConflict === "ignore") {
-          skipped++;
+      if (recordRows.length > 0) {
+        const quotedTable = `${pgq(schema)}.${pgq(tableName)}`;
+        const quotedCols = validInsertCols.map(pgq).join(", ");
+        const maxRowsPerBatch = Math.max(
+          1,
+          Math.min(
+            500,
+            Math.floor(60000 / Math.max(1, validInsertCols.length)),
+          ),
+        );
+        const onConflictSql =
+          spec.onConflict === "ignore" ? " ON CONFLICT DO NOTHING" : "";
+
+        const executeBatches = async (runner: any) => {
+          for (
+            let start = 0;
+            start < recordRows.length;
+            start += maxRowsPerBatch
+          ) {
+            const slice = recordRows.slice(start, start + maxRowsPerBatch);
+            const params: any[] = [];
+            const tuples: string[] = [];
+            let paramIdx = 1;
+            for (const row of slice) {
+              const ph = validInsertCols.map((col) => {
+                const rawVal = row[col] === undefined ? null : row[col];
+                const colType = colTypeMap.get(col) || "";
+                const isJson = colType.includes("JSON");
+                params.push(
+                  rawVal !== null && typeof rawVal === "object"
+                    ? JSON.stringify(rawVal)
+                    : rawVal,
+                );
+                const token = isJson ? `$${paramIdx}::jsonb` : `$${paramIdx}`;
+                paramIdx++;
+                return token;
+              });
+              tuples.push(`(${ph.join(", ")})`);
+            }
+            const insertSql = `INSERT INTO ${quotedTable} (${quotedCols}) VALUES ${tuples.join(", ")}${onConflictSql} RETURNING 1;`;
+            const insertedRows = await runner.unsafe(insertSql, params);
+            const batchInserted = Array.isArray(insertedRows)
+              ? insertedRows.length
+              : slice.length;
+            imported += batchInserted;
+            skipped += Math.max(0, slice.length - batchInserted);
+          }
+        };
+
+        if (typeof this.sql_conn?.begin === "function") {
+          await this.sql_conn.begin(async (tx: any) => {
+            await executeBatches(tx);
+          });
         } else {
-          throw new Error(res.error || "Failed to insert row");
+          await executeBatches(this.sql_conn);
         }
+
+        await this.logAudit(
+          "IMPORT_BATCH",
+          tableName,
+          `Imported ${imported} row(s) (${skipped} skipped)`,
+        );
       }
       return {
         success: true,
@@ -4011,23 +4609,30 @@ export function startPostgresStudioServer(options: ServerOptions = {}) {
       const __samples = await samples.handle(req, url, corsHeaders);
       if (__samples) return __samples;
 
-      // 9. Starter Dataset Seeding
-      if (
-        (url.pathname === "/api/seed-sample" || url.pathname === "/api/seed") &&
-        (req.method === "POST" || req.method === "GET")
-      ) {
+      // 9. Starter Dataset Seeding (POST only — never allow state mutation over GET)
+      if (url.pathname === "/api/seed-sample" || url.pathname === "/api/seed") {
+        if (req.method !== "POST") {
+          return Response.json(
+            {
+              success: false,
+              error: "Method Not Allowed: POST required for database seeding",
+            },
+            {
+              status: 405,
+              headers: { ...corsHeaders, Allow: "POST, OPTIONS" },
+            },
+          );
+        }
         try {
           let schema: string | undefined =
             url.searchParams.get("schema") || undefined;
-          if (req.method === "POST") {
-            try {
-              const body = (await req.json()) as {
-                schema?: string;
-                table?: string;
-              };
-              if (body?.schema) schema = body.schema;
-            } catch {}
-          }
+          try {
+            const body = (await req.json()) as {
+              schema?: string;
+              table?: string;
+            };
+            if (body?.schema) schema = body.schema;
+          } catch {}
           const res = await manager.seedSampleDataset(schema);
           return Response.json(res, { headers: corsHeaders });
         } catch (err: any) {
