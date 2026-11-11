@@ -1,10 +1,7 @@
-// Runs under NODE (jsdom needs it), driven by studio_shortcuts.test.ts: the Visual Query Designer Run shortcut.
-import { describe, test } from "node:test";
+// Driven by studio_shortcuts.test.ts: the Visual Query Designer Run shortcut.
+import { describe, test } from "./helpers/ui_harness.mjs";
 import assert from "node:assert/strict";
 import { openStudio, wait, sleep } from "./helpers/studio_page.mjs";
-
-process.on("unhandledRejection", () => {});
-process.on("uncaughtException", () => {});
 
 const BASE = process.env.SS_BASE;
 const ENGINE = process.env.SS_ENGINE || "sqlite";

@@ -28,6 +28,8 @@ import {
   appStoreCategory,
   iconSpecFor,
 } from "../scripts/release/icons";
+import { appArmorProfileFor } from "../scripts/release/linuxSandbox";
+import { debPostinstScript } from "../scripts/release/linuxPackages";
 import { DESIGNS, SYMBOL_NAMES } from "../scripts/release/iconDesigns";
 import { ICON_RENDERER } from "../scripts/release/iconRenderer";
 import {
@@ -342,7 +344,8 @@ describe("macOS apps", () => {
     for (const d of Object.values(DESIGNS))
       if (d.custom) expect(ICON_RENDERER).toContain(`  ${d.custom}() {`);
     if (process.platform !== "darwin") return;
-    const file = join(tmpdir(), `sym-check-${process.pid}.js`);
+    const dir = mkdtempSync(join(tmpdir(), "sym-check-"));
+    const file = join(dir, "sym-check.js");
     writeFileSync(
       file,
       `ObjC.import("AppKit"); function run(a){ const bad=[]; for (const n of JSON.parse(a[0])) { if ($.NSImage.imageWithSystemSymbolNameAccessibilityDescription(n, $()).isNil()) bad.push(n); } return JSON.stringify(bad); }`,
@@ -357,7 +360,7 @@ describe("macOS apps", () => {
       ]);
       expect(JSON.parse(out.stdout.toString().trim() || "[]")).toEqual([]);
     } finally {
-      rmSync(file, { force: true });
+      rmSync(dir, { recursive: true, force: true });
     }
   });
   test("names are safe, and the plist is valid even with an ampersand", () => {
@@ -490,5 +493,27 @@ describe("parallel builds", () => {
     expect(parseMacArgs([]).jobs).toBe(defaultJobs());
     expect(parseReleaseArgs(["--jobs", "2"]).jobs).toBe(2);
     expect(() => parseMacArgs(["--jobs", "0"])).toThrow();
+  });
+});
+
+describe("Linux AppArmor & .deb postinst hardening ([V-SEC-05])", () => {
+  test("appArmorProfileFor denies userns on BUN_BE_BUN parent and transitions bwrap only", () => {
+    const profile = appArmorProfileFor(
+      "codecaine-file-manager",
+      "/opt/codecaine-file-manager/codecaine-file-manager",
+    );
+    expect(profile).not.toContain("flags=(unconfined)");
+    expect(profile).toContain("deny userns,");
+    expect(profile).toContain("/usr/bin/bwrap Cx -> bwrap,");
+    expect(profile).toContain("/usr/bin/xdg-dbus-proxy Cx -> bwrap,");
+    expect(profile).toContain("profile bwrap flags=(default_allow)");
+    expect(profile).not.toContain("*");
+  });
+
+  test("debPostinstScript does not install unconfined userns profile or predictable /tmp path", () => {
+    const postinst = debPostinstScript();
+    expect(postinst).not.toContain("/tmp/codecaine-fm-apparmor.$$");
+    expect(postinst).not.toContain("install -m 0644");
+    expect(postinst).not.toContain("userns,");
   });
 });

@@ -5,7 +5,7 @@ class CodecaineUtilitySuite < Formula
   desc "Comprehensive RAD GUI desktop studio applications and CLI utility suite for macOS and Linux"
   homepage "https://github.com/codecaine-zz/bun_rad_studio"
   url "https://github.com/codecaine-zz/bun_rad_studio.git", branch: "main"
-  version "1.0.0"
+  version "1.5.3"
   license "MIT"
   head "https://github.com/codecaine-zz/bun_rad_studio.git", branch: "main"
 
@@ -23,7 +23,8 @@ class CodecaineUtilitySuite < Formula
   depends_on "imagemagick" => :optional
 
   on_linux do
-    depends_on "gtk+3"
+    # Desktop GUI studios use webview-bun backed by GTK4 + WebKitGTK-6.0
+    depends_on "gtk4"
   end
 
   def install
@@ -36,8 +37,9 @@ class CodecaineUtilitySuite < Formula
       system "bun", "run", "scripts/generate_brew_suite.ts"
     end
 
-    # Install all standalone executable wrappers from libexec/bin into Homebrew's bin
-    bin.install Dir["#{libexec}/bin/*"]
+    # Keep wrappers and manifest.json inside libexec/bin (where resolve(wrapperDir, "..") finds libexec)
+    # and expose exec scripts in Homebrew's bin directory.
+    bin.write_exec_script Dir["#{libexec}/bin/*"].select { |f| File.executable?(f) && !File.directory?(f) }
   end
 
   def caveats
@@ -50,6 +52,10 @@ class CodecaineUtilitySuite < Formula
         codecaine search <term>    # Search tools by name or description
         codecaine run <name>       # Run any application or CLI utility with arguments
         codecaine brew status      # Verify Homebrew suite integration and dependencies
+
+      Linux Desktop Note:
+        GUI studio windows require GTK4 and WebKitGTK 6.0 (`libwebkitgtk-6.0-4` on Debian/Ubuntu
+        or `webkitgtk6.0` on Fedora) from your system package manager.
 
       All 140+ individual tools are also directly available on your PATH:
         codecaine-database, codecaine-system, codecaine-api, codecaine-calc,

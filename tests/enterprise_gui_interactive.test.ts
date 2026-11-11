@@ -52,6 +52,7 @@ async function trigger(
 describe("⚡ Enterprise GUI Interactive Control & Verification Suite", () => {
   it("1. Controls API Studio Pro: dispatch, benchmark, curl copy, and presets", async () => {
     const win = createApiStudio({ fullscreen: false });
+    (win as any).copyToClipboard = () => {};
     // A local stand-in for jsonplaceholder: the test used to call the real site, so it depended on the network
     // and its speed (it timed out at 5 s on some runs).
     const todo = {
@@ -143,44 +144,79 @@ describe("⚡ Enterprise GUI Interactive Control & Verification Suite", () => {
 
   it("3. Controls Network Forensics Studio: socket scans, DNS audit, and HTTP probe", async () => {
     const win = createNetworkStudio({ fullscreen: false });
-
-    // Test single port socket scan
-    win.setValue("txt_host", "google.com");
-    win.setValue("txt_port", "443");
-    await trigger(win, "btn_scan_socket");
-    expect(win.getValue("txt_net_results_raw")).toContain(
-      "[Socket Test Result]",
-    );
-    expect(win.getValue("txt_net_results_raw")).toContain(
-      "Host:    google.com",
-    );
-    expect(win.getValue("txt_net_results_raw")).toContain("Port:    443");
-    expect(win.getValue("net_console")).toContain(
-      "[Scan Result] google.com:443 is OPEN",
+    (win as any).copyToClipboard = () => {};
+    // Run the ephemeral HTTP responder in a child process so synchronous
+    // probeHttpSync (Bun.spawnSync) never blocks the responder's event loop.
+    const localProbeProc = Bun.spawn(
+      [
+        process.execPath,
+        "-e",
+        `const srv = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: () => new Response("OK", { status: 200, statusText: "OK", headers: { "Content-Type": "text/plain" } }) }); console.log(String(srv.port)); setInterval(() => {}, 60_000);`,
+      ],
+      { stdout: "pipe", stderr: "ignore" },
     );
 
-    // Test DNS A record lookup
-    await trigger(win, "btn_dns_a");
-    expect(win.getValue("txt_net_results_raw")).toContain(
-      "DNS A RECORDS: google.com",
-    );
-    expect(win.getValue("net_console")).toContain(
-      "[DNS Success] Retrieved A records",
-    );
+    try {
+      const reader = localProbeProc.stdout.getReader();
+      const decoder = new TextDecoder();
+      let portBuf = "";
+      while (!portBuf.includes("\n")) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        portBuf += decoder.decode(value, { stream: true });
+      }
+      reader.releaseLock();
+      const portStr = portBuf.trim().split(/\s+/)[0] || "";
+      expect(Number(portStr)).toBeGreaterThan(0);
 
-    // Test HTTP probe
-    await trigger(win, "btn_ping_http");
-    expect(win.getValue("txt_net_results_raw")).toContain(
-      "[HTTP Probe Response]",
-    );
-    expect(win.getValue("txt_net_results_raw")).toContain(
-      "Status Code:     200 OK",
-    );
-    expect(win.getValue("net_console")).toContain("[HTTP Probe] 200 in");
+      // Test single port socket scan against local ephemeral listener (no external google.com dependency)
+      win.setValue("txt_host", "127.0.0.1");
+      win.setValue("txt_port", portStr);
+      await trigger(win, "btn_scan_socket");
+      expect(win.getValue("txt_net_results_raw")).toContain(
+        "[Socket Test Result]",
+      );
+      expect(win.getValue("txt_net_results_raw")).toContain(
+        "Host:    127.0.0.1",
+      );
+      expect(win.getValue("txt_net_results_raw")).toContain(
+        `Port:    ${portStr}`,
+      );
+      expect(win.getValue("net_console")).toContain(
+        `[Scan Result] 127.0.0.1:${portStr} is OPEN`,
+      );
 
-    // Test Clear Diagnostics
-    await trigger(win, "btn_clear_diag");
-    expect(win.getValue("txt_net_results_raw")).toContain("[Output Cleared]");
+      // Test DNS A record lookup locally via loopback resolver
+      win.setValue("txt_host", "localhost");
+      await trigger(win, "btn_dns_a");
+      expect(win.getValue("txt_net_results_raw")).toContain(
+        "DNS A RECORDS: localhost",
+      );
+      expect(win.getValue("net_console")).toContain(
+        "[DNS Success] Retrieved A records",
+      );
+
+      // Test HTTP probe against local ephemeral listener
+      win.setValue("txt_host", "127.0.0.1");
+      win.setValue("txt_port", portStr);
+      await trigger(win, "btn_ping_http");
+      expect(win.getValue("txt_net_results_raw")).toContain(
+        "[HTTP Probe Response]",
+      );
+      expect(win.getValue("txt_net_results_raw")).toContain(
+        "Status Code:     200",
+      );
+      expect(win.getValue("net_console")).toContain("[HTTP Probe] 200 in");
+
+      // Test Clear Diagnostics
+      await trigger(win, "btn_clear_diag");
+      expect(win.getValue("txt_net_results_raw")).toContain("[Output Cleared]");
+    } finally {
+      try {
+        localProbeProc.kill();
+      } catch {}
+      await localProbeProc.exited.catch(() => {});
+    }
   });
 
   it("4. Controls OmniTool Studio: Ripgrep, Fd, Sd, and JQ modes", async () => {

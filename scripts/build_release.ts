@@ -100,7 +100,7 @@ export function releaseNotes(
     [
       "Linux Ubuntu / Debian / Mint GUI Installer (`amd64` `.deb`)",
       `codecaine-file-manager_${VERSION}_amd64.deb`,
-      "1-click GUI `.deb` installer (auto-installs GTK 4, WebKitGTK 6.0 & AppArmor profile)",
+      "1-click GUI `.deb` installer (auto-installs GTK 4, WebKitGTK 6.0 & AppStream metadata)",
     ],
     [
       "Linux Ubuntu / Debian / Raspberry Pi GUI Installer (`arm64` `.deb`)",
@@ -138,6 +138,9 @@ export function releaseNotes(
       "`Codecaine File Manager.exe` + 4 DB Studios",
     ],
   ] as const;
+  const sources = listSourceApps();
+  const guiTotal = sources.filter((s) => s.kind === "gui").length;
+  const cliTotal = sources.filter((s) => s.kind === "cli").length;
   const L: string[] = [
     `# Bun RAD Studio v${VERSION}`,
     "",
@@ -152,7 +155,7 @@ export function releaseNotes(
         `| ${plat} | [\`${f}\`](${baseUrl}/${f}) | ${desc} |`,
     ),
     "",
-    "### 📦 Full Bun RAD Studio Suite (All 110 Desktop Apps + 79 CLI Tools)",
+    `### 📦 Full Bun RAD Studio Suite (All ${guiTotal} Desktop Apps + ${cliTotal} CLI Tools)`,
     "",
     "Download the archive that matches your computer. Each one holds every app for that platform: unpack it and start any app from its `bin/` folder (read `README.txt` inside).",
     "",

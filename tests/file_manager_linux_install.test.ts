@@ -125,9 +125,12 @@ describe.skipIf(process.platform === "win32")(
         expect(result.exitCode, result.stderr.toString()).toBe(0);
         const profile = readFileSync(f.profile, "utf8");
         expect(profile).toContain(
-          `profile bun-rad-studio "${realpathSync(f.root)}/runtime/bun" flags=(unconfined)`,
+          `profile bun-rad-studio "${realpathSync(f.root)}/runtime/bun" flags=(default_allow)`,
         );
-        expect(profile).toContain("  userns,");
+        expect(profile).not.toContain("flags=(unconfined)");
+        expect(profile).toContain("  deny userns,");
+        expect(profile).toContain("  /usr/bin/bwrap Cx -> bwrap,");
+        expect(profile).toContain("    userns,");
         expect(profile).not.toContain("*");
         expect(profile).not.toContain("/usr/bin/bun");
         expect(readFileSync(f.commands, "utf8")).toContain(
@@ -229,8 +232,14 @@ describe.skipIf(process.platform === "win32")(
       expect(profile).toBe(`abi <abi/4.0>,
 include <tunables/global>
 
-profile codecaine-file-manager "${realpathSync(f.root)}/codecaine-file-manager" flags=(unconfined) {
-  userns,
+profile codecaine-file-manager "${realpathSync(f.root)}/codecaine-file-manager" flags=(default_allow) {
+  deny userns,
+  /usr/bin/bwrap Cx -> bwrap,
+  /usr/bin/xdg-dbus-proxy Cx -> bwrap,
+
+  profile bwrap flags=(default_allow) {
+    userns,
+  }
 }
 `);
       const commands = readFileSync(f.commands, "utf8");

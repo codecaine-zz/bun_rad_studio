@@ -296,10 +296,10 @@ export function unixLauncher(app: SourceApp, target: Target): string {
       ? `[ -n "$WEBVIEW_PATH" ] || export WEBVIEW_PATH="$ROOT/lib/${target.webviewLib}"\n`
       : "";
   const dir = app.kind === "gui" ? "apps" : "cli";
-  // Desktop apps look for ./resources and keep small files in their start folder: give them a writable one that links to ours.
+  // Desktop apps look for ./resources and keep small files in their start folder: give each app + version its own isolated writable one.
   const work =
     app.kind === "gui"
-      ? `WORK="\${HOME}/.bun_rad_studio/run"\nmkdir -p "$WORK" && ln -sfn "$ROOT/resources" "$WORK/resources" && cd "$WORK"\n`
+      ? `WORK="\${HOME}/.bun_rad_studio/run/${app.name}-${VERSION}"\nmkdir -p "$WORK" && ln -sfn "$ROOT/resources" "$WORK/resources" && cd "$WORK"\n`
       : "";
   return `#!/bin/sh
 # Starts ${app.name}. Works through symlinks, so you can link it into a folder on your PATH.

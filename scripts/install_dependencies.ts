@@ -1,5 +1,4 @@
 #!/usr/bin/env bun
-import { Sys } from "../src/simplecli/sys";
 import { Ansi } from "../src/simplecli/core/ansi";
 import { existsSync } from "fs";
 import { join } from "path";
@@ -278,17 +277,25 @@ const DEPENDENCIES: Dependency[] = [
   },
 ];
 
-function isToolInstalled(dep: Dependency): {
+export function isToolInstalled(dep: Dependency): {
   installed: boolean;
   path: string;
   version: string;
 } {
   for (const bin of dep.binNames) {
-    const [out, code] = Sys.exec(`which ${bin}`);
-    if (code === 0 && out.trim()) {
-      const p = out.trim();
-      const [verOut] = Sys.exec(`${p} --version 2>&1 | head -n 1`);
-      return { installed: true, path: p, version: verOut.trim().slice(0, 30) };
+    const p = Bun.which(bin);
+    if (p) {
+      let version = "";
+      try {
+        const proc = Bun.spawnSync([p, "--version"], {
+          stdout: "pipe",
+          stderr: "pipe",
+        });
+        const combined =
+          proc.stdout.toString("utf8") || proc.stderr.toString("utf8");
+        version = combined.split(/\r?\n/)[0]?.trim().slice(0, 30) ?? "";
+      } catch {}
+      return { installed: true, path: p, version };
     }
   }
   return { installed: false, path: "", version: "" };
@@ -369,7 +376,10 @@ export async function runDependencyCheckAndInstall(
     } else {
       for (const m of missingRequired) {
         console.log(`Installing ${m.formula}...`);
-        Sys.exec(`brew install ${m.formula}`);
+        Bun.spawnSync(["brew", "install", "--", m.formula], {
+          stdout: "inherit",
+          stderr: "inherit",
+        });
       }
     }
   } else {

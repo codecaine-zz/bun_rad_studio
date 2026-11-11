@@ -252,16 +252,19 @@ export async function makeIcns(png: string, icns: string): Promise<void> {
   const set = icns.replace(/\.icns$/, ".iconset");
   rmSync(set, { recursive: true, force: true });
   mkdirSync(set, { recursive: true });
-  for (const [px, file] of ICONSET_SIZES)
-    await run([
-      "sips",
-      "-z",
-      String(px),
-      String(px),
-      png,
-      "--out",
-      join(set, file),
-    ]);
+  await Promise.all(
+    ICONSET_SIZES.map(([px, file]) =>
+      run([
+        "sips",
+        "-z",
+        String(px),
+        String(px),
+        png,
+        "--out",
+        join(set, file),
+      ]),
+    ),
+  );
   await run(["iconutil", "-c", "icns", set, "-o", icns]);
   rmSync(set, { recursive: true, force: true });
 }

@@ -25,12 +25,18 @@ export async function openStudio(base, { table, storage, quiet = true } = {}) {
   const native = [];
   const fullscreen = [];
   let inflight = 0;
+  let closed = false;
   const dom = new JSDOM(html, {
     runScripts: "dangerously",
     pretendToBeVisual: true,
     url: base + "/",
     beforeParse(win) {
       win.fetch = async (u, o) => {
+        if (closed) {
+          return new Response("{}", {
+            headers: { "content-type": "application/json" },
+          });
+        }
         calls.push({ url: String(u), body: o && o.body ? String(o.body) : "" });
         if (/\/api\/export$/.test(String(u)))
           return new Response(
@@ -99,17 +105,20 @@ export async function openStudio(base, { table, storage, quiet = true } = {}) {
         quiet = inflight === 0 ? quiet + 1 : 0;
       }
     },
-    close: () => {},
+    close: () => {
+      closed = true;
+    },
   };
   await wait(
     () => w.StudioCols && w.StudioCols.instances.grid && w.StudioDialogs,
     "the shared studio scripts",
   );
+  await s.idle();
   try {
     const ok = await wait(
       () => s.qa("button").find((b) => b.textContent.trim() === "OK"),
       "the welcome box",
-      6000,
+      600,
     );
     ok.click();
     await wait(

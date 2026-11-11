@@ -2,19 +2,17 @@
 
 ## Supported versions
 
-Only the latest commit on `main` is maintained. The project has no versioned releases. It has been used by hand on **macOS only**. The automated tests also run in CI on Linux (all pass) and Windows (31 of 1,400 fail), but nothing was opened by hand on either, and the security review covered macOS behaviour (see [Testing](docs/testing/index.md#other-platforms)).
+Security fixes target the latest **`v1.5.x` release (`v1.5.3`)** and the latest commit on `main`; older tags are not patched separately. Interactive day-to-day testing has primarily been carried out on **macOS**, while automated test suites and packaging/sandbox verification also cover Linux and Windows (see [Testing](docs/testing/index.md#other-platforms)).
 
 ## Reporting a vulnerability
 
-GitHub's private vulnerability reporting is **not enabled** on this repository at the moment, so there is no private channel yet.
+**Do not report undisclosed security vulnerabilities in public GitHub issues, pull requests, or discussions.**
 
-1. Open an issue titled `Security: <one-line summary>`.
-2. Say which studio or tool is affected and what you think the impact is. **Do not put exploit details, secrets or personal data in the issue.**
-3. The maintainer will reply on the issue and arrange how to receive the details.
+1. Open a private advisory via GitHub's **Security -> Advisories -> Report a vulnerability** tab (`/security/advisories/new`) on this repository, or contact the repository maintainer privately if private vulnerability reporting is unavailable on your mirror/fork.
+2. Include the affected studio, CLI tool, or module (`file:line` if known), prerequisites, reproduction steps, and impact assessment. **Never include real secrets or personal data.**
+3. Only if no private channel is reachable at all, open a minimal issue titled `Security: contact request` asking how to share a report privately—**do not name the affected component or describe exploit details in the public issue.**
 
-(If the repository owner enables private vulnerability reporting, this file should be updated to point to the **Security** tab instead.)
-
-There is no bounty and no response-time guarantee.
+There is no bounty and no formal response-time SLA, though reports are reviewed on a best-effort basis.
 
 ## What is in scope
 

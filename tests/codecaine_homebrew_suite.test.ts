@@ -50,8 +50,16 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
     expect(existsSync(aliasFormulaFile)).toBe(true);
 
     const formulaContent = readFileSync(formulaFile, "utf8");
+    const pkgVersion = JSON.parse(
+      readFileSync(join(root, "package.json"), "utf8"),
+    ).version;
     expect(formulaContent).toContain("class CodecaineUtilitySuite < Formula");
+    expect(formulaContent).toContain(`version "${pkgVersion}"`);
     expect(formulaContent).toContain('depends_on "bun"');
+    expect(formulaContent).toContain('depends_on "gtk4"');
+    expect(formulaContent).not.toContain('depends_on "gtk+3"');
+    expect(formulaContent).toContain("bin.write_exec_script");
+    expect(formulaContent).not.toContain('bin.install Dir["#{libexec}/bin/*"]');
     expect(formulaContent).toContain("def install");
     expect(formulaContent).toContain("test do");
 
@@ -112,9 +120,13 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
 
     // Verify manifest.json
     const manifestFile = join(binDir, "manifest.json");
+    const pkgVersion = JSON.parse(
+      readFileSync(join(root, "package.json"), "utf8"),
+    ).version;
     expect(existsSync(manifestFile)).toBe(true);
     const manifest = JSON.parse(readFileSync(manifestFile, "utf8"));
     expect(manifest.suite).toBe("Codecaine Utility Suite");
+    expect(manifest.version).toBe(pkgVersion);
     expect(manifest.totalWrappers).toBe(defs.length);
     expect(manifest.commands.length).toBe(defs.length);
   });
@@ -148,7 +160,7 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
       "--version",
     ]);
     expect(verRes.exitCode).toBe(0);
-    expect(verRes.output).toContain("Codecaine Utility Suite v1.0.0");
+    expect(verRes.output).toMatch(/Codecaine Utility Suite v\d+\.\d+\.\d+/);
 
     const helpRes = await runSubprocess([process.execPath, suiteCli, "--help"]);
     expect(helpRes.exitCode).toBe(0);
@@ -229,7 +241,7 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
     const binExecutable = join(binDir, "codecaine");
     const res = await runSubprocess([binExecutable, "--version"]);
     expect(res.exitCode).toBe(0);
-    expect(res.output).toContain("Codecaine Utility Suite v1.0.0");
+    expect(res.output).toMatch(/Codecaine Utility Suite v\d+\.\d+\.\d+/);
   });
 
   it("12. Standalone binary wrapper ./bin/codecaine-database runs in-memory query", async () => {

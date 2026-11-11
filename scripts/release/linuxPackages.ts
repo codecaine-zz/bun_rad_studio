@@ -166,25 +166,16 @@ if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-decon
   fi
   ln -sf "$APP_BIN" /usr/bin/codecaine-file-manager
 
-  # On Ubuntu 24.04+ and systems with AppArmor 4.0, install an executable-specific
-  # userns profile so WebKitGTK's bubblewrap sandbox works out of the box.
-  PARSER="$(command -v apparmor_parser || true)"
-  if [ -z "$PARSER" ] && [ -x /usr/sbin/apparmor_parser ]; then PARSER=/usr/sbin/apparmor_parser; fi
-  if [ -n "$PARSER" ] && [ -d /etc/apparmor.d ] && [ -x "$APP_BIN" ]; then
-    TMP_PROFILE="$(mktemp 2>/dev/null || echo /tmp/codecaine-fm-apparmor.$$)"
-    cat > "$TMP_PROFILE" <<'EOF'
-abi <abi/4.0>,
-include <tunables/global>
-
-profile codecaine-file-manager "/opt/codecaine-file-manager/codecaine-file-manager" flags=(unconfined) {
-  userns,
-}
-EOF
-    if "$PARSER" --skip-kernel-load --skip-cache "$TMP_PROFILE" >/dev/null 2>&1; then
-      install -m 0644 "$TMP_PROFILE" "$PROFILE" 2>/dev/null || true
-      "$PARSER" -r "$PROFILE" >/dev/null 2>&1 || true
+  # Do not silently install a system-wide unconfined userns AppArmor profile on the
+  # BUN_BE_BUN-capable packaged binary during .deb installation; clean up any legacy
+  # unconfined profile left behind by an earlier package release.
+  if [ -f "$PROFILE" ] && grep -q "flags=(unconfined)" "$PROFILE" 2>/dev/null; then
+    PARSER="$(command -v apparmor_parser || true)"
+    if [ -z "$PARSER" ] && [ -x /usr/sbin/apparmor_parser ]; then PARSER=/usr/sbin/apparmor_parser; fi
+    if [ -n "$PARSER" ]; then
+      "$PARSER" -R "$PROFILE" >/dev/null 2>&1 || true
     fi
-    rm -f "$TMP_PROFILE" 2>/dev/null || true
+    rm -f "$PROFILE" 2>/dev/null || true
   fi
 
   if command -v update-desktop-database >/dev/null 2>&1; then

@@ -18,6 +18,7 @@ import {
   clearDraftHelper,
 } from "../../index";
 import { generatePreviewHtml } from "../../index";
+import { guardLocalRequest } from "../../src/localGuard";
 import { injectHelp } from "../../src/shared/helpTips";
 
 export interface HostedApp {
@@ -32,6 +33,8 @@ function serve(session: HostedSession, onStop: () => void): HostedApp {
     port: 0,
     hostname: "127.0.0.1",
     fetch(req, srv) {
+      const blocked = guardLocalRequest(req);
+      if (blocked) return blocked;
       const url = new URL(req.url);
       if (url.pathname === "/ws")
         return srv.upgrade(req, { data: {} })
