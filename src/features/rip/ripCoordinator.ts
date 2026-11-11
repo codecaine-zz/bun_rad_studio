@@ -3,7 +3,9 @@
  * (unburying), inspecting, listing (seance), pruning, and purging (decomposing)
  * files in the graveyard.
  */
-import { join, resolve } from "node:path";
+import { lstat } from "node:fs/promises";
+import { homedir } from "node:os";
+import { join, parse as parsePath, resolve, sep } from "node:path";
 import type {
   GraveyardManifest,
   GraveyardRecord,
@@ -24,6 +26,33 @@ import {
 import { colors } from "../../shared/colors.ts";
 
 /**
+ * Rejects burying or permanently deleting filesystem roots, home directory, or the graveyard directory itself.
+ */
+function assertSafeRipTarget(fullPath: string, graveyardDir: string): void {
+  const resolvedGraveyard = resolve(graveyardDir);
+  const root = parsePath(fullPath).root;
+  const home = resolve(homedir());
+  if (fullPath === root) {
+    throw new Error(
+      `[RipSafety] Refusing to delete filesystem root: ${fullPath}`,
+    );
+  }
+  if (fullPath === home) {
+    throw new Error(
+      `[RipSafety] Refusing to delete home directory: ${fullPath}`,
+    );
+  }
+  if (
+    fullPath === resolvedGraveyard ||
+    resolvedGraveyard.startsWith(fullPath + sep)
+  ) {
+    throw new Error(
+      `[RipSafety] Refusing to delete graveyard directory or its ancestor: ${fullPath}`,
+    );
+  }
+}
+
+/**
  * Moves a target file or directory into `graveyardDir` and appends its metadata record to the manifest.
  */
 export async function buryTarget(
@@ -31,9 +60,11 @@ export async function buryTarget(
   graveyardDir: string,
 ): Promise<GraveyardRecord> {
   const fullPath = resolve(target);
+  assertSafeRipTarget(fullPath, graveyardDir);
+  const manifest = await readManifest(graveyardDir);
   const info = await inspectPath(fullPath);
   const recordId = generateRecordId(fullPath);
-  const graveyardPath = join(graveyardDir, recordId);
+  const graveyardPath = join(graveyardDir, "entries", recordId);
 
   await movePath(fullPath, graveyardPath);
 
@@ -46,7 +77,6 @@ export async function buryTarget(
     size: info.size,
   };
 
-  const manifest = await readManifest(graveyardDir);
   manifest.records.push(record);
   await writeManifest(graveyardDir, manifest);
 
@@ -60,6 +90,7 @@ export async function buryTarget(
 export async function unburyTarget(
   graveyardDir: string,
   targetQuery?: string,
+  force: boolean = false,
 ): Promise<GraveyardRecord> {
   const manifest = await readManifest(graveyardDir);
   if (manifest.records.length === 0) {
@@ -82,11 +113,27 @@ export async function unburyTarget(
     }
   }
 
-  const [record] = manifest.records.splice(index, 1);
+  const record = manifest.records[index];
   if (!record) {
     throw new Error("[RipUnbury] Failed to pop record from manifest.");
   }
 
+  if (!force) {
+    let destExists = false;
+    try {
+      await lstat(record.originalPath);
+      destExists = true;
+    } catch {
+      destExists = false;
+    }
+    if (destExists) {
+      throw new Error(
+        `[RipUnbury] Destination already exists: ${record.originalPath} (use --force to overwrite)`,
+      );
+    }
+  }
+
+  manifest.records.splice(index, 1);
   await movePath(record.graveyardPath, record.originalPath);
   await writeManifest(graveyardDir, manifest);
 
@@ -207,7 +254,11 @@ export async function runRipCoordinator(
   }
 
   if (options.unbury) {
-    const restored = await unburyTarget(graveyardDir, options.unburyTarget);
+    const restored = await unburyTarget(
+      graveyardDir,
+      options.unburyTarget,
+      options.force,
+    );
     return [`Restored ${restored.originalPath}`];
   }
 
@@ -217,7 +268,9 @@ export async function runRipCoordinator(
 
   if (options.permanent) {
     for (const target of options.targets) {
-      await permanentDelete(resolve(target));
+      const fullPath = resolve(target);
+      assertSafeRipTarget(fullPath, graveyardDir);
+      await permanentDelete(fullPath);
     }
     return options.targets.map((t) => `Permanently deleted ${resolve(t)}`);
   }

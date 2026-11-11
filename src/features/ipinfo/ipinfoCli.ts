@@ -10,20 +10,29 @@ import type { IpInfoOptions } from "./ipinfoTypes.ts";
  * Parses raw command-line arguments into structured `IpInfoOptions`.
  */
 export function parseIpInfoArguments(args: string[]): IpInfoOptions {
-  const { values, positionals } = parseArgs({
-    args,
-    options: {
-      token: { type: "string", short: "t" },
-      field: { type: "string", short: "f" },
-      json: { type: "boolean", short: "j", default: false },
-      csv: { type: "boolean", short: "c", default: false },
-      nocolor: { type: "boolean", default: false },
-      local: { type: "boolean", short: "l", default: false },
-      bulk: { type: "string", short: "b" },
-      help: { type: "boolean", short: "h" },
-    },
-    allowPositionals: true,
-  });
+  let values: Record<string, any>;
+  let positionals: string[];
+  try {
+    const parsed = parseArgs({
+      args,
+      options: {
+        token: { type: "string", short: "t" },
+        field: { type: "string", short: "f" },
+        json: { type: "boolean", short: "j", default: false },
+        csv: { type: "boolean", short: "c", default: false },
+        nocolor: { type: "boolean", default: false },
+        local: { type: "boolean", short: "l", default: false },
+        bulk: { type: "string", short: "b" },
+        help: { type: "boolean", short: "h" },
+      },
+      allowPositionals: true,
+    });
+    values = parsed.values;
+    positionals = parsed.positionals;
+  } catch (err: any) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  }
 
   if (values.help) {
     printIpInfoHelp();

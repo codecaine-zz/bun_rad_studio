@@ -256,12 +256,35 @@ if (isDecompose || firstArg === "decompose") {
     ? parseDurationMs(olderThanStr) || undefined
     : undefined;
 
-  const res = await decomposeGraveyard({
-    graveyardDir,
-    targets: targets.length > 0 ? targets : undefined,
-    olderThanMs,
-    all: isAll || targets.length === 0,
-  });
+  if (targets.length === 0 && !isForce) {
+    if (!process.stdin.isTTY || !process.stdout.isTTY) {
+      app.error(
+        "Refusing to permanently decompose the entire graveyard without --force (-f) or explicit target names in non-interactive mode.",
+      );
+      process.exit(1);
+    }
+    const confirmed = await app.confirm(
+      `Permanently delete buried items from ${graveyardDir}?`,
+      false,
+    );
+    if (!confirmed) {
+      app.info("Decompose cancelled.");
+      process.exit(1);
+    }
+  }
+
+  let res;
+  try {
+    res = await decomposeGraveyard({
+      graveyardDir,
+      targets: targets.length > 0 ? targets : undefined,
+      olderThanMs,
+      all: isAll || targets.length === 0,
+    });
+  } catch (err: any) {
+    app.error(`Failed to decompose graveyard: ${err?.message ?? String(err)}`);
+    process.exit(1);
+  }
 
   if (isJson) {
     console.log(JSON.stringify(res, null, 2));

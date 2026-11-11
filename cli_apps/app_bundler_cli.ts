@@ -56,6 +56,38 @@ app.banner(
   "v1.0.0 - Cross-Platform Desktop App Packager",
 );
 
+function assertSafeBundleInputs(
+  appName: string,
+  bundleId: string,
+  version: string,
+): void {
+  if (
+    !appName ||
+    appName === "." ||
+    appName === ".." ||
+    appName.includes("..") ||
+    /[\/\\]/.test(appName) ||
+    appName.startsWith("-") ||
+    !/^[A-Za-z0-9][A-Za-z0-9._ -]{0,63}$/.test(appName)
+  ) {
+    throw new Error(
+      `Invalid bundle name "${appName}". Must be 1-64 alphanumeric/space/dot/underscore/hyphen characters with no path traversal.`,
+    );
+  }
+  if (
+    !bundleId ||
+    bundleId.includes("..") ||
+    !/^[A-Za-z0-9][A-Za-z0-9.-]{0,127}$/.test(bundleId)
+  ) {
+    throw new Error(
+      `Invalid bundle identifier "${bundleId}". Expected reverse-DNS format (e.g. com.company.app).`,
+    );
+  }
+  if (!version || !/^[A-Za-z0-9._+-]{1,32}$/.test(version)) {
+    throw new Error(`Invalid bundle version "${version}".`);
+  }
+}
+
 function packageMacBundle(
   fullBin: string,
   appName: string,
@@ -225,10 +257,17 @@ async function main() {
     return;
   }
 
+  try {
+    assertSafeBundleInputs(appName, bundleId, version);
+  } catch (err: any) {
+    app.error(err.message);
+    process.exit(1);
+  }
+
   const fullBin = path.resolve(binPath);
   if (!fs.existsSync(fullBin)) {
     app.error(`Binary file not found: ${binPath} (${fullBin})`);
-    return;
+    process.exit(1);
   }
 
   if (platform === "macos" || platform === "darwin" || platform === "all") {

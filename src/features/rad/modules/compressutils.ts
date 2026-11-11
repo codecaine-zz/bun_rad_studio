@@ -11,6 +11,9 @@ import {
   brotliCompressSync,
   brotliDecompressSync,
   constants as zlibConstants,
+  gunzipSync,
+  inflateRawSync,
+  zstdDecompressSync as nodeZstdDecompressSync,
 } from "node:zlib";
 
 /** Supported codecs. `"deflate"` is **raw** DEFLATE (no zlib header), matching `Bun.deflateSync`. */
@@ -18,6 +21,9 @@ export type CompressionFormat = "gzip" | "deflate" | "brotli" | "zstd";
 
 /** Result of {@link detectCompression}; raw deflate and brotli have no magic bytes → `"unknown"`. */
 export type DetectedCompression = "gzip" | "zstd" | "zlib" | "unknown";
+
+/** Default maximum decompressed output size (256 MiB) to guard against decompression bombs. */
+export const DEFAULT_MAX_DECOMPRESSED_BYTES = 256 * 1024 * 1024;
 
 type Bytes = Uint8Array<ArrayBuffer>;
 
@@ -54,12 +60,15 @@ export function gzipCompress(
 
 /**
  * Decompress gzip bytes.
- * @throws `[compressutils.gzipDecompress]` when the input is not valid gzip.
+ * @throws `[compressutils.gzipDecompress]` when the input is not valid gzip or exceeds `maxOutputLength`.
  * @example `new TextDecoder().decode(compressutils.gzipDecompress(gz));`
  */
-export function gzipDecompress(data: Uint8Array): Uint8Array {
+export function gzipDecompress(
+  data: Uint8Array,
+  maxOutputLength = DEFAULT_MAX_DECOMPRESSED_BYTES,
+): Uint8Array {
   try {
-    return Bun.gunzipSync(data as Bytes);
+    return new Uint8Array(gunzipSync(data, { maxOutputLength }));
   } catch (err: any) {
     throw new Error(
       `[compressutils.gzipDecompress] Invalid gzip data (${data.length} bytes): ${err.message}`,
@@ -79,10 +88,13 @@ export function gzipCompressString(str: string): string {
  * Reverse of {@link gzipCompressString}: Base64 gzip → UTF-8 string.
  * @example `compressutils.gzipDecompressString(b64); // "big payload"`
  */
-export function gzipDecompressString(base64Str: string): string {
-  return Buffer.from(gzipDecompress(Buffer.from(base64Str, "base64"))).toString(
-    "utf-8",
-  );
+export function gzipDecompressString(
+  base64Str: string,
+  maxOutputLength = DEFAULT_MAX_DECOMPRESSED_BYTES,
+): string {
+  return Buffer.from(
+    gzipDecompress(Buffer.from(base64Str, "base64"), maxOutputLength),
+  ).toString("utf-8");
 }
 
 /**
@@ -102,12 +114,15 @@ export function deflateCompress(
 
 /**
  * Inflate raw-DEFLATE bytes.
- * @throws When the input is not valid raw deflate.
+ * @throws When the input is not valid raw deflate or exceeds `maxOutputLength`.
  * @example `compressutils.deflateDecompress(compressutils.deflateCompress("x"));`
  */
-export function deflateDecompress(data: Uint8Array): Uint8Array {
+export function deflateDecompress(
+  data: Uint8Array,
+  maxOutputLength = DEFAULT_MAX_DECOMPRESSED_BYTES,
+): Uint8Array {
   try {
-    return Bun.inflateSync(data as Bytes);
+    return new Uint8Array(inflateRawSync(data, { maxOutputLength }));
   } catch (err: any) {
     throw new Error(
       `[compressutils.deflateDecompress] Invalid deflate data (${data.length} bytes): ${err.message}`,
@@ -134,12 +149,15 @@ export function brotliCompress(
 
 /**
  * Decompress brotli bytes.
- * @throws When the input is not valid brotli.
+ * @throws When the input is not valid brotli or exceeds `maxOutputLength`.
  * @example `compressutils.brotliDecompress(br);`
  */
-export function brotliDecompress(data: Uint8Array): Uint8Array {
+export function brotliDecompress(
+  data: Uint8Array,
+  maxOutputLength = DEFAULT_MAX_DECOMPRESSED_BYTES,
+): Uint8Array {
   try {
-    return new Uint8Array(brotliDecompressSync(data));
+    return new Uint8Array(brotliDecompressSync(data, { maxOutputLength }));
   } catch (err: any) {
     throw new Error(
       `[compressutils.brotliDecompress] Invalid brotli data (${data.length} bytes): ${err.message}`,
@@ -160,12 +178,15 @@ export function zstdCompress(data: string | Uint8Array, level = 3): Uint8Array {
 
 /**
  * Decompress zstd bytes.
- * @throws When the input is not valid zstd.
+ * @throws When the input is not valid zstd or exceeds `maxOutputLength`.
  * @example `compressutils.zstdDecompress(zst);`
  */
-export function zstdDecompress(data: Uint8Array): Uint8Array {
+export function zstdDecompress(
+  data: Uint8Array,
+  maxOutputLength = DEFAULT_MAX_DECOMPRESSED_BYTES,
+): Uint8Array {
   try {
-    return Bun.zstdDecompressSync(data as Bytes);
+    return new Uint8Array(nodeZstdDecompressSync(data, { maxOutputLength }));
   } catch (err: any) {
     throw new Error(
       `[compressutils.zstdDecompress] Invalid zstd data (${data.length} bytes): ${err.message}`,
@@ -202,16 +223,17 @@ export function compress(
 export function decompress(
   data: Uint8Array,
   format: CompressionFormat,
+  maxOutputLength = DEFAULT_MAX_DECOMPRESSED_BYTES,
 ): Uint8Array {
   switch (format) {
     case "gzip":
-      return gzipDecompress(data);
+      return gzipDecompress(data, maxOutputLength);
     case "deflate":
-      return deflateDecompress(data);
+      return deflateDecompress(data, maxOutputLength);
     case "brotli":
-      return brotliDecompress(data);
+      return brotliDecompress(data, maxOutputLength);
     case "zstd":
-      return zstdDecompress(data);
+      return zstdDecompress(data, maxOutputLength);
   }
   throw new Error(`[compressutils.decompress] Unsupported format: ${format}`);
 }

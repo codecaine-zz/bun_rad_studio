@@ -18,6 +18,16 @@ const toml = Bun.TOML as typeof Bun.TOML & {
 /** Any parsed TOML table. */
 export type TomlTable = Record<string, any>;
 
+const UNSAFE_TOML_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+function assertSafeTomlSegment(segment: string, keyPath: string): void {
+  if (UNSAFE_TOML_KEYS.has(segment)) {
+    throw new Error(
+      `[tomlutils] Unsafe key segment "${segment}" in "${keyPath}"`,
+    );
+  }
+}
+
 /**
  * Parse TOML text with native `Bun.TOML.parse`.
  * @throws `[tomlutils.parseToml] <reason>` with the parser's message when the TOML is invalid.
@@ -117,8 +127,10 @@ export function getTomlPath(doc: TomlTable, keyPath: string): any {
   if (!doc || typeof doc !== "object") return undefined;
   let cur: any = doc;
   for (const p of keyPath.split(".")) {
+    if (UNSAFE_TOML_KEYS.has(p)) return undefined;
     if (cur === null || cur === undefined || typeof cur !== "object")
       return undefined;
+    if (!Object.hasOwn(cur, p)) return undefined;
     cur = cur[p];
   }
   return cur;
@@ -131,7 +143,7 @@ export function hasTomlKey(doc: TomlTable, keyPath: string): boolean {
 
 /**
  * Set a value at a dotted path, creating intermediate tables. Mutates and returns `doc`.
- * @throws When an intermediate segment exists but is not a table.
+ * @throws When an intermediate segment exists but is not a table, or when a segment is a prototype-polluting key.
  * @example
  * ```ts
  * tomlutils.setTomlPath(cfg, "server.tls.enabled", true);
@@ -143,10 +155,18 @@ export function setTomlPath<T extends TomlTable>(
   value: unknown,
 ): T {
   const parts = keyPath.split(".");
+  for (const part of parts) {
+    assertSafeTomlSegment(part, keyPath);
+  }
   let cur: any = doc;
   for (const p of parts.slice(0, -1)) {
-    if (cur[p] === undefined) cur[p] = {};
-    else if (typeof cur[p] !== "object" || cur[p] === null) {
+    if (!Object.hasOwn(cur, p) || cur[p] === undefined) {
+      cur[p] = Object.create(null);
+    } else if (
+      typeof cur[p] !== "object" ||
+      cur[p] === null ||
+      Array.isArray(cur[p])
+    ) {
       throw new Error(
         `[tomlutils.setTomlPath] "${p}" in "${keyPath}" is not a table`,
       );
@@ -258,11 +278,20 @@ export function mergeToml<T extends TomlTable = TomlTable>(
   base: TomlTable,
   override: TomlTable,
 ): T {
-  const out: TomlTable = { ...base };
-  for (const [k, v] of Object.entries(override)) {
-    const prev = out[k];
-    const bothTables = isTable(prev) && isTable(v);
-    out[k] = bothTables ? mergeToml(prev, v) : v;
+  const out: TomlTable = Object.create(null);
+  if (base && typeof base === "object") {
+    for (const [k, v] of Object.entries(base)) {
+      if (UNSAFE_TOML_KEYS.has(k)) continue;
+      out[k] = v;
+    }
+  }
+  if (override && typeof override === "object") {
+    for (const [k, v] of Object.entries(override)) {
+      if (UNSAFE_TOML_KEYS.has(k)) continue;
+      const prev = Object.hasOwn(out, k) ? out[k] : undefined;
+      const bothTables = isTable(prev) && isTable(v);
+      out[k] = bothTables ? mergeToml(prev, v) : v;
+    }
   }
   return out as T;
 }

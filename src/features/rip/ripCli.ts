@@ -11,23 +11,33 @@ import type { RipOptions } from "./ripTypes.ts";
  * Parses command-line arguments into a structured `RipOptions` configuration object.
  */
 export function parseRipArguments(args: string[]): RipOptions {
-  const { values, positionals } = parseArgs({
-    args,
-    options: {
-      unbury: { type: "boolean", short: "u", default: false },
-      seance: { type: "boolean", short: "s", default: false },
-      decompose: { type: "boolean", short: "d", default: false },
-      permanent: { type: "boolean", short: "p", default: false },
-      verbose: { type: "boolean", short: "v", default: false },
-      graveyard: { type: "string", short: "g" },
-      info: { type: "string", short: "i" },
-      prune: { type: "string" },
-      size: { type: "boolean", default: false },
-      "dry-run": { type: "boolean", short: "n", default: false },
-      help: { type: "boolean", short: "h" },
-    },
-    allowPositionals: true,
-  });
+  let values: Record<string, any>;
+  let positionals: string[];
+  try {
+    const parsed = parseArgs({
+      args,
+      options: {
+        unbury: { type: "boolean", short: "u", default: false },
+        seance: { type: "boolean", short: "s", default: false },
+        decompose: { type: "boolean", short: "d", default: false },
+        permanent: { type: "boolean", short: "p", default: false },
+        force: { type: "boolean", short: "f", default: false },
+        verbose: { type: "boolean", short: "v", default: false },
+        graveyard: { type: "string", short: "g" },
+        info: { type: "string", short: "i" },
+        prune: { type: "string" },
+        size: { type: "boolean", default: false },
+        "dry-run": { type: "boolean", short: "n", default: false },
+        help: { type: "boolean", short: "h" },
+      },
+      allowPositionals: true,
+    });
+    values = parsed.values;
+    positionals = parsed.positionals;
+  } catch (err: any) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  }
 
   if (values.help) {
     printRipHelp();
@@ -45,6 +55,7 @@ export function parseRipArguments(args: string[]): RipOptions {
     seance: values.seance ?? false,
     decompose: values.decompose ?? false,
     permanent: values.permanent ?? false,
+    force: values.force ?? false,
     verbose: values.verbose ?? false,
     graveyardDir: values.graveyard,
     infoTarget: values.info,

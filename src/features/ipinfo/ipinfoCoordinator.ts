@@ -6,7 +6,7 @@ import type { IpInfoOptions, IpInfoResult } from "./ipinfoTypes.ts";
 import {
   calculateSubnet,
   extractField,
-  fetchIpDetails,
+  fetchIpDetailsAsync,
   formatBulkTable,
   formatCsv,
   formatJson,
@@ -17,8 +17,10 @@ import {
   isCidr,
   lookupPtr,
   readIpTargets,
-  resolveTargetToIp,
+  resolveTargetToIpAsync,
 } from "./ipinfoDoers.ts";
+
+const BULK_CONCURRENCY = 8;
 
 /**
  * Resolves a target hostname or IP and fetches its enriched geolocation and reverse-DNS details.
@@ -27,8 +29,8 @@ export async function queryIp(
   target?: string,
   token?: string,
 ): Promise<IpInfoResult> {
-  const { ip, domain } = await resolveTargetToIp(target);
-  const data = await fetchIpDetails(ip, token);
+  const { ip, domain } = await resolveTargetToIpAsync(target);
+  const data = await fetchIpDetailsAsync(ip, token);
   if (domain && (!data.hostname || !data.hostname.includes(domain))) {
     return { ...data, hostname: `${domain} (${data.hostname ?? "unnamed"})` };
   }
@@ -64,7 +66,17 @@ export async function runIpInfoCoordinator(
 
   if (options.bulkFile) {
     const targets = await readIpTargets(options.bulkFile);
-    const results = await Promise.all(targets.map((t) => queryIp(t, token)));
+    const results: IpInfoResult[] = new Array(targets.length);
+    let cursor = 0;
+    const workerCount = Math.min(BULK_CONCURRENCY, targets.length);
+    await Promise.all(
+      Array.from({ length: workerCount }, async () => {
+        while (cursor < targets.length) {
+          const idx = cursor++;
+          results[idx] = await queryIp(targets[idx], token);
+        }
+      }),
+    );
     if (options.json) {
       return formatJson(results);
     }

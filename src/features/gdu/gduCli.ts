@@ -11,26 +11,36 @@ import type { GduOptions } from "./gduTypes.ts";
  * Parses CLI flags and positional target directory arguments into a structured `GduOptions` object.
  */
 export function parseGduArguments(args: string[]): GduOptions {
-  const { values, positionals } = parseArgs({
-    args,
-    options: {
-      "non-interactive": { type: "boolean", short: "n", default: false },
-      "show-item-count": { type: "boolean", short: "C", default: false },
-      "show-relative-size": { type: "boolean", short: "B", default: false },
-      "show-disks": { type: "boolean", short: "d", default: false },
-      summarize: { type: "boolean", short: "s", default: false },
-      "no-hidden": { type: "boolean", short: "H", default: false },
-      top: { type: "string", short: "t" },
-      si: { type: "boolean", default: false },
-      "ignore-dirs": { type: "string", short: "i" },
-      "max-depth": { type: "string", short: "L" },
-      sort: { type: "string", short: "S" },
-      json: { type: "boolean", short: "j", default: false },
-      "min-size": { type: "string", short: "m" },
-      help: { type: "boolean", short: "h" },
-    },
-    allowPositionals: true,
-  });
+  let values: Record<string, any>;
+  let positionals: string[];
+  try {
+    const parsed = parseArgs({
+      args,
+      options: {
+        "non-interactive": { type: "boolean", short: "n", default: false },
+        "show-item-count": { type: "boolean", short: "C", default: false },
+        "show-relative-size": { type: "boolean", short: "B", default: false },
+        "show-disks": { type: "boolean", short: "d", default: false },
+        summarize: { type: "boolean", short: "s", default: false },
+        "no-hidden": { type: "boolean", short: "H", default: false },
+        "no-cross": { type: "boolean", short: "x", default: false },
+        top: { type: "string", short: "t" },
+        si: { type: "boolean", default: false },
+        "ignore-dirs": { type: "string", short: "i" },
+        "max-depth": { type: "string", short: "L" },
+        sort: { type: "string", short: "S" },
+        json: { type: "boolean", short: "j", default: false },
+        "min-size": { type: "string", short: "m" },
+        help: { type: "boolean", short: "h" },
+      },
+      allowPositionals: true,
+    });
+    values = parsed.values;
+    positionals = parsed.positionals;
+  } catch (err: any) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  }
 
   if (values.help) {
     printGduHelp();
@@ -55,6 +65,7 @@ export function parseGduArguments(args: string[]): GduOptions {
     showDisks: values["show-disks"] ?? false,
     summarize: values.summarize ?? false,
     noHidden: values["no-hidden"] ?? false,
+    noCross: values["no-cross"] ?? false,
     top,
     si: values.si ?? false,
     ignoreDirs,

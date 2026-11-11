@@ -40,6 +40,52 @@ export async function execCmd(
   command: string,
   options: ShellOptions = {},
 ): Promise<ShellExecResult> {
+  if (options.timeoutMs !== undefined && options.timeoutMs > 0) {
+    const shellCmd =
+      process.platform === "win32"
+        ? ["cmd.exe", "/d", "/s", "/c", command]
+        : ["/bin/sh", "-c", command];
+    const proc = Bun.spawn(shellCmd, {
+      cwd: options.cwd,
+      env: options.env ? { ...process.env, ...options.env } : process.env,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      try {
+        proc.kill();
+      } catch {}
+    }, options.timeoutMs);
+    timer.unref?.();
+    try {
+      const [stdout, stderr, code] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+        proc.exited,
+      ]);
+      if (timedOut) {
+        return {
+          stdout,
+          stderr: stderr
+            ? `${stderr}\nCommand timed out after ${options.timeoutMs}ms`
+            : `Command timed out after ${options.timeoutMs}ms`,
+          exitCode: 124,
+          success: false,
+        };
+      }
+      return {
+        stdout,
+        stderr,
+        exitCode: code,
+        success: code === 0,
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   const runner = $`${{ raw: command }}`.quiet().nothrow();
   if (options.cwd) runner.cwd(options.cwd);
   if (options.env) runner.env({ ...process.env, ...options.env });

@@ -11,21 +11,31 @@ import type { SdOptions } from "./sdTypes.ts";
  * Parses command-line arguments into an `SdOptions` object, validating required positional patterns.
  */
 export function parseSdArguments(args: string[]): SdOptions {
-  const { values, positionals } = parseArgs({
-    args,
-    options: {
-      "string-mode": { type: "boolean", short: "s", default: false },
-      flags: { type: "string", short: "f", default: "g" },
-      preview: { type: "boolean", short: "p", default: false },
-      count: { type: "boolean", short: "c", default: false },
-      "ignore-case": { type: "boolean", short: "i", default: false },
-      word: { type: "boolean", short: "w", default: false },
-      backup: { type: "string", short: "b" },
-      quiet: { type: "boolean", short: "q", default: false },
-      help: { type: "boolean", short: "h" },
-    },
-    allowPositionals: true,
-  });
+  let values: Record<string, any>;
+  let positionals: string[];
+  try {
+    const parsed = parseArgs({
+      args,
+      options: {
+        "string-mode": { type: "boolean", short: "s", default: false },
+        "fixed-strings": { type: "boolean", short: "F", default: false },
+        flags: { type: "string", short: "f", default: "g" },
+        preview: { type: "boolean", short: "p", default: false },
+        count: { type: "boolean", short: "c", default: false },
+        "ignore-case": { type: "boolean", short: "i", default: false },
+        word: { type: "boolean", short: "w", default: false },
+        backup: { type: "string", short: "b" },
+        quiet: { type: "boolean", short: "q", default: false },
+        help: { type: "boolean", short: "h" },
+      },
+      allowPositionals: true,
+    });
+    values = parsed.values;
+    positionals = parsed.positionals;
+  } catch (err: any) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  }
 
   if (
     values.help ||
@@ -52,7 +62,7 @@ export function parseSdArguments(args: string[]): SdOptions {
     findPattern,
     replacePattern,
     files,
-    stringMode: values["string-mode"] ?? false,
+    stringMode: Boolean(values["string-mode"] || values["fixed-strings"]),
     flags: values.flags ?? "g",
     preview: values.preview ?? false,
     countOnly: values.count ?? false,

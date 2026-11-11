@@ -19,7 +19,24 @@ interface Options {
   engine: Engine;
 }
 
-const isWordChar = (c: string) => /[A-Za-z0-9_$]/.test(c);
+const isWordCode = (code: number): boolean =>
+  (code >= 65 && code <= 90) ||
+  (code >= 97 && code <= 122) ||
+  (code >= 48 && code <= 57) ||
+  code === 95 ||
+  code === 36;
+
+const isAsciiAlpha = (code: number): boolean =>
+  (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+
+const isWsCode = (code: number, ch: string): boolean =>
+  code === 32 ||
+  code === 10 ||
+  code === 9 ||
+  code === 13 ||
+  code === 12 ||
+  code === 11 ||
+  (code > 127 && /\s/.test(ch));
 
 /**
  * Split a script into statements using a real tokenizer: quoted strings, quoted identifiers, comments,
@@ -39,10 +56,13 @@ export function splitStatements(script: string, opts: Options): SqlStatement[] {
   let sawBegin = false;
   let firstWords: string[] = [];
 
+  let lineCursor = 0;
+  let lineCountAtCursor = 1;
   const lineOf = (pos: number) => {
-    let line = 1;
-    for (let k = 0; k < pos; k++) if (script[k] === "\n") line++;
-    return line;
+    while (lineCursor < pos) {
+      if (script.charCodeAt(lineCursor++) === 10) lineCountAtCursor++;
+    }
+    return lineCountAtCursor;
   };
 
   const markSig = (from: number, to: number) => {
@@ -148,8 +168,8 @@ export function splitStatements(script: string, opts: Options): SqlStatement[] {
         engine === "postgres" &&
         c === "'" &&
         i > 0 &&
-        /[eE]/.test(script[i - 1]!) &&
-        (i < 2 || !isWordChar(script[i - 2]!));
+        (script[i - 1] === "e" || script[i - 1] === "E") &&
+        (i < 2 || !isWordCode(script.charCodeAt(i - 2)));
       i++;
       while (i < n) {
         const ch = script[i]!;
@@ -175,7 +195,7 @@ export function splitStatements(script: string, opts: Options): SqlStatement[] {
     if (
       engine === "postgres" &&
       c === "$" &&
-      !(i > 0 && isWordChar(script[i - 1]!))
+      !(i > 0 && isWordCode(script.charCodeAt(i - 1)))
     ) {
       const m = /^\$([A-Za-z_][A-Za-z0-9_]*)?\$/.exec(script.slice(i, i + 64));
       if (m) {
@@ -190,7 +210,9 @@ export function splitStatements(script: string, opts: Options): SqlStatement[] {
 
     // Statement delimiter
     if (
-      script.startsWith(delimiter, i) &&
+      (delimiter.length === 1
+        ? c === delimiter
+        : script.startsWith(delimiter, i)) &&
       !(trigger && (blockDepth > 0 || !sawBegin))
     ) {
       flush();
@@ -198,14 +220,15 @@ export function splitStatements(script: string, opts: Options): SqlStatement[] {
       continue;
     }
 
-    if (/\s/.test(c)) {
+    const code = script.charCodeAt(i);
+    if (isWsCode(code, c)) {
       i++;
       continue;
     }
 
-    if (isWordChar(c)) {
+    if (isWordCode(code)) {
       const start = i;
-      while (i < n && isWordChar(script[i]!)) i++;
+      while (i < n && isWordCode(script.charCodeAt(i))) i++;
       const word = script.slice(start, i).toUpperCase();
       markSig(start, i);
       if (engine === "sqlite") {
@@ -250,9 +273,98 @@ export function statementAt(
 }
 
 /** Leading keyword of a statement after comments, uppercased (for classification). */
-export function leadingKeyword(sql: string): string {
-  const m = /^(?:\s|--[^\n]*\n?|\/\*[\s\S]*?\*\/|#[^\n]*\n?)*([A-Za-z]+)/.exec(
-    sql,
-  );
-  return m ? m[1]!.toUpperCase() : "";
+export function leadingKeyword(sql: string, engine?: Engine): string {
+  const n = sql.length;
+  let i = 0;
+  // Zero-regex fast path for normal statements without leading comments.
+  while (i < n) {
+    const code = sql.charCodeAt(i);
+    if (
+      code === 32 ||
+      code === 10 ||
+      code === 9 ||
+      code === 13 ||
+      code === 12 ||
+      code === 11
+    ) {
+      i++;
+    } else {
+      break;
+    }
+  }
+  if (i < n && isAsciiAlpha(sql.charCodeAt(i))) {
+    const start = i;
+    i++;
+    while (i < n && isAsciiAlpha(sql.charCodeAt(i))) i++;
+    return sql.slice(start, i).toUpperCase();
+  }
+
+  // Slow path: skip leading comments, Unicode whitespace, and MySQL executable comment wrappers.
+  let mysqlExecDepth = 0;
+  while (i < n) {
+    const c = sql[i]!;
+    const code = sql.charCodeAt(i);
+    if (isWsCode(code, c)) {
+      i++;
+      continue;
+    }
+    if (mysqlExecDepth > 0 && c === "*" && sql[i + 1] === "/") {
+      mysqlExecDepth--;
+      i += 2;
+      continue;
+    }
+    if (
+      c === "-" &&
+      sql[i + 1] === "-" &&
+      (engine !== "mysql" || /\s/.test(sql[i + 2] ?? "\n") || i + 2 >= n)
+    ) {
+      const eol = sql.indexOf("\n", i + 2);
+      i = eol < 0 ? n : eol + 1;
+      continue;
+    }
+    if ((engine === undefined || engine === "mysql") && c === "#") {
+      const eol = sql.indexOf("\n", i + 1);
+      i = eol < 0 ? n : eol + 1;
+      continue;
+    }
+    if (c === "/" && sql[i + 1] === "*") {
+      if (engine === "mysql" && sql[i + 2] === "!") {
+        i += 3;
+        let digits = 0;
+        while (
+          i < n &&
+          digits < 6 &&
+          sql.charCodeAt(i) >= 48 &&
+          sql.charCodeAt(i) <= 57
+        ) {
+          i++;
+          digits++;
+        }
+        mysqlExecDepth++;
+        continue;
+      }
+      let depth = 1;
+      i += 2;
+      while (i < n && depth > 0) {
+        if (engine === "postgres" && sql[i] === "/" && sql[i + 1] === "*") {
+          depth++;
+          i += 2;
+        } else if (sql[i] === "*" && sql[i + 1] === "/") {
+          depth--;
+          i += 2;
+        } else {
+          i++;
+        }
+      }
+      continue;
+    }
+    break;
+  }
+  if (i < n && isAsciiAlpha(sql.charCodeAt(i))) {
+    const start = i;
+    i++;
+    while (i < n && isAsciiAlpha(sql.charCodeAt(i))) i++;
+    return sql.slice(start, i).toUpperCase();
+  }
+  return "";
 }

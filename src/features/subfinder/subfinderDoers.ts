@@ -229,15 +229,20 @@ export async function queryCommonDns(domain: string): Promise<string[]> {
   const results = await Promise.all(
     COMMON_SUBDOMAINS.map(async (sub) => {
       const host = `${sub}.${root}`;
+      let timer: ReturnType<typeof setTimeout> | undefined;
       try {
         const res = await Promise.race([
           lookup(host),
-          new Promise<never>((_, rej) =>
-            setTimeout(() => rej(new Error("DNS timeout")), 1500),
-          ),
+          new Promise<never>((_, rej) => {
+            timer = setTimeout(() => rej(new Error("DNS timeout")), 1500);
+          }),
         ]);
         if (res && res.address) return host;
-      } catch {}
+      } catch {
+        // Ignore DNS lookup failure
+      } finally {
+        if (timer !== undefined) clearTimeout(timer);
+      }
       return null;
     }),
   );
@@ -248,26 +253,32 @@ export async function queryCommonDns(domain: string): Promise<string[]> {
  * Resolves a hostname to its IPv4/IPv6 addresses with a short timeout, falling back from `Resolver.resolve4` to `dns.lookup`.
  */
 export async function resolveHostDns(host: string): Promise<string[]> {
+  let primaryTimer: ReturnType<typeof setTimeout> | undefined;
   try {
     const res = await Promise.race([
       asyncResolver.resolve4(host),
-      new Promise<string[]>((_, rej) =>
-        setTimeout(() => rej(new Error("DNS timeout")), 1200),
-      ),
+      new Promise<string[]>((_, rej) => {
+        primaryTimer = setTimeout(() => rej(new Error("DNS timeout")), 1200);
+      }),
     ]);
     return res;
   } catch {
+    let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
     try {
       const fallback = await Promise.race([
         lookup(host, { all: true }),
-        new Promise<never>((_, rej) =>
-          setTimeout(() => rej(new Error("DNS timeout")), 1000),
-        ),
+        new Promise<never>((_, rej) => {
+          fallbackTimer = setTimeout(() => rej(new Error("DNS timeout")), 1000);
+        }),
       ]);
       return fallback.map((a: any) => a.address);
     } catch {
       return [];
+    } finally {
+      if (fallbackTimer !== undefined) clearTimeout(fallbackTimer);
     }
+  } finally {
+    if (primaryTimer !== undefined) clearTimeout(primaryTimer);
   }
 }
 
@@ -319,6 +330,7 @@ export async function probePort(
   port: number,
   timeoutMs: number = 800,
 ): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const connectPromise = Bun.connect({
       hostname: host,
@@ -338,13 +350,15 @@ export async function probePort(
       })
       .catch(() => false);
 
-    const timeoutPromise = new Promise<boolean>((resolve) =>
-      setTimeout(() => resolve(false), timeoutMs),
-    );
+    const timeoutPromise = new Promise<boolean>((resolve) => {
+      timer = setTimeout(() => resolve(false), timeoutMs);
+    });
 
     return await Promise.race([connectPromise, timeoutPromise]);
   } catch {
     return false;
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
   }
 }
 
@@ -411,7 +425,17 @@ export function queryCertSpotterSync(domain: string): string[] {
   try {
     const root = cleanDomain(domain);
     const url = `https://api.certspotter.com/v1/issuances?domain=${encodeURIComponent(root)}&include_subdomains=true&expand=dns_names`;
-    const res = Bun.spawnSync(["curl", "-s", "--max-time", "2", url]);
+    const res = Bun.spawnSync([
+      "curl",
+      "-s",
+      "--globoff",
+      "--proto",
+      "=https",
+      "--max-time",
+      "2",
+      "--",
+      url,
+    ]);
     if (res.exitCode !== 0) return [];
     const data = JSON.parse(res.stdout.toString());
     if (!Array.isArray(data)) return [];
@@ -437,7 +461,17 @@ export function queryHackerTargetSync(domain: string): string[] {
   try {
     const root = cleanDomain(domain);
     const url = `https://api.hackertarget.com/hostsearch/?q=${encodeURIComponent(root)}`;
-    const res = Bun.spawnSync(["curl", "-s", "--max-time", "2", url]);
+    const res = Bun.spawnSync([
+      "curl",
+      "-s",
+      "--globoff",
+      "--proto",
+      "=https",
+      "--max-time",
+      "2",
+      "--",
+      url,
+    ]);
     if (res.exitCode !== 0) return [];
     const text = res.stdout ? res.stdout.toString() : "";
     if (
@@ -510,18 +544,27 @@ export function queryOsintSourcesSync(domain: string): {
   const certUrl = `https://api.certspotter.com/v1/issuances?domain=${encodeURIComponent(root)}&include_subdomains=true&expand=dns_names`;
   const hackerUrl = `https://api.hackertarget.com/hostsearch/?q=${encodeURIComponent(root)}`;
 
-  const tmpCert = path.join(
-    os.tmpdir(),
-    `subfinder_cs_${process.pid}_${Math.random().toString(36).slice(2, 6)}.json`,
-  );
-  const tmpHacker = path.join(
-    os.tmpdir(),
-    `subfinder_ht_${process.pid}_${Math.random().toString(36).slice(2, 6)}.txt`,
-  );
+  const workDir = fs.mkdtempSync(path.join(os.tmpdir(), "subfinder-osint-"));
+  try {
+    fs.chmodSync(workDir, 0o700);
+  } catch {}
+  const tmpCert = path.join(workDir, "cs.json");
+  const tmpHacker = path.join(workDir, "ht.txt");
 
   try {
-    const script = `curl -s --connect-timeout 1 --max-time 2.5 "${certUrl}" > "${tmpCert}" 2>/dev/null & curl -s --connect-timeout 1 --max-time 2.5 "${hackerUrl}" > "${tmpHacker}" 2>/dev/null & wait`;
-    Bun.spawnSync(["/bin/sh", "-c", script]);
+    const script =
+      'curl -s --globoff --proto =https --connect-timeout 1 --max-time 2.5 -- "$1" > "$2" 2>/dev/null & ' +
+      'curl -s --globoff --proto =https --connect-timeout 1 --max-time 2.5 -- "$3" > "$4" 2>/dev/null & wait';
+    Bun.spawnSync([
+      "/bin/sh",
+      "-c",
+      script,
+      "sh",
+      certUrl,
+      tmpCert,
+      hackerUrl,
+      tmpHacker,
+    ]);
 
     let certSubs: string[] = [];
     if (fs.existsSync(tmpCert)) {
@@ -538,9 +581,6 @@ export function queryOsintSourcesSync(domain: string): {
             }
           }
         }
-      } catch {}
-      try {
-        fs.unlinkSync(tmpCert);
       } catch {}
     }
 
@@ -562,9 +602,6 @@ export function queryOsintSourcesSync(domain: string): {
           }
         }
       } catch {}
-      try {
-        fs.unlinkSync(tmpHacker);
-      } catch {}
     }
 
     return {
@@ -573,6 +610,10 @@ export function queryOsintSourcesSync(domain: string): {
     };
   } catch {
     return { certSubs: [], hackerSubs: [] };
+  } finally {
+    try {
+      fs.rmSync(workDir, { recursive: true, force: true });
+    } catch {}
   }
 }
 
@@ -583,6 +624,7 @@ export function probeHostsHttpSync(hosts: string[]): Map<string, number> {
   const map = new Map<string, number>();
   if (hosts.length === 0) return map;
   const targets = hosts.filter(isSafeHostname).slice(0, 10);
+  if (targets.length === 0) return map;
   if (process.platform === "win32") {
     for (const h of targets) {
       try {
@@ -590,10 +632,14 @@ export function probeHostsHttpSync(hosts: string[]): Map<string, number> {
           "curl",
           "-s",
           "-I",
+          "--globoff",
+          "--proto",
+          "=http,https",
           "--connect-timeout",
           "0.4",
           "--max-time",
           "0.8",
+          "--",
           `http://${h}`,
         ]);
         const text = res.stdout ? res.stdout.toString() : "";
@@ -603,29 +649,40 @@ export function probeHostsHttpSync(hosts: string[]): Map<string, number> {
     }
     return map;
   }
-  const tmpDir = os.tmpdir();
-  const script =
-    targets
-      .map(
-        (h, i) =>
-          `curl -s -I --connect-timeout 0.4 --max-time 0.8 "http://${h}" > "${path.join(tmpDir, `pb_${process.pid}_${i}.txt`)}" 2>/dev/null &`,
-      )
-      .join("\n") + "\nwait\n";
+  const workDir = fs.mkdtempSync(path.join(os.tmpdir(), "subfinder-probe-"));
   try {
-    Bun.spawnSync(["/bin/sh", "-c", script]);
+    fs.chmodSync(workDir, 0o700);
+  } catch {}
+  try {
+    const shArgs: string[] = [];
+    const lines: string[] = [];
     targets.forEach((h, i) => {
-      const f = path.join(tmpDir, `pb_${process.pid}_${i}.txt`);
+      const urlIdx = shArgs.length + 1;
+      shArgs.push(`http://${h}`);
+      const outIdx = shArgs.length + 1;
+      shArgs.push(path.join(workDir, `pb_${i}.txt`));
+      lines.push(
+        `curl -s -I --globoff --proto =http,https --connect-timeout 0.4 --max-time 0.8 -- "$${urlIdx}" > "$${outIdx}" 2>/dev/null &`,
+      );
+    });
+    const script = `${lines.join("\n")}\nwait\n`;
+    Bun.spawnSync(["/bin/sh", "-c", script, "sh", ...shArgs]);
+    targets.forEach((h, i) => {
+      const f = path.join(workDir, `pb_${i}.txt`);
       if (fs.existsSync(f)) {
         try {
           const text = fs.readFileSync(f, "utf-8");
           const m = text.match(/HTTP\/[0-9.]+\s+([0-9]{3})/i);
           if (m) map.set(h, parseInt(m[1]!, 10));
         } catch {}
-        try {
-          fs.unlinkSync(f);
-        } catch {}
       }
     });
-  } catch {}
+  } catch {
+    // Ignore probe errors
+  } finally {
+    try {
+      fs.rmSync(workDir, { recursive: true, force: true });
+    } catch {}
+  }
   return map;
 }

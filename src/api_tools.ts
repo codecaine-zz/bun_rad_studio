@@ -97,11 +97,13 @@ export function normalizeUrl(raw: string): { url: string; error?: string } {
 /** Append `key=value` lines (or `a=1&b=2`) to a URL, percent-encoding anything not already encoded. */
 export function buildUrl(url: string, paramsText: string): string {
   const enc = (x: string) =>
-    /%[0-9a-f]{2}/i.test(x) ? x : encodeURIComponent(x);
+    x.replace(/(%[0-9A-Fa-f]{2})|([^%]+|%)/g, (_m, pct, raw) =>
+      pct ? pct : encodeURIComponent(raw),
+    );
   const pairs = String(paramsText || "")
     .split(/[\r\n&]+/)
     .map((p) => p.trim())
-    .filter(Boolean)
+    .filter((p) => p.length > 0 && !p.startsWith("#"))
     .map((p) => {
       const i = p.indexOf("=");
       return i < 0
@@ -172,7 +174,17 @@ export function parseHeaderLines(text: string): Record<string, string> {
     const i = line.indexOf(":");
     if (i <= 0) continue;
     const k = line.slice(0, i).trim();
-    if (k) out[k] = line.slice(i + 1).trim();
+    if (!k || !/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/.test(k)) continue;
+    const v = line
+      .slice(i + 1)
+      .replace(/[\r\n\0]+/g, "")
+      .trim();
+    for (const existing of Object.keys(out)) {
+      if (existing.toLowerCase() === k.toLowerCase() && existing !== k) {
+        delete out[existing];
+      }
+    }
+    out[k] = v;
   }
   return out;
 }
@@ -184,12 +196,20 @@ export function applyAuth(
   cred: string,
 ): Record<string, string> {
   const out = { ...headers };
-  const c = String(cred || "").trim();
+  const c = String(cred || "")
+    .replace(/[\r\n\0]+/g, "")
+    .trim();
   if (!c) return out;
-  if (mode === "Bearer Token") out["Authorization"] = `Bearer ${c}`;
+  const setHeaderCi = (name: string, val: string) => {
+    for (const k of Object.keys(out)) {
+      if (k.toLowerCase() === name.toLowerCase()) delete out[k];
+    }
+    out[name] = val;
+  };
+  if (mode === "Bearer Token") setHeaderCi("Authorization", `Bearer ${c}`);
   else if (mode === "Basic Auth")
-    out["Authorization"] = `Basic ${Buffer.from(c).toString("base64")}`;
-  else if (mode === "API Key Header") out["X-API-Key"] = c;
+    setHeaderCi("Authorization", `Basic ${Buffer.from(c).toString("base64")}`);
+  else if (mode === "API Key Header") setHeaderCi("X-API-Key", c);
   return out;
 }
 

@@ -80,9 +80,14 @@ Options:
 }
 
 async function main(): Promise<void> {
-  const options = parseTokeiArguments(process.argv.slice(2));
-  const output = await runTokeiCoordinator(options);
-  console.log(output);
+  try {
+    const options = parseTokeiArguments(process.argv.slice(2));
+    const output = await runTokeiCoordinator(options);
+    console.log(output);
+  } catch (err: any) {
+    console.error(`[tokei] Error: ${err?.message ?? String(err)}`);
+    process.exit(1);
+  }
 }
 
 if (import.meta.main) {

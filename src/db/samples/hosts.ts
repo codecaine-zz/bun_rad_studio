@@ -271,7 +271,16 @@ export function mysqlSampleHost(ctx: MysqlHostContext): SampleHost {
       const name = validateSchemaName(target, "database name");
       const started = Date.now();
       const conn = await ctx.getSql().reserve();
+      let origDb: string | null = null;
+      let origMode: string | null = null;
       try {
+        try {
+          const snap = (await conn.unsafe(
+            "SELECT DATABASE() AS db, @@SESSION.sql_mode AS mode",
+          )) as { db: string | null; mode: string | null }[];
+          origDb = snap[0]?.db ?? null;
+          origMode = snap[0]?.mode ?? null;
+        } catch {}
         await conn.unsafe(`USE ${quoteId("mysql", name)}`);
         await conn.unsafe("SET SESSION MAX_EXECUTION_TIME = 20000");
         await conn.unsafe("START TRANSACTION READ ONLY");
@@ -284,7 +293,23 @@ export function mysqlSampleHost(ctx: MysqlHostContext): SampleHost {
           await conn.unsafe("ROLLBACK").catch(() => {});
         }
       } finally {
-        conn.release();
+        try {
+          await conn
+            .unsafe("SET SESSION MAX_EXECUTION_TIME = 0")
+            .catch(() => {});
+          if (origMode !== null) {
+            await conn
+              .unsafe("SET SESSION sql_mode = ?", [origMode])
+              .catch(() => {});
+          }
+          if (origDb) {
+            await conn
+              .unsafe(`USE ${quoteId("mysql", origDb)}`)
+              .catch(() => {});
+          }
+        } finally {
+          conn.release();
+        }
       }
     },
     async open(target) {

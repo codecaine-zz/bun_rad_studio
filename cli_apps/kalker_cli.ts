@@ -3,7 +3,8 @@
  * Kalker Scientific Math & Calculus Studio for Bun
  */
 
-import { SimpleCLI, stdlib } from "../src/index.ts";
+import { SimpleCLI } from "../src/index.ts";
+import { evaluateSafeMath } from "./calculator_cli.ts";
 
 const app = SimpleCLI.newApp("kalker-cli", "1.0.0").setDescription(
   "High-Precision Scientific Calculator & Calculus Evaluator CLI",
@@ -34,39 +35,18 @@ app.addFlagBool(
   "Launch interactive scientific math REPL",
 );
 
-if (!app.parseCli()) process.exit(0);
-
-app.banner(
-  "Kalker Scientific & Calculus Studio",
-  "v1.0.0 - Mathematical Engine",
-);
-
-// Built-in Scientific & Calculus Evaluator
-function evaluateExpression(exprStr: string): {
+/**
+ * Evaluates a scientific math expression safely without `new Function` or `eval`.
+ */
+export function evaluateExpression(
+  exprStr: string,
+  variables: Record<string, number> = {},
+): {
   result: number;
   error?: string;
 } {
   try {
-    let sanitized = exprStr
-      .replace(/\bpi\b/gi, String(Math.PI))
-      .replace(/\be\b/gi, String(Math.E))
-      .replace(/\bphi\b/gi, "1.618033988749895")
-      .replace(/\bsin\(([^)]+)\)/gi, "Math.sin($1)")
-      .replace(/\bcos\(([^)]+)\)/gi, "Math.cos($1)")
-      .replace(/\btan\(([^)]+)\)/gi, "Math.tan($1)")
-      .replace(/\basin\(([^)]+)\)/gi, "Math.asin($1)")
-      .replace(/\bacos\(([^)]+)\)/gi, "Math.acos($1)")
-      .replace(/\batan\(([^)]+)\)/gi, "Math.atan($1)")
-      .replace(/\bsqrt\(([^)]+)\)/gi, "Math.sqrt($1)")
-      .replace(/\bcbrt\(([^)]+)\)/gi, "Math.cbrt($1)")
-      .replace(/\blog\(([^)]+)\)/gi, "Math.log10($1)")
-      .replace(/\bln\(([^)]+)\)/gi, "Math.log($1)")
-      .replace(/\bexp\(([^)]+)\)/gi, "Math.exp($1)")
-      .replace(/\babs\(([^)]+)\)/gi, "Math.abs($1)")
-      .replace(/\^/g, "**");
-
-    const fn = new Function(`"use strict"; return (${sanitized});`);
-    const res = Number(fn());
+    const res = evaluateSafeMath(exprStr, variables);
     return { result: res };
   } catch (err: any) {
     return { result: NaN, error: err.message || "Syntax Error" };
@@ -76,10 +56,7 @@ function evaluateExpression(exprStr: string): {
 // Numerical Derivative f'(x) using central difference
 function computeDerivative(fnStr: string, xVal: number): number {
   const h = 1e-6;
-  const evalAt = (x: number) => {
-    const expr = fnStr.replace(/\bx\b/g, `(${x})`);
-    return evaluateExpression(expr).result;
-  };
+  const evalAt = (x: number) => evaluateExpression(fnStr, { x }).result;
   return (evalAt(xVal + h) - evalAt(xVal - h)) / (2 * h);
 }
 
@@ -92,10 +69,7 @@ function computeIntegral(
 ): number {
   if (n % 2 !== 0) n++;
   const h = (b - a) / n;
-  const evalAt = (x: number) => {
-    const expr = fnStr.replace(/\bx\b/g, `(${x})`);
-    return evaluateExpression(expr).result;
-  };
+  const evalAt = (x: number) => evaluateExpression(fnStr, { x }).result;
 
   let sum = evalAt(a) + evalAt(b);
   for (let i = 1; i < n; i++) {
@@ -108,17 +82,42 @@ function computeIntegral(
 async function runInteractive() {
   app.panel(
     "Kalker Scientific REPL",
-    "Supported: sin, cos, tan, sqrt, ln, log, exp, pi, e, derivative, integral",
+    "Supported: sin, cos, tan, sqrt, ln, log, exp, pi, e, tau, phi, derivative, integral",
   );
+  const scope: Record<string, number> = Object.create(null);
   while (true) {
-    const input = await app.prompt("kalker", "sin(pi / 4) * sqrt(144)");
+    const input = (
+      await app.prompt("kalker", "sin(pi / 4) * sqrt(144)")
+    ).trim();
     if (input === "exit" || input === "q") break;
 
     app.resetTimer();
-    const { result, error } = evaluateExpression(input);
+    const assignMatch = /^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$/.exec(input);
+    if (assignMatch) {
+      const varName = assignMatch[1]!.toLowerCase();
+      if (
+        varName === "__proto__" ||
+        varName === "constructor" ||
+        varName === "prototype"
+      ) {
+        app.error(`Reserved variable name: ${varName}`);
+        continue;
+      }
+      const { result, error } = evaluateExpression(assignMatch[2]!, scope);
+      if (error || Number.isNaN(result)) {
+        app.error(`Calculation Error: ${error || "Invalid expression"}`);
+      } else {
+        scope[varName] = result;
+        app.success(`${varName} = ${app.bold(app.cyan(result.toString()))}`);
+      }
+      continue;
+    }
+
+    const { result, error } = evaluateExpression(input, scope);
     if (error || isNaN(result)) {
       app.error(`Calculation Error: ${error || "Invalid expression"}`);
     } else {
+      scope.ans = result;
       app.success(
         `Result (${app.elapsedMs()} ms): ${app.bold(app.cyan(result.toString()))}`,
       );
@@ -126,78 +125,96 @@ async function runInteractive() {
   }
 }
 
-const diffArg = app.getFlagString("diff");
-const intArg = app.getFlagString("integral");
+if (import.meta.main) {
+  if (!app.parseCli()) process.exit(0);
 
-if (diffArg) {
-  // e.g. "x^2 + 3*x, x=4"
-  const [fnStr = "", xPart = ""] = diffArg.split(",").map((s) => s.trim());
-  const xVal = parseFloat(xPart.replace(/^x\s*=\s*/i, "") || "1");
-  const dVal = computeDerivative(fnStr, xVal);
-
-  app.table(
-    [
-      "Calculus Operation",
-      "Function f(x)",
-      "Evaluation Point (x)",
-      "Derivative f'(x)",
-    ],
-    [["d/dx (Derivative)", fnStr, xVal.toString(), dVal.toFixed(6)]],
+  app.banner(
+    "Kalker Scientific & Calculus Studio",
+    "v1.0.0 - Mathematical Engine",
   );
-} else if (intArg) {
-  // e.g. "x^2, 0, 3"
-  const [fnStr = "", aStr = "0", bStr = "1"] = intArg
-    .split(",")
-    .map((s) => s.trim());
-  const a = parseFloat(aStr || "0");
-  const b = parseFloat(bStr || "1");
-  const area = computeIntegral(fnStr, a, b);
 
-  app.table(
-    [
-      "Calculus Operation",
-      "Integrand f(x)",
-      "Lower Bound (a)",
-      "Upper Bound (b)",
-      "Definite Integral ∫",
-    ],
-    [
-      [
-        "∫ Definite Integral",
-        fnStr,
-        a.toString(),
-        b.toString(),
-        area.toFixed(6),
-      ],
-    ],
-  );
-} else if (app.getFlagBool("interactive")) {
-  runInteractive();
-} else {
-  const expr =
-    app.getPositionalArgs().join(" ") ||
-    app.getFlagString("expr") ||
-    "sin(pi / 4) * sqrt(144)";
-  app.resetTimer();
-  const { result, error } = evaluateExpression(expr);
+  const diffArg = app.getFlagString("diff");
+  const intArg = app.getFlagString("integral");
 
-  if (error || isNaN(result)) {
-    app.error(`Calculation Error: ${error || "Invalid expression"}`);
-  } else {
+  if (diffArg) {
+    // e.g. "x^2 + 3*x, x=4"
+    const [fnStr = "", xPart = ""] = diffArg.split(",").map((s) => s.trim());
+    const xVal = parseFloat(xPart.replace(/^x\s*=\s*/i, "") || "1");
+    const dVal = computeDerivative(fnStr, xVal);
+    if (!Number.isFinite(dVal)) {
+      app.error(`Calculation Error: Invalid derivative function "${fnStr}"`);
+      process.exit(1);
+    }
+
     app.table(
-      ["Mathematical Expression", "Calculated Result", "Evaluation Duration"],
-      [[expr, result.toString(), `${app.elapsedMs()} ms`]],
+      [
+        "Calculus Operation",
+        "Function f(x)",
+        "Evaluation Point (x)",
+        "Derivative f'(x)",
+      ],
+      [["d/dx (Derivative)", fnStr, xVal.toString(), dVal.toFixed(6)]],
     );
+  } else if (intArg) {
+    // e.g. "x^2, 0, 3"
+    const [fnStr = "", aStr = "0", bStr = "1"] = intArg
+      .split(",")
+      .map((s) => s.trim());
+    const a = parseFloat(aStr || "0");
+    const b = parseFloat(bStr || "1");
+    const area = computeIntegral(fnStr, a, b);
+    if (!Number.isFinite(area)) {
+      app.error(`Calculation Error: Invalid integral function "${fnStr}"`);
+      process.exit(1);
+    }
 
-    // Also display calculus derivative & integral preview
-    const fnSample = "x^2 * sin(x)";
-    const dSample = computeDerivative(fnSample, Math.PI / 4);
-    const iSample = computeIntegral("x^2", 0, 3);
+    app.table(
+      [
+        "Calculus Operation",
+        "Integrand f(x)",
+        "Lower Bound (a)",
+        "Upper Bound (b)",
+        "Definite Integral ∫",
+      ],
+      [
+        [
+          "∫ Definite Integral",
+          fnStr,
+          a.toString(),
+          b.toString(),
+          area.toFixed(6),
+        ],
+      ],
+    );
+  } else if (app.getFlagBool("interactive")) {
+    await runInteractive();
+  } else {
+    const expr =
+      app.getPositionalArgs().join(" ") ||
+      app.getFlagString("expr") ||
+      "sin(pi / 4) * sqrt(144)";
+    app.resetTimer();
+    const { result, error } = evaluateExpression(expr);
 
-    app.step(1, "Calculus Engine Demonstrations");
-    app.printKv({
-      "Derivative d/dx [x^2 * sin(x)] at x = π/4": dSample.toFixed(6),
-      "Integral ∫ [x^2] dx from 0 to 3": iSample.toFixed(6),
-    });
+    if (error || isNaN(result)) {
+      app.error(`Calculation Error: ${error || "Invalid expression"}`);
+      process.exit(1);
+    } else {
+      app.table(
+        ["Mathematical Expression", "Calculated Result", "Evaluation Duration"],
+        [[expr, result.toString(), `${app.elapsedMs()} ms`]],
+      );
+
+      // Also display calculus derivative & integral preview
+      const fnSample = "x^2 * sin(x)";
+      const dSample = computeDerivative(fnSample, Math.PI / 4);
+      const iSample = computeIntegral("x^2", 0, 3);
+
+      app.step(1, "Calculus Engine Demonstrations");
+      app.printKv({
+        "Derivative d/dx [x^2 * sin(x)] at x = π/4": dSample.toFixed(6),
+        "Integral ∫ [x^2] dx from 0 to 3": iSample.toFixed(6),
+      });
+    }
   }
 }

@@ -96,7 +96,13 @@ async function renderOnce(options: ProcsOptions): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const options = parseProcsArguments(process.argv.slice(2));
+  let options: ProcsOptions;
+  try {
+    options = parseProcsArguments(process.argv.slice(2));
+  } catch (err: any) {
+    console.error(`[procs] Error: ${err?.message ?? String(err)}`);
+    process.exit(1);
+  }
 
   if (
     (options.interactive || (options.watch && process.stdin.isTTY)) &&

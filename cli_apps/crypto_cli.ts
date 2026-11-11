@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { SimpleCLI, stdlib } from "../src/index.ts";
 import * as fs from "node:fs";
-import { createHmac, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomUUID } from "node:crypto";
 
 const app = SimpleCLI.newApp("crypto-cli", "1.0.0").setDescription(
   "Cryptographic Hash, Symmetric AES, HMAC, JWT, UUID & Entropy Meter",
@@ -54,10 +54,6 @@ app.addFlagBool(
   "Launch interactive crypto workstation",
 );
 
-if (!app.parseCli()) process.exit(0);
-
-app.banner("Crypto & Hashing Studio CLI", "v1.0.0 - Headless Security Toolkit");
-
 function calculateEntropy(pwd: string): { bits: number; rating: string } {
   let pool = 0;
   if (/[a-z]/.test(pwd)) pool += 26;
@@ -73,13 +69,55 @@ function calculateEntropy(pwd: string): { bits: number; rating: string } {
   return { bits, rating };
 }
 
+/**
+ * Computes raw byte digest (MD5, SHA-1, SHA-256, SHA-512) without UTF-8 corruption on binary files.
+ */
+export function hashFileBytes(buf: Uint8Array, algo: string): string {
+  const normalized = algo.toLowerCase();
+  const digestAlgo =
+    normalized === "md5" ||
+    normalized === "sha1" ||
+    normalized === "sha256" ||
+    normalized === "sha512"
+      ? normalized
+      : "sha256";
+  return createHash(digestAlgo).update(buf).digest("hex");
+}
+
+/**
+ * Computes byte-level Shannon entropy in bits per byte (`0..8`) and total bits for a `Uint8Array`.
+ */
+export function calculateByteShannonEntropy(buf: Uint8Array): {
+  bitsPerByte: number;
+  totalBits: number;
+} {
+  if (buf.byteLength === 0) return { bitsPerByte: 0, totalBits: 0 };
+  const counts = new Uint32Array(256);
+  for (let i = 0; i < buf.byteLength; i++) {
+    counts[buf[i]!]!++;
+  }
+  let h = 0;
+  const len = buf.byteLength;
+  for (let b = 0; b < 256; b++) {
+    const c = counts[b]!;
+    if (c > 0) {
+      const p = c / len;
+      h -= p * Math.log2(p);
+    }
+  }
+  return {
+    bitsPerByte: Number(h.toFixed(4)),
+    totalBits: Math.round(h * len),
+  };
+}
+
 function decodeJwt(token: string) {
   const parts = token.trim().split(".");
   if (parts.length !== 3) {
     app.error(
       "Invalid JWT: A valid token must have 3 dot-separated parts (header.payload.signature).",
     );
-    return;
+    process.exit(1);
   }
   try {
     const header = JSON.parse(
@@ -90,15 +128,16 @@ function decodeJwt(token: string) {
     );
     app.panel("JWT Header", JSON.stringify(header, null, 2));
     app.panel("JWT Payload Claims", JSON.stringify(payload, null, 2));
-    if (payload.exp) {
+    if (payload.exp !== undefined) {
       const expDate = new Date(payload.exp * 1000);
-      const isExpired = expDate.getTime() < Date.now();
+      const isExpired = expDate.getTime() <= Date.now();
       app.info(
         `Expiration: ${expDate.toISOString()} (${isExpired ? app.red("EXPIRED") : app.green("ACTIVE")})`,
       );
     }
   } catch (e: any) {
     app.error(`Failed to decode JWT: ${e.message}`);
+    process.exit(1);
   }
 }
 
@@ -132,7 +171,7 @@ async function main() {
   if (hmacTxt) {
     if (!key) {
       app.error("HMAC requires --key / -k flag.");
-      return;
+      process.exit(1);
     }
     const hmac = createHmac("sha256", key).update(hmacTxt).digest("hex");
     app.success("HMAC-SHA256 Signature:");
@@ -172,7 +211,7 @@ async function main() {
   if (encryptTxt) {
     if (!key) {
       app.error("Encryption requires --key / -k flag.");
-      return;
+      process.exit(1);
     }
     const cipher = stdlib.aesEncrypt(encryptTxt, key);
     app.success("AES-256 Encrypted Ciphertext:");
@@ -183,7 +222,7 @@ async function main() {
   if (decryptTxt) {
     if (!key) {
       app.error("Decryption requires --key / -k flag.");
-      return;
+      process.exit(1);
     }
     try {
       const plain = stdlib.aesDecrypt(decryptTxt, key);
@@ -191,39 +230,49 @@ async function main() {
       console.log(plain);
     } catch (err: any) {
       app.error(`AES decryption failed: ${err.message}`);
+      process.exit(1);
     }
     return;
   }
 
   const algo = app.getFlagString("algo").toLowerCase();
   const filePath = app.getFlagString("file");
-  let inputData =
+  let inputBytes: Buffer | null = null;
+  let inputText =
     app.getFlagString("text") || app.getPositionalArgs().join(" ");
 
   if (filePath) {
     if (!fs.existsSync(filePath)) {
       app.error(`File not found: ${filePath}`);
-      return;
+      process.exit(1);
     }
-    inputData = fs.readFileSync(filePath, "utf8");
-    app.info(`Read ${inputData.length} bytes from ${filePath}`);
-  }
-
-  if (!inputData) {
-    inputData = "Hello, World!";
-    app.info(`No text or file specified. Using default input "${inputData}"`);
+    inputBytes = fs.readFileSync(filePath);
+    app.info(`Read ${inputBytes.byteLength} bytes from ${filePath}`);
+  } else {
+    if (!inputText) {
+      inputText = "Hello, World!";
+      app.info(`No text or file specified. Using default input "${inputText}"`);
+    }
+    inputBytes = Buffer.from(inputText, "utf8");
   }
 
   app.resetTimer();
   let hashOut = "";
-  if (algo === "md5") hashOut = stdlib.md5(inputData);
-  else if (algo === "sha1") hashOut = stdlib.sha1(inputData);
-  else if (algo === "sha512") hashOut = stdlib.sha512(inputData);
-  else if (algo === "bcrypt") hashOut = await stdlib.bcryptHash(inputData);
-  else hashOut = stdlib.sha256(inputData);
+  if (algo === "bcrypt") {
+    hashOut = await stdlib.bcryptHash(inputBytes.toString("utf8"));
+  } else {
+    hashOut = hashFileBytes(inputBytes, algo);
+  }
 
   app.success(`${algo.toUpperCase()} Hash computed in ${app.elapsedMs()} ms:`);
   console.log(hashOut);
 }
 
-main();
+if (import.meta.main) {
+  if (!app.parseCli()) process.exit(0);
+  app.banner(
+    "Crypto & Hashing Studio CLI",
+    "v1.0.0 - Headless Security Toolkit",
+  );
+  await main();
+}

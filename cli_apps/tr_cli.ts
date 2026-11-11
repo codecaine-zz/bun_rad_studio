@@ -5,7 +5,7 @@ const app = SimpleCLI.newApp("tr-cli", "1.0.0").setDescription(
   "Character Translation & Transformation Utility",
 );
 
-app.addFlagString("text", "t", "hello world", "Input text");
+app.addFlagString("text", "t", "", "Input text");
 
 if (!app.parseCli()) process.exit(0);
 

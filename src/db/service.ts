@@ -19,7 +19,7 @@ import type {
   RowInsert,
   RowUpdate,
 } from "./types";
-import { DbError, normalizeError } from "./errors";
+import { DbError, assertReadOnlyStatement, normalizeError } from "./errors";
 import { createAdapter } from "./index";
 import type { SqliteAdapter } from "./adapters/sqlite";
 import {
@@ -337,8 +337,34 @@ export class WorkbenchService {
   }
 
   /** Streams table or query rows from connection `id` as RFC 4180 CSV chunks. */
-  exportCsv(id: string, source: Parameters<DbAdapter["exportCsv"]>[0]) {
-    return this.get(id).adapter.exportCsv(source);
+  async *exportCsv(
+    id: string,
+    source: Parameters<DbAdapter["exportCsv"]>[0],
+  ): AsyncGenerator<string> {
+    const c = this.get(id);
+    if ("sql" in source) {
+      const stmts = splitStatements(source.sql, { engine: c.profile.engine });
+      if (stmts.length !== 1) {
+        throw new DbError(
+          "INVALID_REQUEST",
+          stmts.length
+            ? "CSV export requires a single read-only SQL statement."
+            : "Enter a query to export.",
+        );
+      }
+      const singleSql = stmts[0]!.sql;
+      assertReadOnlyStatement(c.profile.engine, singleSql);
+      const cls = classifyStatement(c.profile.engine, singleSql);
+      if (cls.kind !== "read") {
+        throw new DbError(
+          "READ_ONLY",
+          `CSV export only accepts read-only queries (${cls.reasons[0] ?? "non-read statement refused"}).`,
+        );
+      }
+      yield* c.adapter.exportCsv({ sql: singleSql, params: source.params });
+      return;
+    }
+    yield* c.adapter.exportCsv(source);
   }
 
   // ---- SQL execution ----------------------------------------------------------------------------------------
@@ -508,6 +534,16 @@ export class WorkbenchService {
 
   // ---- confirmations ----------------------------------------------------------------------------------------
 
+  private pruneExpiredPending(now = Date.now()): void {
+    for (const [tok, p] of this.pending) {
+      if (p.expires < now) this.pending.delete(tok);
+    }
+    if (this.pending.size > 1000) {
+      const oldest = this.pending.keys().next().value;
+      if (oldest !== undefined) this.pending.delete(oldest);
+    }
+  }
+
   /**
    * Returns a ConfirmationRequired when the operation needs one and `confirm` does not carry a valid, matching,
    * unexpired token (plus the typed text on production). A token works once.
@@ -520,6 +556,7 @@ export class WorkbenchService {
     confirm: ConfirmInput,
     digest: string,
   ): ConfirmationRequired | null {
+    this.pruneExpiredPending();
     const production = c.profile.environment === "production";
     if (!needsConfirmation(cls, production)) return null;
     if (confirm.token) {
@@ -603,6 +640,7 @@ export class WorkbenchService {
 
   /** Describe what restoring `backupPath` into a NEW file `targetPath` would do. Returns a token to confirm it. */
   sqliteRestorePreview(backupPath: string, targetPath: string) {
+    this.pruneExpiredPending();
     const backup = resolve(backupPath);
     if (!existsSync(backup) || !statSync(backup).isFile())
       throw new DbError("INVALID_REQUEST", `Backup file not found: ${backup}`);
@@ -643,6 +681,7 @@ export class WorkbenchService {
 
   /** Executes a confirmed SQLite restore from `backupPath` into a new file `targetPath` using `VACUUM INTO`. */
   sqliteRestoreExecute(backupPath: string, targetPath: string, token: string) {
+    this.pruneExpiredPending();
     const backup = resolve(backupPath);
     const target = this.checkNewFile(targetPath);
     const p = this.pending.get(token);

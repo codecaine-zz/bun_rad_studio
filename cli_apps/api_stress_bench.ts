@@ -49,7 +49,7 @@ async function main() {
     app.error(
       `Invalid URL format: "${targetUrl}". Must start with http:// or https://`,
     );
-    return;
+    process.exit(1);
   }
 
   app.printKv({

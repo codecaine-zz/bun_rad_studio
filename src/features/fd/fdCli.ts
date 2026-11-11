@@ -114,10 +114,15 @@ Options:
 }
 
 async function main(): Promise<void> {
-  const options = parseFdArguments(process.argv.slice(2));
-  const output = await runFdCoordinator(options);
-  for (const line of output) {
-    console.log(line);
+  try {
+    const options = parseFdArguments(process.argv.slice(2));
+    const output = await runFdCoordinator(options);
+    for (const line of output) {
+      console.log(line);
+    }
+  } catch (err: any) {
+    console.error(`[fd] Error: ${err?.message ?? String(err)}`);
+    process.exit(1);
   }
 }
 

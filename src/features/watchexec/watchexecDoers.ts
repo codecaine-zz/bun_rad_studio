@@ -34,14 +34,110 @@ export function shouldIgnore(
 }
 
 /**
- * Checks whether `filename` matches at least one substring or regex pattern in `filters`
+ * Checks whether a regex pattern contains nested quantifiers or backreferences prone to catastrophic backtracking.
+ */
+function isUnsafeFilterRegex(pattern: string): boolean {
+  if (pattern.length > 512) return true;
+  if (/\\[1-9]/.test(pattern)) return true;
+  let inClass = false;
+  const groupHasQuant: boolean[] = [];
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i]!;
+    if (ch === "\\") {
+      i++;
+      continue;
+    }
+    if (inClass) {
+      if (ch === "]") inClass = false;
+      continue;
+    }
+    if (ch === "[") {
+      inClass = true;
+      continue;
+    }
+    if (ch === "(") {
+      groupHasQuant.push(false);
+      continue;
+    }
+    if (ch === ")") {
+      const innerQuant = groupHasQuant.pop() ?? false;
+      const next = pattern[i + 1];
+      const outerQuant =
+        next === "+" || next === "*" || next === "?" || next === "{";
+      if (innerQuant && outerQuant) return true;
+      if ((innerQuant || outerQuant) && groupHasQuant.length > 0) {
+        groupHasQuant[groupHasQuant.length - 1] = true;
+      }
+      continue;
+    }
+    if ((ch === "+" || ch === "*" || ch === "{") && groupHasQuant.length > 0) {
+      groupHasQuant[groupHasQuant.length - 1] = true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Converts a simple glob pattern (e.g. `*.ts`, `src/**`) into an anchored `RegExp`.
+ */
+function globToRegExp(glob: string): RegExp {
+  let out = "^";
+  for (let i = 0; i < glob.length; i++) {
+    const ch = glob[i]!;
+    if (ch === "*") {
+      if (glob[i + 1] === "*") {
+        out += ".*";
+        i++;
+      } else {
+        out += "[^/]*";
+      }
+    } else if (ch === "?") {
+      out += "[^/]";
+    } else if ("\\.^$+()[]{}|".includes(ch)) {
+      out += "\\" + ch;
+    } else {
+      out += ch;
+    }
+  }
+  out += "$";
+  return new RegExp(out);
+}
+
+/**
+ * Checks whether `filename` matches at least one substring, glob, or safe regex pattern in `filters`
  * (returns `true` when `filters` is undefined or empty).
  */
 export function matchesFilter(filename: string, filters?: string[]): boolean {
   if (!filters || filters.length === 0) return true;
-  return filters.some(
-    (f) => filename.includes(f) || new RegExp(f).test(filename),
-  );
+  const normalized = filename.replace(/\\/g, "/");
+  return filters.some((f) => {
+    if (!f) return false;
+    if (normalized.includes(f) || filename.includes(f)) return true;
+    // Support glob syntax such as `*.ts` or `src/**`
+    if (
+      f.startsWith("*.") ||
+      f.includes("**") ||
+      /^[?*a-zA-Z0-9_./-]+$/.test(f)
+    ) {
+      if (f.includes("*") || f.includes("?")) {
+        try {
+          const base = normalized.split("/").pop() ?? normalized;
+          const re = globToRegExp(f);
+          if (re.test(normalized) || (!f.includes("/") && re.test(base))) {
+            return true;
+          }
+        } catch {
+          // Ignore malformed glob
+        }
+      }
+    }
+    if (isUnsafeFilterRegex(f)) return false;
+    try {
+      return new RegExp(f).test(normalized);
+    } catch {
+      return false;
+    }
+  });
 }
 
 /**
@@ -113,24 +209,40 @@ export function killProcessTree(
 }
 
 /**
- * Safely stops a running Bun `Subprocess` and its entire child process tree.
+ * Safely stops a running Bun `Subprocess` and its entire child process tree,
+ * allowing a brief `SIGTERM` grace period before escalating to `SIGKILL`.
  */
-export function killRunningProcess(proc: Subprocess | null): void {
-  if (proc) {
-    const pid = proc.pid;
-    if (pid && pid > 0) {
-      killProcessTree(pid, "SIGTERM");
-      try {
-        proc.kill("SIGTERM");
-      } catch {}
+export function killRunningProcess(
+  proc: Subprocess | null,
+  graceMs: number = 400,
+): void {
+  if (!proc) return;
+  const pid = proc.pid;
+  if (pid && pid > 0) {
+    killProcessTree(pid, "SIGTERM");
+    try {
+      proc.kill("SIGTERM");
+    } catch {}
+    if (proc.exitCode === null && graceMs > 0) {
+      const timer = setTimeout(() => {
+        if (proc.exitCode === null) {
+          killProcessTree(pid, "SIGKILL");
+          try {
+            proc.kill("SIGKILL");
+          } catch {}
+        }
+      }, graceMs);
+      timer.unref?.();
+    } else if (graceMs <= 0 && proc.exitCode === null) {
+      killProcessTree(pid, "SIGKILL");
       try {
         proc.kill("SIGKILL");
       } catch {}
-    } else {
-      try {
-        proc.kill("SIGTERM");
-      } catch {}
     }
+  } else {
+    try {
+      proc.kill("SIGTERM");
+    } catch {}
   }
 }
 

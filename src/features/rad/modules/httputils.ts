@@ -24,6 +24,15 @@ export function buildQuery(params: Record<string, any>): string {
   return parts.length > 0 ? `?${parts.join("&")}` : "";
 }
 
+function safeDecodeQueryComponent(raw: string): string {
+  const plusReplaced = raw.replace(/\+/g, " ");
+  try {
+    return decodeURIComponent(plusReplaced);
+  } catch {
+    return plusReplaced;
+  }
+}
+
 // Doer: Parse URL query string into dictionary
 /**
  * Parses a URL query string (with or without a leading `?`) into a decoded key-value dictionary.
@@ -37,12 +46,14 @@ export function parseQuery(queryString: string): Record<string, string> {
   const pairs = clean.split("&");
   for (const pair of pairs) {
     if (!pair) continue;
-    const [k, v] = pair.split("=");
-    if (k) {
-      const key = decodeURIComponent(k);
+    const eqIdx = pair.indexOf("=");
+    const rawKey = eqIdx === -1 ? pair : pair.slice(0, eqIdx);
+    const rawVal = eqIdx === -1 ? "" : pair.slice(eqIdx + 1);
+    if (rawKey) {
+      const key = safeDecodeQueryComponent(rawKey);
       if (key === "__proto__" || key === "constructor" || key === "prototype")
         continue;
-      result[key] = v ? decodeURIComponent(v) : "";
+      result[key] = safeDecodeQueryComponent(rawVal);
     }
   }
   return result;

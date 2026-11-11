@@ -5,7 +5,7 @@ const app = SimpleCLI.newApp("find-cli", "1.0.0").setDescription(
   "UNIX-like File Hierarchy Search Utility",
 );
 
-app.addFlagString("name", "n", "*", "File name pattern");
+app.addFlagString("name", "n", "", "File name pattern");
 app.addFlagString("dir", "d", ".", "Directory root");
 
 if (!app.parseCli()) process.exit(0);

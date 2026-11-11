@@ -8,8 +8,10 @@
 // EOCD-based parsing, CRC-32 verification, and zip-slip protection on extraction.
 // Limits: classic ZIP (no Zip64) → max 65,535 entries and 4 GiB per entry/archive; no encryption.
 
+import { realpathSync } from "node:fs";
 import { mkdir, readdir, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
+import { inflateRawSync } from "node:zlib";
 
 /** One entry to put in a ZIP. Names ending in `/` create directory entries (data ignored). */
 export interface ZipEntryInput {
@@ -48,6 +50,10 @@ const SIG_CENTRAL = 0x02014b50;
 const SIG_EOCD = 0x06054b50;
 const FLAG_UTF8 = 0x0800;
 const MAX_U32 = 0xffffffff;
+/** Maximum uncompressed bytes allowed for a single ZIP entry during extraction (256 MiB). */
+export const MAX_ZIP_ENTRY_BYTES = 256 * 1024 * 1024;
+/** Maximum total uncompressed bytes allowed across a full ZIP extraction (512 MiB). */
+export const MAX_ZIP_TOTAL_BYTES = 512 * 1024 * 1024;
 
 /**
  * Encode a JS Date into MS-DOS `{ time, date }` words used by ZIP headers (2-second resolution).
@@ -209,6 +215,11 @@ export function zipFiles(entries: ZipEntryInput[]): Uint8Array {
 }
 
 function findEocd(buf: Buffer): number {
+  if (buf.length < 22) {
+    throw new Error(
+      `[archiveutils] Not a ZIP archive: buffer too small (${buf.length} bytes)`,
+    );
+  }
   const minPos = Math.max(0, buf.length - 22 - 0xffff);
   for (let pos = buf.length - 22; pos >= minPos; pos--) {
     if (buf.readUInt32LE(pos) === SIG_EOCD) return pos;
@@ -218,18 +229,35 @@ function findEocd(buf: Buffer): number {
   );
 }
 
-function parseCentralDirectory(buf: Buffer): ZipEntryInfo[] {
+interface InternalZipEntryInfo extends ZipEntryInfo {
+  isSymlink: boolean;
+}
+
+function parseCentralDirectory(buf: Buffer): InternalZipEntryInfo[] {
   const eocd = findEocd(buf);
   const count = buf.readUInt16LE(eocd + 10);
   let pos = buf.readUInt32LE(eocd + 16);
-  const out: ZipEntryInfo[] = [];
+  const out: InternalZipEntryInfo[] = [];
   for (let i = 0; i < count; i++) {
-    if (buf.readUInt32LE(pos) !== SIG_CENTRAL)
+    if (
+      pos < 0 ||
+      pos + 46 > buf.length ||
+      buf.readUInt32LE(pos) !== SIG_CENTRAL
+    )
       throw new Error(
         `[archiveutils] Corrupt central directory at offset ${pos}`,
       );
     const nameLen = buf.readUInt16LE(pos + 28);
+    const extraLen = buf.readUInt16LE(pos + 30);
+    const commentLen = buf.readUInt16LE(pos + 32);
+    if (pos + 46 + nameLen + extraLen + commentLen > buf.length) {
+      throw new Error(
+        `[archiveutils] Truncated central directory entry at offset ${pos}`,
+      );
+    }
     const name = buf.toString("utf-8", pos + 46, pos + 46 + nameLen);
+    const externalAttrs = buf.readUInt32LE(pos + 38);
+    const unixType = (externalAttrs >>> 16) & 0o170000;
     out.push({
       name,
       compressionMethod: buf.readUInt16LE(pos + 10),
@@ -242,26 +270,71 @@ function parseCentralDirectory(buf: Buffer): ZipEntryInfo[] {
       uncompressedSize: buf.readUInt32LE(pos + 24),
       offset: buf.readUInt32LE(pos + 42),
       isDirectory: name.endsWith("/"),
+      isSymlink: unixType === 0o120000,
     });
-    pos +=
-      46 + nameLen + buf.readUInt16LE(pos + 30) + buf.readUInt16LE(pos + 32);
+    pos += 46 + nameLen + extraLen + commentLen;
   }
   return out;
 }
 
-function extractEntry(buf: Buffer, h: ZipEntryHeader): Uint8Array {
+function extractEntry(
+  buf: Buffer,
+  h: ZipEntryHeader,
+  maxEntryBytes = MAX_ZIP_ENTRY_BYTES,
+): Uint8Array {
+  if (h.offset < 0 || h.offset + 30 > buf.length) {
+    throw new Error(
+      `[archiveutils] ${h.name}: local header offset ${h.offset} out of bounds`,
+    );
+  }
+  if (buf.readUInt32LE(h.offset) !== SIG_LOCAL) {
+    throw new Error(
+      `[archiveutils] ${h.name}: corrupt local file header at offset ${h.offset}`,
+    );
+  }
+  if (h.uncompressedSize > maxEntryBytes) {
+    throw new Error(
+      `[archiveutils] ${h.name}: uncompressed size ${h.uncompressedSize} exceeds limit (${maxEntryBytes} bytes)`,
+    );
+  }
   const nameLen = buf.readUInt16LE(h.offset + 26);
   const extraLen = buf.readUInt16LE(h.offset + 28);
   const start = h.offset + 30 + nameLen + extraLen;
+  if (
+    start < 0 ||
+    h.compressedSize < 0 ||
+    start + h.compressedSize > buf.length
+  ) {
+    throw new Error(
+      `[archiveutils] ${h.name}: compressed payload out of bounds`,
+    );
+  }
   const payload = buf.subarray(start, start + h.compressedSize);
   let data: Uint8Array;
-  if (h.compressionMethod === 0) data = payload;
-  else if (h.compressionMethod === 8)
-    data = Bun.inflateSync(payload as Uint8Array<ArrayBuffer>);
-  else
+  if (h.compressionMethod === 0) {
+    if (payload.length > maxEntryBytes) {
+      throw new Error(
+        `[archiveutils] ${h.name}: stored entry size ${payload.length} exceeds limit (${maxEntryBytes} bytes)`,
+      );
+    }
+    data = payload;
+  } else if (h.compressionMethod === 8) {
+    const inflateCap = Math.min(
+      maxEntryBytes,
+      Math.max(0, h.uncompressedSize) + 1024,
+    );
+    data = new Uint8Array(
+      inflateRawSync(payload, { maxOutputLength: inflateCap }),
+    );
+  } else
     throw new Error(
       `[archiveutils] ${h.name}: unsupported compression method ${h.compressionMethod}`,
     );
+  if (data.byteLength !== h.uncompressedSize) {
+    throw new Error(
+      `[archiveutils] ${h.name}: uncompressed size mismatch (expected ${h.uncompressedSize}, got ${data.byteLength})`,
+    );
+  }
   if (Bun.hash.crc32(data) >>> 0 !== h.crc32 >>> 0)
     throw new Error(
       `[archiveutils] ${h.name}: CRC-32 mismatch (corrupt archive)`,
@@ -305,7 +378,9 @@ export async function listZipEntries(
 export async function listZipDetails(
   zipDataOrPath: Uint8Array | string,
 ): Promise<ZipEntryInfo[]> {
-  return parseCentralDirectory(await toBuffer(zipDataOrPath));
+  return parseCentralDirectory(await toBuffer(zipDataOrPath)).map(
+    ({ isSymlink: _isSymlink, ...info }) => info,
+  );
 }
 
 /**
@@ -344,11 +419,56 @@ export async function readZipText(
  */
 export async function unzipToMemory(
   zipDataOrPath: Uint8Array | string,
+  maxTotalBytes = MAX_ZIP_TOTAL_BYTES,
 ): Promise<ZipExtractedEntry[]> {
   const buf = await toBuffer(zipDataOrPath);
-  return parseCentralDirectory(buf)
-    .filter((h) => !h.isDirectory)
-    .map((h) => ({ name: h.name, data: extractEntry(buf, h) }));
+  let totalBytes = 0;
+  const out: ZipExtractedEntry[] = [];
+  for (const h of parseCentralDirectory(buf)) {
+    if (h.isDirectory) continue;
+    if (h.isSymlink) {
+      throw new Error(
+        `[archiveutils] Refusing to extract symlink entry "${h.name}"`,
+      );
+    }
+    totalBytes += h.uncompressedSize;
+    if (totalBytes > maxTotalBytes) {
+      throw new Error(
+        `[archiveutils] Total uncompressed archive size exceeds limit (${maxTotalBytes} bytes)`,
+      );
+    }
+    out.push({
+      name: h.name,
+      data: extractEntry(buf, h, Math.min(MAX_ZIP_ENTRY_BYTES, maxTotalBytes)),
+    });
+  }
+  return out;
+}
+
+function assertRealZipAncestorContained(root: string, target: string): void {
+  let realRoot: string;
+  try {
+    realRoot = realpathSync(root);
+  } catch {
+    return;
+  }
+  let probe = target;
+  while (probe !== root && probe.startsWith(root + sep)) {
+    try {
+      const realProbe = realpathSync(probe);
+      if (realProbe !== realRoot && !realProbe.startsWith(realRoot + sep)) {
+        throw new Error(
+          `[archiveutils] Refusing to extract "${target}": symlink escapes ${realRoot}`,
+        );
+      }
+      return;
+    } catch (err: any) {
+      if (String(err?.message || "").startsWith("[archiveutils]")) throw err;
+      const parent = dirname(probe);
+      if (parent === probe) break;
+      probe = parent;
+    }
+  }
 }
 
 /**
@@ -357,13 +477,28 @@ export async function unzipToMemory(
  * @example `archiveutils.safeJoin("/out", "a/b.txt"); // "/out/a/b.txt"`
  */
 export function safeJoin(destDir: string, entryName: string): string {
+  if (!entryName || entryName.includes("\0") || /^[a-zA-Z]:/.test(entryName)) {
+    throw new Error(
+      `[archiveutils] Refusing to extract "${entryName}": invalid path`,
+    );
+  }
+  const normalized = entryName.replace(/\\/g, "/");
+  if (
+    normalized.startsWith("/") ||
+    normalized.split("/").some((seg) => seg === "..")
+  ) {
+    throw new Error(
+      `[archiveutils] Refusing to extract "${entryName}": path escapes ${resolve(destDir)}`,
+    );
+  }
   const root = resolve(destDir);
-  const target = resolve(root, entryName);
+  const target = resolve(root, normalized);
   if (target !== root && !target.startsWith(root + sep)) {
     throw new Error(
       `[archiveutils] Refusing to extract "${entryName}": path escapes ${root}`,
     );
   }
+  assertRealZipAncestorContained(root, target);
   return target;
 }
 
@@ -375,17 +510,34 @@ export function safeJoin(destDir: string, entryName: string): string {
 export async function unzipToDir(
   zipDataOrPath: Uint8Array | string,
   destDir: string,
+  maxTotalBytes = MAX_ZIP_TOTAL_BYTES,
 ): Promise<number> {
   const buf = await toBuffer(zipDataOrPath);
   let written = 0;
+  let totalBytes = 0;
   for (const h of parseCentralDirectory(buf)) {
+    if (h.isSymlink) {
+      throw new Error(
+        `[archiveutils] Refusing to extract symlink entry "${h.name}"`,
+      );
+    }
     const outPath = safeJoin(destDir, h.name);
     if (h.isDirectory) {
       await mkdir(outPath, { recursive: true });
       continue;
     }
+    totalBytes += h.uncompressedSize;
+    if (totalBytes > maxTotalBytes) {
+      throw new Error(
+        `[archiveutils] Total uncompressed archive size exceeds limit (${maxTotalBytes} bytes)`,
+      );
+    }
     await mkdir(dirname(outPath), { recursive: true });
-    await Bun.write(outPath, extractEntry(buf, h));
+    assertRealZipAncestorContained(resolve(destDir), outPath);
+    await Bun.write(
+      outPath,
+      extractEntry(buf, h, Math.min(MAX_ZIP_ENTRY_BYTES, maxTotalBytes)),
+    );
     written++;
   }
   return written;

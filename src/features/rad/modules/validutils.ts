@@ -3,6 +3,8 @@
  * alphanumeric strings, numeric ranges, UUIDs, and JSON payloads.
  */
 
+import { isIP } from "node:net";
+
 // Doer: Validate email address format
 /**
  * Returns `true` if `str` matches a standard `user@domain.tld` email format.
@@ -43,9 +45,7 @@ export function isIpv4(str: string): boolean {
  * Returns `true` if `str` is a valid full or compressed hexadecimal IPv6 address.
  */
 export function isIpv6(str: string): boolean {
-  return /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::$|^::1$|^([0-9a-fA-F]{1,4}:){1,7}:$|^:((:[0-9a-fA-F]{1,4}){1,7}|:)$/.test(
-    str.trim(),
-  );
+  return isIP(str.trim()) === 6;
 }
 
 // Doer: Validate E.164 or common domestic phone number format
@@ -75,12 +75,12 @@ export function inRange(val: number, min: number, max: number): boolean {
   return val >= min && val <= max;
 }
 
-// Doer: Validate UUID v4 format
+// Doer: Validate UUID format (RFC 9562 v1–v8, nil, and max UUIDs)
 /**
- * Returns `true` if `str` is a valid RFC 4122 UUID (versions 1–5).
+ * Returns `true` if `str` is a valid RFC 9562 / RFC 4122 UUID (versions 1–8, plus nil and max UUIDs).
  */
 export function isUuid(str: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+  return /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i.test(
     str.trim(),
   );
 }

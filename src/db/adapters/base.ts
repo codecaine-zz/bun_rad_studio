@@ -23,7 +23,9 @@ import type {
   TableInfo,
   WireValue,
 } from "../types";
-import { DbError } from "../errors";
+import { DbError, assertReadOnlyStatement } from "../errors";
+import { classifyStatement } from "../classify";
+import { leadingKeyword, splitStatements } from "../splitter";
 import {
   LIKE_ESCAPE,
   escapeLike,
@@ -444,12 +446,67 @@ export abstract class BaseAdapter implements DbAdapter {
     }
   }
 
-  /** Executes a parameterized SQL query and yields its header and rows as RFC 4180 CSV lines. */
+  /** Validates that `sql` is a single read-only query, then streams its header and rows as RFC 4180 CSV lines. */
   protected async *exportSqlCsv(
     sql: string,
     params: Param[],
   ): AsyncGenerator<string> {
-    const res = await this.execute(sql, params);
+    const stmts = splitStatements(sql, { engine: this.engine });
+    if (stmts.length !== 1) {
+      throw new DbError(
+        "INVALID_REQUEST",
+        stmts.length === 0
+          ? "Enter a query to export."
+          : "CSV export requires a single read-only SQL statement.",
+      );
+    }
+    const singleSql = stmts[0]!.sql;
+    assertReadOnlyStatement(this.engine, singleSql);
+    const cls = classifyStatement(this.engine, singleSql);
+    if (cls.kind !== "read") {
+      throw new DbError(
+        "READ_ONLY",
+        `CSV export only accepts read-only queries (${cls.reasons[0] ?? "non-read statement refused"}).`,
+      );
+    }
+
+    const kw = leadingKeyword(singleSql, this.engine);
+    const canPageSubquery =
+      (kw === "SELECT" || kw === "WITH" || kw === "TABLE" || kw === "VALUES") &&
+      !/\b(limit|offset|fetch\s+(?:first|next))\b/i.test(singleSql);
+
+    if (canPageSubquery) {
+      const pageSize = 1000;
+      let columns: string[] | null = null;
+      let fallbackToSingle = false;
+      for (let offset = 0; ; offset += pageSize) {
+        const n = params.length;
+        const pagedSql = `SELECT * FROM (${singleSql}) AS _wb_csv_export LIMIT ${this.ph(n + 1)} OFFSET ${this.ph(n + 2)}`;
+        let page: QueryResult;
+        try {
+          page = await this.execute(pagedSql, [...params, pageSize, offset]);
+        } catch (err) {
+          if (offset === 0) {
+            fallbackToSingle = true;
+            break;
+          }
+          throw err;
+        }
+        if (columns === null) {
+          columns = page.columns;
+          if (columns.length > 0) {
+            yield columns.map((c) => csvCell(c)).join(",") + "\r\n";
+          }
+        }
+        for (const row of page.rows) {
+          yield columns.map((c) => csvCell(row[c] ?? null)).join(",") + "\r\n";
+        }
+        if (page.rows.length < pageSize) return;
+      }
+      if (!fallbackToSingle) return;
+    }
+
+    const res = await this.execute(singleSql, params);
     if (res.columns.length)
       yield res.columns.map((c) => csvCell(c)).join(",") + "\r\n";
     for (const row of res.rows)

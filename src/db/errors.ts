@@ -4,6 +4,7 @@
  */
 import type { Engine } from "./types";
 import { leadingKeyword } from "./splitter";
+import { isReadOnlyPragma, maskLiterals } from "./classify";
 
 /** Canonical error code category across SQLite, MySQL, and PostgreSQL adapters. */
 export type DbErrorCode =
@@ -230,7 +231,7 @@ const READ_KEYWORDS = new Set([
  * cannot undo that mode, and to give a clear message early.
  */
 export function assertReadOnlyStatement(engine: Engine, sql: string): void {
-  const kw = leadingKeyword(sql);
+  const kw = leadingKeyword(sql, engine);
   if (!READ_KEYWORDS.has(kw)) {
     throw new DbError(
       "READ_ONLY",
@@ -238,17 +239,46 @@ export function assertReadOnlyStatement(engine: Engine, sql: string): void {
       HINTS.READ_ONLY,
     );
   }
-  if (engine === "mysql" && /\binto\s+(outfile|dumpfile)\b/i.test(sql)) {
+  if (kw === "PRAGMA") {
+    if (engine !== "sqlite" || !isReadOnlyPragma(sql)) {
+      throw new DbError(
+        "READ_ONLY",
+        "Only read-only inspection PRAGMAs are allowed on a read-only connection.",
+        HINTS.READ_ONLY,
+      );
+    }
+    return;
+  }
+  const masked = maskLiterals(sql, engine);
+  if (engine === "mysql" && /\binto\s+(outfile|dumpfile)\b/i.test(masked)) {
     throw new DbError(
       "READ_ONLY",
       "SELECT ... INTO OUTFILE/DUMPFILE writes files and is not allowed on a read-only connection.",
       HINTS.READ_ONLY,
     );
   }
-  if (engine === "sqlite" && kw === "PRAGMA" && /=/.test(sql)) {
+  if (
+    kw === "WITH" &&
+    /\b(insert|update|delete|merge|replace|drop|truncate|create|alter|copy|call)\b/i.test(
+      masked,
+    )
+  ) {
     throw new DbError(
       "READ_ONLY",
-      "PRAGMA assignments are not allowed on a read-only connection.",
+      "Data-changing CTEs (WITH ... INSERT/UPDATE/DELETE) are not allowed on a read-only connection.",
+      HINTS.READ_ONLY,
+    );
+  }
+  if (
+    kw === "EXPLAIN" &&
+    /\banalyze\b/i.test(masked) &&
+    /\b(insert|update|delete|merge|replace|drop|truncate|create|alter|rename|comment|copy|load|call|do|vacuum|reindex|grant|revoke)\b/i.test(
+      masked,
+    )
+  ) {
+    throw new DbError(
+      "READ_ONLY",
+      "EXPLAIN ANALYZE of a modifying statement executes changes and is not allowed on a read-only connection.",
       HINTS.READ_ONLY,
     );
   }

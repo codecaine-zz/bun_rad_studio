@@ -186,15 +186,57 @@ export function replaceSync(
   const regex = new RegExp(pattern, flags);
   const text = corpus.replace(regex, subst); // native semantics: $1, $<name>, $&, $$
   let count = 0;
-  if (flags.includes("g"))
-    count = [...corpus.matchAll(new RegExp(pattern, flags))].length;
-  else count = new RegExp(pattern, flags).test(corpus) ? 1 : 0;
+  if (flags.includes("g")) {
+    const counter = new RegExp(pattern, flags);
+    const unicode = flags.includes("u") || flags.includes("v");
+    let m: RegExpExecArray | null;
+    while ((m = counter.exec(corpus)) !== null) {
+      count++;
+      if (m[0].length === 0) {
+        const idx = counter.lastIndex;
+        if (unicode && idx < corpus.length) {
+          const cp = corpus.codePointAt(idx);
+          counter.lastIndex = idx + (cp !== undefined && cp > 0xffff ? 2 : 1);
+        } else {
+          counter.lastIndex = idx + 1;
+        }
+        if (counter.lastIndex > corpus.length) break;
+      }
+    }
+  } else {
+    count = new RegExp(pattern, flags).test(corpus) ? 1 : 0;
+  }
   return { text, count };
 }
 
 // ---------------------------------------------------------------------------
-// Worker-backed evaluation with a timeout
+// Worker-backed evaluation with a timeout (1 pooled reusable Worker)
 // ---------------------------------------------------------------------------
+
+let idleRegexWorker: Worker | null = null;
+
+function acquireRegexWorker(): Worker {
+  if (idleRegexWorker) {
+    const w = idleRegexWorker;
+    idleRegexWorker = null;
+    (w as any).ref?.();
+    return w;
+  }
+  return new Worker(new URL("./regex_worker.ts", import.meta.url).href);
+}
+
+function releaseRegexWorker(w: Worker): void {
+  w.onmessage = null;
+  w.onerror = null;
+  if (!idleRegexWorker) {
+    (w as any).unref?.();
+    idleRegexWorker = w;
+  } else {
+    try {
+      w.terminate();
+    } catch {}
+  }
+}
 
 function callWorker<T>(
   msg: any,
@@ -205,24 +247,33 @@ function callWorker<T>(
   return new Promise((resolve) => {
     let w: Worker;
     try {
-      w = new Worker(new URL("./regex_worker.ts", import.meta.url).href);
+      w = acquireRegexWorker();
     } catch {
       resolve(fallback());
       return;
     }
     let done = false;
-    const finish = (v: T) => {
+    const finishOk = (v: T) => {
       if (done) return;
       done = true;
       clearTimeout(timer);
+      releaseRegexWorker(w);
+      resolve(v);
+    };
+    const finishKill = (v: T) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      w.onmessage = null;
+      w.onerror = null;
       try {
         w.terminate();
       } catch {}
       resolve(v);
     };
-    const timer = setTimeout(() => finish(onTimeout()), timeoutMs);
-    w.onmessage = (e: MessageEvent) => finish(e.data as T);
-    w.onerror = () => finish(fallback());
+    const timer = setTimeout(() => finishKill(onTimeout()), timeoutMs);
+    w.onmessage = (e: MessageEvent) => finishOk(e.data as T);
+    w.onerror = () => finishKill(fallback());
     w.postMessage(msg);
   });
 }

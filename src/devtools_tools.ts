@@ -186,12 +186,89 @@ export interface MatchOptions {
   fixed?: boolean;
 }
 
-/** Build a (non-global, so `.test` is stateless) RegExp. Throws on an invalid regex. */
+/** Detects nested quantifiers or backreferences that can trigger exponential ReDoS backtracking on large source files. */
+function isUnsafeSearchRegex(pattern: string): boolean {
+  if (
+    /\((?:[^()\\]|\\.)*(?:[+*]|\{\d+,\d*\})(?:[^()\\]|\\.)*\)\s*(?:[+*]|\{\d+,\d*\})/.test(
+      pattern,
+    )
+  ) {
+    return true;
+  }
+  // Also catch multi-level nested quantified groups such as ((a+))+
+  let depth = 0;
+  const hasQuantAtDepth: boolean[] = [];
+  let inClass = false;
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i]!;
+    if (c === "\\") {
+      i++;
+      continue;
+    }
+    if (inClass) {
+      if (c === "]") {
+        inClass = false;
+        if (
+          depth > 0 &&
+          (pattern[i + 1] === "+" ||
+            pattern[i + 1] === "*" ||
+            pattern[i + 1] === "{")
+        ) {
+          hasQuantAtDepth[depth - 1] = true;
+        }
+      }
+      continue;
+    }
+    if (c === "[") {
+      inClass = true;
+      continue;
+    }
+    if (c === "(") {
+      depth++;
+      hasQuantAtDepth.push(false);
+      continue;
+    }
+    if (c === ")" && depth > 0) {
+      const innerQuant = hasQuantAtDepth.pop() ?? false;
+      depth--;
+      const next = pattern[i + 1];
+      const outerRepeated =
+        next === "+" ||
+        next === "*" ||
+        (next === "{" &&
+          /^\{(?:\d+,\d*|[2-9]\d*|\d{2,})\}/.test(pattern.slice(i + 1)));
+      if (innerQuant && outerRepeated) return true;
+      if (depth > 0 && (innerQuant || outerRepeated)) {
+        hasQuantAtDepth[depth - 1] = true;
+      }
+      continue;
+    }
+    if (
+      depth > 0 &&
+      (c === "+" ||
+        c === "*" ||
+        (c === "{" && /^\{\d+,\d*\}/.test(pattern.slice(i))))
+    ) {
+      hasQuantAtDepth[depth - 1] = true;
+    }
+  }
+  return false;
+}
+
+/** Build a (non-global, so `.test` is stateless) RegExp. Throws on an invalid or catastrophic regex. */
 export function buildMatcher(
   pattern: string,
   opts: MatchOptions = {},
   global = false,
 ): RegExp {
+  if (pattern.length > 2000) {
+    throw new Error("Pattern is too long (maximum 2000 characters)");
+  }
+  if (!opts.fixed && isUnsafeSearchRegex(pattern)) {
+    throw new Error(
+      "Regular expression contains nested quantifiers that could cause catastrophic backtracking",
+    );
+  }
   let src = opts.fixed ? escapeRe(pattern) : pattern;
   if (opts.wholeWord) src = `\\b(?:${src})\\b`;
   return new RegExp(src, (opts.caseSensitive ? "" : "i") + (global ? "g" : ""));

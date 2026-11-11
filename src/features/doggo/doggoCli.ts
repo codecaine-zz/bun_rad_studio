@@ -12,23 +12,32 @@ import type { DnsRecordType, DoggoOptions } from "./doggoTypes.ts";
  * Parses CLI flags and positional arguments into a validated `DoggoOptions` structure.
  */
 export function parseDoggoArguments(args: string[]): DoggoOptions {
-  const { values, positionals } = parseArgs({
-    args,
-    options: {
-      type: { type: "string", short: "t" },
-      nameserver: { type: "string", short: "n" },
-      short: { type: "boolean", default: false },
-      json: { type: "boolean", short: "j", default: false },
-      time: { type: "boolean", default: true },
-      "no-time": { type: "boolean", default: false },
-      reverse: { type: "boolean", short: "x", default: false },
-      doh: { type: "boolean", default: false },
-      "doh-url": { type: "string" },
-      all: { type: "boolean", default: false },
-      help: { type: "boolean", short: "h" },
-    },
-    allowPositionals: true,
-  });
+  let values: Record<string, any>;
+  let positionals: string[];
+  try {
+    const parsed = parseArgs({
+      args,
+      options: {
+        type: { type: "string", short: "t" },
+        nameserver: { type: "string", short: "n" },
+        short: { type: "boolean", default: false },
+        json: { type: "boolean", short: "j", default: false },
+        time: { type: "boolean", default: true },
+        "no-time": { type: "boolean", default: false },
+        reverse: { type: "boolean", short: "x", default: false },
+        doh: { type: "boolean", default: false },
+        "doh-url": { type: "string" },
+        all: { type: "boolean", default: false },
+        help: { type: "boolean", short: "h" },
+      },
+      allowPositionals: true,
+    });
+    values = parsed.values;
+    positionals = parsed.positionals;
+  } catch (err: any) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  }
 
   if (values.help) {
     printDoggoHelp();

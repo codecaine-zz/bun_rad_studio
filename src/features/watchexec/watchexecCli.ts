@@ -16,23 +16,32 @@ export function parseWatchexecArguments(args: string[]): WatchexecOptions {
   const parseableArgs = dashIndex !== -1 ? args.slice(0, dashIndex) : args;
   const commandAfterDash = dashIndex !== -1 ? args.slice(dashIndex + 1) : [];
 
-  const { values, positionals } = parseArgs({
-    args: parseableArgs,
-    options: {
-      watch: { type: "string", short: "w" },
-      exts: { type: "string", short: "e" },
-      ignore: { type: "string", short: "i" },
-      debounce: { type: "string", short: "d", default: "100" },
-      clear: { type: "boolean", short: "c", default: false },
-      restart: { type: "boolean", short: "r", default: true },
-      "no-restart": { type: "boolean", default: false },
-      postpone: { type: "boolean", short: "p", default: false },
-      filter: { type: "string", short: "f" },
-      shell: { type: "string", short: "s" },
-      help: { type: "boolean", short: "h" },
-    },
-    allowPositionals: true,
-  });
+  let values: Record<string, any>;
+  let positionals: string[];
+  try {
+    const parsed = parseArgs({
+      args: parseableArgs,
+      options: {
+        watch: { type: "string", short: "w" },
+        exts: { type: "string", short: "e" },
+        ignore: { type: "string", short: "i" },
+        debounce: { type: "string", short: "d", default: "100" },
+        clear: { type: "boolean", short: "c", default: false },
+        restart: { type: "boolean", short: "r", default: true },
+        "no-restart": { type: "boolean", default: false },
+        postpone: { type: "boolean", short: "p", default: false },
+        filter: { type: "string", short: "f" },
+        shell: { type: "string", short: "s" },
+        help: { type: "boolean", short: "h" },
+      },
+      allowPositionals: true,
+    });
+    values = parsed.values;
+    positionals = parsed.positionals;
+  } catch (err: any) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  }
 
   if (values.help) {
     printWatchexecHelp();
@@ -46,7 +55,9 @@ export function parseWatchexecArguments(args: string[]): WatchexecOptions {
   }
 
   const extensions = values.exts
-    ? values.exts.split(",").map((s) => s.trim().replace(/^\./, ""))
+    ? String(values.exts)
+        .split(",")
+        .map((s: string) => s.trim().replace(/^\./, ""))
     : undefined;
 
   const defaultIgnores = [
@@ -57,15 +68,21 @@ export function parseWatchexecArguments(args: string[]): WatchexecOptions {
     "build",
   ];
   const userIgnores = values.ignore
-    ? values.ignore.split(",").map((s) => s.trim())
+    ? String(values.ignore)
+        .split(",")
+        .map((s: string) => s.trim())
     : [];
   const ignorePatterns = [...defaultIgnores, ...userIgnores];
   const filterPatterns = values.filter
-    ? values.filter.split(",").map((s) => s.trim())
+    ? String(values.filter)
+        .split(",")
+        .map((s: string) => s.trim())
     : undefined;
 
   const watchPaths = values.watch
-    ? values.watch.split(",").map((s) => s.trim())
+    ? String(values.watch)
+        .split(",")
+        .map((s: string) => s.trim())
     : ["."];
   const debounceMs = parseInt(values.debounce ?? "100", 10);
   const restart = values["no-restart"] ? false : (values.restart ?? true);

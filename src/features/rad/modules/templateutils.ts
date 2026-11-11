@@ -130,16 +130,48 @@ function parseNodes(
   return { nodes, alt };
 }
 
+const UNSAFE_TEMPLATE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+function hasSafeProperty(obj: unknown, key: string): boolean {
+  if (obj === null || obj === undefined || UNSAFE_TEMPLATE_KEYS.has(key)) {
+    return false;
+  }
+  if (typeof obj === "string" || Array.isArray(obj)) {
+    if (key === "length") return true;
+    if (/^\d+$/.test(key)) {
+      const idx = Number(key);
+      return idx >= 0 && idx < obj.length;
+    }
+  }
+  if (typeof obj === "object") {
+    return Object.hasOwn(obj, key);
+  }
+  return false;
+}
+
 function lookup(scope: Scope, path: string): unknown {
   const top = scope[scope.length - 1]!;
   if (path === "this" || path === ".") return top.data;
-  if (path.startsWith("@")) return top.meta[path.slice(1)];
+  if (path.startsWith("@")) {
+    const metaKey = path.slice(1);
+    return UNSAFE_TEMPLATE_KEYS.has(metaKey) ||
+      !Object.hasOwn(top.meta, metaKey)
+      ? undefined
+      : top.meta[metaKey];
+  }
   const strict = path.startsWith("this.");
   const keys = (strict ? path.slice(5) : path).split(".");
+  if (keys.some((k) => UNSAFE_TEMPLATE_KEYS.has(k))) return undefined;
   for (let s = scope.length - 1; s >= (strict ? scope.length - 1 : 0); s--) {
     let cur: any = scope[s]!.data;
-    if (cur == null || !(keys[0]! in Object(cur))) continue;
-    for (const k of keys) cur = cur == null ? undefined : cur[k];
+    if (!hasSafeProperty(cur, keys[0]!)) continue;
+    for (const k of keys) {
+      if (!hasSafeProperty(cur, k)) {
+        cur = undefined;
+        break;
+      }
+      cur = cur[k];
+    }
     return cur;
   }
   return undefined;
@@ -156,8 +188,13 @@ function applyPipes(
 ): unknown {
   let v = value;
   for (const p of pipes) {
-    if (filters[p]) v = filters[p]!(v);
-    else if (v === undefined || v === null)
+    if (
+      !UNSAFE_TEMPLATE_KEYS.has(p) &&
+      Object.hasOwn(filters, p) &&
+      typeof filters[p] === "function"
+    ) {
+      v = filters[p]!(v);
+    } else if (v === undefined || v === null)
       v = p.replace(/^(["'])(.*)\1$/, "$2");
   }
   return v;

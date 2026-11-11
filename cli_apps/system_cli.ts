@@ -185,6 +185,7 @@ async function main() {
     const res = await executeSiMethod(targetMethod, methodParam || undefined);
     if (isJson) {
       console.log(JSON.stringify(res, null, 2));
+      if (!res.success) process.exit(1);
     } else {
       if (res.success) {
         app.success(
@@ -193,6 +194,7 @@ async function main() {
         console.log(JSON.stringify(res.data, null, 2));
       } else {
         app.error(`Execution failed for '${targetMethod}': ${res.error}`);
+        process.exit(1);
       }
     }
     return;
@@ -207,7 +209,7 @@ async function main() {
       app.error(
         `No category matching '${targetCategory}'. Use --list-apis to see available categories.`,
       );
-      return;
+      process.exit(1);
     }
     const category = methods[0]!.category;
     app.info(`Running ${methods.length} methods in category '${category}'...`);

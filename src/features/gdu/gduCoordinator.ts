@@ -33,6 +33,7 @@ export async function analyzeDirectory(
     options.noHidden ?? false,
     0,
     options.maxDepth,
+    options.noCross ?? false,
   );
 }
 
@@ -49,6 +50,7 @@ export function analyzeDirectorySync(options: GduOptions): DiskUsageItem {
     options.noHidden ?? false,
     0,
     options.maxDepth,
+    options.noCross ?? false,
   );
 }
 

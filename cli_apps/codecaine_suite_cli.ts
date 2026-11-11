@@ -87,16 +87,39 @@ function printHelp() {
 }
 
 /**
- * Finds the project root directory whether running from in-repo or Homebrew libexec.
+ * Verifies that a candidate directory is an authentic `bun_rad_studio` suite installation root.
  */
-function getProjectRoot(): string {
+export function isValidSuiteProjectRoot(candidate: string): boolean {
+  if (!candidate) return false;
+  try {
+    const pkgPath = join(candidate, "package.json");
+    if (!existsSync(pkgPath)) return false;
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as { name?: unknown };
+    return (
+      pkg?.name === "bun_rad_studio" && existsSync(join(candidate, "cli_apps"))
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Finds the project root directory whether running from in-repo or Homebrew libexec.
+ * Checks `CODECAINE_HOME` and binary-adjacent directories before falling back to `process.cwd()`,
+ * verifying `package.json` `"name": "bun_rad_studio"` to prevent CWD hijacking.
+ */
+export function getProjectRoot(
+  cwdOverride?: string,
+  envHomeOverride?: string,
+): string {
+  const envHome = envHomeOverride ?? process.env.CODECAINE_HOME ?? "";
   const candidates = [
+    envHome ? resolve(envHome) : "",
     resolve(import.meta.dir, ".."),
-    process.cwd(),
-    process.env.CODECAINE_HOME ?? "",
+    resolve(cwdOverride ?? process.cwd()),
   ];
   for (const c of candidates) {
-    if (c && existsSync(join(c, "package.json"))) {
+    if (c && isValidSuiteProjectRoot(c)) {
       return c;
     }
   }
@@ -616,7 +639,9 @@ async function handleBrewSubcommand(subArgs: string[]) {
   }
 }
 
-main().catch((err) => {
-  console.error("Fatal error in codecaine CLI:", err);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((err) => {
+    console.error("Fatal error in codecaine CLI:", err);
+    process.exit(1);
+  });
+}

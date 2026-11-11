@@ -4,7 +4,7 @@
  */
 import { rmSync, lstatSync, readdirSync } from "node:fs";
 import { lstat, readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import type {
   DiskUsageItem,
   GduOptions,
@@ -114,18 +114,30 @@ export function deleteDiskItem(targetPath: string): void {
 
 // Doer: launch default operating system handler for file or directory
 /**
- * Opens `targetPath` in the operating system's default application (`open` on macOS, `xdg-open` on Linux, `cmd /c start` on Windows).
+ * Opens `targetPath` in the operating system's default application (`open` on macOS, `xdg-open` on Linux, PowerShell `Invoke-Item -LiteralPath` on Windows).
  */
 export function openItemInDefaultApp(targetPath: string): void {
+  if (!targetPath || targetPath.includes("\0")) return;
   try {
+    const absPath = resolve(targetPath);
     if (process.platform === "win32") {
-      Bun.spawn(["cmd", "/c", "start", "", targetPath], {
-        stdout: "ignore",
-        stderr: "ignore",
-      });
+      Bun.spawn(
+        [
+          "powershell.exe",
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          "Invoke-Item -LiteralPath $env:GDU_TARGET",
+        ],
+        {
+          env: { ...process.env, GDU_TARGET: absPath },
+          stdout: "ignore",
+          stderr: "ignore",
+        },
+      );
     } else {
       const cmd = process.platform === "darwin" ? "open" : "xdg-open";
-      Bun.spawn([cmd, targetPath], { stdout: "ignore", stderr: "ignore" });
+      Bun.spawn([cmd, absPath], { stdout: "ignore", stderr: "ignore" });
     }
   } catch {
     // Ignore if opener is unavailable in headless environments
@@ -142,8 +154,22 @@ export async function scanItem(
   noHidden: boolean = false,
   depth: number = 0,
   maxDepth?: number,
+  noCross: boolean = false,
+  rootDev?: number,
 ): Promise<DiskUsageItem> {
   const s = await lstat(itemPath);
+  const currentRootDev = rootDev ?? s.dev;
+  if (noCross && depth > 0 && s.dev !== currentRootDev) {
+    return {
+      name,
+      path: itemPath,
+      size: 0,
+      itemCount: 0,
+      isDirectory: s.isDirectory(),
+      mtime: s.mtime,
+      children: s.isDirectory() ? [] : undefined,
+    };
+  }
   if (!s.isDirectory()) {
     return {
       name,
@@ -178,6 +204,8 @@ export async function scanItem(
               noHidden,
               depth + 1,
               maxDepth,
+              noCross,
+              currentRootDev,
             );
           } catch {
             return null;
@@ -219,6 +247,8 @@ export function scanItemSync(
   noHidden: boolean = false,
   depth: number = 0,
   maxDepth?: number,
+  noCross: boolean = false,
+  rootDev?: number,
 ): DiskUsageItem {
   let s;
   try {
@@ -231,6 +261,19 @@ export function scanItemSync(
       itemCount: 1,
       isDirectory: false,
       mtime: new Date(),
+    };
+  }
+
+  const currentRootDev = rootDev ?? s.dev;
+  if (noCross && depth > 0 && s.dev !== currentRootDev) {
+    return {
+      name,
+      path: itemPath,
+      size: 0,
+      itemCount: 0,
+      isDirectory: s.isDirectory(),
+      mtime: s.mtime,
+      children: s.isDirectory() ? [] : undefined,
     };
   }
 
@@ -266,6 +309,8 @@ export function scanItemSync(
             noHidden,
             depth + 1,
             maxDepth,
+            noCross,
+            currentRootDev,
           );
           totalSize += child.size;
           totalCount += child.itemCount;
