@@ -923,6 +923,12 @@ export function createTaskTracker(
       `Active Port Listeners: ${tel.portListenersCount} services`,
     );
     win.setText("lbl_sysload", systemLine(tel));
+    win.setText("btn_cat_all", `🌐 All (${tel.total})`);
+    win.setText("btn_cat_user", `👤 User Apps (${tel.userCount})`);
+    win.setText(
+      "btn_cat_ports",
+      `🔌 Port Listeners (${tel.portListenersCount})`,
+    );
     win.setStatus(
       `Monitoring ${tel.total} active processes | Category: ${currentCategory.toUpperCase()}`,
     );
@@ -1643,10 +1649,23 @@ export function createTaskTracker(
                 if (elCpu) elCpu.textContent = "Top CPU: " + ((tel.topCpuProc && tel.topCpuProc.name) || "N/A") + " (" + ((tel.topCpuProc && tel.topCpuProc.cpu) || 0) + "%)";
                 const elPorts = document.getElementById("lbl_ports_active");
                 if (elPorts) elPorts.textContent = "Active Port Listeners: " + tel.portListenersCount + " services";
+                const elSysload = document.getElementById("lbl_sysload");
+                if (elSysload && payload.sysload) elSysload.textContent = payload.sysload;
+                const elBtnAll = document.getElementById("btn_cat_all");
+                if (elBtnAll) elBtnAll.textContent = "🌐 All (" + tel.total + ")";
+                const elBtnUser = document.getElementById("btn_cat_user");
+                if (elBtnUser) elBtnUser.textContent = "👤 User Apps (" + tel.userCount + ")";
+                const elBtnPorts = document.getElementById("btn_cat_ports");
+                if (elBtnPorts) elBtnPorts.textContent = "🔌 Port Listeners (" + tel.portListenersCount + ")";
               }
               window.applyClientSideTableFilter();
             })
             .catch(function() {});
+        }
+
+        if (location.protocol === "http:" || location.protocol === "https:") {
+          const refreshBtn = document.getElementById("btn_refresh");
+          if (refreshBtn) refreshBtn.addEventListener("click", hydrateFromHttpApi);
         }
 
         const initialTbody = container.querySelector("tbody");
@@ -1722,7 +1741,7 @@ export function startTaskManagerServer(options: ServerOptions = {}) {
         const procs = fetchProcesses();
         const tel = computeTelemetry(procs);
         return Response.json(
-          { processes: procs, telemetry: tel },
+          { processes: procs, telemetry: tel, sysload: systemLine(tel) },
           { headers: corsHeaders },
         );
       }
