@@ -5,7 +5,7 @@ class CodecaineUtilitySuite < Formula
   desc "Comprehensive RAD GUI desktop studio applications and CLI utility suite for macOS and Linux"
   homepage "https://github.com/codecaine-zz/bun_rad_studio"
   url "https://github.com/codecaine-zz/bun_rad_studio.git", branch: "main"
-  version "1.5.3"
+  version "1.5.4"
   license "MIT"
   head "https://github.com/codecaine-zz/bun_rad_studio.git", branch: "main"
 

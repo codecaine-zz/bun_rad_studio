@@ -1,7 +1,7 @@
 /**
  * Regression suite for Slice 5 (Tooling, Packaging, Release Scripts, Test Harness, CI & Docs):
  *   - [V-QA-01]: jsdom UI test harness (`ui_harness.mjs` + `run_ui_suite.ts`) executes real assertions under Bun shim
- *   - [V-QA-02]: Homebrew Formula (`libexec/bin` `write_exec_script`, GTK4, v1.5.3), wrapper up-to-date check, portable installer loop
+ *   - [V-QA-02]: Homebrew Formula (`libexec/bin` `write_exec_script`, GTK4, package.json version), wrapper up-to-date check, portable installer loop
  *   - [V-QA-03]: Windows `run.ps1` PE `0x8664` check, no hardcoded user path, synced `NON_APP_MODULES`
  *   - [V-QA-12]: `release_publish.ts` asset preflight, auth lookup, dry-run safety, `GIT_TERMINAL_PROMPT=0` timeout, isolated run dirs
  *   - [V-QA-13]: CI cache + `fmt:check` + `showcase:check` gates
@@ -437,10 +437,10 @@ describe("[V-OPT-07], [V-OPT-14] & [V-QA-18] Incremental tsconfig, CI gates, tes
     expect(ci).toContain("bun audit || true");
   });
 
-  test("SECURITY.md and docs/security.md align on v1.5.3 support and private vulnerability reporting", () => {
+  test("SECURITY.md and docs/security.md align on current release support and private vulnerability reporting", () => {
     const secPolicy = readFileSync(join(ROOT, "SECURITY.md"), "utf8");
     const secDoc = readFileSync(join(ROOT, "docs", "security.md"), "utf8");
-    expect(secPolicy).toContain("v1.5.3");
+    expect(secPolicy).toContain(`v${readSuiteVersion()}`);
     expect(secPolicy).toContain("/security/advisories/new");
     expect(secPolicy).not.toContain("The project has no versioned releases.");
     expect(secDoc).toContain("[SECURITY.md](../SECURITY.md)");

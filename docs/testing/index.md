@@ -1,6 +1,6 @@
 # Testing
 
-The project's automated tests use Bun's built-in test runner (`bun test`). This page lists the commands, what they need, and what to expect. Current counts reflect **`v1.5.3` on Bun 1.4.4** (**278 test files**, **6,380+ tests**), alongside historical baseline notes from 13 October 2026 (Bun 1.4.2).
+The project's automated tests use Bun's built-in test runner (`bun test`). This page lists the commands, what they need, and what to expect. Current counts reflect **`v1.5.4` on Bun 1.4.4** (**282 test files**, **6,496 tests**: **6,147+ pass, ~349 skipped, 0 fail**), alongside historical baseline notes from 13 October 2026 (Bun 1.4.2).
 
 ## Contents
 
@@ -17,7 +17,7 @@ Run all commands from the repository root.
 
 | Command | What it does | Expected result (verified) |
 |---|---|---|
-| `bun test` | Runs every test file under `tests/` and `src/` | **`v1.5.3` (macOS, Bun 1.4.4): 6,030+ pass, ~349 skipped, 0 fail** across **278 files** (220,000+ `expect()` assertions). Skips are opt-in MySQL/PostgreSQL, Redis, live-network, or CI-gated native Terminal tests. |
+| `bun test` | Runs every test file under `tests/` and `src/` | **`v1.5.4` (macOS, Bun 1.4.4): 6,147+ pass, ~349 skipped, 0 fail** across **282 files** (224,800+ `expect()` assertions). Skips are opt-in MySQL/PostgreSQL, Redis, live-network, or CI-gated native Terminal tests. |
 | `bun run test:fast` | Runs independent test shards in parallel (`scripts/test_fast.ts`) and GUI/port-sensitive suites in a serial final bucket | Same coverage as `bun test` with lower wall-clock time on multi-core machines (`--shards=N` or `--dry-run` supported). |
 | `bun test tests/db/splitter.test.ts` | One file | `13 pass`, `0 fail` |
 | `bun run test:db` | Only the database-related tests | Runs SQLite, Workbench, codegen, and (when `TEST_MYSQL_URL` / `TEST_PG_URL` are set) live MySQL/PostgreSQL suites. |
@@ -60,7 +60,7 @@ Eight UI suites (`tests/word_search_page.node.mjs`, `tests/maze_generator_page.n
 
 ## Side effects to know about
 
-- A full `bun test` run leaves `git status` clean ([D-006](../documentation-maintenance/discrepancies.md#d-006), fixed). Interactive GUI tests (`tests/enterprise_gui_interactive.test.ts`, `tests/sys_utils_gui_interactive.test.ts`, `tests/subprocess_pipe_studio.test.ts`) bind ephemeral `127.0.0.1` listeners, stub `copyToClipboard`, and write exports only inside `mkdtempSync` temporary directories rather than `dist/`. The Homebrew test checks and idempotently verifies the `bin/` wrappers (`1.5.3`).
+- A full `bun test` run leaves `git status` clean ([D-006](../documentation-maintenance/discrepancies.md#d-006), fixed). Interactive GUI tests (`tests/enterprise_gui_interactive.test.ts`, `tests/sys_utils_gui_interactive.test.ts`, `tests/subprocess_pipe_studio.test.ts`) bind ephemeral `127.0.0.1` listeners, stub `copyToClipboard`, and write exports only inside `mkdtempSync` temporary directories rather than `dist/`. The Homebrew test checks and idempotently verifies the `bin/` wrappers (`1.5.4`).
 - The macro/codegen tests write to a temporary folder (`STUDIO_MACRO_STORE_DIR`), not to your real settings.
 - The OS-keychain test writes one entry under a unique test service name and deletes it again. On a machine without a credential store it falls back to checking the in-memory store.
 
