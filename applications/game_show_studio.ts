@@ -267,7 +267,7 @@ export class GameShowStudio {
 export const createGameShowApp = createGameShowStudio;
 export const startGameShowStudioServer = startGameShowServer;
 
-if (process.argv.includes("--server")) {
+if (import.meta.main && process.argv.includes("--server")) {
   const port = parseInt(
     process.env.GAME_SHOW_PORT || process.env.PORT || "0",
     10,

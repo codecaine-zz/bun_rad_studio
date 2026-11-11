@@ -326,9 +326,13 @@ export function createColorStudio(
     try {
       // The repo's design_tokens.css also carries the effects tokens and classes after its first :root block; keep them.
       const before = existsSync(outPath) ? readFileSync(outPath, "utf8") : "";
-      const rest = before.includes("/* fx:start")
-        ? before.slice(before.indexOf("\n}\n") + 3)
-        : "";
+      const closeMatch = before.match(/\r?\n\}\r?\n/);
+      const rest =
+        before.includes("/* fx:start") &&
+        closeMatch &&
+        closeMatch.index !== undefined
+          ? before.slice(closeMatch.index + closeMatch[0].length)
+          : "";
       writeFileSync(outPath, rest ? cssTokens + rest : cssTokens, "utf8");
       win.appendConsole(
         "color_console",

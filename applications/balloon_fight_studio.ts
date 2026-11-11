@@ -241,7 +241,7 @@ export class BalloonFightStudio {
 export const createBalloonFightApp = createBalloonFightStudio;
 export const startBalloonFightStudioServer = startBalloonFightServer;
 
-if (process.argv.includes("--server")) {
+if (import.meta.main && process.argv.includes("--server")) {
   const port = parseInt(
     process.env.PORT || process.env.BALLOON_FIGHT_PORT || "0",
     10,

@@ -16,7 +16,7 @@
 
 import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, realpathSync, statSync } from "fs";
 import { guardLocalRequest } from "../src/localGuard";
 import { injectGameMasterFx as rawInjectGameMasterFx } from "../src/shared/gameMasterFx";
 import {
@@ -150,7 +150,7 @@ ${getWindowShortcutsScript()}
 }
 
 export function startRampartServer(options: RampartServerOptions = {}) {
-  const port = options.port ?? APP_PORT;
+  const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
   const assetsDir = getRampartAssetsDir();
 
@@ -210,19 +210,52 @@ export function startRampartServer(options: RampartServerOptions = {}) {
         );
       }
 
-      const sanitized = pathname.replace(/^\/+/, "");
+      let decodedPath: string;
+      try {
+        decodedPath = decodeURIComponent(pathname);
+      } catch {
+        return new Response("Bad Request", {
+          status: 400,
+          headers: corsHeaders,
+        });
+      }
+      if (decodedPath.includes("\0")) {
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
+      }
+      const sanitized = decodedPath.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
       if (
         directCandidate !== assetsDir &&
         !directCandidate.startsWith(assetsDir + "/") &&
         !directCandidate.startsWith(assetsDir + "\\")
       ) {
-        return new Response("Forbidden", { status: 403 });
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), {
-          headers: corsHeaders,
-        });
+        try {
+          const realRoot = realpathSync(assetsDir);
+          const realTarget = realpathSync(directCandidate);
+          if (
+            realTarget !== realRoot &&
+            !realTarget.startsWith(realRoot + "/") &&
+            !realTarget.startsWith(realRoot + "\\")
+          ) {
+            return new Response("Forbidden", {
+              status: 403,
+              headers: corsHeaders,
+            });
+          }
+          if (statSync(realTarget).isFile()) {
+            return new Response(Bun.file(realTarget), {
+              headers: corsHeaders,
+            });
+          }
+        } catch {
+          return new Response("Forbidden", {
+            status: 403,
+            headers: corsHeaders,
+          });
+        }
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -335,11 +368,16 @@ export class RampartStudio {
 export const createRampartApp = createRampartStudio;
 export const startRampartStudioServer = startRampartServer;
 
-if (process.argv.includes("--server")) {
-  const port = parseInt(
-    process.env.RAMPART_PORT || process.env.PORT || String(APP_PORT),
-    10,
-  );
+if (import.meta.main && process.argv.includes("--server")) {
+  const port = (() => {
+    const idx = process.argv.indexOf("--port");
+    const cli = idx !== -1 ? Number(process.argv[idx + 1]) : NaN;
+    if (Number.isFinite(cli) && cli > 0) return cli;
+    const envSpecific = Number(process.env.RAMPART_PORT);
+    if (Number.isFinite(envSpecific) && envSpecific > 0) return envSpecific;
+    const envPort = Number(process.env.PORT);
+    return Number.isFinite(envPort) && envPort > 0 ? envPort : 0;
+  })();
   const srv = startRampartServer({ port, host: "127.0.0.1" });
   console.log(`READY:${srv.port}`);
   console.log(

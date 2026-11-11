@@ -247,7 +247,7 @@ export class BejeweledStudio {
 export const createBejeweledApp = createBejeweledStudio;
 export const startBejeweledStudioServer = startBejeweledServer;
 
-if (process.argv.includes("--server")) {
+if (import.meta.main && process.argv.includes("--server")) {
   const port = parseInt(
     process.env.BEJEWELED_PORT || process.env.PORT || "0",
     10,

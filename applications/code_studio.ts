@@ -22,7 +22,15 @@ import {
   prettify as prettifyCode,
 } from "../src/shared/code_prettify";
 import type { SizeHint, Webview } from "webview-bun";
-import { resolve, join, relative, dirname, isAbsolute, sep } from "path";
+import {
+  resolve,
+  join,
+  relative,
+  dirname,
+  basename,
+  isAbsolute,
+  sep,
+} from "path";
 import { guardLocalRequest } from "../src/localGuard";
 import {
   existsSync,
@@ -31,9 +39,13 @@ import {
   mkdirSync,
   unlinkSync,
   statSync,
+  lstatSync,
+  realpathSync,
+  readlinkSync,
   readdirSync,
   renameSync,
   rmSync,
+  promises as fsp,
 } from "fs";
 import {
   setAlwaysOnTopNative,
@@ -231,50 +243,84 @@ export function isBinaryPath(path: string): boolean {
   return dot >= 0 && BINARY_EXTENSIONS.has(path.slice(dot).toLowerCase());
 }
 
-/**
- * Recursively scans a workspace directory and builds a safe file tree.
- */
-function scanWorkspace(
-  rootDir: string,
-  currentDir: string = rootDir,
-  maxDepth = 4,
-  depth = 0,
-): Array<{
+const IGNORED_DIRS = new Set([
+  "node_modules",
+  ".git",
+  ".DS_Store",
+  ".gemini",
+  "dist",
+  "build",
+  "release",
+  "out",
+  "target",
+  ".next",
+  ".venv",
+  "venv",
+  ".cache",
+  ".tempmediaStorage",
+  "coverage",
+]);
+
+function readGitignoreDirRules(rootDir: string): {
+  topDirs: Set<string>;
+  relDirs: Set<string>;
+} {
+  const topDirs = new Set<string>();
+  const relDirs = new Set<string>();
+  try {
+    const giPath = join(rootDir, ".gitignore");
+    if (!existsSync(giPath)) return { topDirs, relDirs };
+    const raw = readFileSync(giPath, "utf8");
+    for (const rawLine of raw.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line || line.startsWith("#") || line.startsWith("!")) continue;
+      if (!line.endsWith("/")) continue;
+      if (/[*?[\]]/.test(line)) continue;
+      const cleaned = line.replace(/^\/+|\/+$/g, "");
+      if (!cleaned) continue;
+      if (!cleaned.includes("/")) {
+        topDirs.add(cleaned);
+      } else {
+        relDirs.add(cleaned);
+      }
+    }
+  } catch {}
+  return { topDirs, relDirs };
+}
+
+type ScannedEntry = {
   path: string;
   name: string;
   size: number;
   isDirectory: boolean;
   modified: number;
-}> {
-  if (depth > maxDepth || !existsSync(currentDir)) return [];
+};
 
-  const results: Array<{
-    path: string;
-    name: string;
-    size: number;
-    isDirectory: boolean;
-    modified: number;
-  }> = [];
-  const ignored = new Set([
-    "node_modules",
-    ".git",
-    ".DS_Store",
-    ".gemini",
-    "dist",
-    "build",
-    ".tempmediaStorage",
-    "coverage",
-  ]);
+function scanWorkspaceInto(
+  rootDir: string,
+  currentDir: string,
+  maxDepth: number,
+  depth: number,
+  giRules: { topDirs: Set<string>; relDirs: Set<string> },
+  results: ScannedEntry[],
+): void {
+  if (depth > maxDepth || !existsSync(currentDir)) return;
 
   try {
     const entries = readdirSync(currentDir, { withFileTypes: true });
     for (const entry of entries) {
-      if (ignored.has(entry.name) || entry.name.startsWith(".")) continue;
+      if (IGNORED_DIRS.has(entry.name) || entry.name.startsWith(".")) continue;
+      if (giRules.topDirs.has(entry.name)) continue;
 
       const fullPath = join(currentDir, entry.name);
       const relPath = relative(rootDir, fullPath);
+      const normRel = relPath.split(sep).join("/");
+      if (giRules.relDirs.has(normRel)) continue;
 
       try {
+        if (entry.isSymbolicLink() && !isInsideWorkspace(rootDir, fullPath)) {
+          continue;
+        }
         const stat = statSync(fullPath);
         if (entry.isDirectory()) {
           results.push({
@@ -284,14 +330,15 @@ function scanWorkspace(
             isDirectory: true,
             modified: stat.mtimeMs,
           });
-          const children = scanWorkspace(
+          scanWorkspaceInto(
             rootDir,
             fullPath,
             maxDepth,
             depth + 1,
+            giRules,
+            results,
           );
-          results.push(...children);
-        } else {
+        } else if (stat.isFile()) {
           results.push({
             path: relPath,
             name: entry.name,
@@ -303,17 +350,73 @@ function scanWorkspace(
       } catch {}
     }
   } catch {}
+}
 
+/**
+ * Recursively scans a workspace directory and builds a safe file tree.
+ */
+function scanWorkspace(
+  rootDir: string,
+  currentDir: string = rootDir,
+  maxDepth = 4,
+  depth = 0,
+): ScannedEntry[] {
+  const results: ScannedEntry[] = [];
+  const giRules = readGitignoreDirRules(rootDir);
+  scanWorkspaceInto(rootDir, currentDir, maxDepth, depth, giRules, results);
   return results;
 }
 
-/** True when `target` is `root` itself or lies inside it (a plain prefix check wrongly accepts `/ws-evil` for `/ws`). */
-export function isInsideWorkspace(root: string, target: string): boolean {
-  const rel = relative(root, target);
+function isLexicallyInside(root: string, target: string): boolean {
+  const rel = relative(resolve(root), resolve(target));
   return (
     rel === "" ||
     (rel !== ".." && !rel.startsWith(".." + sep) && !isAbsolute(rel))
   );
+}
+
+function canonicalizePath(targetPath: string, hopsLeft = 16): string | null {
+  if (hopsLeft <= 0) return null;
+  const abs = resolve(targetPath);
+  const tail: string[] = [];
+  let cur = abs;
+  while (true) {
+    try {
+      const real = realpathSync(cur);
+      return tail.length > 0 ? join(real, ...tail.reverse()) : real;
+    } catch (err: any) {
+      const code = err?.code;
+      if (code && code !== "ENOENT" && code !== "ENOTDIR") {
+        return null;
+      }
+      // Check if `cur` itself is a dangling symlink pointing elsewhere
+      try {
+        const lst = lstatSync(cur);
+        if (lst.isSymbolicLink()) {
+          const linkTarget = readlinkSync(cur);
+          const nextTarget = resolve(dirname(cur), linkTarget);
+          const resolvedLink = canonicalizePath(nextTarget, hopsLeft - 1);
+          if (!resolvedLink) return null;
+          return tail.length > 0
+            ? join(resolvedLink, ...tail.reverse())
+            : resolvedLink;
+        }
+      } catch {}
+      const parent = dirname(cur);
+      if (parent === cur) return abs;
+      tail.push(basename(cur));
+      cur = parent;
+    }
+  }
+}
+
+/** True when `target` is `root` itself or lies inside it (enforcing both lexical and realpath symlink containment). */
+export function isInsideWorkspace(root: string, target: string): boolean {
+  if (!isLexicallyInside(root, target)) return false;
+  const realRoot = canonicalizePath(root);
+  const realTarget = canonicalizePath(target);
+  if (!realRoot || !realTarget) return false;
+  return isLexicallyInside(realRoot, realTarget);
 }
 
 function escapeRegExp(s: string): string {
@@ -419,7 +522,11 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           const matchCase = Boolean(body.matchCase);
           const wholeWord = Boolean(body.wholeWord);
           const isRegex = Boolean(body.isRegex);
-          const maxResults = body.maxResults || 300;
+          const rawMax = Number(body.maxResults);
+          const maxResults =
+            Number.isFinite(rawMax) && rawMax > 0
+              ? Math.min(Math.floor(rawMax), 5000)
+              : 300;
 
           let regexFlags = matchCase ? "g" : "gi";
           let regex: RegExp;
@@ -438,22 +545,70 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
             );
           }
 
+          // Semantics-preserving whole-file pre-filter (zero false negatives across LF/CRLF/anchors/case)
+          const canPlainIncludes =
+            !isRegex && !wholeWord && matchCase && !query.includes("\n");
+          let precheckRegex: RegExp | null = null;
+          if (!canPlainIncludes) {
+            if (!isRegex) {
+              precheckRegex = new RegExp(
+                wholeWord
+                  ? `\\b${escapeRegExp(query)}\\b`
+                  : escapeRegExp(query),
+                matchCase ? "" : "i",
+              );
+            } else if (!/\(\?[<!=]/.test(query)) {
+              try {
+                precheckRegex = new RegExp(query, matchCase ? "m" : "mi");
+              } catch {
+                precheckRegex = null;
+              }
+            }
+          }
+
           const scanned = scanWorkspace(workspaceRoot, workspaceRoot, 6);
+          const candidates = scanned.filter(
+            (item) =>
+              !item.isDirectory &&
+              item.size <= 1024 * 1024 &&
+              !isBinaryPath(item.path),
+          );
           const fileResults: Array<{
             path: string;
             matches: Array<{ line: number; col: number; snippet: string }>;
           }> = [];
           let totalMatches = 0;
+          const BATCH_SIZE = 32;
 
-          for (const item of scanned) {
-            if (item.isDirectory) continue;
-            if (item.size > 1024 * 1024) continue;
-            if (isBinaryPath(item.path)) continue;
+          for (
+            let offset = 0;
+            offset < candidates.length && totalMatches < maxResults;
+            offset += BATCH_SIZE
+          ) {
+            const batch = candidates.slice(offset, offset + BATCH_SIZE);
+            const loaded = await Promise.all(
+              batch.map(async (item) => {
+                const fullPath = resolve(workspaceRoot, item.path);
+                if (!isInsideWorkspace(workspaceRoot, fullPath)) return null;
+                try {
+                  const content = await fsp.readFile(fullPath, "utf8");
+                  return { item, content };
+                } catch {
+                  return null;
+                }
+              }),
+            );
 
-            const fullPath = resolve(workspaceRoot, item.path);
-            try {
-              const content = readFileSync(fullPath, "utf8");
-              if (content.includes("\0")) continue; // skip binary
+            for (const entry of loaded) {
+              if (!entry) continue;
+              const { item, content } = entry;
+              if (content.includes("\0")) continue;
+
+              if (canPlainIncludes) {
+                if (!content.includes(query)) continue;
+              } else if (precheckRegex !== null) {
+                if (!precheckRegex.test(content)) continue;
+              }
 
               const lines = content.split("\n");
               const matches: Array<{
@@ -475,6 +630,10 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
                   totalMatches++;
                   if (totalMatches >= maxResults) break;
                   if (!regex.global) break;
+                  if (m[0].length === 0) {
+                    if (m.index >= lineText.length) break;
+                    regex.lastIndex = m.index + 1;
+                  }
                 }
                 if (totalMatches >= maxResults) break;
               }
@@ -483,7 +642,7 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
                 fileResults.push({ path: item.path, matches });
               }
               if (totalMatches >= maxResults) break;
-            } catch {}
+            }
           }
 
           return Response.json(
@@ -655,7 +814,8 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
           const targetPath = resolve(workspaceRoot, body.path);
           if (
             !isInsideWorkspace(workspaceRoot, targetPath) ||
-            targetPath === workspaceRoot
+            targetPath === workspaceRoot ||
+            canonicalizePath(targetPath) === canonicalizePath(workspaceRoot)
           ) {
             return Response.json(
               { success: false, error: "Access denied" },
@@ -663,12 +823,15 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
             );
           }
 
-          if (existsSync(targetPath)) {
-            const stat = statSync(targetPath);
-            if (stat.isDirectory()) {
-              rmSync(targetPath, { recursive: true, force: true });
-            } else {
+          let lst: ReturnType<typeof lstatSync> | null = null;
+          try {
+            lst = lstatSync(targetPath);
+          } catch {}
+          if (lst) {
+            if (lst.isSymbolicLink() || !lst.isDirectory()) {
               unlinkSync(targetPath);
+            } else {
+              rmSync(targetPath, { recursive: true, force: true });
             }
           }
 
@@ -819,18 +982,33 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
               ? Math.min(Number(body.timeoutMs), 120000)
               : 30000;
           let timedOut = false;
+          let killResolve: (() => void) | null = null;
+          const timeoutBarrier = new Promise<void>((res) => {
+            killResolve = res;
+          });
           const timer = setTimeout(() => {
             timedOut = true;
             try {
-              proc.kill();
-            } catch {}
+              proc.kill(9);
+            } catch {
+              try {
+                proc.kill();
+              } catch {}
+            }
+            setTimeout(() => killResolve?.(), 200);
           }, execTimeoutMs);
 
-          const [stdout, stderr, exitCode] = await Promise.all([
-            new Response(proc.stdout).text(),
-            new Response(proc.stderr).text(),
-            proc.exited,
+          const collected = await Promise.race([
+            Promise.all([
+              new Response(proc.stdout).text(),
+              new Response(proc.stderr).text(),
+              proc.exited,
+            ]),
+            timeoutBarrier.then(
+              () => ["", "", 124] as [string, string, number],
+            ),
           ]);
+          const [stdout, stderr, exitCode] = collected;
           clearTimeout(timer);
           const durationMs = Math.round(performance.now() - startTime);
 
@@ -856,20 +1034,27 @@ export function startCodeStudioServer(options: CodeServerOptions = {}) {
       }
 
       // Fallback: static file in assets directory
-      const sanitized = pathname.replace(/^\/+/, "");
-      const directCandidate = join(assetsDir, sanitized);
-      if (
-        directCandidate !== assetsDir &&
-        !directCandidate.startsWith(assetsDir + "/") &&
-        !directCandidate.startsWith(assetsDir + "\\")
-      ) {
-        return new Response("Forbidden", { status: 403 });
-      }
-      if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), {
+      let decodedPath = pathname;
+      try {
+        decodedPath = decodeURIComponent(pathname);
+      } catch {
+        return new Response("Bad Request", {
+          status: 400,
           headers: corsHeaders,
         });
       }
+      const sanitized = decodedPath.replace(/^\/+/, "");
+      const directCandidate = resolve(assetsDir, sanitized);
+      if (!isInsideWorkspace(assetsDir, directCandidate)) {
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
+      }
+      try {
+        if (existsSync(directCandidate) && statSync(directCandidate).isFile()) {
+          return new Response(Bun.file(directCandidate), {
+            headers: corsHeaders,
+          });
+        }
+      } catch {}
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
     },
@@ -902,17 +1087,71 @@ export function createCodeStudio(
       console.log("⚡ Launching NovaCode Studio Pro...");
       const html = generateCodeStudioHtml();
 
+      let childProc: ReturnType<typeof Bun.spawn> | null = null;
       let srv: any = null;
+      const stopBackend = () => {
+        try {
+          childProc?.kill();
+        } catch {}
+        try {
+          srv?.stop();
+        } catch {}
+      };
+
       try {
-        srv = startCodeStudioServer({
-          port: options.port ?? 0,
-          host: options.host ?? "127.0.0.1",
-          workspaceRoot,
-        });
-        app.server = srv;
-        app.port = srv.port;
-        app.url = `http://127.0.0.1:${srv.port}`;
-        console.log(`⚡ Background workstation server active at: ${app.url}`);
+        const proc = Bun.spawn(
+          [
+            process.execPath,
+            import.meta.path,
+            "--server",
+            "--port",
+            String(options.port ?? 0),
+            "--workspace",
+            workspaceRoot,
+          ],
+          {
+            cwd: workspaceRoot,
+            stdout: "pipe",
+            stderr: "inherit",
+          },
+        );
+        childProc = proc;
+        const reader = proc.stdout.getReader();
+        const decoder = new TextDecoder();
+        let buf = "";
+        let resolvedPort = 0;
+        const announceRe =
+          /READY:(\d+)|running at:? http:\/\/127\.0\.0\.1:(\d+)/;
+        const deadline = Date.now() + 8000;
+        while (Date.now() < deadline && !resolvedPort) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const m = announceRe.exec(buf);
+          if (m) resolvedPort = Number(m[1] ?? m[2]);
+        }
+        try {
+          reader.releaseLock();
+        } catch {}
+        if (resolvedPort > 0) {
+          app.port = resolvedPort;
+          app.url = `http://127.0.0.1:${resolvedPort}`;
+          console.log(`⚡ Background workstation server active at: ${app.url}`);
+        } else {
+          try {
+            proc.kill();
+          } catch {}
+          childProc = null;
+          srv = startCodeStudioServer({
+            port: options.port ?? 0,
+            host: options.host ?? "127.0.0.1",
+            workspaceRoot,
+          });
+          app.server = srv;
+          app.port = srv.port;
+          app.url = `http://127.0.0.1:${srv.port}`;
+          console.log(`⚡ Background workstation server active at: ${app.url}`);
+        }
       } catch (err: any) {
         console.warn("Local server note:", err?.message || err);
       }
@@ -938,15 +1177,11 @@ export function createCodeStudio(
 
         attachWindowShortcuts(webview, {
           onQuit: () => {
-            try {
-              srv?.stop();
-            } catch {}
+            stopBackend();
             process.exit(0);
           },
           onClose: () => {
-            try {
-              srv?.stop();
-            } catch {}
+            stopBackend();
             process.exit(0);
           },
           onFullscreen: () => {
@@ -955,27 +1190,31 @@ export function createCodeStudio(
           fullscreen,
         });
 
-        // Set HTML directly into Webview memory (bypasses macOS ATS network restrictions)
-        webview.setHTML(html);
+        if (app.url) {
+          webview.navigate(app.url);
+        } else {
+          webview.setHTML(html);
+        }
         console.log(
           `⚡ Desktop window open (Fullscreen: ${fullscreen ? "Enabled" : "Disabled"}).`,
         );
 
         webview.run();
-        try {
-          srv?.stop();
-        } catch {}
+        stopBackend();
         process.exit(0);
       } catch (err: any) {
         console.warn(
           `Desktop Webview unavailable (${err?.message || err}). Application running in browser at: ${app.url}`,
         );
+        process.on("SIGINT", () => {
+          stopBackend();
+          process.exit(0);
+        });
+        process.on("SIGTERM", () => {
+          stopBackend();
+          process.exit(0);
+        });
         await new Promise(() => {});
-      } finally {
-        try {
-          srv?.stop();
-        } catch {}
-        process.exit(0);
       }
     },
   };
@@ -988,17 +1227,27 @@ if (import.meta.main) {
   const args = process.argv.slice(2);
   const fullscreen = !args.includes("--windowed") && !args.includes("-w");
   const portFlagIdx = args.indexOf("--port");
-  const port = portFlagIdx !== -1 ? parseInt(args[portFlagIdx + 1]!, 10) : 9005;
+  const port = portFlagIdx !== -1 ? parseInt(args[portFlagIdx + 1]!, 10) : 0;
+  const wsFlagIdx = args.indexOf("--workspace");
+  const workspaceRoot =
+    wsFlagIdx !== -1 && args[wsFlagIdx + 1]
+      ? resolve(args[wsFlagIdx + 1]!)
+      : undefined;
   const serverOnly = args.includes("--server") || args.includes("-s");
 
   if (serverOnly) {
-    const srv = startCodeStudioServer({ port, host: "127.0.0.1" });
+    const srv = startCodeStudioServer({
+      port,
+      host: "127.0.0.1",
+      workspaceRoot,
+    });
+    console.log(`READY:${srv.port}`);
     console.log(
       `⚡ NovaCode Studio Pro server running at: http://127.0.0.1:${srv.port}/`,
     );
     await new Promise(() => {});
   } else {
-    const app = createCodeStudio({ fullscreen, port });
+    const app = createCodeStudio({ fullscreen, port, workspaceRoot });
     app.run();
   }
 }

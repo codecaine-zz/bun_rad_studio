@@ -17,7 +17,7 @@
 import { injectHelp } from "../src/shared/helpTips";
 import type { SizeHint, Webview } from "webview-bun";
 import { resolve, join } from "path";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, realpathSync, statSync } from "fs";
 import { guardLocalRequest } from "../src/localGuard";
 import {
   setAlwaysOnTopNative,
@@ -272,19 +272,52 @@ export function startPaintServer(options: PaintServerOptions = {}) {
       }
 
       // Fallback: static file in assets directory
-      const sanitized = pathname.replace(/^\/+/, "");
+      let decodedPath: string;
+      try {
+        decodedPath = decodeURIComponent(pathname);
+      } catch {
+        return new Response("Bad Request", {
+          status: 400,
+          headers: corsHeaders,
+        });
+      }
+      if (decodedPath.includes("\0")) {
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
+      }
+      const sanitized = decodedPath.replace(/^\/+/, "");
       const directCandidate = join(assetsDir, sanitized);
       if (
         directCandidate !== assetsDir &&
         !directCandidate.startsWith(assetsDir + "/") &&
         !directCandidate.startsWith(assetsDir + "\\")
       ) {
-        return new Response("Forbidden", { status: 403 });
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
       }
       if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), {
-          headers: corsHeaders,
-        });
+        try {
+          const realRoot = realpathSync(assetsDir);
+          const realTarget = realpathSync(directCandidate);
+          if (
+            realTarget !== realRoot &&
+            !realTarget.startsWith(realRoot + "/") &&
+            !realTarget.startsWith(realRoot + "\\")
+          ) {
+            return new Response("Forbidden", {
+              status: 403,
+              headers: corsHeaders,
+            });
+          }
+          if (statSync(realTarget).isFile()) {
+            return new Response(Bun.file(realTarget), {
+              headers: corsHeaders,
+            });
+          }
+        } catch {
+          return new Response("Forbidden", {
+            status: 403,
+            headers: corsHeaders,
+          });
+        }
       }
 
       return new Response("Not Found", { status: 404, headers: corsHeaders });
@@ -401,11 +434,20 @@ if (import.meta.main) {
   const args = process.argv.slice(2);
   const fullscreen = !args.includes("--windowed") && !args.includes("-w");
   const portFlagIdx = args.indexOf("--port");
-  const port = portFlagIdx !== -1 ? parseInt(args[portFlagIdx + 1]!, 10) : 8999;
+  const parsedCliPort =
+    portFlagIdx !== -1 ? parseInt(args[portFlagIdx + 1]!, 10) : NaN;
+  const parsedEnvPort = process.env.PORT ? parseInt(process.env.PORT, 10) : NaN;
+  const port =
+    Number.isFinite(parsedCliPort) && parsedCliPort > 0
+      ? parsedCliPort
+      : Number.isFinite(parsedEnvPort) && parsedEnvPort > 0
+        ? parsedEnvPort
+        : 0;
   const serverOnly = args.includes("--server") || args.includes("-s");
 
   if (serverOnly) {
     const srv = startPaintServer({ port, host: "127.0.0.1" });
+    console.log(`READY:${srv.port}`);
     console.log(
       `🎨 Chroma Studio Pro server running at: http://127.0.0.1:${srv.port}/`,
     );

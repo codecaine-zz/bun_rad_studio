@@ -6578,7 +6578,7 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
           ${dirty
             .map(
               (path) => `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; background: var(--bg-hover); border-radius: 4px; margin-bottom: 4px; cursor: pointer;" onclick="openFile('${path}')">
+            <div class="git-dirty-file-item" data-git-path="${escapeHtml(path)}" style="display: flex; justify-content: space-between; align-items: center; padding: 5px 8px; background: var(--bg-hover); border-radius: 4px; margin-bottom: 4px; cursor: pointer;">
               <span>📄 ${escapeHtml(path)}</span>
               <span style="color: #e5c07b; font-size: 11px; font-weight: 600;">● M</span>
             </div>
@@ -6589,6 +6589,15 @@ echo "🚀 [4/4] Deployment of \${APP_NAME} (\${VERSION}) completed successfully
             💾 Save All Changes
           </button>
         `;
+
+          els.gitStatusContent
+            .querySelectorAll(".git-dirty-file-item")
+            .forEach((item) => {
+              item.addEventListener("click", () => {
+                const p = item.getAttribute("data-git-path");
+                if (p) openFile(p);
+              });
+            });
 
           const saveAllBtn = document.getElementById("btn-save-all-git");
           if (saveAllBtn) {

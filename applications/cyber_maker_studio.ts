@@ -263,7 +263,7 @@ export const CyberMakerStudio = createCyberMakerStudio;
 export const createCyberMakerApp = createCyberMakerStudio;
 export const startCyberMakerStudioServer = startCyberMakerServer;
 
-if (process.argv.includes("--server")) {
+if (import.meta.main && process.argv.includes("--server")) {
   const port = parseInt(
     process.env.CYBER_MAKER_PORT || process.env.PORT || "0",
     10,
