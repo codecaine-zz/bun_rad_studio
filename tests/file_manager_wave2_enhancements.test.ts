@@ -33,6 +33,7 @@ import {
   updateSettings,
 } from "../src/features/filemanager/fmSettings";
 import { extractArchive } from "../src/features/filemanager/fmExtract";
+import { createZip } from "../src/features/filemanager/fmZip";
 import {
   compareHash,
   normalizeHash,
@@ -730,7 +731,14 @@ describe("Codecaine File Manager — Wave 2 Flagship Enhancements (Backend + Cro
       sandboxRoot: tmpDir,
       dataDir: path.join(tmpDir, ".win-data"),
     });
-    expect(winCtx.home.startsWith("/")).toBe(true);
+    const posixSimWinCtx = createContext({
+      platform: "win32",
+      home: "/var/folders/posix-sim",
+      sandboxRoot: "/var/folders/posix-sim",
+      dataDir: path.join(tmpDir, ".win-sim-data"),
+    });
+    expect(posixSimWinCtx.home).toBe("/var/folders/posix-sim");
+    expect(winCtx.home).toBe(path.resolve(tmpDir));
     expect(existsSync(path.join(process.cwd(), "\\var"))).toBe(false);
 
     // %TEMP% expansion on win32 with non-host Windows home must NOT leak macOS/Linux TMPDIR (/var/folders/...)
@@ -742,41 +750,30 @@ describe("Codecaine File Manager — Wave 2 Flagship Enhancements (Backend + Cro
     );
     expect(winTemp).toBe("C:\\Users\\Alice\\AppData\\Local\\Temp\\build.log");
 
-    // (B) Case-insensitive collision safety in Smart Archive Extraction (Archive.tar vs existing archive.tar sibling)
+    // (B) Case-insensitive collision safety in Smart Archive Extraction (Archive.zip vs existing archive.zip sibling)
     const stageSingle = path.join(tmpDir, "stage-single", "Bundle");
     await fsp.mkdir(stageSingle, { recursive: true });
-    await fsp.writeFile(path.join(stageSingle, "Archive.tar"), "inner-payload");
+    await fsp.writeFile(path.join(stageSingle, "Archive.zip"), "inner-payload");
     const destExtract = path.join(tmpDir, "extract-dest");
     await fsp.mkdir(destExtract, { recursive: true });
     await fsp.writeFile(
-      path.join(destExtract, "archive.tar"),
+      path.join(destExtract, "archive.zip"),
       "existing-sibling",
     );
-    const outerTar = path.join(destExtract, "bundle.tar");
-    const tarBuild = Bun.spawnSync(
-      [
-        "/usr/bin/tar",
-        "-cf",
-        outerTar,
-        "-C",
-        path.join(tmpDir, "stage-single"),
-        "Bundle",
-      ],
-      { env: { ...process.env, COPYFILE_DISABLE: "1" } },
+    const createdZip = await createZip(ctx, [stageSingle], "bundle.zip");
+    const outerZip = path.join(destExtract, "bundle.zip");
+    await fsp.copyFile(createdZip.zipPath, outerZip);
+    const extracted = await extractArchive(
+      winCtx,
+      outerZip,
+      destExtract,
+      "smart",
     );
-    if (tarBuild.exitCode === 0) {
-      const extracted = await extractArchive(
-        winCtx,
-        outerTar,
-        destExtract,
-        "smart",
-      );
-      expect(extracted.files + extracted.folders).toBeGreaterThanOrEqual(1);
-      // Existing sibling must remain untouched even on case-insensitive APFS/NTFS
-      expect(
-        await fsp.readFile(path.join(destExtract, "archive.tar"), "utf8"),
-      ).toBe("existing-sibling");
-    }
+    expect(extracted.files + extracted.folders).toBeGreaterThanOrEqual(1);
+    // Existing sibling must remain untouched even on case-insensitive APFS/NTFS
+    expect(
+      await fsp.readFile(path.join(destExtract, "archive.zip"), "utf8"),
+    ).toBe("existing-sibling");
 
     // (C) >64 KiB .gz / .zst streaming decompressPrefix preview without ERR_BUFFER_TOO_LARGE
     const largeText =

@@ -665,7 +665,9 @@ describe("Slice 3: Non-FM Features (RAD, Rip, SD, Doggo, IPInfo, Theme Studio, W
       expect(sdRes.hasChanged).toBe(true);
       await writeContent(txtFile, sdRes.newContent);
       expect(readFileSync(txtFile, "utf-8")).toBe("price is $100 & $&");
-      expect(statSync(txtFile).mode & 0o777).toBe(0o640);
+      expect(statSync(txtFile).mode & 0o777).toBe(
+        process.platform === "win32" ? 0o666 : 0o640,
+      );
 
       const binFile = join(dir, "binary.bin");
       const binBytes = Buffer.from([0x00, 0x46, 0x4f, 0x4f, 0x00, 0xff]);

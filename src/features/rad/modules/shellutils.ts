@@ -52,22 +52,53 @@ export async function execCmd(
       stderr: "pipe",
     });
     let timedOut = false;
+    let resolveTimeout: (() => void) | null = null;
+    const timeoutPromise = new Promise<null>((resolve) => {
+      resolveTimeout = () => resolve(null);
+    });
     const timer = setTimeout(() => {
       timedOut = true;
+      const pid = proc.pid;
+      if (pid && pid > 0) {
+        if (process.platform === "win32") {
+          try {
+            Bun.spawnSync(["taskkill", "/PID", String(pid), "/T", "/F"], {
+              stdout: "ignore",
+              stderr: "ignore",
+              stdin: "ignore",
+              timeout: 1500,
+            });
+          } catch {}
+        } else {
+          try {
+            Bun.spawnSync(["pkill", "-KILL", "-P", String(pid)], {
+              stdout: "ignore",
+              stderr: "ignore",
+              stdin: "ignore",
+              timeout: 1000,
+            });
+          } catch {}
+        }
+      }
       try {
-        proc.kill();
+        proc.kill("SIGKILL");
       } catch {}
+      resolveTimeout?.();
     }, options.timeoutMs);
     timer.unref?.();
     try {
-      const [stdout, stderr, code] = await Promise.all([
-        new Response(proc.stdout).text(),
-        new Response(proc.stderr).text(),
-        proc.exited,
+      const raced = await Promise.race([
+        Promise.all([
+          new Response(proc.stdout).text(),
+          new Response(proc.stderr).text(),
+          proc.exited,
+        ]),
+        timeoutPromise,
       ]);
-      if (timedOut) {
+      if (timedOut || raced === null) {
+        const stderr = raced ? raced[1] : "";
         return {
-          stdout,
+          stdout: raced ? raced[0] : "",
           stderr: stderr
             ? `${stderr}\nCommand timed out after ${options.timeoutMs}ms`
             : `Command timed out after ${options.timeoutMs}ms`,
@@ -75,6 +106,7 @@ export async function execCmd(
           success: false,
         };
       }
+      const [stdout, stderr, code] = raced;
       return {
         stdout,
         stderr,

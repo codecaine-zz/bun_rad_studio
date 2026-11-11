@@ -9,6 +9,7 @@ import {
   chmodSync,
   mkdtempSync,
   promises as fsp,
+  realpathSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -445,7 +446,13 @@ if (PHP_SAPI === 'cli-server') {
 `;
 
 function createPhpHostGuardFile(): string {
-  const dir = mkdtempSync(nodePath.join(tmpdir(), "fm-php-guard-"));
+  let baseTmp = tmpdir();
+  try {
+    baseTmp = realpathSync.native
+      ? realpathSync.native(baseTmp)
+      : realpathSync(baseTmp);
+  } catch {}
+  const dir = mkdtempSync(nodePath.join(baseTmp, "fm-php-guard-"));
   try {
     chmodSync(dir, 0o755);
   } catch {}

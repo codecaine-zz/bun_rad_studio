@@ -969,12 +969,17 @@ describe("File Manager QA & UI Regressions (Slice 2)", () => {
   });
 
   test("[V-QA-07] & [V-QA-15] Vault scanSource Windows check, Redis sourceName clone, PG JSONB ?, and Windows terminal wsl getter", async () => {
-    // 1. Vault scanSource rejects Windows reserved device names inside folders
+    // 1. Vault scanSource rejects Windows reserved device names directly and inside folders
     const vaultRoot = makeTempRoot("fm-qa07-vault-");
     const badFolder = nodePath.join(vaultRoot, "project");
     fs.mkdirSync(badFolder, { recursive: true });
-    fs.writeFileSync(nodePath.join(badFolder, "CON.txt"), "reserved");
-    await expect(scanSource(badFolder)).rejects.toThrow();
+    await expect(
+      scanSource(nodePath.join(badFolder, "CON.txt")),
+    ).rejects.toThrow();
+    if (process.platform !== "win32") {
+      fs.writeFileSync(nodePath.join(badFolder, "CON.txt"), "reserved");
+      await expect(scanSource(badFolder)).rejects.toThrow();
+    }
 
     // 2. Redis -> SQLite clone preserves raw HGETALL field names (e.g. "profile:email")
     const cloneRoot = makeTempRoot("fm-qa07-clone-");

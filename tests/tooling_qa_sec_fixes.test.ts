@@ -22,6 +22,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { SimpleWindow } from "../src/simplegui";
 import { NON_APP_MODULES } from "../applications/launcher_studio";
 import {
@@ -89,7 +90,7 @@ describe("[V-QA-01] jsdom UI test harness & Bun shim resilience", () => {
 
       const passScript = join(dir, "real.node.mjs");
       const harnessUrl = JSON.stringify(
-        join(ROOT, "tests", "helpers", "ui_harness.mjs"),
+        pathToFileURL(join(ROOT, "tests", "helpers", "ui_harness.mjs")).href,
       );
       writeFileSync(
         passScript,

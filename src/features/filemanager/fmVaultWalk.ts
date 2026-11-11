@@ -88,7 +88,7 @@ async function* walk(
       const batchNames = names.slice(i, i + 64);
       const batchStats = await Promise.all(
         batchNames.map(async (name) => {
-          const problem = componentProblem(name);
+          const problem = componentProblem(name, "linux");
           if (problem) return { name, problem, abs: "", st: null };
           const abs = nodePath.join(dirAbs, name);
           try {
@@ -150,7 +150,6 @@ export async function scanSource(
   source: string,
   signal?: AbortSignal,
 ): Promise<ScanResult> {
-  const st = await fsp.lstat(source);
   const name = nodePath.basename(source);
   const problem = componentProblem(name) ?? componentProblem(name, "win32");
   if (problem)
@@ -158,6 +157,7 @@ export async function scanSource(
       "BAD_SOURCE",
       `"${short(name)}" can't be encrypted: it has ${problem}.`,
     );
+  const st = await fsp.lstat(source);
   if (st.isSymbolicLink())
     throw new VaultError(
       "BAD_SOURCE",
