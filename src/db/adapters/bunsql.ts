@@ -77,18 +77,23 @@ export abstract class BunSqlAdapter extends BaseAdapter {
   async connect(): Promise<void> {
     if (this.pool) return;
     const c = this.config;
-    const pool = new SQL({
-      adapter: this.engine,
-      hostname: c.host ?? "localhost",
-      port: c.port ?? (this.engine === "mysql" ? 3306 : 5432),
-      username: c.user,
-      password: this.password,
-      database: c.database,
-      max: c.maxConnections ?? 4,
-      connectionTimeout: Math.ceil((c.connectTimeoutMs ?? 10000) / 1000),
-      tls: this.tlsOption(),
-      ...this.driverOptions(),
-    } as never);
+    let pool: SQL;
+    try {
+      pool = new SQL({
+        adapter: this.engine,
+        hostname: c.host ?? "localhost",
+        port: c.port ?? (this.engine === "mysql" ? 3306 : 5432),
+        username: c.user,
+        password: this.password,
+        database: c.database,
+        max: c.maxConnections ?? 4,
+        connectionTimeout: Math.ceil((c.connectTimeoutMs ?? 10000) / 1000),
+        tls: this.tlsOption(),
+        ...this.driverOptions(),
+      } as never);
+    } catch (e) {
+      throw normalizeError(this.engine, e, [this.password]);
+    }
     try {
       await pool.unsafe("SELECT 1");
     } catch (e) {
@@ -187,10 +192,10 @@ export abstract class BunSqlAdapter extends BaseAdapter {
     const text = this.single(sql);
     const bound = decodeParams(params, this.engine);
     const started = performance.now();
-    const kw = leadingKeyword(text);
-    const timeout = this.config.statementTimeoutMs ?? 0;
+    const kw = leadingKeyword(text, this.engine);
+    const timeout = options?.timeoutMs ?? this.config.statementTimeoutMs ?? 0;
     try {
-      if (!this.readOnly && !timeout) {
+      if (!this.readOnly && timeout <= 0) {
         const raw = await this.p.unsafe(text, bound);
         return this.toResult(raw, kw, started, options?.maxRows);
       }
@@ -205,8 +210,8 @@ export abstract class BunSqlAdapter extends BaseAdapter {
         began = false;
         return this.toResult(raw, kw, started, options?.maxRows);
       } catch (e) {
-        if (began)
-          await this.leaveGuard(conn, true, timeout, true).catch(() => {});
+        if (began || timeout > 0)
+          await this.leaveGuard(conn, began, timeout, true).catch(() => {});
         throw e;
       } finally {
         conn.release();

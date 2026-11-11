@@ -332,7 +332,16 @@ export async function seedMysql(
   const conn = await (sql as any).reserve();
   const db = quoteId("mysql", pre.database);
   let createdDb = false;
+  let origDb: string | null = null;
+  let origMode: string | null = null;
   try {
+    try {
+      const snap = (await conn.unsafe(
+        "SELECT DATABASE() AS db, @@SESSION.sql_mode AS mode",
+      )) as { db: string | null; mode: string | null }[];
+      origDb = snap[0]?.db ?? null;
+      origMode = snap[0]?.mode ?? null;
+    } catch {}
     if (!pre.info.exists) {
       await conn.unsafe(`CREATE DATABASE ${db} CHARACTER SET utf8mb4`);
       createdDb = true;
@@ -361,6 +370,17 @@ export async function seedMysql(
       throw e;
     }
   } finally {
+    try {
+      if (origMode !== null) {
+        await conn
+          .unsafe("SET SESSION sql_mode = ?", [origMode])
+          .catch(() => {});
+      }
+      await conn.unsafe("SET SESSION MAX_EXECUTION_TIME = 0").catch(() => {});
+      if (origDb) {
+        await conn.unsafe(`USE ${quoteId("mysql", origDb)}`).catch(() => {});
+      }
+    } catch {}
     try {
       conn.release();
     } catch {}

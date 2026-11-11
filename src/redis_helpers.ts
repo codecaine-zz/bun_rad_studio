@@ -45,15 +45,48 @@ const DANGEROUS = new Set([
   "ACL",
   "MODULE",
   "BGREWRITEAOF",
+  "EVAL",
+  "EVALSHA",
+  "EVAL_RO",
+  "EVALSHA_RO",
+  "FUNCTION",
+  "FCALL",
+  "FCALL_RO",
+  "SCRIPT",
+  "RESTORE",
+  "MIGRATE",
+  "SWAPDB",
+  "FAILOVER",
+  "LATENCY",
+  "PFDEBUG",
+  "SAVE",
+  "BGSAVE",
+  "MONITOR",
+  "SYNC",
+  "PSYNC",
 ]);
 
-/** True for commands that can destroy data or reconfigure the server (asks the user to confirm). */
+/** True for commands that can destroy data, execute scripts, or reconfigure the server (asks the user to confirm). */
 export function isDangerousCommand(line: string): boolean {
-  const tokens = (line || "").trim().split(/\s+/);
+  const tokens = tokenizeCliLine(line || "");
   const cmd = (tokens[0] || "").toUpperCase();
+  const sub = (tokens[1] || "").toUpperCase();
+  if (!cmd) return false;
   if (DANGEROUS.has(cmd)) return true;
-  if (cmd === "CONFIG" && /^(SET|REWRITE|RESETSTAT)$/i.test(tokens[1] || ""))
+  if (cmd === "CONFIG" && /^(SET|REWRITE|RESETSTAT)$/.test(sub)) return true;
+  if (
+    cmd === "CLIENT" &&
+    /^(KILL|PAUSE|REPLY|NO-EVICT|NO-TOUCH|TRACKING)$/.test(sub)
+  )
     return true;
+  if (
+    cmd === "CLUSTER" &&
+    /^(RESET|FLUSHSLOTS|ADDSLOTS|ADDSLOTSRANGE|DELSLOTS|DELSLOTSRANGE|FAILOVER|FORGET|MEET|REPLICATE|SETSLOT|BUMPEPOCH|SAVECONFIG)$/.test(
+      sub,
+    )
+  )
+    return true;
+  if (cmd === "MEMORY" && sub === "PURGE") return true;
   return false;
 }
 
@@ -697,6 +730,8 @@ function makeExportDoc(keys: RedisExportKey[], db = 0): RedisExportDoc {
   };
 }
 
+const MAX_REDIS_IMPORT_BYTES = 50 * 1024 * 1024;
+
 /**
  * Universal multi-format Redis key import parser.
  * Supports:
@@ -721,6 +756,37 @@ export async function parseRedisImportPayload(
   detectedFormat?: string;
 }> {
   const keyPrefix = (opts.keyPrefix ?? "").trim();
+
+  if (opts.bytes && opts.bytes.byteLength > MAX_REDIS_IMPORT_BYTES) {
+    return {
+      ok: false,
+      errors: [
+        `Import payload exceeds maximum allowed size (${opts.bytes.byteLength} > ${MAX_REDIS_IMPORT_BYTES} bytes)`,
+      ],
+    };
+  }
+  if (
+    opts.base64 &&
+    Math.floor((opts.base64.length * 3) / 4) > MAX_REDIS_IMPORT_BYTES
+  ) {
+    return {
+      ok: false,
+      errors: [
+        `Import base64 payload exceeds maximum allowed size (${MAX_REDIS_IMPORT_BYTES} bytes)`,
+      ],
+    };
+  }
+  if (
+    typeof input === "string" &&
+    Buffer.byteLength(input, "utf8") > MAX_REDIS_IMPORT_BYTES
+  ) {
+    return {
+      ok: false,
+      errors: [
+        `Import text exceeds maximum allowed size (${MAX_REDIS_IMPORT_BYTES} bytes)`,
+      ],
+    };
+  }
 
   // 1. Binary spreadsheet (.xlsx / .ods) via base64 or bytes
   if (opts.base64 || opts.bytes) {

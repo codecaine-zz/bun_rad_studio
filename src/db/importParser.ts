@@ -29,6 +29,11 @@ import {
 } from "./staging/reader";
 import { fileSource, memorySource, type ByteSource } from "./staging/source";
 
+/** Default upper bound (50 MiB) on in-memory / universal tabular imports to prevent OOM DoS. */
+export const MAX_UNIVERSAL_IMPORT_BYTES = 50 * 1024 * 1024;
+/** Default upper bound on materialized rows returned by `parseUniversalTable`. */
+export const MAX_UNIVERSAL_IMPORT_ROWS = 500_000;
+
 /** Input options for `parseUniversalTable`, supporting raw text, byte arrays, base64, or file paths. */
 export interface UniversalParseOptions {
   content?: string;
@@ -41,6 +46,8 @@ export interface UniversalParseOptions {
   delimiter?: string;
   hasHeader?: boolean;
   sheet?: string;
+  maxBytes?: number;
+  maxRows?: number;
 }
 
 /** Normalized tabular output returned by `parseUniversalTable` across all supported file formats. */
@@ -101,6 +108,8 @@ function coerceCellValue(val: string | null): any {
 export async function parseUniversalTable(
   opts: UniversalParseOptions,
 ): Promise<UniversalParsedTable> {
+  const maxBytes = opts.maxBytes ?? MAX_UNIVERSAL_IMPORT_BYTES;
+  const maxRows = opts.maxRows ?? MAX_UNIVERSAL_IMPORT_ROWS;
   const filename =
     opts.fileName ??
     opts.filename ??
@@ -110,14 +119,40 @@ export async function parseUniversalTable(
   if (opts.filePath) {
     src = fileSource(opts.filePath, filename);
   } else if (opts.bytes) {
+    if (opts.bytes.byteLength > maxBytes) {
+      throw new Error(
+        `Import payload exceeds maximum allowed size (${opts.bytes.byteLength} > ${maxBytes} bytes).`,
+      );
+    }
     src = binarySource(opts.bytes, filename);
   } else if (opts.base64) {
-    src = binarySource(
-      new Uint8Array(Buffer.from(opts.base64, "base64")),
-      filename,
-    );
+    const approxBytes = Math.floor((opts.base64.length * 3) / 4);
+    if (approxBytes > maxBytes) {
+      throw new Error(
+        `Import base64 payload exceeds maximum allowed size (${approxBytes} > ${maxBytes} bytes).`,
+      );
+    }
+    const decoded = new Uint8Array(Buffer.from(opts.base64, "base64"));
+    if (decoded.byteLength > maxBytes) {
+      throw new Error(
+        `Import payload exceeds maximum allowed size (${decoded.byteLength} > ${maxBytes} bytes).`,
+      );
+    }
+    src = binarySource(decoded, filename);
   } else {
-    src = memorySource(opts.content ?? "", filename);
+    const rawContent = opts.content ?? "";
+    const byteLen = Buffer.byteLength(rawContent, "utf8");
+    if (byteLen > maxBytes) {
+      throw new Error(
+        `Import text exceeds maximum allowed size (${byteLen} > ${maxBytes} bytes).`,
+      );
+    }
+    src = memorySource(rawContent, filename);
+  }
+  if (src.size > maxBytes) {
+    throw new Error(
+      `Import file exceeds maximum allowed size (${src.size} > ${maxBytes} bytes). Use staged streaming import instead.`,
+    );
   }
 
   const overrides: Partial<SourceSettings> = {
@@ -134,6 +169,11 @@ export async function parseUniversalTable(
     const records: Record<string, any>[] = [];
     const ctx = newReadContext();
     for await (const r of readRows(src, analysis.settings, colNames, ctx)) {
+      if (rows.length >= maxRows) {
+        throw new Error(
+          `Import exceeds maximum in-memory row limit (${maxRows} rows).`,
+        );
+      }
       rows.push(r.cells);
       const rec: Record<string, any> = {};
       colNames.forEach((col, i) => {

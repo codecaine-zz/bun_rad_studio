@@ -299,6 +299,112 @@ export function checkCell(
   }
 }
 
+/** Detects nested quantifiers, backreferences, or ambiguous repeated alternations that can cause catastrophic ReDoS backtracking. */
+function isUnsafeUserRegex(pattern: string): boolean {
+  if (/\\[1-9]|\\k</.test(pattern)) return true;
+  interface GroupFrame {
+    hasQuantifier: boolean;
+    branches: string[];
+    curBranch: string;
+  }
+  const stack: GroupFrame[] = [];
+  let inCharClass = false;
+  const readRepeatMax = (idx: number): { len: number; max: number } | null => {
+    const ch = pattern[idx];
+    if (ch === "+" || ch === "*") return { len: 1, max: Infinity };
+    if (ch === "?") return { len: 1, max: 1 };
+    if (ch === "{") {
+      const m = /^\{(\d+)(?:,(\d*))?\}/.exec(pattern.slice(idx));
+      if (m) {
+        const max =
+          m[2] === undefined
+            ? Number(m[1])
+            : m[2] === ""
+              ? Infinity
+              : Number(m[2]);
+        return { len: m[0].length, max };
+      }
+    }
+    return null;
+  };
+  const distinctLiteralStarts = (branches: string[]): boolean => {
+    const seen = new Set<string>();
+    for (const b of branches) {
+      if (!b) return false;
+      const c = b[0]!;
+      if (".^$[({\\+*?|".includes(c)) return false;
+      if (seen.has(c)) return false;
+      seen.add(c);
+    }
+    return true;
+  };
+  for (let i = 0; i < pattern.length; i++) {
+    const c = pattern[i]!;
+    if (c === "\\") {
+      if (stack.length && !inCharClass)
+        stack[stack.length - 1]!.curBranch += pattern.slice(i, i + 2);
+      i++;
+      continue;
+    }
+    if (inCharClass) {
+      if (c === "]") {
+        inCharClass = false;
+        const rep = readRepeatMax(i + 1);
+        if (rep && stack.length) stack[stack.length - 1]!.hasQuantifier = true;
+      }
+      continue;
+    }
+    if (c === "[") {
+      inCharClass = true;
+      if (stack.length) stack[stack.length - 1]!.curBranch += "[";
+      continue;
+    }
+    if (c === "(") {
+      let skip = 1;
+      if (pattern[i + 1] === "?") {
+        const m = /^\?(?::|=|!|<=|<!|<[A-Za-z_$][\w$]*>)/.exec(
+          pattern.slice(i + 1),
+        );
+        if (m) skip += m[0].length;
+      }
+      stack.push({ hasQuantifier: false, branches: [], curBranch: "" });
+      i += skip - 1;
+      continue;
+    }
+    if (c === "|" && stack.length) {
+      const top = stack[stack.length - 1]!;
+      top.branches.push(top.curBranch);
+      top.curBranch = "";
+      continue;
+    }
+    if (c === ")" && stack.length) {
+      const grp = stack.pop()!;
+      grp.branches.push(grp.curBranch);
+      const rep = readRepeatMax(i + 1);
+      if (rep && rep.max > 1) {
+        if (grp.hasQuantifier) return true;
+        if (grp.branches.length > 1 && !distinctLiteralStarts(grp.branches)) {
+          return true;
+        }
+      }
+      if (stack.length) {
+        if (grp.hasQuantifier || rep)
+          stack[stack.length - 1]!.hasQuantifier = true;
+        stack[stack.length - 1]!.curBranch += "(";
+      }
+      continue;
+    }
+    const rep = readRepeatMax(i);
+    if (rep) {
+      if (stack.length) stack[stack.length - 1]!.hasQuantifier = true;
+      i += rep.len - 1;
+      continue;
+    }
+    if (stack.length) stack[stack.length - 1]!.curBranch += c;
+  }
+  return false;
+}
+
 /** Compiles the person's own rules for one column; returns null when the rule is not usable. */
 export function compileUserRule(
   rule: UserRule,
@@ -313,6 +419,12 @@ export function compileUserRule(
     case "regex": {
       if (rule.value.length > 200)
         return { error: "That pattern is too long (200 characters at most)." };
+      if (isUnsafeUserRegex(rule.value)) {
+        return {
+          error:
+            "That pattern uses nested repetitions or ambiguous alternation that could freeze validation. Simplify the pattern.",
+        };
+      }
       let re: RegExp;
       try {
         re = new RegExp(rule.value, "u");
@@ -320,7 +432,7 @@ export function compileUserRule(
         return { error: `That pattern is not valid: ${(e as Error).message}` };
       }
       return (v) =>
-        v === null || v === "" || (v.length <= 10000 && re.test(v))
+        v === null || v === "" || (v.length <= 4096 && re.test(v))
           ? null
           : label || `Does not match the pattern ${rule.value}.`;
     }

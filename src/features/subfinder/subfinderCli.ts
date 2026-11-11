@@ -27,22 +27,31 @@ export function normalizeSubfinderArgs(args: string[]): string[] {
  */
 export function parseSubfinderArguments(args: string[]): SubfinderOptions {
   const normalized = normalizeSubfinderArgs(args);
-  const { values, positionals } = parseArgs({
-    args: normalized,
-    options: {
-      domain: { type: "string", short: "d" },
-      output: { type: "string", short: "o" },
-      json: { type: "boolean", default: false },
-      silent: { type: "boolean", default: false },
-      active: { type: "boolean", default: false },
-      probe: { type: "boolean", short: "p", default: false },
-      ports: { type: "string" },
-      wildcard: { type: "boolean", default: false },
-      timeout: { type: "string", default: "10" },
-      help: { type: "boolean", short: "h" },
-    },
-    allowPositionals: true,
-  });
+  let values: Record<string, any>;
+  let positionals: string[];
+  try {
+    const parsed = parseArgs({
+      args: normalized,
+      options: {
+        domain: { type: "string", short: "d" },
+        output: { type: "string", short: "o" },
+        json: { type: "boolean", default: false },
+        silent: { type: "boolean", default: false },
+        active: { type: "boolean", default: false },
+        probe: { type: "boolean", short: "p", default: false },
+        ports: { type: "string" },
+        wildcard: { type: "boolean", default: false },
+        timeout: { type: "string", default: "10" },
+        help: { type: "boolean", short: "h" },
+      },
+      allowPositionals: true,
+    });
+    values = parsed.values;
+    positionals = parsed.positionals;
+  } catch (err: any) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
+  }
 
   if (values.help) {
     printSubfinderHelp();
@@ -55,14 +64,16 @@ export function parseSubfinderArguments(args: string[]): SubfinderOptions {
     process.exit(1);
   }
 
-  const domains = domainArg.split(",").map((d) => d.trim());
+  const domains = String(domainArg)
+    .split(",")
+    .map((d: string) => d.trim());
   const timeoutSec = parseInt(values.timeout ?? "10", 10);
   const timeoutMs = (isNaN(timeoutSec) ? 10 : timeoutSec) * 1000;
   const ports = values.ports
-    ? values.ports
+    ? String(values.ports)
         .split(",")
-        .map((p) => parseInt(p.trim(), 10))
-        .filter((p) => !isNaN(p))
+        .map((p: string) => parseInt(p.trim(), 10))
+        .filter((p: number) => !isNaN(p))
     : undefined;
 
   return {

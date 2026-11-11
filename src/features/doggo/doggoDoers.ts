@@ -98,6 +98,35 @@ export function formatRecordData(
 }
 
 /**
+ * Validates and normalizes a DNS record type, rejecting unsupported or flag-like values.
+ */
+function normalizeRecordType(type: string): DnsRecordType {
+  const upper = type.trim().toUpperCase() as DnsRecordType;
+  if (!RECORD_TYPES.includes(upper)) {
+    throw new Error(`[Doggo] Unsupported DNS record type: ${type}`);
+  }
+  return upper;
+}
+
+/**
+ * Validates and normalizes a DoH endpoint URL, enforcing `https:` protocol.
+ */
+function validateDohEndpoint(dohUrl: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(dohUrl);
+  } catch {
+    throw new Error(`[DoggoDoH] Invalid DoH URL: ${dohUrl}`);
+  }
+  if (parsed.protocol !== "https:") {
+    throw new Error(
+      `[DoggoDoH] DoH URL must use https: protocol (got ${parsed.protocol})`,
+    );
+  }
+  return parsed.toString();
+}
+
+/**
  * Performs an asynchronous UDP DNS lookup for `domain` and `type` using `node:dns/promises`,
  * with an optional custom `nameserver` and a 3.5-second timeout.
  */
@@ -106,52 +135,60 @@ export async function performDnsLookup(
   type: DnsRecordType,
   nameserver?: string,
 ): Promise<DoggoResponse> {
+  const validType = normalizeRecordType(type);
   // Clean target domain: remove protocol, paths, whitespace
   let cleanDomain =
     domain
       .trim()
       .replace(/^https?:\/\//i, "")
       .split(/[\/\s]/)[0] ?? domain;
-  if (!cleanDomain) cleanDomain = domain;
+  if (!cleanDomain) cleanDomain = domain.trim();
+  if (cleanDomain.startsWith("-")) {
+    throw new Error(`[Doggo] Invalid domain name: ${domain}`);
+  }
 
   const resolver = new Resolver();
+  let cleanNs: string | undefined;
   if (nameserver) {
-    const cleanNs = nameserver.trim().replace(/^@/, "");
+    cleanNs = nameserver.trim().replace(/^@/, "");
+    if (cleanNs.startsWith("-")) {
+      throw new Error(`[Doggo] Invalid nameserver: ${nameserver}`);
+    }
     if (cleanNs) resolver.setServers([cleanNs]);
   }
-  const activeServer = nameserver
-    ? nameserver.trim().replace(/^@/, "")
-    : (resolver.getServers()[0] ?? "default");
+  const activeServer = cleanNs || (resolver.getServers()[0] ?? "default");
 
   const start = performance.now();
   let rawRecords: any[] = [];
 
   const timeoutMs = 3500;
-  const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(
       () => reject(new Error(`DNS resolution timed out after ${timeoutMs}ms`)),
       timeoutMs,
-    ),
-  );
+    );
+  });
 
   try {
     const lookupPromise = (async () => {
-      if (type === "A")
+      if (validType === "A")
         return await resolver.resolve4(cleanDomain, { ttl: true });
-      if (type === "AAAA")
+      if (validType === "AAAA")
         return await resolver.resolve6(cleanDomain, { ttl: true });
-      if (type === "CNAME") return await resolver.resolveCname(cleanDomain);
-      if (type === "MX") return await resolver.resolveMx(cleanDomain);
-      if (type === "TXT") return await resolver.resolveTxt(cleanDomain);
-      if (type === "NS") return await resolver.resolveNs(cleanDomain);
-      if (type === "SOA") return [await resolver.resolveSoa(cleanDomain)];
-      if (type === "PTR") {
+      if (validType === "CNAME")
+        return await resolver.resolveCname(cleanDomain);
+      if (validType === "MX") return await resolver.resolveMx(cleanDomain);
+      if (validType === "TXT") return await resolver.resolveTxt(cleanDomain);
+      if (validType === "NS") return await resolver.resolveNs(cleanDomain);
+      if (validType === "SOA") return [await resolver.resolveSoa(cleanDomain)];
+      if (validType === "PTR") {
         return isIpAddress(cleanDomain)
           ? await resolver.reverse(cleanDomain)
           : await resolver.resolvePtr(cleanDomain);
       }
-      if (type === "CAA") return await resolver.resolveCaa(cleanDomain);
-      if (type === "SRV") return await resolver.resolveSrv(cleanDomain);
+      if (validType === "CAA") return await resolver.resolveCaa(cleanDomain);
+      if (validType === "SRV") return await resolver.resolveSrv(cleanDomain);
       return [];
     })();
 
@@ -160,17 +197,19 @@ export async function performDnsLookup(
     if (err.code !== "ENODATA" && err.code !== "ENOTFOUND") {
       throw err;
     }
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
   }
 
   const queryTimeMs = Math.round(performance.now() - start);
   const answers: DnsAnswer[] = (rawRecords || []).map((item) => {
-    const { data, ttl } = formatRecordData(type, item);
-    return { name: `${cleanDomain}.`, type, class: "IN", ttl, data };
+    const { data, ttl } = formatRecordData(validType, item);
+    return { name: `${cleanDomain}.`, type: validType, class: "IN", ttl, data };
   });
 
   return {
     domain: cleanDomain,
-    queryType: type,
+    queryType: validType,
     answers,
     queryTimeMs,
     server: activeServer,
@@ -202,9 +241,21 @@ export async function performDohLookup(
   type: string = "A",
   dohUrl: string = "https://cloudflare-dns.com/dns-query",
 ): Promise<DoggoResponse> {
+  const validType = normalizeRecordType(type);
+  const safeBaseUrl = validateDohEndpoint(dohUrl);
+  const cleanDomain =
+    domain
+      .trim()
+      .replace(/^https?:\/\//i, "")
+      .split(/[\/\s]/)[0] ?? domain.trim();
+  if (!cleanDomain || cleanDomain.startsWith("-")) {
+    throw new Error(`[DoggoDoH] Invalid domain name: ${domain}`);
+  }
   const start = performance.now();
-  const url = `${dohUrl}?name=${encodeURIComponent(domain)}&type=${encodeURIComponent(type)}`;
-  const res = await fetch(url, {
+  const parsedUrl = new URL(safeBaseUrl);
+  parsedUrl.searchParams.set("name", cleanDomain);
+  parsedUrl.searchParams.set("type", validType);
+  const res = await fetch(parsedUrl.toString(), {
     headers: { Accept: "application/dns-json" },
     signal: AbortSignal.timeout(5000),
   });
@@ -220,8 +271,8 @@ export async function performDohLookup(
     data: ans.data,
   }));
   return {
-    domain,
-    queryType: type,
+    domain: cleanDomain,
+    queryType: validType,
     answers,
     queryTimeMs,
     server: dohUrl,
@@ -329,26 +380,46 @@ export function performDnsLookupSync(
   isDoh: boolean = false,
   dohUrl: string = "https://cloudflare-dns.com/dns-query",
 ): DoggoResponse {
+  const validType = normalizeRecordType(String(type));
   const start = performance.now();
   let cleanDomain =
     domain
       .trim()
       .replace(/^https?:\/\//i, "")
       .split(/[\/\s]/)[0] ?? domain;
-  cleanDomain = cleanDomain.replace(/^-+/, "");
+  if (cleanDomain.startsWith("-") || cleanDomain.startsWith("+")) {
+    throw new Error(`[Doggo] Invalid domain name: ${domain}`);
+  }
   if (!cleanDomain) cleanDomain = "localhost";
 
-  let answers: DnsAnswer[] = [];
-  let serverUsed = nameserver ? nameserver.replace(/^@/, "") : "System Default";
+  let cleanNs: string | undefined;
+  if (nameserver) {
+    cleanNs = nameserver.trim().replace(/^@/, "");
+    if (
+      cleanNs.startsWith("-") ||
+      cleanNs.startsWith("+") ||
+      /\s/.test(cleanNs)
+    ) {
+      throw new Error(`[Doggo] Invalid nameserver: ${nameserver}`);
+    }
+  }
 
-  if (isDoh || !nameserver) {
-    const url = `${dohUrl}?name=${encodeURIComponent(cleanDomain)}&type=${encodeURIComponent(type)}`;
+  let answers: DnsAnswer[] = [];
+  let serverUsed = cleanNs || "System Default";
+
+  if (isDoh || !cleanNs) {
+    const safeBaseUrl = validateDohEndpoint(dohUrl);
+    const parsedUrl = new URL(safeBaseUrl);
+    parsedUrl.searchParams.set("name", cleanDomain);
+    parsedUrl.searchParams.set("type", validType);
+    const url = parsedUrl.toString();
     try {
       const res = Bun.spawnSync([
         "curl",
         "-s",
+        "--globoff",
         "--proto",
-        "=https,http",
+        "=https",
         "--max-time",
         "3",
         "-H",
@@ -378,12 +449,11 @@ export function performDnsLookupSync(
       "+time=2",
       "+tries=1",
       cleanDomain,
-      String(type),
+      validType,
     ];
-    if (nameserver) {
-      const ns = nameserver.replace(/^@/, "");
-      args.push(`@${ns}`);
-      serverUsed = ns;
+    if (cleanNs) {
+      args.push(`@${cleanNs}`);
+      serverUsed = cleanNs;
     }
     try {
       const res = Bun.spawnSync(args);
@@ -405,7 +475,7 @@ export function performDnsLookupSync(
 
   return {
     domain: cleanDomain,
-    queryType: type as DnsRecordType,
+    queryType: validType,
     answers,
     queryTimeMs: Math.round(performance.now() - start),
     server: serverUsed,

@@ -13,14 +13,19 @@ export interface GraveyardRecord {
   deletedAt: string;
   isDirectory: boolean;
   size: number;
+  [key: string]: unknown;
 }
 
 /**
  * Persistent JSON manifest stored in the graveyard directory tracking all buried items.
+ * Supports both `records` and `rip_engine.ts`'s `items` format for cross-tool compatibility.
  */
 export interface GraveyardManifest {
-  version: number;
+  version: number | string;
+  graveyardRoot?: string;
+  lastUpdated?: string;
   records: GraveyardRecord[];
+  items?: Array<Record<string, unknown>>;
 }
 
 /**
@@ -39,4 +44,5 @@ export interface RipOptions {
   pruneDays?: number;
   dryRun?: boolean;
   showSize?: boolean;
+  force?: boolean;
 }

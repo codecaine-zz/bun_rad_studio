@@ -35,7 +35,11 @@ async function runGit(args: string[]): Promise<string> {
     new Response(proc.stderr).text(),
   ]);
   const code = await proc.exited;
-  if (code !== 0 && stderr) throw new Error(stderr.trim());
+  if (code !== 0) {
+    throw new Error(
+      stderr.trim() || `git ${args[0] ?? ""} exited with code ${code}`,
+    );
+  }
   return stdout;
 }
 
@@ -68,7 +72,7 @@ async function showDiff(isStaged: boolean) {
   const args = ["diff"];
   if (isStaged) args.push("--staged");
   const targetFile = app.getPositionalArgs()[0];
-  if (targetFile) args.push(targetFile);
+  if (targetFile) args.push("--", targetFile);
 
   const diffText = await runGit(args);
   if (!diffText.trim()) {
@@ -121,6 +125,7 @@ async function main() {
       console.log(out.trim());
     } catch (e: any) {
       app.error(`Commit failed: ${e.message}`);
+      process.exit(1);
     }
     return;
   }
@@ -135,4 +140,7 @@ async function main() {
   }
 }
 
-main();
+main().catch((err: any) => {
+  app.error(`Git command failed: ${err?.message ?? String(err)}`);
+  process.exit(1);
+});

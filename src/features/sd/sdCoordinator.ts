@@ -10,21 +10,42 @@ import {
   createBackup,
   expandTargets,
   formatDiffPreview,
-  readContent,
+  isBinaryBuffer,
   replaceText,
   writeContent,
 } from "./sdDoers.ts";
 
 /**
- * Asynchronously reads `filePath`, applies the search-and-replace `regex`, and computes diff hunks without writing to disk.
+ * Asynchronously reads `filePath`, skips binary files containing NUL bytes, applies the search-and-replace `regex`,
+ * and computes diff hunks without writing to disk.
  */
 export async function processFile(
   filePath: string,
   regex: RegExp,
   replacement: string,
+  literalReplacement: boolean = false,
 ): Promise<FileTransformResult> {
-  const original = await readContent(filePath);
-  const newContent = replaceText(original, regex, replacement);
+  const file = Bun.file(filePath);
+  if (!(await file.exists())) {
+    throw new Error(`[SdRead] File not found: ${filePath}`);
+  }
+  const bytes = await file.bytes();
+  if (isBinaryBuffer(bytes)) {
+    return {
+      filePath,
+      hasChanged: false,
+      originalContent: "",
+      newContent: "",
+      diffHunks: [],
+    };
+  }
+  const original = new TextDecoder("utf-8").decode(bytes);
+  const newContent = replaceText(
+    original,
+    regex,
+    replacement,
+    literalReplacement,
+  );
   const hasChanged = original !== newContent;
   const diffHunks = hasChanged ? computeDiffHunks(original, newContent) : [];
 
@@ -60,7 +81,12 @@ export async function runSdCoordinator(options: SdOptions): Promise<string[]> {
       const count = countMatches(input, regex);
       return [`Found ${count} match(es).`];
     }
-    const replaced = replaceText(input, regex, options.replacePattern);
+    const replaced = replaceText(
+      input,
+      regex,
+      options.replacePattern,
+      options.stringMode,
+    );
     return [replaced];
   }
 
@@ -72,7 +98,9 @@ export async function runSdCoordinator(options: SdOptions): Promise<string[]> {
   for (const file of resolvedFiles) {
     if (options.countOnly) {
       try {
-        const content = await readContent(file);
+        const bytes = await Bun.file(file).bytes();
+        if (isBinaryBuffer(bytes)) continue;
+        const content = new TextDecoder("utf-8").decode(bytes);
         const matches = countMatches(content, regex);
         if (matches > 0) {
           totalMatches += matches;
@@ -84,7 +112,12 @@ export async function runSdCoordinator(options: SdOptions): Promise<string[]> {
       continue;
     }
 
-    const result = await processFile(file, regex, options.replacePattern);
+    const result = await processFile(
+      file,
+      regex,
+      options.replacePattern,
+      options.stringMode,
+    );
     if (!result.hasChanged) continue;
 
     if (options.preview) {

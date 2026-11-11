@@ -78,11 +78,32 @@ export function buildShellCommand(tokens: string[]): string {
   return tokens.map(shellQuote).join(" ");
 }
 
-/** Quote a single token for Windows Command Prompt (cmd.exe) using double quotes. */
+/** Quote a single token for Windows Command Prompt (cmd.exe) neutralizing quotes, newlines, `%VAR%`, and `!VAR!`. */
 export function windowsCmdQuote(token: string): string {
-  if (token === "") return '""';
-  if (/^[A-Za-z0-9_@%+=:,./\\-]+$/.test(token)) return token;
-  return `"${token.replace(/"/g, '""')}"`;
+  const clean = String(token).replace(/[\r\n\0]+/g, "");
+  if (clean === "") return '""';
+  if (/^[A-Za-z0-9_@+=:,./\\-]+$/.test(clean) && !clean.endsWith("\\")) {
+    return clean;
+  }
+  // Escape `%` and `!` outside double quotes with `^` so cmd.exe never expands environment variables.
+  if (clean.includes("%") || clean.includes("!")) {
+    const parts = clean.split(/([%!])/);
+    let out = "";
+    for (const part of parts) {
+      if (!part) continue;
+      if (part === "%" || part === "!") {
+        out += `^${part}`;
+      } else {
+        const trailingSlashes = /\\+$/.exec(part)?.[0] ?? "";
+        const body = part.slice(0, part.length - trailingSlashes.length);
+        out += `"${body.replace(/"/g, '""')}${trailingSlashes.repeat(2)}"`;
+      }
+    }
+    return out || '""';
+  }
+  const trailingSlashes = /\\+$/.exec(clean)?.[0] ?? "";
+  const body = clean.slice(0, clean.length - trailingSlashes.length);
+  return `"${body.replace(/"/g, '""')}${trailingSlashes.repeat(2)}"`;
 }
 
 /** Join tokens into a safe Windows command line for cmd.exe / PowerShell. */

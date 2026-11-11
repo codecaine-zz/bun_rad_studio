@@ -71,9 +71,15 @@ export function verifyJwt<T = Record<string, any>>(
   }
 
   const payload = base64UrlDecodeJson<any>(payloadB64!);
-  if (payload.exp && typeof payload.exp === "number") {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new Error("[jwtutils] Invalid JWT payload");
+  }
+  if (payload.exp !== undefined) {
+    if (typeof payload.exp !== "number" || !Number.isFinite(payload.exp)) {
+      throw new Error("[jwtutils] Invalid JWT exp claim");
+    }
     const nowSec = Math.floor(Date.now() / 1000);
-    if (nowSec > payload.exp) {
+    if (nowSec >= payload.exp) {
       throw new Error("[jwtutils] JWT token has expired");
     }
   }

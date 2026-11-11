@@ -21,9 +21,10 @@ import type {
   WireValue,
 } from "../types";
 import { DbError, assertReadOnlyStatement, normalizeError } from "../errors";
+import { classifyStatement } from "../classify";
 import { quoteIdent } from "../quote";
 import { splitStatements, leadingKeyword } from "../splitter";
-import { decodeParam, toWire } from "../wire";
+import { csvCell, decodeParam, toWire } from "../wire";
 import { BaseAdapter, type Executor } from "./base";
 
 const WRITE_KEYWORDS = new Set(["INSERT", "UPDATE", "DELETE", "REPLACE"]);
@@ -69,6 +70,12 @@ export class SqliteAdapter extends BaseAdapter {
             "INVALID_REQUEST",
             "A database file path is required.",
           );
+        if (mode === "create" && this.config.readOnly) {
+          throw new DbError(
+            "READ_ONLY",
+            "Cannot create a new database file on a read-only connection.",
+          );
+        }
         this.resolvedPath = resolve(path);
         const exists = existsSync(this.resolvedPath);
         if (mode !== "create" && !exists) {
@@ -90,29 +97,30 @@ export class SqliteAdapter extends BaseAdapter {
             "INVALID_REQUEST",
             `${this.resolvedPath} is not a file.`,
           );
-        this.db =
-          mode === "readonly"
+        const forceReadOnly =
+          Boolean(this.config.readOnly) || mode === "readonly";
+        this.db = forceReadOnly
+          ? new Database(this.resolvedPath, {
+              readonly: true,
+              safeIntegers: true,
+            })
+          : mode === "create"
             ? new Database(this.resolvedPath, {
-                readonly: true,
+                create: true,
+                readwrite: true,
                 safeIntegers: true,
               })
-            : mode === "create"
-              ? new Database(this.resolvedPath, {
-                  create: true,
-                  readwrite: true,
-                  safeIntegers: true,
-                })
-              : new Database(this.resolvedPath, {
-                  readwrite: true,
-                  safeIntegers: true,
-                });
+            : new Database(this.resolvedPath, {
+                readwrite: true,
+                safeIntegers: true,
+              });
       }
       // Per-connection (not persisted in the file): wait briefly on locks and enforce foreign keys.
       this.db.run(
         `PRAGMA busy_timeout = ${Math.max(0, Math.trunc(this.config.statementTimeoutMs ?? 5000))}`,
       );
       if (this.config.readOnly || mode === "readonly") {
-        if (mode !== "readonly") this.db.run("PRAGMA query_only = ON");
+        if (mode === "memory") this.db.run("PRAGMA query_only = ON");
       } else {
         this.db.run("PRAGMA foreign_keys = ON");
       }
@@ -180,9 +188,9 @@ export class SqliteAdapter extends BaseAdapter {
       cancelQuery: false,
       statementTimeout: false,
       readOnlyEnforcement: this.readOnly
-        ? this.config.sqliteMode === "readonly"
-          ? "connection"
-          : "transaction"
+        ? this.isTemporary
+          ? "transaction"
+          : "connection"
         : "none",
       explainAnalyze: false,
       routines: false,
@@ -432,5 +440,51 @@ export class SqliteAdapter extends BaseAdapter {
       indexes,
       hasRowid: master.type === "table" && !withoutRowid,
     };
+  }
+
+  /** Streams a single read-only SQLite query as RFC 4180 CSV lines using `Statement.iterate()` without materializing all rows. */
+  protected override async *exportSqlCsv(
+    sql: string,
+    params: Param[],
+  ): AsyncGenerator<string> {
+    const stmts = splitStatements(sql, { engine: "sqlite" });
+    if (stmts.length !== 1) {
+      throw new DbError(
+        "INVALID_REQUEST",
+        stmts.length === 0
+          ? "Enter a query to export."
+          : "CSV export requires a single read-only SQL statement.",
+      );
+    }
+    const text = stmts[0]!.sql;
+    assertReadOnlyStatement("sqlite", text);
+    const cls = classifyStatement("sqlite", text);
+    if (cls.kind !== "read") {
+      throw new DbError(
+        "READ_ONLY",
+        `CSV export only accepts read-only queries (${cls.reasons[0] ?? "non-read statement refused"}).`,
+      );
+    }
+    let stmt: ReturnType<Database["query"]>;
+    let bound: SQLQueryBindings[];
+    try {
+      stmt = this.conn.query(text);
+      bound = params.map((x) => decodeParam(x, "sqlite")) as SQLQueryBindings[];
+    } catch (e) {
+      throw normalizeError("sqlite", e, [this.password]);
+    }
+    const columns = [...stmt.columnNames];
+    if (columns.length > 0) {
+      yield columns.map((c) => csvCell(c)).join(",") + "\r\n";
+    }
+    try {
+      for (const rawRow of stmt.iterate(...bound) as Iterable<
+        Record<string, unknown>
+      >) {
+        yield columns.map((c) => csvCell(toWire(rawRow[c]))).join(",") + "\r\n";
+      }
+    } catch (e) {
+      throw normalizeError("sqlite", e, [this.password]);
+    }
   }
 }

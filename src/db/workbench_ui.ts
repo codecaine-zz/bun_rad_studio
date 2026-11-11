@@ -309,6 +309,14 @@ function connectProfile(p){
   var chain = state.conn ? disconnect().then(go) : go();
   chain.catch(function(e){ if (!e.cancelled) fail(e); });
 }
+function resetConnectionView(){
+  state.table = null; state.objects = []; state.info = null; state.page = null;
+  state.sort = []; state.filter = null; state.offset = 0; state.selected = -1;
+  discardPending();
+  clear($("structBody")); $("structBody").appendChild(el("span", { class: "mute", text: "Choose a table in the explorer." }));
+  clearGrid();
+  if (state.inspectorOpen) renderInspector();
+}
 function disconnect(){
   if (!state.conn) return Promise.resolve();
   if (hasPending() && !window.confirm("You have unsaved row changes. Discard them and switch connection?")) return Promise.reject(Object.assign(new Error("Cancelled"), { cancelled: true }));
@@ -316,10 +324,10 @@ function disconnect(){
   return api("/api/v2/disconnect", { connectionId: id }).catch(function(e){
     if (e.info && /open transaction/.test(e.message) && window.confirm("This connection has an open transaction. Roll it back and disconnect?")) return api("/api/v2/disconnect", { connectionId: id, discardTransaction: true });
     throw e;
-  }).then(function(){ state.conn = null; state.table = null; discardPending(); renderConn(); renderObjects(); clearGrid(); });
+  }).then(function(){ state.conn = null; resetConnectionView(); renderConn(); renderObjects(); });
 }
 function afterConnect(c){
-  state.conn = c; state.table = null; renderConn();
+  state.conn = c; resetConnectionView(); renderConn();
   if (c.temporary) toast("In-memory database: its data is lost when you disconnect.");
   return refreshObjects();
 }
@@ -336,7 +344,7 @@ function renderConn(){
   $("btnCancel").title = c.capabilities.cancelQuery ? "Ask the server to stop the running statement" : (c.capabilities.notes.cancelQuery || "Not supported by this engine");
 }
 function refreshObjects(){
-  return api("/api/v2/objects", { connectionId: state.conn.connectionId }).then(function(j){ state.objects = j.objects; renderObjects(); }).catch(fail);
+  return api("/api/v2/objects", { connectionId: state.conn.connectionId }).then(function(j){ state.objects = j.objects; renderObjects(); }).catch(function(e){ state.objects = []; renderObjects(); fail(e); });
 }
 function renderObjects(){
   var list = $("objList"); clear(list);
@@ -376,7 +384,17 @@ function display(v){
   if (typeof v === "number") return { text: String(v), cls: "num" };
   return { text: String(v), cls: "" };
 }
-function colByName(n){ return state.page.columns.filter(function(c){ return c.name === n; })[0]; }
+function quoteSqlId(name){
+  var eng = state.conn ? state.conn.engine : "sqlite";
+  var bt = String.fromCharCode(96);
+  if (eng === "mysql") return bt + String(name).split(bt).join(bt + bt) + bt;
+  return '"' + String(name).replace(/"/g, '""') + '"';
+}
+function quoteSqlTable(tbl){
+  if (!tbl) return quoteSqlId("table_name");
+  return (tbl.schema ? quoteSqlId(tbl.schema) + "." : "") + quoteSqlId(tbl.name);
+}
+function colByName(n){ return state.page ? state.page.columns.filter(function(c){ return c.name === n; })[0] : undefined; }
 function keyOf(row){
   var e = state.page.editable; var k = {};
   e.keyColumns.forEach(function(c){ k[c] = typedValue(c === "rowid" ? { dataType: "integer" } : colByName(c), c === "rowid" ? row.__rowid__ : row[c]); });
@@ -441,8 +459,9 @@ function renderInspector(){
       toast("Row JSON copied to clipboard.");
     } }),
     el("button", { text: "📋 Copy SQL INSERT", style: "font-size:11px;padding:2px 8px", onclick: function(){
-      var tName = state.table ? state.table.name : "table_name";
+      var tRef = quoteSqlTable(state.table);
       var cols = state.page.columns.map(function(c){ return c.name; });
+      var qCols = cols.map(quoteSqlId);
       var vals = cols.map(function(cn){
         var v = row[cn];
         if (v === null || v === undefined) return "NULL";
@@ -450,7 +469,7 @@ function renderInspector(){
         var s = typeof v === "object" ? JSON.stringify(v) : String(v);
         return "'" + s.replace(/'/g, "''") + "'";
       });
-      var sql = "INSERT INTO " + tName + " (" + cols.join(", ") + ") VALUES (" + vals.join(", ") + ");";
+      var sql = "INSERT INTO " + tRef + " (" + qCols.join(", ") + ") VALUES (" + vals.join(", ") + ");";
       if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(sql);
       toast("SQL INSERT copied to clipboard.");
     } })
@@ -540,7 +559,8 @@ function renderGrid(){
   var from = p.total ? state.offset + 1 : 0, to = Math.min(state.offset + p.rows.length, p.total);
   $("pageInfo").textContent = from + "–" + to + " of " + p.total;
   $("btnPrev").disabled = state.offset <= 0; $("btnNext").disabled = state.offset + p.limit >= p.total;
-  var fc = $("fCol"); if (fc.options.length !== p.columns.length || fc.getAttribute("data-t") !== state.table.name) { clear(fc); p.columns.forEach(function(c){ fc.appendChild(el("option", { value: c.name, text: c.name })); }); fc.setAttribute("data-t", state.table.name); }
+  var tblKey = (state.table.schema ? state.table.schema + "." : "") + state.table.name;
+  var fc = $("fCol"); if (fc.options.length !== p.columns.length || fc.getAttribute("data-t") !== tblKey) { clear(fc); p.columns.forEach(function(c){ fc.appendChild(el("option", { value: c.name, text: c.name })); }); fc.setAttribute("data-t", tblKey); }
   $("btnAddRow").disabled = !p.editable.ok && state.table.type === "view"; $("btnDelRow").disabled = !p.editable.ok;
   updatePendingUi();
   if (state.inspectorOpen) renderInspector();
@@ -676,12 +696,14 @@ function loadErDiagram(){
     var boxW = 220, gapX = 70, gapY = 40;
     var pos = {};
     var maxH = 200;
+    var tKey = function(tbl){ return (tbl.schema ? tbl.schema + "." : "") + tbl.name; };
     tables.forEach(function(t, idx){
       var colIdx = idx % colsPerRow, rowIdx = Math.floor(idx / colsPerRow);
       var x = 24 + colIdx * (boxW + gapX);
       var h = 32 + t.columns.length * 20;
       var y = 24 + rowIdx * 240;
-      pos[t.name] = { x: x, y: y, w: boxW, h: h, table: t };
+      pos[tKey(t)] = { x: x, y: y, w: boxW, h: h, table: t };
+      if (!pos[t.name]) pos[t.name] = pos[tKey(t)];
       if (y + h + 40 > maxH) maxH = y + h + 40;
     });
     var svgW = Math.max(700, colsPerRow * (boxW + gapX) + 40);
@@ -691,9 +713,10 @@ function loadErDiagram(){
     svg.setAttribute("height", String(maxH));
     svg.setAttribute("style", "background:#090d16;border:1px solid #26364f;border-radius:8px;display:block");
     tables.forEach(function(t){
-      var src = pos[t.name];
+      var src = pos[tKey(t)];
       (t.foreignKeys || []).forEach(function(fk){
-        var dst = pos[fk.refTable];
+        var dstKey = (fk.refSchema ? fk.refSchema + "." : (t.schema ? t.schema + "." : "")) + fk.refTable;
+        var dst = pos[dstKey] || pos[fk.refTable];
         if (!src || !dst) return;
         var path = document.createElementNS(ns, "path");
         var x1 = src.x + src.w, y1 = src.y + 28, x2 = dst.x, y2 = dst.y + 28;
@@ -707,7 +730,7 @@ function loadErDiagram(){
       });
     });
     tables.forEach(function(t){
-      var p = pos[t.name];
+      var p = pos[tKey(t)];
       var g = document.createElementNS(ns, "g");
       var rect = document.createElementNS(ns, "rect");
       rect.setAttribute("x", String(p.x)); rect.setAttribute("y", String(p.y));
@@ -717,7 +740,7 @@ function loadErDiagram(){
       var title = document.createElementNS(ns, "text");
       title.setAttribute("x", String(p.x + 10)); title.setAttribute("y", String(p.y + 20));
       title.setAttribute("fill", "#38bdf8"); title.setAttribute("font-weight", "bold"); title.setAttribute("font-size", "12");
-      title.textContent = t.name;
+      title.textContent = tKey(t);
       g.appendChild(title);
       t.columns.forEach(function(c, ci){
         var ct = document.createElementNS(ns, "text");

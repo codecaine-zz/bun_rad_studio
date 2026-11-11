@@ -7,8 +7,10 @@
 // checksum verification, transparent gzip (.tar.gz / .tgz), and path-traversal-safe extraction.
 // Limits: regular files + directories only (symlinks/devices are skipped on read); 8 GiB per entry.
 
+import { realpathSync } from "node:fs";
 import { mkdir, readdir, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
+import { gunzipSync } from "node:zlib";
 
 /** One entry to pack. Names ending in `/` (or `type: "directory"`) create directory entries. */
 export interface TarEntry {
@@ -37,6 +39,8 @@ export interface UnpackedTarEntry {
 
 const BLOCK = 512;
 const MAX_OCTAL_SIZE = 0o77777777777; // 8 GiB - 1
+/** Maximum decompressed size for `.tar.gz` / `.tgz` archives unpacked in memory (256 MiB). */
+export const MAX_DECOMPRESSED_TAR_BYTES = 256 * 1024 * 1024;
 
 function writeOctal(
   buf: Buffer,
@@ -52,7 +56,19 @@ function readOctal(block: Buffer, offset: number, width: number): number {
     .toString("ascii", offset, offset + width)
     .replace(/\0.*$/, "")
     .trim();
-  return raw ? parseInt(raw, 8) : 0;
+  if (!raw) return 0;
+  if (!/^[0-7]+$/.test(raw)) {
+    throw new Error(
+      `[tarutils] Invalid octal header field "${raw}" at offset ${offset}`,
+    );
+  }
+  const parsed = parseInt(raw, 8);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(
+      `[tarutils] Out-of-range octal header field "${raw}" at offset ${offset}`,
+    );
+  }
+  return parsed;
 }
 
 function headerChecksum(block: Buffer): number {
@@ -207,6 +223,11 @@ export function unpackTarBytes(bytes: Uint8Array): UnpackedTarEntry[] {
         `[tarutils] Header checksum mismatch at offset ${offset}`,
       );
     const size = readOctal(header, 124, 12);
+    if (size < 0 || offset + BLOCK + size > buf.length) {
+      throw new Error(
+        `[tarutils] Truncated or invalid entry size (${size}) at offset ${offset}`,
+      );
+    }
     const typeflag = String.fromCharCode(header[156] || 48);
     const data = buf.subarray(offset + BLOCK, offset + BLOCK + size);
     offset += BLOCK + size + padBlock(size).length;
@@ -265,24 +286,72 @@ export function packTarGz(entries: TarEntry[], level?: number): Uint8Array {
  * Unpack `.tar.gz` bytes (plain TAR bytes also accepted).
  * @example `tarutils.unpackTarGz(await Bun.file("bundle.tgz").bytes());`
  */
-export function unpackTarGz(bytes: Uint8Array): UnpackedTarEntry[] {
-  return unpackTarBytes(maybeGunzip(bytes));
+export function unpackTarGz(
+  bytes: Uint8Array,
+  maxOutputLength = MAX_DECOMPRESSED_TAR_BYTES,
+): UnpackedTarEntry[] {
+  return unpackTarBytes(maybeGunzip(bytes, maxOutputLength));
 }
 
-function maybeGunzip(bytes: Uint8Array): Uint8Array {
-  return bytes[0] === 0x1f && bytes[1] === 0x8b
-    ? Bun.gunzipSync(bytes as Uint8Array<ArrayBuffer>)
-    : bytes;
+function maybeGunzip(
+  bytes: Uint8Array,
+  maxOutputLength = MAX_DECOMPRESSED_TAR_BYTES,
+): Uint8Array {
+  if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    return new Uint8Array(gunzipSync(bytes, { maxOutputLength }));
+  }
+  return bytes;
+}
+
+function assertRealAncestorContained(root: string, target: string): void {
+  let realRoot: string;
+  try {
+    realRoot = realpathSync(root);
+  } catch {
+    return;
+  }
+  let probe = target;
+  while (probe !== root && probe.startsWith(root + sep)) {
+    try {
+      const realProbe = realpathSync(probe);
+      if (realProbe !== realRoot && !realProbe.startsWith(realRoot + sep)) {
+        throw new Error(
+          `[tarutils] Refusing to extract "${target}": symlink escapes ${realRoot}`,
+        );
+      }
+      return;
+    } catch (err: any) {
+      if (String(err?.message || "").startsWith("[tarutils]")) throw err;
+      const parent = dirname(probe);
+      if (parent === probe) break;
+      probe = parent;
+    }
+  }
 }
 
 function safeTarget(destDir: string, name: string): string {
   const root = resolve(destDir);
-  const target = resolve(root, name);
+  if (!name || name.includes("\0") || /^[a-zA-Z]:/.test(name)) {
+    throw new Error(
+      `[tarutils] Refusing to extract "${name}": path escapes ${root}`,
+    );
+  }
+  const normalized = name.replace(/\\/g, "/");
+  if (
+    normalized.startsWith("/") ||
+    normalized.split("/").some((seg) => seg === "..")
+  ) {
+    throw new Error(
+      `[tarutils] Refusing to extract "${name}": path escapes ${root}`,
+    );
+  }
+  const target = resolve(root, normalized);
   if (target !== root && !target.startsWith(root + sep)) {
     throw new Error(
       `[tarutils] Refusing to extract "${name}": path escapes ${root}`,
     );
   }
+  assertRealAncestorContained(root, target);
   return target;
 }
 

@@ -102,9 +102,10 @@ export interface QueryResult {
   elapsedMs: number;
 }
 
-/** Per-query execution options such as row limits. */
+/** Per-query execution options such as row limits and per-statement timeouts. */
 export interface QueryOptions {
   maxRows?: number;
+  timeoutMs?: number;
 }
 
 /** Metadata describing a single column of a table or view. */

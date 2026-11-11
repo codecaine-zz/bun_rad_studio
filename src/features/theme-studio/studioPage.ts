@@ -23,6 +23,15 @@ export interface ThemeStudioPageOptions {
   initialOverrides?: Record<string, string>;
 }
 
+function escapeServerHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 /**
  * Produces a complete, self-contained HTML document containing the 3-Layer Theme Engine,
  * the Theme Customizer Drawer (Quick Studio + Pro Inspector), Persistence (localStorage + JSON Export/Import),
@@ -31,16 +40,21 @@ export interface ThemeStudioPageOptions {
 export function generateThemeStudioPageHtml(
   options: ThemeStudioPageOptions = {},
 ): string {
-  const title =
+  const title = escapeServerHtml(
     options.title ??
-    "Visual Theme Studio Pro — 3-Layer High-Abstraction Theme Engine";
+      "Visual Theme Studio Pro — 3-Layer High-Abstraction Theme Engine",
+  );
   const initialSystem = calculateThemeSystem(
     options.initialSurface ?? DEFAULT_SURFACE_CONFIG,
     options.initialOverrides ?? {},
   );
 
   const rootVarsInline = Object.entries(initialSystem.variables)
-    .map(([k, v]) => `${k}: ${v};`)
+    .filter(([k]) => /^--[a-zA-Z0-9_-]+$/.test(k))
+    .map(
+      ([k, v]) =>
+        `${k}: ${escapeServerHtml(String(v).replace(/[;{}\\<>]/g, ""))};`,
+    )
     .join(" ");
 
   const bootPayload = JSON.stringify({
@@ -57,7 +71,7 @@ export function generateThemeStudioPageHtml(
     .replace(/\u2029/g, "\\u2029");
 
   return `<!DOCTYPE html>
-<html lang="en" data-base-mode="${initialSystem.surface.baseMode}" data-surface-vibe="${initialSystem.surface.surfaceVibe}" data-density="${initialSystem.surface.density}" style="color-scheme: ${initialSystem.colorScheme}; ${rootVarsInline}">
+<html lang="en" data-base-mode="${escapeServerHtml(initialSystem.surface.baseMode)}" data-surface-vibe="${escapeServerHtml(initialSystem.surface.surfaceVibe)}" data-density="${escapeServerHtml(initialSystem.surface.density)}" style="color-scheme: ${escapeServerHtml(initialSystem.colorScheme)}; ${rootVarsInline}">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -503,7 +517,11 @@ ${generateThemeStudioStyles()}
       });
 
       Object.keys(overrides || {}).forEach(function(k) {
-        if (k.indexOf("--") === 0 && overrides[k]) vars[k] = overrides[k];
+        if (!Object.prototype.hasOwnProperty.call(overrides, k)) return;
+        var ov = String(overrides[k] == null ? "" : overrides[k]).trim();
+        if (k.indexOf("--") === 0 && k.length > 2 && ov && !/[{};<>]/.test(ov)) {
+          vars[k] = ov;
+        }
       });
 
       var root = document.documentElement;
@@ -524,9 +542,85 @@ ${generateThemeStudioStyles()}
       };
     }
 
+    function escHtml(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    var VALID_BASE_MODES = ["light", "dark", "midnight", "high-contrast"];
+    var VALID_SURFACE_VIBES = ["flat", "frosted-glass", "matte", "neon-border"];
+    var VALID_DENSITIES = ["compact", "comfortable", "spacious"];
+
+    function sanitizeSurfaceInline(raw) {
+      var obj = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+      var bm = VALID_BASE_MODES.indexOf(obj.baseMode) >= 0 ? obj.baseMode : boot.defaultSurface.baseMode;
+      var sv = VALID_SURFACE_VIBES.indexOf(obj.surfaceVibe) >= 0 ? obj.surfaceVibe : boot.defaultSurface.surfaceVibe;
+      var dn = VALID_DENSITIES.indexOf(obj.density) >= 0 ? obj.density : boot.defaultSurface.density;
+      var csRaw = Number(obj.cornerSharpness);
+      var cs = Number.isFinite(csRaw) ? clamp(Math.round(csRaw), 0, 24) : boot.defaultSurface.cornerSharpness;
+      return {
+        baseMode: bm,
+        primaryColor: normalizeHex(typeof obj.primaryColor === "string" ? obj.primaryColor : undefined, boot.defaultSurface.primaryColor),
+        accentColor: normalizeHex(typeof obj.accentColor === "string" ? obj.accentColor : undefined, boot.defaultSurface.accentColor),
+        surfaceVibe: sv,
+        cornerSharpness: cs,
+        density: dn
+      };
+    }
+
+    function sanitizeOverridesInline(raw) {
+      var out = Object.create(null);
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+      Object.keys(raw).forEach(function(key) {
+        if (!Object.prototype.hasOwnProperty.call(raw, key)) return;
+        var k = String(key).trim();
+        var v = String(raw[key] == null ? "" : raw[key]).trim();
+        if (k.indexOf("--") === 0 && k.length > 2 && v.length > 0 && !/[{};<>]/.test(v)) {
+          out[k] = v;
+        }
+      });
+      return out;
+    }
+
+    function importThemeFromJsonInline(jsonString) {
+      if (!jsonString || typeof jsonString !== "string" || !jsonString.trim()) {
+        throw new Error("Theme JSON payload is empty.");
+      }
+      var parsed;
+      try {
+        parsed = JSON.parse(jsonString);
+      } catch (err) {
+        throw new Error("Invalid JSON syntax: " + ((err && err.message) || "unable to parse"));
+      }
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("Theme JSON must be a root JSON object.");
+      }
+      var surfaceSource = parsed.surface && typeof parsed.surface === "object" && !Array.isArray(parsed.surface) ? parsed.surface : parsed;
+      var recognized =
+        ("baseMode" in surfaceSource) ||
+        ("primaryColor" in surfaceSource) ||
+        ("accentColor" in surfaceSource) ||
+        ("surfaceVibe" in surfaceSource) ||
+        ("cornerSharpness" in surfaceSource) ||
+        ("density" in surfaceSource) ||
+        parsed.format === "bun-rad-theme-studio";
+      if (!recognized) {
+        throw new Error("Unrecognized theme JSON structure: expected surface controls.");
+      }
+      return {
+        name: typeof parsed.name === "string" && parsed.name.trim() ? parsed.name.trim() : "Imported Theme",
+        surface: sanitizeSurfaceInline(surfaceSource),
+        overrides: sanitizeOverridesInline(parsed.overrides)
+      };
+    }
+
     // State initialization
-    var surface = Object.assign({}, boot.defaultSurface);
-    var overrides = Object.assign({}, boot.initialOverrides || {});
+    var surface = sanitizeSurfaceInline(boot.defaultSurface);
+    var overrides = sanitizeOverridesInline(boot.initialOverrides || {});
     var currentName = "Obsidian Glass";
     var activePresetId = "obsidian-glass";
     var expandedCats = { Backgrounds: true, Typography: true };
@@ -537,10 +631,10 @@ ${generateThemeStudioStyles()}
       if (savedActive) {
         var parsed = JSON.parse(savedActive);
         if (parsed && parsed.surface) {
-          surface = Object.assign({}, surface, parsed.surface);
-          overrides = Object.assign({}, parsed.overrides || {});
-          currentName = parsed.name || currentName;
-          activePresetId = parsed.activePresetId || null;
+          surface = sanitizeSurfaceInline(parsed.surface);
+          overrides = sanitizeOverridesInline(parsed.overrides || {});
+          currentName = typeof parsed.name === "string" && parsed.name.trim() ? parsed.name.trim() : currentName;
+          activePresetId = typeof parsed.activePresetId === "string" ? parsed.activePresetId : null;
         }
       }
     } catch (e) {}
@@ -553,7 +647,17 @@ ${generateThemeStudioStyles()}
     function loadSavedList() {
       try {
         var raw = localStorage.getItem(STORAGE_SAVED);
-        return raw ? JSON.parse(raw) : [];
+        if (!raw) return [];
+        var arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return [];
+        return arr.filter(function(it) { return it && typeof it === "object"; }).map(function(it) {
+          return {
+            id: typeof it.id === "string" ? it.id : "theme-saved",
+            name: typeof it.name === "string" && it.name.trim() ? it.name.trim() : "Custom Theme",
+            surface: sanitizeSurfaceInline(it.surface),
+            overrides: sanitizeOverridesInline(it.overrides)
+          };
+        });
       } catch (e) { return []; }
     }
 
@@ -565,15 +669,15 @@ ${generateThemeStudioStyles()}
       var g = document.getElementById("tsPresetGrid");
       g.innerHTML = boot.presets.map(function(p) {
         var act = activePresetId === p.id ? "true" : "false";
-        return '<button type="button" class="ts-preset-card" data-preset-id="' + p.id + '" data-active="' + act + '" title="' + p.tagline + '">' +
+        return '<button type="button" class="ts-preset-card" data-preset-id="' + escHtml(p.id) + '" data-active="' + act + '" title="' + escHtml(p.tagline) + '">' +
           '<div style="display:flex;width:100%;align-items:center;justify-content:space-between;">' +
-            '<strong style="font-size:var(--font-size-xs);">' + p.name + '</strong>' +
+            '<strong style="font-size:var(--font-size-xs);">' + escHtml(p.name) + '</strong>' +
             '<div class="ts-preset-dots">' +
-              '<span class="ts-preset-dot" style="background:' + p.surface.primaryColor + ';"></span>' +
-              '<span class="ts-preset-dot" style="background:' + p.surface.accentColor + ';"></span>' +
+              '<span class="ts-preset-dot" style="background:' + escHtml(p.surface.primaryColor) + ';"></span>' +
+              '<span class="ts-preset-dot" style="background:' + escHtml(p.surface.accentColor) + ';"></span>' +
             '</div>' +
           '</div>' +
-          '<span style="font-size:10.5px;color:var(--text-muted);">' + p.badge + '</span>' +
+          '<span style="font-size:10.5px;color:var(--text-muted);">' + escHtml(p.badge) + '</span>' +
         '</button>';
       }).join("");
     }
@@ -583,7 +687,7 @@ ${generateThemeStudioStyles()}
       sg.innerHTML = boot.shadeSteps10.map(function(step) {
         var hex = system.neutralScale[step];
         var fg = step <= 400 ? system.neutralScale[950] : system.neutralScale[50];
-        return '<div class="ts-shade-swatch" data-shade-step="' + step + '" style="background:' + hex + ';color:' + fg + ';"><strong>' + step + '</strong><span>' + hex + '</span></div>';
+        return '<div class="ts-shade-swatch" data-shade-step="' + escHtml(step) + '" style="background:' + escHtml(hex) + ';color:' + escHtml(fg) + ';"><strong>' + escHtml(step) + '</strong><span>' + escHtml(hex) + '</span></div>';
       }).join("");
     }
 
@@ -601,23 +705,23 @@ ${generateThemeStudioStyles()}
           var val = system.variables[d.name] || "";
           var isOv = Object.prototype.hasOwnProperty.call(overrides, d.name);
           var hexVal = /^#[0-9a-f]{6}$/i.test(val.trim()) ? val.trim() : normalizeHex(val, surface.primaryColor);
-          return '<div class="ts-var-row" data-var-name="' + d.name + '">' +
+          return '<div class="ts-var-row" data-var-name="' + escHtml(d.name) + '">' +
             '<div class="ts-var-header">' +
-              '<div><div style="font-size:var(--font-size-xs);font-weight:600;">' + d.label + '</div><code class="ts-var-code">' + d.name + '</code></div>' +
+              '<div><div style="font-size:var(--font-size-xs);font-weight:600;">' + escHtml(d.label) + '</div><code class="ts-var-code">' + escHtml(d.name) + '</code></div>' +
               '<div style="display:flex;align-items:center;gap:4px;">' +
                 (isOv ? '<span class="ts-badge ts-badge-warning" style="padding:1px 6px;font-size:10px;">Overridden</span>' : '') +
-                '<button type="button" class="ts-btn ts-btn-ghost ts-btn-sm" data-reset-var="' + d.name + '" ' + (isOv ? '' : 'disabled') + '>↺</button>' +
+                '<button type="button" class="ts-btn ts-btn-ghost ts-btn-sm" data-reset-var="' + escHtml(d.name) + '" ' + (isOv ? '' : 'disabled') + '>↺</button>' +
               '</div>' +
             '</div>' +
             '<div class="ts-var-controls">' +
-              (d.kind === "color" ? '<input type="color" class="ts-color-swatch-input" style="width:34px;height:30px;" data-var-color="' + d.name + '" value="' + hexVal + '" aria-label="' + d.label + ' color picker" />' : '') +
-              '<input type="text" class="ts-input" style="height:30px;font-family:var(--font-mono);font-size:11.5px;" data-var-input="' + d.name + '" value="' + String(val).replace(/"/g, "&quot;") + '" aria-label="' + d.name + ' value" />' +
+              (d.kind === "color" ? '<input type="color" class="ts-color-swatch-input" style="width:34px;height:30px;" data-var-color="' + escHtml(d.name) + '" value="' + escHtml(hexVal) + '" aria-label="' + escHtml(d.label) + ' color picker" />' : '') +
+              '<input type="text" class="ts-input" style="height:30px;font-family:var(--font-mono);font-size:11.5px;" data-var-input="' + escHtml(d.name) + '" value="' + escHtml(val) + '" aria-label="' + escHtml(d.name) + ' value" />' +
             '</div>' +
           '</div>';
         }).join("");
-        return '<div class="ts-accordion-item" data-inspector-category="' + cat + '">' +
-          '<button type="button" class="ts-accordion-summary" data-toggle-category="' + cat + '" aria-expanded="' + (open ? "true" : "false") + '">' +
-            '<span>' + (open ? "▾ " : "▸ ") + cat + ' <span style="color:var(--text-muted);font-weight:400;">(' + items.length + ')</span></span>' +
+        return '<div class="ts-accordion-item" data-inspector-category="' + escHtml(cat) + '">' +
+          '<button type="button" class="ts-accordion-summary" data-toggle-category="' + escHtml(cat) + '" aria-expanded="' + (open ? "true" : "false") + '">' +
+            '<span>' + (open ? "▾ " : "▸ ") + escHtml(cat) + ' <span style="color:var(--text-muted);font-weight:400;">(' + items.length + ')</span></span>' +
             (ovCount > 0 ? '<span class="ts-badge ts-badge-warning">' + ovCount + ' custom</span>' : '<span class="ts-badge ts-badge-neutral">Auto</span>') +
           '</button>' +
           '<div class="ts-accordion-body" ' + (open ? '' : 'hidden') + '>' + rows + '</div>' +
@@ -629,7 +733,7 @@ ${generateThemeStudioStyles()}
       var sel = document.getElementById("ctrlSavedThemesSelect");
       var list = loadSavedList();
       sel.innerHTML = '<option value="">Saved Themes (' + list.length + ')...</option>' +
-        list.map(function(t) { return '<option value="' + t.id + '">' + t.name + ' (' + t.surface.baseMode + ' • ' + t.surface.surfaceVibe + ')</option>'; }).join("");
+        list.map(function(t) { return '<option value="' + escHtml(t.id) + '">' + escHtml(t.name) + ' (' + escHtml(t.surface.baseMode) + ' • ' + escHtml(t.surface.surfaceVibe) + ')</option>'; }).join("");
     }
 
     function syncAll(rebuildInspector) {
@@ -667,7 +771,7 @@ ${generateThemeStudioStyles()}
       document.getElementById("previewCodeBlock").innerHTML =
         '<span class="ts-tok-cmt">/* Auto-generated by Smart Math Engine (' + Object.keys(system.variables).length + ' total tokens) */</span>\\n' +
         '<span class="ts-tok-kw">:root</span> {\\n' +
-        keys.map(function(k) { return '  <span class="ts-tok-fn">' + k + '</span>: <span class="ts-tok-str">' + system.variables[k] + '</span>;'; }).join("\\n") +
+        keys.map(function(k) { return '  <span class="ts-tok-fn">' + escHtml(k) + '</span>: <span class="ts-tok-str">' + escHtml(system.variables[k]) + '</span>;'; }).join("\\n") +
         '\\n}';
 
       renderPresets();
@@ -784,19 +888,11 @@ ${generateThemeStudioStyles()}
     document.getElementById("btnCloseJsonModal").addEventListener("click", function() { jsonModal.hidden = true; });
     document.getElementById("btnApplyJsonPayload").addEventListener("click", function() {
       try {
-        var p = JSON.parse(jsonTxt.value);
-        var s = p.surface || p;
-        if (!s || typeof s !== "object") throw new Error("Missing surface configuration");
-        surface = {
-          baseMode: s.baseMode || "dark",
-          primaryColor: normalizeHex(s.primaryColor, "#3b82f6"),
-          accentColor: normalizeHex(s.accentColor, "#8b5cf6"),
-          surfaceVibe: s.surfaceVibe || "frosted-glass",
-          cornerSharpness: clamp(Number(s.cornerSharpness) || 0, 0, 24),
-          density: s.density || "comfortable"
-        };
-        overrides = p.overrides && typeof p.overrides === "object" ? p.overrides : {};
-        currentName = p.name || "Imported Theme";
+        var doc = importThemeFromJsonInline(jsonTxt.value);
+        surface = doc.surface;
+        overrides = doc.overrides;
+        currentName = doc.name;
+        activePresetId = null;
         document.getElementById("ctrlSaveThemeName").value = currentName;
         jsonModal.hidden = true;
         syncAll(true);
@@ -816,8 +912,8 @@ ${generateThemeStudioStyles()}
         id: "theme-" + nameInput.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now().toString(36),
         name: nameInput,
         updatedAt: new Date().toISOString(),
-        surface: Object.assign({}, surface),
-        overrides: Object.assign({}, overrides)
+        surface: sanitizeSurfaceInline(surface),
+        overrides: sanitizeOverridesInline(overrides)
       };
       var idx = list.findIndex(function(item) { return item.name.toLowerCase() === nameInput.toLowerCase(); });
       if (idx >= 0) list[idx] = doc; else list.unshift(doc);
@@ -830,8 +926,8 @@ ${generateThemeStudioStyles()}
       var found = loadSavedList().find(function(item) { return item.id === id; });
       if (found) {
         currentName = found.name;
-        surface = Object.assign({}, found.surface);
-        overrides = Object.assign({}, found.overrides || {});
+        surface = sanitizeSurfaceInline(found.surface);
+        overrides = sanitizeOverridesInline(found.overrides || {});
         document.getElementById("ctrlSaveThemeName").value = currentName;
         syncAll(true);
       }

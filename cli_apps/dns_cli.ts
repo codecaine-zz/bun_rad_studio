@@ -6,7 +6,7 @@ const app = SimpleCLI.newApp("dns-cli", "1.0.0").setDescription(
   "DNS Lookup, Nameserver & Latency Inspector CLI",
 );
 
-app.addFlagString("domain", "d", "google.com", "Target domain name to resolve");
+app.addFlagString("domain", "d", "", "Target domain name to resolve");
 app.addFlagString(
   "type",
   "t",
@@ -48,6 +48,7 @@ async function main() {
     );
   } catch (err: any) {
     app.error(`DNS resolution failed for ${domain}: ${err.message}`);
+    process.exit(1);
   }
 }
 

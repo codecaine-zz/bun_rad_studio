@@ -2,20 +2,29 @@
  * Low-level filesystem, manifest I/O, and formatting helpers for the `rip`
  * safe file deletion and graveyard system.
  */
-import { cp, mkdir, rename, rm, stat } from "node:fs/promises";
+import {
+  cp,
+  lstat,
+  mkdir,
+  rename,
+  rm,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
+import { randomBytes } from "node:crypto";
 import { homedir } from "node:os";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import type { GraveyardManifest, GraveyardRecord } from "./ripTypes.ts";
 import { colors } from "../../shared/colors.ts";
 
 /**
  * Resolves the active graveyard directory path from an explicit override,
- * the `GRAVEYARD` environment variable, or the default `~/.local/share/graveyard`.
+ * the `GRAVEYARD` environment variable, or the default `~/.local/share/rip/graveyard`.
  */
 export function resolveGraveyardDir(customDir?: string): string {
   if (customDir) return resolve(customDir);
   if (process.env.GRAVEYARD) return resolve(process.env.GRAVEYARD);
-  return join(homedir(), ".local", "share", "graveyard");
+  return join(homedir(), ".local", "share", "rip", "graveyard");
 }
 
 /**
@@ -42,36 +51,199 @@ export function formatByteSize(bytes: number): string {
  * Ensures that the specified directory (and any parent directories) exists on disk.
  */
 export async function ensureDirectoryExists(dir: string): Promise<void> {
-  await mkdir(dir, { recursive: true });
+  await mkdir(dir, { recursive: true, mode: 0o700 });
 }
 
 /**
- * Reads and parses `manifest.json` from the graveyard directory, returning an empty
- * version-1 manifest if the file is missing or invalid.
+ * Converts a `rip_engine.ts` `GraveyardItem` into a `GraveyardRecord` while preserving extra fields.
+ */
+function itemToRecord(item: Record<string, any>): GraveyardRecord {
+  const deletedAt =
+    typeof item.deletedAt === "string"
+      ? item.deletedAt
+      : typeof item.buriedAt === "string"
+        ? item.buriedAt
+        : new Date().toISOString();
+  const size =
+    typeof item.size === "number"
+      ? item.size
+      : typeof item.sizeBytes === "number"
+        ? item.sizeBytes
+        : 0;
+  const isDirectory =
+    typeof item.isDirectory === "boolean"
+      ? item.isDirectory
+      : item.type === "directory";
+  return {
+    ...item,
+    id: String(item.id ?? ""),
+    originalPath: String(item.originalPath ?? ""),
+    graveyardPath: String(item.graveyardPath ?? ""),
+    deletedAt,
+    isDirectory,
+    size,
+  };
+}
+
+/**
+ * Converts a `GraveyardRecord` into a `rip_engine.ts`-compatible `GraveyardItem` object.
+ */
+function recordToItem(
+  rec: GraveyardRecord,
+  graveyardDir: string,
+): Record<string, unknown> {
+  const buriedAt = rec.deletedAt || new Date().toISOString();
+  const buriedAtMs =
+    typeof rec.buriedAtMs === "number"
+      ? rec.buriedAtMs
+      : Date.parse(buriedAt) || Date.now();
+  const sizeBytes = typeof rec.size === "number" ? rec.size : 0;
+  const cwd = typeof rec.cwd === "string" ? rec.cwd : dirname(rec.originalPath);
+  return {
+    ...rec,
+    id: rec.id,
+    name: typeof rec.name === "string" ? rec.name : basename(rec.originalPath),
+    originalPath: rec.originalPath,
+    relativePath:
+      typeof rec.relativePath === "string"
+        ? rec.relativePath
+        : basename(rec.originalPath),
+    graveyardRel:
+      typeof rec.graveyardRel === "string"
+        ? rec.graveyardRel
+        : relative(graveyardDir, rec.graveyardPath),
+    graveyardPath: rec.graveyardPath,
+    buriedAt,
+    deletedAt: buriedAt,
+    buriedAtMs,
+    sizeBytes,
+    size: sizeBytes,
+    humanSize:
+      typeof rec.humanSize === "string"
+        ? rec.humanSize
+        : formatByteSize(sizeBytes),
+    fileCount: typeof rec.fileCount === "number" ? rec.fileCount : 1,
+    type:
+      typeof rec.type === "string"
+        ? rec.type
+        : rec.isDirectory
+          ? "directory"
+          : "file",
+    isDirectory: rec.isDirectory,
+    mode: typeof rec.mode === "number" ? rec.mode : 0o644,
+    permStr:
+      typeof rec.permStr === "string"
+        ? rec.permStr
+        : rec.isDirectory
+          ? "rwxr-xr-x"
+          : "rw-r--r--",
+    cwd,
+    status: typeof rec.status === "string" ? rec.status : "buried",
+  };
+}
+
+/**
+ * Reads and parses `manifest.json` from the graveyard directory, reconciling both
+ * `items` (`rip_engine.ts`) and legacy `records` schemas, and throwing if an existing manifest is corrupted.
  */
 export async function readManifest(
   graveyardDir: string,
 ): Promise<GraveyardManifest> {
-  const manifestFile = Bun.file(join(graveyardDir, "manifest.json"));
+  const manifestPath = join(graveyardDir, "manifest.json");
+  const manifestFile = Bun.file(manifestPath);
   if (!(await manifestFile.exists())) {
-    return { version: 1, records: [] };
+    return {
+      version: "1.0.0",
+      graveyardRoot: graveyardDir,
+      lastUpdated: new Date().toISOString(),
+      records: [],
+      items: [],
+    };
   }
+  const raw = await manifestFile.text();
+  if (!raw.trim()) {
+    return {
+      version: "1.0.0",
+      graveyardRoot: graveyardDir,
+      lastUpdated: new Date().toISOString(),
+      records: [],
+      items: [],
+    };
+  }
+  let parsed: any;
   try {
-    return (await manifestFile.json()) as GraveyardManifest;
-  } catch {
-    return { version: 1, records: [] };
+    parsed = JSON.parse(raw);
+  } catch (err: any) {
+    throw new Error(
+      `[RipManifest] Graveyard manifest is corrupted (${manifestPath}): ${err?.message || "invalid JSON"}`,
+    );
   }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error(
+      `[RipManifest] Graveyard manifest has invalid root structure: ${manifestPath}`,
+    );
+  }
+  const rawItems: any[] | null = Array.isArray(parsed.items)
+    ? parsed.items
+    : null;
+  const rawRecords: any[] | null = Array.isArray(parsed.records)
+    ? parsed.records
+    : null;
+
+  let records: GraveyardRecord[];
+  if (rawItems) {
+    records = rawItems
+      .filter((it) => !it?.status || it.status === "buried")
+      .map(itemToRecord);
+  } else if (rawRecords) {
+    records = rawRecords.map(itemToRecord);
+  } else {
+    records = [];
+  }
+
+  return {
+    version: parsed.version ?? "1.0.0",
+    graveyardRoot: parsed.graveyardRoot ?? graveyardDir,
+    lastUpdated: parsed.lastUpdated ?? new Date().toISOString(),
+    records,
+    items: rawItems ?? records.map((r) => recordToItem(r, graveyardDir)),
+  };
 }
 
 /**
- * Writes the updated `GraveyardManifest` to `manifest.json` inside `graveyardDir`.
+ * Atomically writes the updated `GraveyardManifest` to `manifest.json` inside `graveyardDir`
+ * with both `items` (for `rip_engine.ts`) and `records` (for `src/features/rip` callers).
  */
 export async function writeManifest(
   graveyardDir: string,
   manifest: GraveyardManifest,
 ): Promise<void> {
+  await ensureDirectoryExists(graveyardDir);
   const manifestPath = join(graveyardDir, "manifest.json");
-  await Bun.write(manifestPath, JSON.stringify(manifest, null, 2));
+  const tmpPath = join(
+    graveyardDir,
+    `.manifest.json.tmp-${process.pid}-${randomBytes(6).toString("hex")}`,
+  );
+  const items = manifest.records.map((r) => recordToItem(r, graveyardDir));
+  const payload = {
+    version: typeof manifest.version === "string" ? manifest.version : "1.0.0",
+    graveyardRoot: graveyardDir,
+    lastUpdated: new Date().toISOString(),
+    items,
+    records: manifest.records,
+  };
+  try {
+    await writeFile(tmpPath, JSON.stringify(payload, null, 2), {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
+    await rename(tmpPath, manifestPath);
+  } catch (err) {
+    try {
+      await unlink(tmpPath);
+    } catch {}
+    throw err;
+  }
 }
 
 /**
@@ -109,7 +281,7 @@ export async function inspectPath(
   targetPath: string,
 ): Promise<{ isDirectory: boolean; size: number }> {
   try {
-    const s = await stat(targetPath);
+    const s = await lstat(targetPath);
     return { isDirectory: s.isDirectory(), size: s.size };
   } catch {
     throw new Error(

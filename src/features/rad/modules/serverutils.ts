@@ -4,8 +4,10 @@
  */
 // Feature: RAD - serverutils
 // High-performance HTTP server, router, static file serving, and WebSocket hub powered by Bun.serve
+import { realpathSync, statSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import type { Server, ServerWebSocket } from "bun";
+import { guardLocalRequest } from "../../../localGuard.ts";
 
 /**
  * Standard request handler signature compatible with `Bun.serve`.
@@ -67,13 +69,29 @@ export interface HttpRouter {
   handle(req: Request, server: Server<any>): Promise<Response>;
 }
 
+function escapeRegexLiteral(segment: string): string {
+  return segment.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function isLoopbackHost(host: string): boolean {
+  const clean = host.toLowerCase().replace(/^\[|\]$/g, "");
+  return clean === "127.0.0.1" || clean === "localhost" || clean === "::1";
+}
+
 // Doer: Convert URL path pattern (e.g. "/users/:id") to RegExp with parameter matching
 function pathToRegex(path: string): { regex: RegExp; keys: string[] } {
   const keys: string[] = [];
-  const regexStr = path.replace(/:([a-zA-Z0-9_]+)/g, (_, key) => {
-    keys.push(key);
-    return "([^/]+)";
-  });
+  let regexStr = "";
+  let lastIndex = 0;
+  const paramRe = /:([a-zA-Z0-9_]+)/g;
+  let match: RegExpExecArray | null;
+  while ((match = paramRe.exec(path)) !== null) {
+    regexStr += escapeRegexLiteral(path.slice(lastIndex, match.index));
+    keys.push(match[1]!);
+    regexStr += "([^/]+)";
+    lastIndex = match.index + match[0].length;
+  }
+  regexStr += escapeRegexLiteral(path.slice(lastIndex));
   return { regex: new RegExp(`^${regexStr}$`), keys };
 }
 
@@ -100,11 +118,16 @@ export function createRouter(): HttpRouter {
       handler: (req, _, server) => {
         const url = new URL(req.url);
         const match = url.pathname.match(regex);
-        const params: Record<string, string> = {};
+        const params: Record<string, string> = Object.create(null);
         if (match) {
-          keys.forEach((k, idx) => {
-            params[k] = match[idx + 1] ?? "";
-          });
+          for (let idx = 0; idx < keys.length; idx++) {
+            const rawVal = match[idx + 1] ?? "";
+            try {
+              params[keys[idx]!] = decodeURIComponent(rawVal);
+            } catch {
+              return new Response("Bad Request", { status: 400 });
+            }
+          }
         }
         return handler(req, params, server);
       },
@@ -170,19 +193,28 @@ export interface ServerInstance {
  * Starts a `Bun.serve` HTTP server dispatched through a custom `fetch` handler or an {@link HttpRouter}.
  */
 export function serveHttp(options: ServeOptions = {}): ServerInstance {
+  const bindHost = options.hostname ?? "127.0.0.1";
+  const isLoopback = isLoopbackHost(bindHost);
   const fetchHandler =
     options.fetch ??
     (options.router ? options.router.handle : () => new Response("OK"));
   const server = Bun.serve({
     port: options.port ?? 0,
-    hostname: options.hostname ?? "localhost",
-    fetch: fetchHandler,
+    hostname: bindHost,
+    fetch(req, s) {
+      if (isLoopback) {
+        const blocked = guardLocalRequest(req);
+        if (blocked) return blocked;
+      }
+      return fetchHandler(req, s);
+    },
   });
 
+  const resolvedHost = server.hostname ?? bindHost;
   return {
     port: server.port ?? 0,
-    hostname: server.hostname ?? options.hostname ?? "localhost",
-    url: `http://${server.hostname ?? options.hostname ?? "localhost"}:${server.port}`,
+    hostname: resolvedHost,
+    url: `http://${resolvedHost}:${server.port}`,
     stop: (closeActiveConnections = true) =>
       server.stop(closeActiveConnections),
     raw: server,
@@ -200,16 +232,57 @@ export interface StaticServerOptions {
   spaFallback?: boolean;
 }
 
+function resolveContainedRealFile(
+  rootDir: string,
+  candidatePath: string,
+):
+  | { status: "ok"; realPath: string }
+  | { status: "forbidden" }
+  | { status: "missing" } {
+  if (candidatePath !== rootDir && !candidatePath.startsWith(rootDir + sep)) {
+    return { status: "forbidden" };
+  }
+  let realRoot = rootDir;
+  try {
+    realRoot = realpathSync(rootDir);
+  } catch {
+    return { status: "missing" };
+  }
+  let realCandidate: string;
+  try {
+    realCandidate = realpathSync(candidatePath);
+  } catch {
+    return { status: "missing" };
+  }
+  if (realCandidate !== realRoot && !realCandidate.startsWith(realRoot + sep)) {
+    return { status: "forbidden" };
+  }
+  try {
+    if (!statSync(realCandidate).isFile()) {
+      return { status: "missing" };
+    }
+  } catch {
+    return { status: "missing" };
+  }
+  return { status: "ok", realPath: realCandidate };
+}
+
 // Coordinator: Launch zero-config static file server
 /**
  * Starts a path-traversal-safe static file server rooted at `options.dir`, with optional SPA `index.html` fallback.
  */
 export function serveStatic(options: StaticServerOptions): ServerInstance {
   const rootDir = resolve(options.dir);
+  const bindHost = options.hostname ?? "127.0.0.1";
+  const isLoopback = isLoopbackHost(bindHost);
   const server = Bun.serve({
     port: options.port ?? 0,
-    hostname: options.hostname ?? "127.0.0.1",
+    hostname: bindHost,
     async fetch(req) {
+      if (isLoopback) {
+        const blocked = guardLocalRequest(req);
+        if (blocked) return blocked;
+      }
       const url = new URL(req.url);
       let decodedPath = url.pathname;
       try {
@@ -225,16 +298,25 @@ export function serveStatic(options: StaticServerOptions): ServerInstance {
       if (filePath !== rootDir && !filePath.startsWith(rootDir + sep)) {
         return new Response("Forbidden", { status: 403 });
       }
-      const file = Bun.file(filePath);
 
-      if (await file.exists()) {
-        return new Response(file);
+      const checked = resolveContainedRealFile(rootDir, filePath);
+      if (checked.status === "forbidden") {
+        return new Response("Forbidden", { status: 403 });
+      }
+      if (checked.status === "ok") {
+        return new Response(Bun.file(checked.realPath));
       }
 
       if (options.spaFallback) {
-        const fallback = Bun.file(join(rootDir, "index.html"));
-        if (await fallback.exists()) {
-          return new Response(fallback);
+        const fallbackCheck = resolveContainedRealFile(
+          rootDir,
+          join(rootDir, "index.html"),
+        );
+        if (fallbackCheck.status === "forbidden") {
+          return new Response("Forbidden", { status: 403 });
+        }
+        if (fallbackCheck.status === "ok") {
+          return new Response(Bun.file(fallbackCheck.realPath));
         }
       }
 
@@ -242,10 +324,11 @@ export function serveStatic(options: StaticServerOptions): ServerInstance {
     },
   });
 
+  const resolvedHost = server.hostname ?? bindHost;
   return {
     port: server.port ?? 0,
-    hostname: server.hostname ?? "localhost",
-    url: `http://${server.hostname ?? "localhost"}:${server.port}`,
+    hostname: resolvedHost,
+    url: `http://${resolvedHost}:${server.port}`,
     stop: (closeActiveConnections = true) =>
       server.stop(closeActiveConnections),
     raw: server,
@@ -281,31 +364,14 @@ export interface WebSocketHub {
  */
 export function createWsHub(options: WsHubOptions = {}): WebSocketHub {
   const bindHost = options.hostname ?? "127.0.0.1";
-  const isLoopback =
-    bindHost === "127.0.0.1" || bindHost === "localhost" || bindHost === "::1";
+  const isLoopback = isLoopbackHost(bindHost);
   const server = Bun.serve<{ topic: string }>({
     port: options.port ?? 0,
     hostname: bindHost,
     fetch(req, s) {
       if (isLoopback) {
-        const origin = req.headers.get("origin");
-        if (origin && origin !== "null") {
-          try {
-            const originHost = new URL(origin).hostname.toLowerCase();
-            if (
-              originHost !== "127.0.0.1" &&
-              originHost !== "localhost" &&
-              originHost !== "::1" &&
-              originHost !== "[::1]"
-            ) {
-              return new Response("Forbidden: cross-origin WebSocket blocked", {
-                status: 403,
-              });
-            }
-          } catch {
-            return new Response("Forbidden: invalid Origin", { status: 403 });
-          }
-        }
+        const blocked = guardLocalRequest(req);
+        if (blocked) return blocked;
       }
       const url = new URL(req.url);
       const topic = url.searchParams.get("topic") ?? "default";

@@ -2,6 +2,7 @@
  * Network inspection and connectivity utilities for discovering local/public IPs,
  * checking internet reachability, measuring TCP latency, and resolving DNS hostnames.
  */
+import net from "node:net";
 import os from "node:os";
 
 // Doer: Get primary local IPv4 address
@@ -30,15 +31,16 @@ export function getLocalIp(): string {
 export async function getPublicIp(timeoutMs = 4000): Promise<string> {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
+  id.unref?.();
   try {
     const res = await fetch("https://api.ipify.org", {
       signal: controller.signal,
     });
-    clearTimeout(id);
     return (await res.text()).trim();
   } catch {
-    clearTimeout(id);
     return "";
+  } finally {
+    clearTimeout(id);
   }
 }
 
@@ -48,17 +50,19 @@ export async function getPublicIp(timeoutMs = 4000): Promise<string> {
  * @param timeoutMs - Probe timeout in milliseconds (default `3000`).
  */
 export async function isOnline(timeoutMs = 3000): Promise<boolean> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  id.unref?.();
   try {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeoutMs);
     const res = await fetch("https://1.1.1.1", {
       method: "HEAD",
       signal: controller.signal,
     });
-    clearTimeout(id);
     return res.status < 500;
   } catch {
     return false;
+  } finally {
+    clearTimeout(id);
   }
 }
 
@@ -75,29 +79,31 @@ export async function tcpPing(
   timeoutMs = 2000,
 ): Promise<{ reachable: boolean; durationMs: number }> {
   const start = performance.now();
-  try {
-    const socket = await Bun.connect({
-      hostname: host,
-      port,
-      socket: {
-        open(s) {
-          s.end();
-        },
-        data() {},
-        close() {},
-        error() {},
-      },
-      data: {},
-    });
-    const durationMs = Math.round(performance.now() - start);
-    socket.end();
-    return { reachable: true, durationMs };
-  } catch {
-    return {
-      reachable: false,
-      durationMs: Math.round(performance.now() - start),
+  return new Promise((resolvePromise) => {
+    const socket = new net.Socket();
+    let settled = false;
+    const finish = (reachable: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      socket.removeAllListeners();
+      socket.destroy();
+      resolvePromise({
+        reachable,
+        durationMs: Math.round(performance.now() - start),
+      });
     };
-  }
+    const timer = setTimeout(() => finish(false), Math.max(1, timeoutMs));
+    timer.unref?.();
+    socket.once("connect", () => finish(true));
+    socket.once("error", () => finish(false));
+    socket.once("timeout", () => finish(false));
+    try {
+      socket.connect(port, host);
+    } catch {
+      finish(false);
+    }
+  });
 }
 
 // Doer: Resolve hostname to IPv4/IPv6 addresses using native Bun.dns.lookup

@@ -5,6 +5,7 @@
  * Ported & extended from https://github.com/codecaine-zz/bun_sys_utils
  */
 
+import { chmodSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { rad } from "../src/features/rad/index.ts";
 import { runRadShowcase } from "../src/features/rad/radCli.ts";
@@ -489,15 +490,23 @@ export async function runSingleModuleDemo(moduleName: string): Promise<void> {
   try {
     switch (mod.name) {
       case "fileutils": {
-        const tmp = join(rad.sysutils.getTempDir(), "bun_rad_cli_test.json");
-        await rad.fileutils.saveJson(tmp, {
-          test: true,
-          timestamp: Date.now(),
-        });
-        const loaded = await rad.fileutils.loadJson<any>(tmp);
-        console.log(
-          colors.green(`✓ JSON atomic write & read: ${JSON.stringify(loaded)}`),
-        );
+        const tmpDir = mkdtempSync(join(rad.sysutils.getTempDir(), "rad-cli-"));
+        try {
+          chmodSync(tmpDir, 0o700);
+          const tmp = join(tmpDir, "test.json");
+          await rad.fileutils.saveJson(tmp, {
+            test: true,
+            timestamp: Date.now(),
+          });
+          const loaded = await rad.fileutils.loadJson<any>(tmp);
+          console.log(
+            colors.green(
+              `✓ JSON atomic write & read: ${JSON.stringify(loaded)}`,
+            ),
+          );
+        } finally {
+          rmSync(tmpDir, { recursive: true, force: true });
+        }
         break;
       }
       case "sqliteutils": {

@@ -150,11 +150,19 @@ export function parseAttributes(tagOrAttrs: string): Record<string, string> {
   const body = tagOrAttrs
     .replace(/^\s*<\s*[\w:-]+/, "")
     .replace(/\/?>\s*$/, "");
-  const out: Record<string, string> = {};
+  const out: Record<string, string> = Object.create(null);
   for (const m of body.matchAll(
     /([^\s"'<>\/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g,
   )) {
-    out[m[1]!.toLowerCase()] = unescapeHtml(m[2] ?? m[3] ?? m[4] ?? "");
+    const attrName = m[1]!.toLowerCase();
+    if (
+      attrName === "__proto__" ||
+      attrName === "constructor" ||
+      attrName === "prototype"
+    ) {
+      continue;
+    }
+    out[attrName] = unescapeHtml(m[2] ?? m[3] ?? m[4] ?? "");
   }
   return out;
 }
@@ -345,9 +353,12 @@ export function buildTag(
     throw new Error(`[htmlutils.buildTag] Invalid tag name "${tag}"`);
   const attrStr = Object.entries(attrs)
     .filter(([, v]) => v !== false && v != null)
-    .map(([k, v]) =>
-      v === true ? ` ${k}` : ` ${k}="${Bun.escapeHTML(String(v))}"`,
-    )
+    .map(([k, v]) => {
+      if (!/^[a-zA-Z_:][\w:.-]*$/.test(k)) {
+        throw new Error(`[htmlutils.buildTag] Invalid attribute name "${k}"`);
+      }
+      return v === true ? ` ${k}` : ` ${k}="${Bun.escapeHTML(String(v))}"`;
+    })
     .join("");
   if (VOID_TAGS.has(tag.toLowerCase())) return `<${tag}${attrStr}>`;
   return `<${tag}${attrStr}>${children.map(renderValue).join("")}</${tag}>`;

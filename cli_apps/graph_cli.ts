@@ -5,12 +5,7 @@ const app = SimpleCLI.newApp("graph-cli", "1.0.0").setDescription(
   "Terminal Unicode Graph, Bar Chart & Sparkline Visualizer",
 );
 
-app.addFlagString(
-  "data",
-  "d",
-  "12,24,45,67,89,95,70,40,20,15",
-  "Comma-separated numeric series",
-);
+app.addFlagString("data", "d", "", "Comma-separated numeric series");
 app.addFlagString("title", "t", "System Performance Metrics", "Chart title");
 
 if (!app.parseCli()) process.exit(0);

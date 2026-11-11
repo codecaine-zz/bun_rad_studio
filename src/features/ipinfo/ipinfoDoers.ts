@@ -3,7 +3,8 @@
  * classification, DNS/DoH resolution, upstream geolocation fetching (`ipinfo.io` / `ipwho.is`),
  * CIDR subnet math, local network adapter discovery, and CLI table/JSON/CSV formatting.
  */
-import { lookup, reverse, Resolver } from "node:dns/promises";
+import { lookup, reverse } from "node:dns/promises";
+import { isIP } from "node:net";
 import { networkInterfaces } from "node:os";
 import type {
   IpInfoResult,
@@ -14,12 +15,14 @@ import { colors } from "../../shared/colors.ts";
 import { renderTable, type ColumnDef } from "../../shared/table.ts";
 
 /**
- * Checks whether a string matches a basic IPv4 or IPv6 address pattern.
+ * Checks whether a string matches a valid IPv4 or IPv6 address.
  */
 export function isIpAddress(input: string): boolean {
-  const ipv4 = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
-  const ipv6 = /^[0-9a-fA-F:]+$/;
-  return ipv4.test(input) || (input.includes(":") && ipv6.test(input));
+  const s = input
+    .trim()
+    .replace(/^\[|\]$/g, "")
+    .replace(/%[^%]+$/, "");
+  return isIP(s) !== 0;
 }
 
 /**
@@ -30,7 +33,10 @@ export function isCidr(input: string): boolean {
   if (parts.length !== 2) return false;
   const prefix = parseInt(parts[1]!, 10);
   return (
-    isIpAddress(parts[0]!) && !isNaN(prefix) && prefix >= 0 && prefix <= 32
+    isIP(parts[0]!.trim()) === 4 &&
+    !isNaN(prefix) &&
+    prefix >= 0 &&
+    prefix <= 32
   );
 }
 
@@ -43,9 +49,17 @@ export function cleanTarget(input: string): string {
   s = s.replace(/\/.*$/, ""); // strip path
   s = s.replace(/\?.*$/, ""); // strip query params
   s = s.replace(/#.*$/, ""); // strip anchor
+  // Handle bracketed IPv6 with optional port [::1]:8080
+  const bracketMatch = s.match(/^\[([0-9a-fA-F:%.]+)\](?::[0-9]+)?$/);
+  if (bracketMatch?.[1]) {
+    return bracketMatch[1];
+  }
   // If not IPv6, strip port
-  if (!s.includes("]:") && !s.includes("::")) {
-    s = s.replace(/:[0-9]+$/, "");
+  if (!s.includes("::")) {
+    const colonCount = (s.match(/:/g) || []).length;
+    if (colonCount <= 1) {
+      s = s.replace(/:[0-9]+$/, "");
+    }
   }
   return s.trim();
 }
@@ -62,6 +76,7 @@ export function syncFetchJson(
     const cmd = [
       "curl",
       "-s",
+      "--globoff",
       "--proto",
       "=https,http",
       "--max-time",
@@ -83,6 +98,28 @@ export function syncFetchJson(
 }
 
 /**
+ * Performs a non-blocking HTTP/HTTPS JSON fetch using `fetch` and `AbortSignal.timeout`.
+ */
+async function asyncFetchJson(
+  url: string,
+  headers: Record<string, string> = {},
+  timeoutMs = 3000,
+): Promise<any> {
+  try {
+    const res = await fetch(url, {
+      headers,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) return null;
+    const text = await res.text();
+    if (text && text.trim().startsWith("{")) {
+      return JSON.parse(text);
+    }
+  } catch {}
+  return null;
+}
+
+/**
  * Classification metadata indicating whether an IP belongs to a private, loopback, or bogon range.
  */
 export interface IpClassification {
@@ -93,13 +130,68 @@ export interface IpClassification {
 }
 
 /**
+ * Extracts an embedded IPv4 dotted-quad string from IPv4-mapped, IPv4-compatible, or NAT64 IPv6 addresses.
+ */
+function extractEmbeddedIpv4(lowerIpv6: string): string | null {
+  // Dotted-quad forms: ::ffff:127.0.0.1, 0:0:0:0:0:ffff:10.0.0.1, ::ffff:0:127.0.0.1, 64:ff9b::192.168.1.1, ::127.0.0.1
+  const dotted = lowerIpv6.match(
+    /^(?:::ffff:(?:0:)?|(?:0{1,4}:){5}ffff:|64:ff9b:(?:1:)?(?::|(?:0{1,4}:){4})|::|(?:0{1,4}:){6})(\d{1,3}(?:\.\d{1,3}){3})$/,
+  );
+  if (dotted?.[1] && isIP(dotted[1]) === 4) {
+    return dotted[1];
+  }
+
+  // Hex-pair forms: ::ffff:7f00:1, 0:0:0:0:0:ffff:7f00:0001, 64:ff9b::7f00:1
+  const hexPair = lowerIpv6.match(
+    /^(?:::ffff:(?:0:)?|(?:0{1,4}:){5}ffff:|64:ff9b:(?:1:)?(?::|(?:0{1,4}:){4}))([0-9a-f]{1,4}):([0-9a-f]{1,4})$/,
+  );
+  if (hexPair?.[1] && hexPair?.[2]) {
+    const hi = parseInt(hexPair[1], 16);
+    const lo = parseInt(hexPair[2], 16);
+    return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+  }
+
+  return null;
+}
+
+/**
  * Classifies an IPv4 or IPv6 address against standard IANA/RFC special-purpose and private ranges.
  */
 export function classifyIp(ip: string): IpClassification {
-  const trimmed = ip.trim();
+  const trimmed = ip
+    .trim()
+    .replace(/^\[|\]$/g, "")
+    .replace(/%[^%]+$/, "");
+  const lower = trimmed.toLowerCase();
+
+  // Check embedded IPv4 in IPv6 (e.g. ::ffff:127.0.0.1, ::ffff:10.0.0.1, ::ffff:7f00:1, 64:ff9b::...)
+  if (lower.includes(":")) {
+    const embeddedV4 = extractEmbeddedIpv4(lower);
+    if (embeddedV4) {
+      const inner = classifyIp(embeddedV4);
+      if (inner.isPrivateOrBogon) {
+        return {
+          ...inner,
+          type: `IPv4-Mapped ${inner.type}`,
+        };
+      }
+      // NAT64 prefix itself is special-purpose non-global for local translation if 64:ff9b:1::/48
+      if (lower.startsWith("64:ff9b:1:")) {
+        return {
+          isPrivateOrBogon: true,
+          type: "IPv6 Local-Use IPv4/IPv6 Translation",
+          rfc: "RFC 8215 (64:ff9b:1::/48)",
+          scope: "Private NAT64 Translation",
+        };
+      }
+      return inner;
+    }
+  }
+
   if (
     trimmed === "127.0.0.1" ||
-    trimmed === "::1" ||
+    lower === "::1" ||
+    /^(?:0{1,4}:){7}0*1$/.test(lower) ||
     trimmed.startsWith("127.")
   ) {
     return {
@@ -109,7 +201,11 @@ export function classifyIp(ip: string): IpClassification {
       scope: "Host Loopback Adapter",
     };
   }
-  if (trimmed === "0.0.0.0" || trimmed === "::") {
+  if (
+    trimmed === "0.0.0.0" ||
+    lower === "::" ||
+    /^(?:0{1,4}:){7}0{1,4}$/.test(lower)
+  ) {
     return {
       isPrivateOrBogon: true,
       type: "Unspecified Address",
@@ -126,6 +222,14 @@ export function classifyIp(ip: string): IpClassification {
   ) {
     // The check above guarantees four numbers; the defaults only satisfy the type checker.
     const [o1 = 0, o2 = 0] = ipv4Parts;
+    if (o1 === 0) {
+      return {
+        isPrivateOrBogon: true,
+        type: "This Network (Current Network)",
+        rfc: "RFC 1122 (0.0.0.0/8)",
+        scope: "Non-routable Source Network",
+      };
+    }
     if (o1 === 10) {
       return {
         isPrivateOrBogon: true,
@@ -164,6 +268,14 @@ export function classifyIp(ip: string): IpClassification {
         type: "Carrier-Grade NAT",
         rfc: "RFC 6598 (100.64.0.0/10)",
         scope: "ISP Shared Address Space",
+      };
+    }
+    if (o1 === 192 && o2 === 0 && ipv4Parts[2] === 0) {
+      return {
+        isPrivateOrBogon: true,
+        type: "IETF Protocol Assignments",
+        rfc: "RFC 6890 (192.0.0.0/24)",
+        scope: "Special-Purpose Protocol Space",
       };
     }
     if (o1 === 192 && o2 === 0 && ipv4Parts[2] === 2) {
@@ -217,7 +329,6 @@ export function classifyIp(ip: string): IpClassification {
   }
 
   // IPv6 classifications
-  const lower = trimmed.toLowerCase();
   if (
     lower.startsWith("fe8") ||
     lower.startsWith("fe9") ||
@@ -245,6 +356,22 @@ export function classifyIp(ip: string): IpClassification {
       type: "IPv6 Multicast",
       rfc: "RFC 4291 (ff00::/8)",
       scope: "Multicast Node/Router Group",
+    };
+  }
+  if (lower.startsWith("2001:db8:") || lower.startsWith("2001:0db8:")) {
+    return {
+      isPrivateOrBogon: true,
+      type: "IPv6 Documentation Prefix",
+      rfc: "RFC 3849 (2001:db8::/32)",
+      scope: "Documentation / Examples",
+    };
+  }
+  if (lower.startsWith("100::") || /^0*100:(?:0{1,4}:){3}/.test(lower)) {
+    return {
+      isPrivateOrBogon: true,
+      type: "IPv6 Discard-Only Prefix",
+      rfc: "RFC 6666 (100::/64)",
+      scope: "Discard Traffic Sink",
     };
   }
 
@@ -365,27 +492,209 @@ export function resolveTargetToIp(target?: string): {
         }
       }
     } catch {}
+
+    try {
+      const dsProc = Bun.spawnSync([
+        "dscacheutil",
+        "-q",
+        "host",
+        "-a",
+        "name",
+        cleaned,
+      ]);
+      if (dsProc.exitCode === 0) {
+        const out = dsProc.stdout.toString();
+        const match = out.match(
+          /ip_address:\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/,
+        );
+        if (match && match[1] && isIpAddress(match[1])) {
+          return { ip: match[1], domain: cleaned };
+        }
+      }
+    } catch {}
+  }
+
+  throw new Error(`[IpInfoResolve] Could not resolve host to IP: ${target}`);
+}
+
+/**
+ * Asynchronously resolves a target hostname, URL, interface name, or IP string into an IPv4/IPv6 address without blocking the event loop.
+ */
+export async function resolveTargetToIpAsync(target?: string): Promise<{
+  ip?: string;
+  domain?: string;
+}> {
+  if (!target || target === "myip") return {};
+  const cleaned = cleanTarget(target);
+  if (isIpAddress(cleaned)) {
+    return { ip: cleaned };
+  }
+  if (cleaned.toLowerCase() === "localhost") {
+    return { ip: "127.0.0.1", domain: cleaned };
   }
 
   try {
-    const dsProc = Bun.spawnSync([
-      "dscacheutil",
-      "-q",
-      "host",
-      "-a",
-      "name",
-      cleaned,
-    ]);
-    if (dsProc.exitCode === 0) {
-      const out = dsProc.stdout.toString();
-      const match = out.match(/ip_address:\s*([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
-      if (match && match[1] && isIpAddress(match[1])) {
-        return { ip: match[1], domain: cleaned };
-      }
+    const ifaces = getLocalInterfaces();
+    const matchedIface = ifaces.find(
+      (i) => i.name.toLowerCase() === cleaned.toLowerCase(),
+    );
+    if (matchedIface) {
+      return { ip: matchedIface.address, domain: matchedIface.name };
     }
   } catch {}
 
+  if (!cleaned.startsWith("-")) {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const resolved = await Promise.race([
+        lookup(cleaned),
+        new Promise<never>((_, rej) => {
+          timer = setTimeout(() => rej(new Error("DNS timeout")), 2500);
+        }),
+      ]);
+      if (resolved?.address && isIpAddress(resolved.address)) {
+        return { ip: resolved.address, domain: cleaned };
+      }
+    } catch {
+      // Fall through to DoH
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+    }
+  }
+
+  const dohGoogle = await asyncFetchJson(
+    `https://dns.google/resolve?name=${encodeURIComponent(cleaned)}&type=A`,
+    { Accept: "application/dns-json" },
+    2500,
+  );
+  const answerGoogle = dohGoogle?.Answer?.find(
+    (a: any) => a.type === 1 && a.data && isIpAddress(a.data),
+  );
+  if (answerGoogle?.data) {
+    return { ip: answerGoogle.data, domain: cleaned };
+  }
+
+  const dohCf = await asyncFetchJson(
+    `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(cleaned)}&type=A`,
+    { Accept: "application/dns-json" },
+    2500,
+  );
+  const answerCf = dohCf?.Answer?.find(
+    (a: any) => a.type === 1 && a.data && isIpAddress(a.data),
+  );
+  if (answerCf?.data) {
+    return { ip: answerCf.data, domain: cleaned };
+  }
+
   throw new Error(`[IpInfoResolve] Could not resolve host to IP: ${target}`);
+}
+
+/**
+ * Asynchronously fetches geolocation and ASN details for an IP address without spawning `curl` subprocesses,
+ * handling private/bogon ranges locally before any remote network request.
+ */
+export async function fetchIpDetailsAsync(
+  ip?: string,
+  token?: string,
+): Promise<IpInfoResult> {
+  if (ip && ip !== "myip") {
+    const cls = classifyIp(ip);
+    if (cls.isPrivateOrBogon) {
+      return createPrivateIpResult(ip, cls);
+    }
+  }
+
+  if (process.env.SCREENSHOT_MODE === "1" && (!ip || ip === "myip")) {
+    return {
+      ip: "8.8.8.8",
+      hostname: "dns.google",
+      city: "Mountain View",
+      region: "California",
+      country: "US",
+      loc: "37.4056,-122.0775",
+      org: "AS15169 Google LLC",
+      postal: "94043",
+      timezone: "America/Los_Angeles",
+      readme: "Google Public DNS Demonstration",
+    };
+  }
+
+  const cleanIp =
+    ip && ip !== "myip" ? `${encodeURIComponent(ip.trim())}/` : "";
+  const query = token ? `?token=${encodeURIComponent(token)}` : "";
+  const primaryUrl = `https://ipinfo.io/${cleanIp}json${query}`;
+
+  const ipinfoData = await asyncFetchJson(
+    primaryUrl,
+    { Accept: "application/json", "User-Agent": "bun-ipinfo/1.0" },
+    3000,
+  );
+  if (ipinfoData) {
+    if (ipinfoData.bogon) {
+      return createPrivateIpResult(ip || ipinfoData.ip || "127.0.0.1");
+    }
+    if (ipinfoData.ip) {
+      return ipinfoData as IpInfoResult;
+    }
+  }
+
+  const targetIp = ip && ip !== "myip" ? encodeURIComponent(ip.trim()) : "";
+  const fallbackUrl = targetIp
+    ? `https://ipwho.is/${targetIp}`
+    : `https://ipwho.is/`;
+  const ipwhoData = await asyncFetchJson(
+    fallbackUrl,
+    { Accept: "application/json" },
+    3000,
+  );
+  if (ipwhoData) {
+    if (
+      ipwhoData.success === false &&
+      String(ipwhoData.message).toLowerCase().includes("reserved")
+    ) {
+      return createPrivateIpResult(ip || ip?.trim() || "127.0.0.1");
+    }
+    if (ipwhoData.success !== false && ipwhoData.ip) {
+      return {
+        ip: ipwhoData.ip || ip || "",
+        hostname: ipwhoData.connection?.domain || undefined,
+        city: ipwhoData.city,
+        region: ipwhoData.region,
+        country: ipwhoData.country_code,
+        loc:
+          ipwhoData.latitude !== undefined && ipwhoData.longitude !== undefined
+            ? `${ipwhoData.latitude},${ipwhoData.longitude}`
+            : undefined,
+        org:
+          ipwhoData.connection?.org || ipwhoData.connection?.isp
+            ? `AS${ipwhoData.connection?.asn || ""} ${ipwhoData.connection?.org || ipwhoData.connection?.isp}`.trim()
+            : undefined,
+        postal: ipwhoData.postal,
+        timezone: ipwhoData.timezone?.id,
+        readme: "Resolved via ipwho.is",
+      };
+    }
+  }
+
+  if (ip && isIpAddress(ip)) {
+    const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    return {
+      ip,
+      hostname: "unresolved-ptr",
+      city: "Unknown (Upstream Telemetry Unavailable)",
+      region: "Unknown",
+      country: "Unknown",
+      loc: "0,0",
+      org: "Upstream Lookup Unavailable",
+      timezone: localTz,
+      readme:
+        "Could not retrieve geolocation telemetry from upstream providers. Check internet connection or API token.",
+    };
+  }
+
+  throw new Error(
+    `[IpInfoFetch] Failed to fetch IP details for: ${ip || "myip"}`,
+  );
 }
 
 /**

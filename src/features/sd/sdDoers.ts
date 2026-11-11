@@ -3,11 +3,28 @@
  * covering regex construction, file/directory target expansion, backups,
  * line diff calculation, and both async and sync file processing.
  */
-import { readFileSync, writeFileSync, statSync, readdirSync } from "node:fs";
-import { readdir, stat } from "node:fs/promises";
-import { join } from "node:path";
+import {
+  chmodSync,
+  copyFileSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { copyFile, readdir, stat } from "node:fs/promises";
+import { randomBytes } from "node:crypto";
+import { basename, dirname, join } from "node:path";
 import { colors } from "../../shared/colors.ts";
 import type { DiffHunk, FileTransformResult } from "./sdTypes.ts";
+
+/**
+ * Checks whether a byte buffer contains NUL (`0x00`) bytes indicating a binary file.
+ */
+export function isBinaryBuffer(bytes: Uint8Array): boolean {
+  return bytes.includes(0);
+}
 
 /**
  * Escapes all special regular expression metacharacters in a literal string.
@@ -48,8 +65,7 @@ export async function createBackup(
 ): Promise<string> {
   const ext = backupExt.startsWith(".") ? backupExt : `.${backupExt}`;
   const backupPath = `${filePath}${ext}`;
-  const content = await Bun.file(filePath).text();
-  await Bun.write(backupPath, content);
+  await copyFile(filePath, backupPath);
   return backupPath;
 }
 
@@ -94,13 +110,20 @@ export async function expandTargets(
 }
 
 /**
- * Replaces all occurrences of `regex` in `content` with `replacement` (supporting `$1`, `$2` capture groups).
+ * Replaces all occurrences of `regex` in `content` with `replacement` (supporting `$1`, `$2` capture groups unless `literalReplacement` is enabled).
  */
 export function replaceText(
   content: string,
   regex: RegExp,
   replacement: string,
+  literalReplacement: boolean = false,
 ): string {
+  if (literalReplacement) {
+    const globalRegex = regex.global
+      ? regex
+      : new RegExp(regex.source, `${regex.flags}g`);
+    return content.replace(globalRegex, () => replacement);
+  }
   // Support $1, $2, etc., capture groups in regex replacements
   return content.replaceAll(regex, replacement);
 }
@@ -166,13 +189,14 @@ export async function readContent(filePath: string): Promise<string> {
 }
 
 /**
- * Asynchronously writes string content to `filePath` and returns the number of bytes written.
+ * Asynchronously writes string content atomically via a sibling temp file to `filePath` and returns the number of bytes written.
  */
 export async function writeContent(
   filePath: string,
   content: string,
 ): Promise<number> {
-  return await Bun.write(filePath, content);
+  writeContentSync(filePath, content);
+  return Buffer.byteLength(content, "utf-8");
 }
 
 /**
@@ -183,10 +207,39 @@ export function readContentSync(filePath: string): string {
 }
 
 /**
- * Synchronously writes UTF-8 text `content` to `filePath`.
+ * Synchronously writes UTF-8 text `content` atomically to `filePath` via a sibling temporary file, preserving permissions.
  */
 export function writeContentSync(filePath: string, content: string): void {
-  writeFileSync(filePath, content, "utf-8");
+  const dir = dirname(filePath);
+  const base = basename(filePath);
+  const tmpPath = join(
+    dir,
+    `.${base}.sd-tmp-${process.pid}-${randomBytes(6).toString("hex")}`,
+  );
+  let mode: number | undefined;
+  try {
+    mode = statSync(filePath).mode;
+  } catch {
+    // New file
+  }
+  try {
+    writeFileSync(
+      tmpPath,
+      content,
+      mode !== undefined ? { encoding: "utf-8", mode } : "utf-8",
+    );
+    if (mode !== undefined) {
+      try {
+        chmodSync(tmpPath, mode);
+      } catch {}
+    }
+    renameSync(tmpPath, filePath);
+  } catch (err) {
+    try {
+      unlinkSync(tmpPath);
+    } catch {}
+    throw err;
+  }
 }
 
 /**
@@ -195,8 +248,7 @@ export function writeContentSync(filePath: string, content: string): void {
 export function createBackupSync(filePath: string, backupExt: string): string {
   const ext = backupExt.startsWith(".") ? backupExt : `.${backupExt}`;
   const backupPath = `${filePath}${ext}`;
-  const content = readContentSync(filePath);
-  writeContentSync(backupPath, content);
+  copyFileSync(filePath, backupPath);
   return backupPath;
 }
 
@@ -232,15 +284,31 @@ export function expandTargetsSync(
 }
 
 /**
- * Synchronously reads `filePath`, applies the replacement `regex`, and computes resulting diff hunks.
+ * Synchronously reads `filePath`, skips binary files containing NUL bytes, applies the replacement `regex`, and computes resulting diff hunks.
  */
 export function processFileSync(
   filePath: string,
   regex: RegExp,
   replacement: string,
+  literalReplacement: boolean = false,
 ): FileTransformResult {
-  const original = readContentSync(filePath);
-  const newContent = replaceText(original, regex, replacement);
+  const bytes = readFileSync(filePath);
+  if (isBinaryBuffer(bytes)) {
+    return {
+      filePath,
+      hasChanged: false,
+      originalContent: "",
+      newContent: "",
+      diffHunks: [],
+    };
+  }
+  const original = bytes.toString("utf-8");
+  const newContent = replaceText(
+    original,
+    regex,
+    replacement,
+    literalReplacement,
+  );
   const hasChanged = original !== newContent;
   const diffHunks = hasChanged ? computeDiffHunks(original, newContent) : [];
 

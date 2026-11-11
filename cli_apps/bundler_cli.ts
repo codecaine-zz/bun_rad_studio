@@ -67,6 +67,47 @@ app.banner(
   "v1.0.0 - Native Single-File Executable Compiler & App Packager",
 );
 
+function validateBundlerInputs(
+  name: string,
+  id: string,
+  ver: string,
+  target: string,
+): void {
+  if (
+    !name ||
+    name === "." ||
+    name === ".." ||
+    name.includes("..") ||
+    /[\/\\]/.test(name) ||
+    name.startsWith("-") ||
+    !/^[A-Za-z0-9][A-Za-z0-9._ -]{0,63}$/.test(name)
+  ) {
+    throw new Error(
+      `Invalid --name "${name}". Rejects '.', '..', slashes, leading '-', and shell metacharacters.`,
+    );
+  }
+  if (
+    !id ||
+    id.includes("..") ||
+    !/^[A-Za-z0-9][A-Za-z0-9.-]{0,127}$/.test(id)
+  ) {
+    throw new Error(`Invalid --id "${id}".`);
+  }
+  if (!ver || !/^[A-Za-z0-9._+-]{1,32}$/.test(ver)) {
+    throw new Error(`Invalid --version "${ver}".`);
+  }
+  if (!target || !/^bun-[a-z0-9-]+$/i.test(target)) {
+    throw new Error(`Invalid --target "${target}".`);
+  }
+}
+
+try {
+  validateBundlerInputs(appName, bundleId, version, targetArch);
+} catch (err: any) {
+  app.error(err.message);
+  process.exit(1);
+}
+
 if (!fs.existsSync(entryPath)) {
   app.error(`Entry file not found: ${entryPath}`);
   process.exit(1);
@@ -87,15 +128,15 @@ async function compileBinary(): Promise<string> {
   const args = ["build", "--compile", `--target=${targetArch}`];
   if (minify) args.push("--minify");
   if (isWin && packageApp) args.push("--windows-hide-console");
-  args.push(`--outfile=${binaryOutput}`, entryPath);
+  args.push(`--outfile=${binaryOutput}`, "--", entryPath);
 
   const start = performance.now();
-  const proc = Bun.spawn(["bun", ...args], {
+  const proc = Bun.spawnSync(["bun", ...args], {
     stdout: "inherit",
     stderr: "inherit",
   });
 
-  const code = await proc.exited;
+  const code = proc.exitCode;
   const elapsed = (performance.now() - start).toFixed(2);
 
   if (code !== 0) {

@@ -51,4 +51,5 @@ export interface GduOptions {
   sortBy?: GduSortBy;
   minSize?: number | string;
   json?: boolean;
+  noCross?: boolean;
 }

@@ -171,6 +171,7 @@ async function runDns(domain: string) {
     }
   } catch (err: any) {
     app.error(`DNS query failed: ${err.message}`);
+    process.exit(1);
   }
 }
 
@@ -210,6 +211,7 @@ async function runProbe(url: string) {
     });
   } catch (err: any) {
     app.error(`Probe failed: ${err.message}`);
+    process.exit(1);
   }
 }
 

@@ -38,6 +38,7 @@ export async function runDoggoCoordinator(
       options.domain,
       options.nameserver,
       options.doh,
+      options.dohUrl,
     );
   } else if (options.doh) {
     response = await performDohLookup(

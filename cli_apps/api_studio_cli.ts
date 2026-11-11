@@ -30,7 +30,12 @@ if (!app.parseCli()) process.exit(0);
 
 app.banner("API Studio CLI", "v1.0.0 - REST API Client & Request Builder");
 
-async function sendApiRequest(method: string, url: string, body?: string) {
+async function sendApiRequest(
+  method: string,
+  url: string,
+  body?: string,
+  exitOnError = false,
+) {
   app.info(`Sending ${method} ${url}...`);
   app.resetTimer();
 
@@ -55,6 +60,7 @@ async function sendApiRequest(method: string, url: string, body?: string) {
     );
   } catch (err: any) {
     app.error(`HTTP Request failed: ${err.message}`);
+    if (exitOnError) process.exit(1);
   }
 }
 
@@ -82,10 +88,10 @@ async function runInteractive() {
 }
 
 if (app.getFlagBool("interactive")) {
-  runInteractive();
+  await runInteractive();
 } else {
   const url = app.getFlagString("url");
   const method = app.getFlagString("method").toUpperCase();
   const body = app.getFlagString("body");
-  sendApiRequest(method, url, body);
+  await sendApiRequest(method, url, body, true);
 }

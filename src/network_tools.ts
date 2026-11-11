@@ -5,7 +5,10 @@
  * Subprocess scripts receive their input as JSON in an environment variable instead of being
  * string-interpolated, so user input can never alter the generated script.
  */
+import * as net from "node:net";
 import { isIP } from "node:net";
+import * as tls from "node:tls";
+import * as dnsPromises from "node:dns/promises";
 
 /** Result of probing a single TCP port during a port scan. */
 export interface ScanResult {
@@ -294,7 +297,186 @@ export function describeCert(c: CertInfo, now = Date.now()): string[][] {
 }
 
 // ---------------------------------------------------------------------------
-// Subprocess helpers
+// In-process async network probes (zero subprocess spawning)
+// ---------------------------------------------------------------------------
+
+/** Scan an arbitrary port list asynchronously in-process using `node:net` with bounded concurrency. */
+export async function checkPorts(
+  host: string,
+  ports: number[],
+  timeoutMs = 500,
+  concurrency = 128,
+): Promise<ScanResult[]> {
+  if (ports.length === 0) return [];
+  const timeout = Math.max(50, Math.min(10_000, timeoutMs));
+  const probe = (port: number): Promise<ScanResult> =>
+    new Promise((res) => {
+      const t0 = performance.now();
+      const s = new net.Socket();
+      let done = false;
+      const fin = (status: ScanResult["status"]) => {
+        if (done) return;
+        done = true;
+        const lat =
+          status === "TIMEOUT"
+            ? timeout
+            : parseFloat((performance.now() - t0).toFixed(1));
+        s.destroy();
+        res({ port, status, latencyMs: lat });
+      };
+      s.setTimeout(timeout);
+      s.once("connect", () => fin("OPEN"));
+      s.once("timeout", () => fin("TIMEOUT"));
+      s.once("error", () => fin("CLOSED"));
+      try {
+        s.connect(port, host);
+      } catch {
+        fin("CLOSED");
+      }
+    });
+
+  const out: ScanResult[] = [];
+  let idx = 0;
+  const workerCount = Math.max(1, Math.min(concurrency, ports.length));
+  await Promise.all(
+    Array.from({ length: workerCount }, async () => {
+      while (idx < ports.length) {
+        const port = ports[idx++]!;
+        out.push(await probe(port));
+      }
+    }),
+  );
+  out.sort((a, b) => a.port - b.port);
+  return out;
+}
+
+/** Time repeated TCP connects to `host:port` asynchronously in-process without spawning subprocesses. */
+export async function tcpPing(
+  host: string,
+  port: number,
+  count = 5,
+  timeoutMs = 1000,
+): Promise<(number | null)[]> {
+  const n = Math.max(1, Math.min(20, count));
+  const once = (): Promise<number | null> =>
+    new Promise((res) => {
+      const t0 = performance.now();
+      const s = new net.Socket();
+      let done = false;
+      const fin = (v: number | null) => {
+        if (done) return;
+        done = true;
+        s.destroy();
+        res(v);
+      };
+      s.setTimeout(timeoutMs);
+      s.once("connect", () =>
+        fin(parseFloat((performance.now() - t0).toFixed(1))),
+      );
+      s.once("timeout", () => fin(null));
+      s.once("error", () => fin(null));
+      try {
+        s.connect(port, host);
+      } catch {
+        fin(null);
+      }
+    });
+
+  const samples: (number | null)[] = [];
+  for (let i = 0; i < n; i++) {
+    samples.push(await once());
+    if (i < n - 1) await new Promise((r) => setTimeout(r, 150));
+  }
+  return samples;
+}
+
+/** Connects to `host:port` over TLS asynchronously in-process using `node:tls` and returns the peer certificate details. */
+export function getTlsCert(
+  host: string,
+  port = 443,
+  timeoutMs = 4000,
+): Promise<CertInfo> {
+  return new Promise((resolve) => {
+    const t0 = performance.now();
+    let settled = false;
+    let sock: tls.TLSSocket | null = null;
+    const finish = (info: CertInfo) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(hardTimer);
+      try {
+        sock?.destroy();
+      } catch {}
+      resolve(info);
+    };
+    const hardTimer = setTimeout(
+      () => finish({ error: "Connection timed out" }),
+      timeoutMs,
+    );
+    const opts: tls.ConnectionOptions = {
+      host,
+      port,
+      rejectUnauthorized: false,
+      timeout: timeoutMs,
+      ...(isIP(host) === 0 ? { servername: host } : {}),
+    };
+    try {
+      sock = tls.connect(opts, () => {
+        const c = sock!.getPeerCertificate();
+        if (!c || !c.subject || Object.keys(c.subject).length === 0) {
+          finish({ error: "The server did not present a certificate" });
+          return;
+        }
+        const cipher = sock!.getCipher();
+        finish({
+          authorized: sock!.authorized,
+          authError: sock!.authorizationError
+            ? String(sock!.authorizationError)
+            : null,
+          protocol: sock!.getProtocol() ?? undefined,
+          cipher: cipher ? cipher.name : null,
+          handshakeMs: parseFloat((performance.now() - t0).toFixed(1)),
+          subject: c.subject as any,
+          issuer: c.issuer as any,
+          validFrom: c.valid_from,
+          validTo: c.valid_to,
+          san: c.subjectaltname,
+          fingerprint256: c.fingerprint256,
+          serialNumber: c.serialNumber,
+        });
+      });
+      sock.once("error", (e) => finish({ error: e.message }));
+      sock.once("timeout", () => finish({ error: "Connection timed out" }));
+    } catch (e: any) {
+      finish({ error: e?.message || "TLS inspection failed" });
+    }
+  });
+}
+
+/** Reverse DNS (PTR) lookup for an IP literal asynchronously in-process via `node:dns/promises`. */
+export async function reversePtr(ip: string): Promise<{
+  hostnames: string[];
+  error?: string;
+}> {
+  if (isIP(ip) === 0) {
+    return {
+      hostnames: [],
+      error: "Reverse DNS needs an IP address (not a hostname)",
+    };
+  }
+  try {
+    const hostnames = await dnsPromises.reverse(ip);
+    return { hostnames };
+  } catch (e: any) {
+    return {
+      hostnames: [],
+      error: e?.code || e?.message || "Reverse lookup failed",
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Synchronous compatibility wrappers
 // ---------------------------------------------------------------------------
 
 function runScript(script: string, payload: unknown, timeoutMs: number): any {
