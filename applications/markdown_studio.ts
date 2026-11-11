@@ -90,6 +90,25 @@ const DROP_SUBTREE_TAGS = new Set([
   "xmp",
 ]);
 
+const RAWTEXT_DROP_TAGS = new Set([
+  "script",
+  "style",
+  "iframe",
+  "noscript",
+  "textarea",
+  "title",
+  "xmp",
+]);
+
+function hasMatchingEndTag(
+  html: string,
+  fromIdx: number,
+  tagName: string,
+): boolean {
+  const re = new RegExp(`<\\/\\s*${tagName}(?=[\\s>/])`, "i");
+  return re.test(html.slice(fromIdx));
+}
+
 function escapeHtmlText(text: string): string {
   return text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -413,14 +432,21 @@ export function sanitizeHtml(html: string): string {
     }
 
     if (droppedTagStack.length > 0) {
-      if (DROP_SUBTREE_TAGS.has(tagName) && !selfClosing) {
+      if (
+        DROP_SUBTREE_TAGS.has(tagName) &&
+        !selfClosing &&
+        (RAWTEXT_DROP_TAGS.has(tagName) || hasMatchingEndTag(html, i, tagName))
+      ) {
         droppedTagStack.push(tagName);
       }
       continue;
     }
 
     if (DROP_SUBTREE_TAGS.has(tagName)) {
-      if (!selfClosing) {
+      if (
+        !selfClosing &&
+        (RAWTEXT_DROP_TAGS.has(tagName) || hasMatchingEndTag(html, i, tagName))
+      ) {
         droppedTagStack.push(tagName);
       }
       continue;

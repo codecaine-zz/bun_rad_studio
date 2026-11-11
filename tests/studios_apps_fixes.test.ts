@@ -40,6 +40,17 @@ import { startChipsChallengeServer } from "../applications/chips_challenge_studi
 import { startPeggleServer } from "../applications/peggle_studio";
 import { startVampireSurvivorsServer } from "../applications/vampire_survivors_studio";
 import { startMemoryMatchServer } from "../applications/memory_match_studio";
+import { sanitizeHtml } from "../applications/markdown_studio";
+import { interpolateExecCommand } from "../applications/fd_engine";
+import {
+  escapeXml,
+  generatePlist,
+  sanitizeBundleName,
+} from "../applications/app_bundler_studio";
+import { buryTargetsSync } from "../applications/rip_engine";
+import { startMediaPlayerStudioServer } from "../applications/media_player_studio";
+import { startSubprocessPipeStudioServer } from "../applications/subprocess_pipe_studio_server";
+import { probeHttpSync } from "../applications/network_studio";
 
 function extractCalculatorEvalFn(): (expr: string, x: number) => number {
   const src = readFileSync(
@@ -427,6 +438,223 @@ describe("Slice 4 Studios & Non-FM Resources Regression Suite", () => {
         "if (canvas.height !== targetH) canvas.height = targetH;",
       );
       expect(calcJs).toContain("ctx.setTransform(dpr, 0, 0, dpr, 0, 0);");
+    });
+  });
+
+  describe("[V-SEC-06] fd_engine single-pass POSIX quoting & app_bundler_studio sanitization", () => {
+    test("interpolateExecCommand single-quotes shell metacharacters and resists cascaded placeholder injection", () => {
+      const cmd = interpolateExecCommand(
+        "echo {} {/}",
+        "/tmp/dir/{/}$(touch pwn)'quote.txt",
+      );
+      expect(cmd).not.toContain("$(touch pwn)'quote.txt $(touch");
+      const proc = Bun.spawnSync(["sh", "-c", cmd], {
+        stdout: "pipe",
+        stderr: "pipe",
+      });
+      expect(proc.exitCode).toBe(0);
+      expect(proc.stdout.toString().trim()).toContain("$(touch pwn)");
+    });
+
+    test("sanitizeBundleName blocks dot/traversal segments and generatePlist XML-escapes values", () => {
+      expect(sanitizeBundleName(".", "FallbackApp")).toBe("FallbackApp");
+      expect(sanitizeBundleName("..", "FallbackApp")).toBe("FallbackApp");
+      const scrubbed = sanitizeBundleName("../etc/passwd", "FallbackApp");
+      expect(scrubbed).not.toContain("/");
+      expect(scrubbed).not.toContain("\\");
+      expect(scrubbed).not.toContain("..");
+      expect(scrubbed).toMatch(/^[A-Za-z0-9._ -]{1,64}$/);
+      expect(sanitizeBundleName("My Cool App 2.0")).toBe("My Cool App 2.0");
+
+      const plist = generatePlist(
+        'Evil</string><key>Injected</key><string>"&',
+        "com.example.<app>",
+        "1.0&beta",
+      );
+      expect(plist).not.toContain("</string><key>Injected</key>");
+      expect(plist).toContain("&lt;/string&gt;");
+      expect(escapeXml(`a&b<c>d"e'f`)).toBe("a&amp;b&lt;c&gt;d&quot;e&apos;f");
+    });
+  });
+
+  describe("[V-SEC-09] & [V-SEC-10] rip_engine D-019 manifest protection & media_player_studio auth", () => {
+    test("buryTargetsSync refuses to overwrite a corrupted manifest.json (D-019)", () => {
+      const tmp = mkdtempSync(join(tmpdir(), "rip-d019-"));
+      try {
+        const grave = join(tmp, "graveyard");
+        mkdirSync(grave, { recursive: true });
+        const manifestPath = join(grave, "manifest.json");
+        writeFileSync(manifestPath, "{corrupted-json!!!", "utf8");
+        const victim = join(tmp, "victim.txt");
+        writeFileSync(victim, "precious", "utf8");
+
+        const res = buryTargetsSync([victim], {
+          graveyardDir: grave,
+          cwd: tmp,
+        });
+        expect(res.success).toBe(false);
+        expect(res.failed.length).toBeGreaterThan(0);
+        expect(readFileSync(manifestPath, "utf8")).toBe("{corrupted-json!!!");
+        expect(existsSync(victim)).toBe(true);
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    test("media_player_studio requires valid session token on /api/* and blocks symlink playlist.m3u8 overwrite", async () => {
+      const mediaRoot = mkdtempSync(join(tmpdir(), "media-sec-root-"));
+      const outside = mkdtempSync(join(tmpdir(), "media-sec-outside-"));
+      try {
+        const outsideTarget = join(outside, "keep.txt");
+        writeFileSync(outsideTarget, "DO_NOT_OVERWRITE", "utf8");
+        symlinkSync(outsideTarget, join(mediaRoot, "playlist.m3u8"));
+
+        const started = startMediaPlayerStudioServer({
+          port: 0,
+          host: "127.0.0.1",
+          rootDir: mediaRoot,
+        });
+        try {
+          const unauthLib = await fetch(`${started.url}/api/library`);
+          expect([401, 403]).toContain(unauthLib.status);
+
+          const authLib = await fetch(
+            `${started.url}/api/library?token=${encodeURIComponent(started.token)}`,
+          );
+          expect(authLib.status).toBe(200);
+
+          const expRes = await fetch(`${started.url}/api/playlist`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-media-token": started.token,
+            },
+            body: JSON.stringify({
+              action: "export",
+              folder: mediaRoot,
+              tracks: [{ path: join(mediaRoot, "song.mp3"), title: "Song" }],
+            }),
+          });
+          expect(expRes.status).toBeGreaterThanOrEqual(400);
+          expect(readFileSync(outsideTarget, "utf8")).toBe("DO_NOT_OVERWRITE");
+        } finally {
+          started.server.stop(true);
+        }
+      } finally {
+        rmSync(mediaRoot, { recursive: true, force: true });
+        rmSync(outside, { recursive: true, force: true });
+      }
+    });
+  });
+
+  describe("[V-SEC-12] & [V-SEC-17] Markdown allowlist sanitizer & curl protocol hardening", () => {
+    test("sanitizeHtml blocks nested <script>, <svg/onload>, <details ontoggle>, and entity-encoded javascript: URIs", () => {
+      const dirty = [
+        "<scr<script>ipt>alert(1)</scr</script>ipt>",
+        "<svg/onload=alert(1)>",
+        '<details open ontoggle="alert(2)"><summary>Info</summary></details>',
+        '<a href="&#x6a;&#x61;vascript&colon;alert(3)">click</a>',
+        '<a href="https://example.com" onclick="evil()">safe</a>',
+      ].join("\n");
+      const clean = sanitizeHtml(dirty);
+      expect(clean).not.toContain("<script");
+      expect(clean).not.toContain("<svg");
+      expect(clean).not.toContain("onload");
+      expect(clean).not.toContain("ontoggle");
+      expect(clean).not.toContain("onclick");
+      expect(clean.toLowerCase()).not.toContain("javascript:");
+      expect(clean).toContain("<details");
+      expect(clean).toContain('href="https://example.com"');
+    });
+
+    test("probeHttpSync rejects non-http(s) file:// and option-like URLs", () => {
+      const fileProbe = probeHttpSync("file:///etc/passwd");
+      expect(fileProbe.success).toBe(false);
+      const optProbe = probeHttpSync("-K/etc/passwd");
+      expect(optProbe.success).toBe(false);
+    });
+  });
+
+  describe("[V-QA-11] Subprocess Pipe Studio pipeline ID/export routing & ignoreError propagation", () => {
+    test("supports GET/DELETE /api/pipelines/:id, routes /api/pipelines/export before :id, and honors stage.ignoreError", async () => {
+      const tmpFile = join(
+        mkdtempSync(join(tmpdir(), "pipe-lib-")),
+        "pipelines.json",
+      );
+      const srv = startSubprocessPipeStudioServer(0, {
+        host: "127.0.0.1",
+        libraryPath: tmpFile,
+      });
+      try {
+        const base = `http://127.0.0.1:${srv.port}`;
+        const saveRes = await fetch(`${base}/api/pipelines`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: "Resilient Pipe",
+            description: "continues past stage 1 failure",
+            stages: [
+              { name: "FailStep", command: "false", ignoreError: true },
+              { name: "RecoverStep", command: "echo RECOVERED_OK" },
+            ],
+          }),
+        });
+        expect(saveRes.status).toBe(200);
+        const savedBody = (await saveRes.json()) as any;
+        expect(savedBody.pipeline).toBeDefined();
+        const pipeId = savedBody.pipeline.id;
+        expect(typeof pipeId).toBe("string");
+
+        const exportRes = await fetch(`${base}/api/pipelines/export`);
+        expect(exportRes.status).toBe(200);
+
+        const getById = await fetch(
+          `${base}/api/pipelines/${encodeURIComponent(pipeId)}`,
+        );
+        expect(getById.status).toBe(200);
+
+        const runRes = await fetch(`${base}/api/execute/full`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stages: [
+              {
+                id: "s1",
+                name: "FailStep",
+                command: "false",
+                inputMode: "none",
+                enabled: true,
+                ignoreError: true,
+              },
+              {
+                id: "s2",
+                name: "RecoverStep",
+                command: "echo RECOVERED_OK",
+                inputMode: "none",
+                enabled: true,
+              },
+            ],
+          }),
+        });
+        expect(runRes.status).toBe(200);
+        const runJson = (await runRes.json()) as any;
+        expect(
+          String(
+            runJson.report?.finalOutput ??
+              runJson.finalOutput ??
+              JSON.stringify(runJson),
+          ),
+        ).toContain("RECOVERED_OK");
+
+        const delRes = await fetch(
+          `${base}/api/pipelines/${encodeURIComponent(pipeId)}`,
+          { method: "DELETE" },
+        );
+        expect(delRes.status).toBe(200);
+      } finally {
+        srv.stop(true);
+        rmSync(join(tmpFile, ".."), { recursive: true, force: true });
+      }
     });
   });
 });

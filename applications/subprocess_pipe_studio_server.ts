@@ -23,6 +23,8 @@ import {
 export interface ServerOptions {
   port?: number;
   host?: string;
+  libraryPath?: string;
+  storagePath?: string;
 }
 
 /**
@@ -3288,7 +3290,9 @@ export function startSubprocessPipeStudioServer(
       : portOrOptions;
   const port = resolvedOptions.port ?? 9095;
   const hostname = resolvedOptions.host ?? "127.0.0.1";
-  const library = new PipelineLibrary();
+  const library = new PipelineLibrary(
+    resolvedOptions.libraryPath || resolvedOptions.storagePath,
+  );
 
   const server = Bun.serve({
     port,
@@ -3354,7 +3358,10 @@ export function startSubprocessPipeStudioServer(
 
       // Load Single Pipeline
       if (pathname.startsWith("/api/pipelines/") && req.method === "GET") {
-        const id = pathname.replace("/api/pipelines/", "");
+        let id = pathname.replace("/api/pipelines/", "");
+        try {
+          id = decodeURIComponent(id);
+        } catch {}
         const pipeline = library.getPipeline(id);
         if (!pipeline) {
           return Response.json(
@@ -3419,7 +3426,10 @@ export function startSubprocessPipeStudioServer(
 
       // Delete Pipeline
       if (pathname.startsWith("/api/pipelines/") && req.method === "DELETE") {
-        const id = pathname.replace("/api/pipelines/", "");
+        let id = pathname.replace("/api/pipelines/", "");
+        try {
+          id = decodeURIComponent(id);
+        } catch {}
         const deleted = library.deletePipeline(id);
         return Response.json({ success: deleted }, { headers: corsHeaders });
       }
