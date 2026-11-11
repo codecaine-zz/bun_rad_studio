@@ -194,8 +194,17 @@
 
 		function placeControlAt(type, x, y) {
 			saveHistoryState();
-			const count = formSpec.controls.length + 1;
-			const id = type + "_" + count;
+			const cleanType = typeof type === "string" && /^[a-z0-9_]+$/i.test(type) ? type : "button";
+			type = cleanType;
+			const usedIds = new Set(
+				[].concat(formSpec.controls || [], formSpec.non_visual_controls || []).map((c) => c && c.id)
+			);
+			let count = formSpec.controls.length + 1;
+			let id = type + "_" + count;
+			while (usedIds.has(id)) {
+				count++;
+				id = type + "_" + count;
+			}
 
 			if (snapToGrid) {
 				x = snapVal(x);
@@ -273,8 +282,13 @@
 			}
 
 			let defaultTooltip = "";
-			const pItem = document.querySelector(`.palette-item[onclick*="'${type}'"]`);
-			if (pItem) defaultTooltip = pItem.getAttribute("title") || "";
+			const allPaletteItems = document.querySelectorAll ? document.querySelectorAll(".palette-item") : [];
+			allPaletteItems.forEach((el) => {
+				const oc = el.getAttribute("onclick") || "";
+				if (!defaultTooltip && oc.includes("'" + type + "'")) {
+					defaultTooltip = el.getAttribute("title") || "";
+				}
+			});
 
 			const newControl = {
 				id: id,
@@ -324,7 +338,8 @@
 				y = snapVal(y);
 			}
 
-			const type = draggedType || placementType || e.dataTransfer.getData("text/plain") || "button";
+			const rawType = draggedType || placementType || e.dataTransfer.getData("text/plain") || "button";
+			const type = typeof rawType === "string" && /^[a-z0-9_]+$/i.test(rawType.trim()) ? rawType.trim() : "button";
 			placeControlAt(type, x, y);
 			cancelPlacementMode();
 		}

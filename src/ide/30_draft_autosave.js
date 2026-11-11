@@ -19,7 +19,10 @@
 		function parseDraft(draft) {
 			try {
 				const result = normalizeImportedSpec(JSON.parse(draft.specJson));
-				if (result.error || !result.spec.controls || result.spec.controls.length === 0) return null;
+				if (result.error || !result.spec) return null;
+				const hasControls = Array.isArray(result.spec.controls) && result.spec.controls.length > 0;
+				const hasNvc = Array.isArray(result.spec.non_visual_controls) && result.spec.non_visual_controls.length > 0;
+				if (!hasControls && !hasNvc) return null;
 				return { spec: result.spec, savedAt: draft.savedAt };
 			} catch (err) {
 				return null;

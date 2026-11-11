@@ -608,6 +608,7 @@ export const GAME_MASTER_FX_STYLE = `
     };
 
     var origRaf = window.requestAnimationFrame ? window.requestAnimationFrame.bind(window) : null;
+    var origCancelRaf = window.cancelAnimationFrame ? window.cancelAnimationFrame.bind(window) : null;
     window.__gmOrigRaf = origRaf;
     var queuedRafs = [];
     var initialFramesAllowed = 2;
@@ -628,10 +629,21 @@ export const GAME_MASTER_FX_STYLE = `
             cb(window.__gmGetEffectiveNow());
           });
         }
-        if (queuedRafs.indexOf(cb) === -1) {
-          queuedRafs.push(cb);
+        for (var q = 0; q < queuedRafs.length; q++) {
+          if (queuedRafs[q].cb === cb) return queuedRafs[q].id;
         }
-        return ++syntheticRafId;
+        var id = ++syntheticRafId;
+        queuedRafs.push({ id: id, cb: cb });
+        return id;
+      };
+      window.cancelAnimationFrame = function(id) {
+        for (var q = queuedRafs.length - 1; q >= 0; q--) {
+          if (queuedRafs[q].id === id) {
+            queuedRafs.splice(q, 1);
+            return;
+          }
+        }
+        if (origCancelRaf) return origCancelRaf(id);
       };
     }
 
@@ -669,7 +681,7 @@ export const GAME_MASTER_FX_STYLE = `
               origRaf(function() {
                 try { fn(window.__gmGetEffectiveNow()); } catch (_) {}
               });
-            })(pending[i]);
+            })(pending[i].cb);
           }
         }
       }
@@ -828,6 +840,8 @@ export const GAME_MASTER_FX_SCRIPT = `
       saveConfig();
     }
 
+    var ensureFxLoop = null;
+
     function spawnBurst(x, y, color, count) {
       if (!state.particles || !ctx) return;
       var n = count || 18;
@@ -854,6 +868,7 @@ export const GAME_MASTER_FX_SCRIPT = `
         alpha: 0.78,
         color: color || "#00f3ff"
       });
+      if (typeof ensureFxLoop === "function") ensureFxLoop();
     }
 
     function spawnFloatingCallout(text, x, y, color) {
@@ -1206,9 +1221,14 @@ export const GAME_MASTER_FX_SCRIPT = `
         var lastTime = (window.performance && window.performance.now) ? window.performance.now() : Date.now();
         var frames = 0;
         var canvasWasDirty = false;
+        var fxLoopActive = false;
         var raf = window.requestAnimationFrame;
         if (typeof raf === "function") {
           var tick = function(now) {
+            if (document.hidden) {
+              fxLoopActive = false;
+              return;
+            }
             frames++;
             var elapsed = now - lastTime;
             if (elapsed >= 600) {
@@ -1262,10 +1282,26 @@ export const GAME_MASTER_FX_SCRIPT = `
                 }
               }
             }
+            if (shockwaves.length === 0 && particles.length === 0 && !canvasWasDirty) {
+              fxLoopActive = false;
+              return;
+            }
             raf(tick);
           };
           tick.__gmBypassPause = true;
-          raf(tick);
+          ensureFxLoop = function() {
+            if (fxLoopActive || document.hidden) return;
+            fxLoopActive = true;
+            lastTime = (window.performance && window.performance.now) ? window.performance.now() : Date.now();
+            frames = 0;
+            raf(tick);
+          };
+          document.addEventListener("visibilitychange", function() {
+            if (!document.hidden && (shockwaves.length > 0 || particles.length > 0 || canvasWasDirty)) {
+              ensureFxLoop();
+            }
+          });
+          ensureFxLoop();
         }
       }
 
@@ -1273,6 +1309,7 @@ export const GAME_MASTER_FX_SCRIPT = `
       try {
         var scoreValues = new Map();
         var checkScores = function() {
+          if (document.hidden) return;
           var nodes = document.querySelectorAll(
             "#score, #scoreVal, #hudScore, #player1Score, #player2Score, #scoreX, #scoreO, #scoreP1, #scoreP2, .score-val, .hud-value, .stat-val"
           );
@@ -1338,8 +1375,25 @@ export const GAME_MASTER_FX_SCRIPT = `
       }
     }, true);
 
+    function isTrustedParentMessage(e) {
+      if (!e || window.parent === window || e.source !== window.parent) return false;
+      var orig = String(e.origin || "");
+      if (!orig || orig === "null") return false;
+      var loc = window.location;
+      if (!loc) return false;
+      if (orig === loc.origin) return true;
+      var hn = loc.hostname;
+      if (hn === "127.0.0.1" || hn === "localhost") {
+        var altHost = hn === "127.0.0.1" ? "localhost" : "127.0.0.1";
+        var portPart = loc.port ? ":" + loc.port : "";
+        if (orig === loc.protocol + "//" + altHost + portPart) return true;
+      }
+      return false;
+    }
+
     // Listen for parent frame messages (File Manager Codecaine Games Hub live shader & start/pause control)
     window.addEventListener("message", function(e) {
+      if (!isTrustedParentMessage(e)) return;
       var data = e && e.data;
       if (!data || typeof data !== "object") return;
       if (typeof data.fmGameMasterFx === "string") {

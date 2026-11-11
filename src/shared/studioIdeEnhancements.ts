@@ -427,7 +427,12 @@ function studioIdeEnhancementsClient() {
 
   const recordQueryHistory = (sql, latencyMs, rowCount, ok, errorMsg) => {
     if (!sql || !String(sql).trim()) return;
-    const clean = String(sql).trim();
+    const clean = String(sql)
+      .trim()
+      .replace(
+        /\b(PASSWORD|IDENTIFIED\s+BY)\s*(?:=\s*)?'(?:''|[^'])*'/gi,
+        "$1 '[REDACTED]'",
+      );
     window.__studioQueryHistory = [
       {
         sql: clean,
@@ -472,12 +477,21 @@ function studioIdeEnhancementsClient() {
 
       if (endpoint === "/api/query" && body && typeof body.sql === "string") {
         const sqlTrim = body.sql.trim();
-        if (
-          window.__studioReadOnlyGuard &&
-          /^(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|REPLACE|GRANT|REVOKE|VACUUM)\b/i.test(
-            sqlTrim,
-          )
-        ) {
+        const sqlNoComments = sqlTrim
+          .replace(/\/\*[\s\S]*?\*\//g, " ")
+          .replace(/--[^\r\n]*/g, " ")
+          .trim()
+          .replace(/^[;(\s]+/, "");
+        const sqlNoStrings = sqlNoComments.replace(/'(?:''|[^'])*'/g, "''");
+        const isMutatingSql =
+          /^(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|REPLACE|GRANT|REVOKE|VACUUM|MERGE|CALL|DO|ATTACH|DETACH|REINDEX|COPY|LOAD)\b/i.test(
+            sqlNoComments,
+          ) ||
+          /\b(INSERT\s+INTO|UPDATE\s+\S+\s+SET|DELETE\s+FROM|DROP\s+(?:TABLE|VIEW|INDEX|SCHEMA|DATABASE)|ALTER\s+TABLE|TRUNCATE\s+TABLE)\b/i.test(
+            sqlNoStrings,
+          ) ||
+          /^PRAGMA\s+[^=]+=/i.test(sqlNoStrings);
+        if (window.__studioReadOnlyGuard && isMutatingSql) {
           notify(
             "🔒 Read-Only Guard is active — disable it to run mutating SQL.",
           );
@@ -1314,9 +1328,10 @@ function studioIdeEnhancementsClient() {
 
   function wildcardToRegExp(pattern) {
     let re = "^";
-    for (let i = 0; i < pattern.length; i++) {
-      const ch = pattern[i];
-      if (ch === "*" || ch === "%") re += ".*";
+    const s = String(pattern ?? "").replace(/[*%]+/g, "*");
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i];
+      if (ch === "*") re += ".*";
       else if (ch === "?" || ch === "_") re += ".";
       else if (/[.+^${}()|[\]\\]/.test(ch)) re += "\\" + ch;
       else re += ch;
@@ -2109,14 +2124,25 @@ function studioIdeEnhancementsClient() {
       .getElementById("btnInspCopyInsert")
       ?.addEventListener("click", () => {
         const tblName = getActiveTable() || "table_name";
+        const dialect = getDialect();
+        const qId = (id) =>
+          dialect === "mysql"
+            ? "`" + String(id).replace(/`/g, "``") + "`"
+            : '"' + String(id).replace(/"/g, '""') + '"';
         const vals = cols.map((cn) => {
           const v = row[cn];
           if (v === null || v === undefined) return "NULL";
           if (typeof v === "number" || typeof v === "boolean") return String(v);
           const s = typeof v === "object" ? JSON.stringify(v) : String(v);
+          if (dialect === "mysql") {
+            return `'${s.replace(/\\/g, "\\\\").replace(/'/g, "''")}'`;
+          }
+          if (dialect === "postgres" && s.includes("\\")) {
+            return `E'${s.replace(/\\/g, "\\\\").replace(/'/g, "''")}'`;
+          }
           return `'${s.replace(/'/g, "''")}'`;
         });
-        const sql = `INSERT INTO "${tblName}" (${cols.map((c) => `"${c}"`).join(", ")}) VALUES (${vals.join(", ")});`;
+        const sql = `INSERT INTO ${qId(tblName)} (${cols.map((c) => qId(c)).join(", ")}) VALUES (${vals.join(", ")});`;
         navigator.clipboard?.writeText(sql);
         notify("📋 Copied SQL INSERT to clipboard");
       });

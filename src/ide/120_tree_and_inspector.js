@@ -636,4 +636,7 @@
 
 			const targetContent = document.getElementById(resolvedTabId);
 			if (targetContent) targetContent.classList.add("active");
+			if (isCodeTab && typeof flushCodeTab === "function") {
+				flushCodeTab(resolvedTabId);
+			}
 		}

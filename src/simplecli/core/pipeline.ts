@@ -28,8 +28,11 @@ export class Pipeline {
   /** Executes all registered pipeline steps in order, stopping at the first failure, and returns `true` if all succeeded. */
   public async run(): Promise<boolean> {
     const divider = "─".repeat(Math.min(60, process.stdout.columns || 60));
-    console.log(`\n${Ansi.bold(Ansi.cyan("▶"))} ${Ansi.bold(this.title)}`);
-    console.log(Ansi.dim(divider));
+    const head = this.noColor
+      ? `▶ ${this.title}`
+      : `${Ansi.bold(Ansi.cyan("▶"))} ${Ansi.bold(this.title)}`;
+    console.log(`\n${head}`);
+    console.log(this.noColor ? divider : Ansi.dim(divider));
 
     const totalStart = performance.now();
     let passedCount = 0;
@@ -62,10 +65,12 @@ export class Pipeline {
 
       const stepStart = performance.now();
       let success = false;
+      let caughtMessage = "";
       try {
         success = await step.stepFn();
-      } catch (err) {
+      } catch (err: any) {
         success = false;
+        caughtMessage = err instanceof Error ? err.message : String(err ?? "");
       }
       const stepDuration = Math.round(performance.now() - stepStart);
 
@@ -80,19 +85,31 @@ export class Pipeline {
       if (success) {
         passedCount++;
         const check = this.noColor ? "[OK]" : Ansi.green("✓");
-        const dur = Ansi.dim(`(${stepDuration} ms)`);
+        const dur = this.noColor
+          ? `(${stepDuration} ms)`
+          : Ansi.dim(`(${stepDuration} ms)`);
         console.log(`  ${check} ${stepPrefix} ${dur}`);
       } else {
         failedCount++;
         const cross = this.noColor ? "[FAILED]" : Ansi.red("✖");
-        const dur = Ansi.dim(`(${stepDuration} ms)`);
-        console.log(`  ${cross} ${stepPrefix} ${dur} ${Ansi.red("[FAILED]")}`);
+        const dur = this.noColor
+          ? `(${stepDuration} ms)`
+          : Ansi.dim(`(${stepDuration} ms)`);
+        const badge = this.noColor ? "[FAILED]" : Ansi.red("[FAILED]");
+        console.log(`  ${cross} ${stepPrefix} ${dur} ${badge}`);
+        if (caughtMessage) {
+          console.error(
+            this.noColor
+              ? `    ${caughtMessage}`
+              : Ansi.red(`    ${caughtMessage}`),
+          );
+        }
         break; // Pipeline aborts on failure
       }
     }
 
     const totalDuration = ((performance.now() - totalStart) / 1000).toFixed(2);
-    console.log(Ansi.dim(divider));
+    console.log(this.noColor ? divider : Ansi.dim(divider));
 
     if (failedCount === 0) {
       const tag = this.noColor

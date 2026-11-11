@@ -34,22 +34,36 @@ export function normalizeLabel(s: string): string {
 export function matchTip(
   info: ElementInfo,
   tips: Record<string, string>,
-  normalize: (s: string) => string,
+  normalize: (s: string) => string = normalizeLabel,
 ): string | null {
   if (info.id && tips["#" + info.id]) return tips["#" + info.id]!;
-  const norm: Record<string, string> = {};
-  const starts: Array<[string, string]> = [];
-  for (const key of Object.keys(tips)) {
-    if (key.startsWith("aria:"))
-      norm["a" + normalize(key.slice(5))] = tips[key]!;
-    else if (key.startsWith("text^:"))
-      starts.push([normalize(key.slice(6)), tips[key]!]);
-    else if (key.startsWith("text:"))
-      norm["t" + normalize(key.slice(5))] = tips[key]!;
-    else if (key.startsWith("ph:"))
-      norm["p" + normalize(key.slice(3))] = tips[key]!;
-    else if (key.startsWith("name:")) norm["n" + key.slice(5)] = tips[key]!;
+  type CompiledTips = {
+    fn: (s: string) => string;
+    norm: Record<string, string>;
+    starts: Array<[string, string]>;
+  };
+  const wm: WeakMap<object, CompiledTips> =
+    (matchTip as any).__wm || ((matchTip as any).__wm = new WeakMap());
+  let compiled =
+    tips && typeof tips === "object" ? wm.get(tips as object) : undefined;
+  if (!compiled || compiled.fn !== normalize) {
+    const norm: Record<string, string> = {};
+    const starts: Array<[string, string]> = [];
+    for (const key of Object.keys(tips)) {
+      if (key.startsWith("aria:"))
+        norm["a" + normalize(key.slice(5))] = tips[key]!;
+      else if (key.startsWith("text^:"))
+        starts.push([normalize(key.slice(6)), tips[key]!]);
+      else if (key.startsWith("text:"))
+        norm["t" + normalize(key.slice(5))] = tips[key]!;
+      else if (key.startsWith("ph:"))
+        norm["p" + normalize(key.slice(3))] = tips[key]!;
+      else if (key.startsWith("name:")) norm["n" + key.slice(5)] = tips[key]!;
+    }
+    compiled = { fn: normalize, norm, starts };
+    if (tips && typeof tips === "object") wm.set(tips as object, compiled);
   }
+  const { norm, starts } = compiled;
   const aria = normalize(info.aria);
   if (aria && norm["a" + aria]) return norm["a" + aria]!;
   const text = normalize(info.text);
@@ -78,7 +92,7 @@ export interface SkipRule {
 export function isSkipped(
   info: ElementInfo,
   rules: SkipRule[],
-  normalize: (s: string) => string,
+  normalize: (s: string) => string = normalizeLabel,
 ): boolean {
   return rules.some(
     (r) =>

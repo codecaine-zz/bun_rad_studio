@@ -45,35 +45,48 @@
 		// Non-Visual Components Tray System (Delphi TTimer / TOpenDialog Paradigm)
 		function spawnNonVisualControl(type) {
 			saveHistoryState();
+			const cleanType = typeof type === "string" && /^[a-z0-9_]+$/i.test(type) ? type : "timer";
 			formSpec.non_visual_controls = formSpec.non_visual_controls || [];
-			const count = formSpec.non_visual_controls.length + 1;
-			const id = type + "_" + count;
+			const usedIds = new Set(
+				[].concat(formSpec.controls || [], formSpec.non_visual_controls || []).map((c) => c && c.id)
+			);
+			let count = formSpec.non_visual_controls.length + 1;
+			let id = cleanType + "_" + count;
+			while (usedIds.has(id)) {
+				count++;
+				id = cleanType + "_" + count;
+			}
 			let icon = "⚙️";
-			if (type === "timer") icon = "⏱️";
-			else if (type === "open_dialog") icon = "📂";
-			else if (type === "save_dialog") icon = "💾";
-			else if (type === "db_connection") icon = "🔌";
-			else if (type === "http_client") icon = "🌐";
-			else if (type === "notification") icon = "🔔";
+			if (cleanType === "timer") icon = "⏱️";
+			else if (cleanType === "open_dialog") icon = "📂";
+			else if (cleanType === "save_dialog") icon = "💾";
+			else if (cleanType === "db_connection") icon = "🔌";
+			else if (cleanType === "http_client") icon = "🌐";
+			else if (cleanType === "notification") icon = "🔔";
 
 			let defaultTooltip = "";
-			const pItem = document.querySelector(`.palette-item[onclick*="'${type}'"]`);
-			if (pItem) defaultTooltip = pItem.getAttribute("title") || "";
+			const allPaletteItems = document.querySelectorAll ? document.querySelectorAll(".palette-item") : [];
+			allPaletteItems.forEach((el) => {
+				const oc = el.getAttribute("onclick") || "";
+				if (!defaultTooltip && oc.includes("'" + cleanType + "'")) {
+					defaultTooltip = el.getAttribute("title") || "";
+				}
+			});
 
 			const nvc = {
 				id: id,
-				control_type: type,
+				control_type: cleanType,
 				icon: icon,
 				text: id,
 				tooltip: defaultTooltip,
-				interval: type === "timer" ? 1000 : undefined,
+				interval: cleanType === "timer" ? 1000 : undefined,
 				enabled: true,
 				event_handlers: {}
 			};
 			formSpec.non_visual_controls.push(nvc);
 			renderNonVisualTray();
 			renderCode();
-			showCopyToast("Added non-visual " + type + " to component tray!");
+			showCopyToast("Added non-visual " + cleanType + " to component tray!");
 		}
 
 		function renderNonVisualTray() {
@@ -88,6 +101,7 @@
 				return;
 			}
 
+			const esc = (v) => String(v === undefined || v === null ? "" : v).replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 			tray.innerHTML = nvcs.map((c, i) => {
 				let icon = "⚙️";
 				if (c.control_type === "timer") icon = "⏱️";
@@ -96,8 +110,10 @@
 				else if (c.control_type === "db_connection") icon = "🔌";
 				else if (c.control_type === "http_client") icon = "🌐";
 				else if (c.control_type === "notification") icon = "🔔";
+				const safeId = esc(c.id);
+				const safeType = esc(c.control_type);
 
-				return `<div onclick="selectNonVisualControl(${i})" style="display:inline-flex; align-items:center; gap:6px; background:rgba(56,189,248,0.12); border:1px solid var(--accent); border-radius:14px; padding:3px 10px; cursor:pointer; color:var(--text-primary); font-weight:600; font-size:11px;" title="${c.id} (${c.control_type})"><span>${icon}</span><span>${c.id}</span><span onclick="event.stopPropagation(); deleteNonVisualControl(${i})" style="opacity:0.6; margin-left:4px; font-size:10px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">✕</span></div>`;
+				return `<div onclick="selectNonVisualControl(${i})" style="display:inline-flex; align-items:center; gap:6px; background:rgba(56,189,248,0.12); border:1px solid var(--accent); border-radius:14px; padding:3px 10px; cursor:pointer; color:var(--text-primary); font-weight:600; font-size:11px;" title="${safeId} (${safeType})"><span>${icon}</span><span>${safeId}</span><span onclick="event.stopPropagation(); deleteNonVisualControl(${i})" style="opacity:0.6; margin-left:4px; font-size:10px;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">✕</span></div>`;
 			}).join('');
 		}
 

@@ -10,8 +10,8 @@
  *   - `/favicon.svg` and any other file are served from `assetsDir`, never from outside it
  *   - `/api/health` reports `{ status, app, name, version, timestamp }`
  */
-import { existsSync } from "fs";
-import { join } from "path";
+import { existsSync, realpathSync, statSync } from "fs";
+import { join, resolve, sep } from "path";
 import { guardLocalRequest } from "./localGuard";
 import { injectGameMasterFx } from "./shared/gameMasterFx";
 
@@ -32,8 +32,10 @@ export interface StaticStudioConfig {
   version: string;
   /** Folder that holds index.html, favicon.svg and the other assets. */
   assetsDir: string;
-  /** Produces the page for `/`; called on every request. */
+  /** Produces the page for `/`; memoized unless `cacheHtml: false`. */
   generateHtml: () => string;
+  /** Set to false when `generateHtml` produces dynamic per-request markup. Defaults to true. */
+  cacheHtml?: boolean;
 }
 
 /** Starts a local Bun HTTP server for a static studio with loopback protection and asset serving. */
@@ -43,7 +45,75 @@ export function startStaticStudioServer(
 ) {
   const port = options.port ?? 0;
   const host = options.host ?? "127.0.0.1";
-  const { assetsDir } = config;
+  const resolvedAssetsDir = resolve(config.assetsDir);
+  const indexAssetPath = join(resolvedAssetsDir, "index.html");
+  let canonicalAssetsDir: string | null = null;
+  let cachedPageHtml: string | null = null;
+  let cachedIndexMtime = -1;
+
+  const getCanonicalRoot = (): string | null => {
+    if (canonicalAssetsDir !== null) return canonicalAssetsDir;
+    try {
+      canonicalAssetsDir = realpathSync(resolvedAssetsDir);
+      return canonicalAssetsDir;
+    } catch {
+      return null;
+    }
+  };
+
+  const resolveContainedFile = (
+    relPath: string,
+  ): { status: 200; filePath: string } | { status: 403 | 404 } => {
+    const directCandidate = resolve(resolvedAssetsDir, relPath);
+    if (
+      directCandidate !== resolvedAssetsDir &&
+      !directCandidate.startsWith(resolvedAssetsDir + sep)
+    ) {
+      return { status: 403 };
+    }
+    if (!existsSync(directCandidate)) {
+      return { status: 404 };
+    }
+    const realRoot = getCanonicalRoot();
+    if (!realRoot) {
+      return { status: 404 };
+    }
+    let realTarget: string;
+    try {
+      realTarget = realpathSync(directCandidate);
+    } catch {
+      return { status: 404 };
+    }
+    if (realTarget !== realRoot && !realTarget.startsWith(realRoot + sep)) {
+      return { status: 403 };
+    }
+    try {
+      if (!statSync(realTarget).isFile()) {
+        return { status: 404 };
+      }
+    } catch {
+      return { status: 404 };
+    }
+    return { status: 200, filePath: realTarget };
+  };
+
+  const getRenderedHtml = (): string => {
+    if (config.cacheHtml === false) {
+      return injectGameMasterFx(config.generateHtml());
+    }
+    let mtime = 0;
+    try {
+      mtime = statSync(indexAssetPath).mtimeMs;
+    } catch {
+      mtime = 0;
+    }
+    if (cachedPageHtml !== null && mtime === cachedIndexMtime) {
+      return cachedPageHtml;
+    }
+    cachedPageHtml = injectGameMasterFx(config.generateHtml());
+    cachedIndexMtime = mtime;
+    return cachedPageHtml;
+  };
 
   return Bun.serve({
     port,
@@ -53,7 +123,7 @@ export function startStaticStudioServer(
       if (blocked) return blocked;
 
       const url = new URL(req.url);
-      const pathname = url.pathname;
+      const rawPathname = url.pathname;
 
       const corsHeaders = {
         "Access-Control-Allow-Origin": "*",
@@ -65,8 +135,21 @@ export function startStaticStudioServer(
         return new Response(null, { headers: corsHeaders });
       }
 
+      let pathname: string;
+      try {
+        pathname = decodeURIComponent(rawPathname);
+      } catch {
+        return new Response("Bad Request", {
+          status: 400,
+          headers: corsHeaders,
+        });
+      }
+      if (pathname.includes("\0")) {
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
+      }
+
       if (pathname === "/" || pathname === "/index.html") {
-        return new Response(injectGameMasterFx(config.generateHtml()), {
+        return new Response(getRenderedHtml(), {
           headers: {
             "Content-Type": "text/html; charset=utf-8",
             ...corsHeaders,
@@ -75,10 +158,16 @@ export function startStaticStudioServer(
       }
 
       if (pathname === "/favicon.svg") {
-        const filePath = join(assetsDir, "favicon.svg");
-        if (existsSync(filePath)) {
-          return new Response(Bun.file(filePath), {
+        const fav = resolveContainedFile("favicon.svg");
+        if (fav.status === 200) {
+          return new Response(Bun.file(fav.filePath), {
             headers: { "Content-Type": "image/svg+xml", ...corsHeaders },
+          });
+        }
+        if (fav.status === 403) {
+          return new Response("Forbidden", {
+            status: 403,
+            headers: corsHeaders,
           });
         }
       }
@@ -97,17 +186,19 @@ export function startStaticStudioServer(
       }
 
       // Static file, only from inside the assets folder.
-      const sanitized = pathname.replace(/^\/+/, "");
-      const directCandidate = join(assetsDir, sanitized);
-      if (
-        directCandidate !== assetsDir &&
-        !directCandidate.startsWith(assetsDir + "/") &&
-        !directCandidate.startsWith(assetsDir + "\\")
-      ) {
-        return new Response("Forbidden", { status: 403 });
+      if (/^(?:\/|%2f)*(?:\.\.(?:\/|\\|$))/i.test(rawPathname)) {
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
       }
-      if (existsSync(directCandidate)) {
-        return new Response(Bun.file(directCandidate), {
+      const sanitized = pathname.replace(/^[/\\]+/, "");
+      if (!sanitized) {
+        return new Response("Not Found", { status: 404, headers: corsHeaders });
+      }
+      const resolved = resolveContainedFile(sanitized);
+      if (resolved.status === 403) {
+        return new Response("Forbidden", { status: 403, headers: corsHeaders });
+      }
+      if (resolved.status === 200) {
+        return new Response(Bun.file(resolved.filePath), {
           headers: corsHeaders,
         });
       }

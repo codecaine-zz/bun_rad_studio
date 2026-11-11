@@ -492,16 +492,19 @@ wv.bind("on_btnAddRow_click", () => {
             const rowId = String(${nextId++});
 
             const colCount = document.querySelectorAll("#tblMainGrid table thead th").length;
-            let trHtml = "<tr style='border-bottom:1px solid rgba(255,255,255,0.12);cursor:pointer;transition:background 0.12s;'>";
-            
+            const tr = document.createElement("tr");
+            tr.style.cssText = "border-bottom:1px solid rgba(255,255,255,0.12);cursor:pointer;transition:background 0.12s;";
+
             const values = [rowId, name, role, dept, salary, status];
             for (let i = 0; i < colCount; i++) {
                 const val = values[i] !== undefined ? values[i] : "—";
-                trHtml += "<td style='padding:8px 12px;'>" + val + "</td>";
+                const td = document.createElement("td");
+                td.style.padding = "8px 12px";
+                td.textContent = String(val);
+                tr.appendChild(td);
             }
-            trHtml += "</tr>";
 
-            table.insertAdjacentHTML("beforeend", trHtml);
+            table.appendChild(tr);
             window.attachRowHandlers();
             window.updateTableStats();
 

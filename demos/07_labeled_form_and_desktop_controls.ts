@@ -352,7 +352,7 @@ webview.bind("on_app_toolbar_click", (itemName?: string) => {
   const item = itemName || "Toolbar Item";
   console.log(`⚡ [IPC] Toolbar Action Clicked: ${item}`);
   execJS(`
-        const msg = "🛠️ Toolbar Action: ${item}";
+        const msg = ${JSON.stringify(`🛠️ Toolbar Action: ${item}`)};
         if (window.setStatusBarText) window.setStatusBarText("app_status_bar", msg);
         const card = document.getElementById("status_card");
         if (card) {
@@ -369,17 +369,15 @@ webview.bind("on_nav_tabs_change", (tabName?: string) => {
   console.log(`⚡ [IPC] Tab Changed to: ${tab}`);
   currentTabIndex = tabsList.indexOf(tab);
   if (currentTabIndex === -1) currentTabIndex = 0;
-  const snippet = (codeSnippets[tab] || "// Tab script...")
-    .replace(/\n/g, "\\n")
-    .replace(/'/g, "\\'");
+  const snippet = codeSnippets[tab] || "// Tab script...";
   execJS(`
-        if (window.setTabsActive) window.setTabsActive("nav_tabs", "${tab}");
+        if (window.setTabsActive) window.setTabsActive("nav_tabs", ${JSON.stringify(tab)});
         const codeView = document.getElementById("form_code_editor");
         if (codeView) {
             const textarea = codeView.querySelector("textarea");
-            if (textarea) textarea.value = '${snippet}';
+            if (textarea) textarea.value = ${JSON.stringify(snippet)};
         }
-        const msg = "🗂️ Active Tab: ${tab}";
+        const msg = ${JSON.stringify(`🗂️ Active Tab: ${tab}`)};
         if (window.setStatusBarText) window.setStatusBarText("app_status_bar", msg);
         const card = document.getElementById("status_card");
         if (card) {
@@ -395,17 +393,15 @@ webview.bind("on_btn_prev_tab_click", () => {
   currentTabIndex = (currentTabIndex + 1) % tabsList.length;
   const nextTab = tabsList[currentTabIndex] || "Customer Profile";
   console.log(`⚡ [IPC] Cycle Tab Button clicked -> Switching to ${nextTab}`);
-  const snippet = (codeSnippets[nextTab] || "// Tab script...")
-    .replace(/\n/g, "\\n")
-    .replace(/'/g, "\\'");
+  const snippet = codeSnippets[nextTab] || "// Tab script...";
   execJS(`
-        if (window.setTabsActive) window.setTabsActive("nav_tabs", "${nextTab}");
+        if (window.setTabsActive) window.setTabsActive("nav_tabs", ${JSON.stringify(nextTab)});
         const codeView = document.getElementById("form_code_editor");
         if (codeView) {
             const textarea = codeView.querySelector("textarea");
-            if (textarea) textarea.value = '${snippet}';
+            if (textarea) textarea.value = ${JSON.stringify(snippet)};
         }
-        const msg = "🔄 Cycled to Tab: ${nextTab}";
+        const msg = ${JSON.stringify(`🔄 Cycled to Tab: ${nextTab}`)};
         if (window.setStatusBarText) window.setStatusBarText("app_status_bar", msg);
         const card = document.getElementById("status_card");
         if (card) {
@@ -422,13 +418,16 @@ webview.bind("on_btn_toggle_pin_click", () => {
   console.log(`⚡ [IPC] Toggling Window Pin state: ${isWindowPinned}`);
   setAlwaysOnTopNative(webview, isWindowPinned);
   const label = isWindowPinned ? "🔒 Locked Pin" : "🔓 Unlocked Pin";
+  const pinMsg = isWindowPinned
+    ? "📌 Window Pinned Always On Top"
+    : "🔓 Window Unpinned (Normal)";
   execJS(`
-        if (window.setToggleButtonState) window.setToggleButtonState("btn_toggle_pin", ${isWindowPinned}, "${label}");
-        const msg = "${isWindowPinned ? "📌 Window Pinned Always On Top" : "🔓 Window Unpinned (Normal)"}";
+        if (window.setToggleButtonState) window.setToggleButtonState("btn_toggle_pin", ${Boolean(isWindowPinned)}, ${JSON.stringify(label)});
+        const msg = ${JSON.stringify(pinMsg)};
         if (window.setStatusBarText) window.setStatusBarText("app_status_bar", msg);
         const card = document.getElementById("status_card");
         if (card) {
-            card.style.borderLeftColor = ${isWindowPinned} ? "#10b981" : "#ef4444";
+            card.style.borderLeftColor = ${Boolean(isWindowPinned)} ? "#10b981" : "#ef4444";
             const span = card.querySelector("span:nth-child(2)");
             if (span) span.textContent = msg;
         }
@@ -440,7 +439,7 @@ webview.bind("on_cmd_palette_change", (val?: string) => {
   const text = val || "";
   console.log(`⚡ [IPC] Command Palette input: ${text}`);
   execJS(`
-        const msg = "⌘ Command Search: ${text}";
+        const msg = ${JSON.stringify(`⌘ Command Search: ${text}`)};
         if (window.setStatusBarText) window.setStatusBarText("app_status_bar", msg);
     `);
 });
@@ -449,7 +448,7 @@ webview.bind("on_cmd_palette_change", (val?: string) => {
 webview.bind("on_form_name_change", (val?: string) => {
   console.log(`⚡ [IPC] Full Name changed: ${val}`);
   execJS(`
-        const msg = "✏️ Name Updated: ${val}";
+        const msg = ${JSON.stringify(`✏️ Name Updated: ${val ?? ""}`)};
         const card = document.getElementById("status_card");
         if (card) {
             const span = card.querySelector("span:nth-child(2)");
@@ -462,7 +461,7 @@ webview.bind("on_form_name_change", (val?: string) => {
 webview.bind("on_form_email_change", (val?: string) => {
   console.log(`⚡ [IPC] Email changed: ${val}`);
   execJS(`
-        const msg = "📧 Email Updated: ${val}";
+        const msg = ${JSON.stringify(`📧 Email Updated: ${val ?? ""}`)};
         const card = document.getElementById("status_card");
         if (card) {
             const span = card.querySelector("span:nth-child(2)");
@@ -488,7 +487,7 @@ webview.bind("on_form_pwd_change", (val?: string) => {
 webview.bind("on_form_search_input_change", (val?: string) => {
   console.log(`⚡ [IPC] Filter Search input changed: ${val}`);
   execJS(`
-        const msg = "🔍 Filter Search: ${val}";
+        const msg = ${JSON.stringify(`🔍 Filter Search: ${val ?? ""}`)};
         const card = document.getElementById("status_card");
         if (card) {
             const span = card.querySelector("span:nth-child(2)");
@@ -501,7 +500,7 @@ webview.bind("on_form_search_input_change", (val?: string) => {
 webview.bind("on_form_chk_change", (val?: any) => {
   console.log(`⚡ [IPC] Checkbox toggled/clicked: ${val}`);
   execJS(`
-        const msg = "☑️ Checkbox Toggled: ${val}";
+        const msg = ${JSON.stringify(`☑️ Checkbox Toggled: ${val ?? ""}`)};
         const card = document.getElementById("status_card");
         if (card) {
             const span = card.querySelector("span:nth-child(2)");
@@ -514,7 +513,7 @@ webview.bind("on_form_chk_change", (val?: any) => {
 webview.bind("on_form_rad_change", (val?: any) => {
   console.log(`⚡ [IPC] Radio option selected/clicked: ${val}`);
   execJS(`
-        const msg = "🔘 Radio Option Selected: ${val}";
+        const msg = ${JSON.stringify(`🔘 Radio Option Selected: ${val ?? ""}`)};
         const card = document.getElementById("status_card");
         if (card) {
             const span = card.querySelector("span:nth-child(2)");
@@ -528,10 +527,10 @@ webview.bind("on_form_clr_change", (colorHex?: string) => {
   const hex = colorHex || "#0284c7";
   console.log(`⚡ [IPC] Color Picker changed: ${hex}`);
   execJS(`
-        const msg = "🎨 Color Swatch: ${hex}";
+        const msg = ${JSON.stringify(`🎨 Color Swatch: ${hex}`)};
         const card = document.getElementById("status_card");
         if (card) {
-            card.style.borderLeftColor = "${hex}";
+            card.style.borderLeftColor = ${JSON.stringify(hex)};
             const span = card.querySelector("span:nth-child(2)");
             if (span) span.textContent = msg;
         }
@@ -543,7 +542,7 @@ webview.bind("on_form_clock_change", (timeVal?: string) => {
   const t = timeVal || "14:30";
   console.log(`⚡ [IPC] Scheduled Time changed: ${t}`);
   execJS(`
-        const msg = "🕒 Scheduled Backup Time: ${t}";
+        const msg = ${JSON.stringify(`🕒 Scheduled Backup Time: ${t}`)};
         const card = document.getElementById("status_card");
         if (card) {
             const span = card.querySelector("span:nth-child(2)");
@@ -556,7 +555,7 @@ webview.bind("on_form_clock_change", (timeVal?: string) => {
 webview.bind("on_form_num_step_change", (numVal?: any) => {
   console.log(`⚡ [IPC] Stepper Button Clicked -> New Value: ${numVal}`);
   execJS(`
-        const msg = "🔢 Worker Processes: ${numVal}";
+        const msg = ${JSON.stringify(`🔢 Worker Processes: ${numVal ?? ""}`)};
         const card = document.getElementById("status_card");
         if (card) {
             const span = card.querySelector("span:nth-child(2)");
@@ -588,7 +587,7 @@ const tickTimer = setInterval(() => {
 
   try {
     webview.eval(`
-            if (window.setStatusBarText) window.setStatusBarText("app_status_bar", "${statusMsg}");
+            if (window.setStatusBarText) window.setStatusBarText("app_status_bar", ${JSON.stringify(statusMsg)});
         `);
   } catch (e) {
     // Ignore during shutdown

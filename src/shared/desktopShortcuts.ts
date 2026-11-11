@@ -280,8 +280,26 @@ function desktopShortcutsClient() {
   );
   {
     const doc = (host as any).document;
+    const isSensitiveField = (el: any): boolean => {
+      if (!el || typeof el !== "object") return false;
+      if (String(el.type || "").toLowerCase() === "password") return true;
+      if (
+        typeof el.hasAttribute === "function" &&
+        (el.hasAttribute("data-sensitive") || el.hasAttribute("data-no-undo"))
+      )
+        return true;
+      const ac = String(
+        typeof el.getAttribute === "function"
+          ? el.getAttribute("autocomplete") || ""
+          : el.autocomplete || "",
+      ).toLowerCase();
+      return /(?:^|\s)(?:current-password|new-password|one-time-code)(?:\s|$)/.test(
+        ac,
+      );
+    };
     const readSelection = (): string => {
       const el = doc.activeElement as any;
+      if (el && isSensitiveField(el)) return "";
       if (
         el &&
         el.type !== "password" &&
@@ -343,9 +361,10 @@ function desktopShortcutsClient() {
     let restoring = false;
     const isTextField = (el: any) =>
       !!el &&
+      !isSensitiveField(el) &&
       (el.tagName === "TEXTAREA" ||
         (el.tagName === "INPUT" &&
-          !/^(checkbox|radio|button|submit|reset|range|color|file|image)$/i.test(
+          !/^(password|checkbox|radio|button|submit|reset|range|color|file|image)$/i.test(
             el.type || "",
           )));
     const safeSel = (el: any): [number, number] => {
@@ -440,7 +459,7 @@ function desktopShortcutsClient() {
         consume(event);
         run(() => writeClip(text));
       } else if (code === "KeyX" && !event.shiftKey) {
-        if (!editable || el.readOnly || el.disabled || el.type === "password")
+        if (!editable || el.readOnly || el.disabled || isSensitiveField(el))
           return;
         const text = readSelection();
         if (!text) return;
@@ -472,12 +491,14 @@ function desktopShortcutsClient() {
           }
         });
       } else if (code === "KeyZ") {
-        if (!editable || el.readOnly || el.disabled) return;
+        if (!editable || el.readOnly || el.disabled || isSensitiveField(el))
+          return;
         consume(event);
         if (isTextField(el)) stepHistory(el, event.shiftKey ? 1 : -1);
         else doc.execCommand(event.shiftKey ? "redo" : "undo");
       } else if (code === "KeyY" && !event.shiftKey) {
-        if (!editable || el.readOnly || el.disabled) return;
+        if (!editable || el.readOnly || el.disabled || isSensitiveField(el))
+          return;
         consume(event);
         if (isTextField(el)) stepHistory(el, 1);
         else doc.execCommand("redo");

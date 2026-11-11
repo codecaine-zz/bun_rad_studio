@@ -163,6 +163,8 @@ export function buildColumnFilterWhere(
         : `CAST(${qCol} AS REAL)`;
   const likeOp = dialect === "postgres" ? "ILIKE" : "LIKE";
   const notLikeOp = dialect === "postgres" ? "NOT ILIKE" : "NOT LIKE";
+  const escapeLikeLiteral = (s: string) => s.replace(/[\\%_]/g, "\\$&");
+  const likeEscape = dialect === "mysql" ? "ESCAPE '\\\\'" : "ESCAPE '\\'";
 
   const buildSingleAtom = (
     col: string,
@@ -292,20 +294,21 @@ export function buildColumnFilterWhere(
       const fn = textFnMatch[1]!.toLowerCase().replace(/\s+/g, " ");
       const val = stripFilterDelimiters(textFnMatch[2]!);
       if (!val) return null;
+      const escVal = escapeLikeLiteral(val);
       if (fn === "starts with" || fn === "begins with") {
-        params.push(`${val}%`);
-        return `${castText(qCol)} ${likeOp} ${nextPlaceholder()}`;
+        params.push(`${escVal}%`);
+        return `${castText(qCol)} ${likeOp} ${nextPlaceholder()} ${likeEscape}`;
       }
       if (fn === "ends with") {
-        params.push(`%${val}`);
-        return `${castText(qCol)} ${likeOp} ${nextPlaceholder()}`;
+        params.push(`%${escVal}`);
+        return `${castText(qCol)} ${likeOp} ${nextPlaceholder()} ${likeEscape}`;
       }
       if (fn === "contains") {
-        params.push(`%${val}%`);
-        return `${castText(qCol)} ${likeOp} ${nextPlaceholder()}`;
+        params.push(`%${escVal}%`);
+        return `${castText(qCol)} ${likeOp} ${nextPlaceholder()} ${likeEscape}`;
       }
-      params.push(`%${val}%`);
-      return `(${qCol} IS NULL OR ${castText(qCol)} ${notLikeOp} ${nextPlaceholder()})`;
+      params.push(`%${escVal}%`);
+      return `(${qCol} IS NULL OR ${castText(qCol)} ${notLikeOp} ${nextPlaceholder()} ${likeEscape})`;
     }
 
     // 5. LIKE / NOT LIKE (with Access `*` and `?` wildcard conversion)
@@ -314,12 +317,15 @@ export function buildColumnFilterWhere(
       const isNot = Boolean(likeMatch[1]);
       let pattern = stripFilterDelimiters(likeMatch[2]!);
       if (!pattern) return null;
-      pattern = pattern.replace(/\*/g, "%").replace(/\?/g, "_");
+      pattern = pattern
+        .replace(/\\/g, "\\\\")
+        .replace(/\*/g, "%")
+        .replace(/\?/g, "_");
       if (!pattern.includes("%") && !pattern.includes("_")) {
         pattern = `%${pattern}%`;
       }
       params.push(pattern);
-      return `${castText(qCol)} ${isNot ? notLikeOp : likeOp} ${nextPlaceholder()}`;
+      return `${castText(qCol)} ${isNot ? notLikeOp : likeOp} ${nextPlaceholder()} ${likeEscape}`;
     }
 
     // 6. Comparison operators: `>=`, `<=`, `!=`, `<>`, `>`, `<`, `=`
@@ -357,9 +363,11 @@ export function buildColumnFilterWhere(
         (op === "=" || op === "<>") &&
         (unquotedRhs.includes("*") || unquotedRhs.includes("?"))
       ) {
-        const pattern = unquotedRhs.replace(/\*/g, "%").replace(/\?/g, "_");
+        const pattern = escapeLikeLiteral(unquotedRhs)
+          .replace(/\*/g, "%")
+          .replace(/\?/g, "_");
         params.push(pattern);
-        return `${castText(qCol)} ${op === "<>" ? notLikeOp : likeOp} ${nextPlaceholder()}`;
+        return `${castText(qCol)} ${op === "<>" ? notLikeOp : likeOp} ${nextPlaceholder()} ${likeEscape}`;
       }
 
       params.push(unquotedRhs);
@@ -369,22 +377,24 @@ export function buildColumnFilterWhere(
     // 7. Wildcard pattern without `LIKE` keyword (e.g., `A*`, `*@example.com`, `VIP?`)
     const unquoted = stripFilterDelimiters(expr);
     if (unquoted.includes("*") || unquoted.includes("?")) {
-      const pattern = unquoted.replace(/\*/g, "%").replace(/\?/g, "_");
+      const pattern = escapeLikeLiteral(unquoted)
+        .replace(/\*/g, "%")
+        .replace(/\?/g, "_");
       params.push(pattern);
-      return `${castText(qCol)} ${likeOp} ${nextPlaceholder()}`;
+      return `${castText(qCol)} ${likeOp} ${nextPlaceholder()} ${likeEscape}`;
     }
 
     // 8. Negation prefix `!value` (does not contain)
     if (expr.startsWith("!") && expr.length > 1) {
       const negVal = stripFilterDelimiters(expr.slice(1));
       if (!negVal) return null;
-      params.push(`%${negVal}%`);
-      return `(${qCol} IS NULL OR ${castText(qCol)} ${notLikeOp} ${nextPlaceholder()})`;
+      params.push(`%${escapeLikeLiteral(negVal)}%`);
+      return `(${qCol} IS NULL OR ${castText(qCol)} ${notLikeOp} ${nextPlaceholder()} ${likeEscape})`;
     }
 
     // 9. Default case-insensitive substring match
-    params.push(`%${unquoted}%`);
-    return `${castText(qCol)} ${likeOp} ${nextPlaceholder()}`;
+    params.push(`%${escapeLikeLiteral(unquoted)}%`);
+    return `${castText(qCol)} ${likeOp} ${nextPlaceholder()} ${likeEscape}`;
   };
 
   for (const [col, rawExpr] of Object.entries(columnFilters)) {
@@ -464,11 +474,13 @@ export function buildSearchFilterWhere(
   const castText = (qCol: string) =>
     dialect === "mysql" ? `CAST(${qCol} AS CHAR)` : `CAST(${qCol} AS TEXT)`;
   const likeOp = dialect === "postgres" ? "ILIKE" : "LIKE";
+  const likeEscape = dialect === "mysql" ? "ESCAPE '\\\\'" : "ESCAPE '\\'";
+  const escapedRaw = raw.replace(/[\\%_]/g, "\\$&");
 
   const params: any[] = [];
   const sub = validColumns.map((c) => {
-    params.push(`%${raw}%`);
-    return `${castText(quoteCol(c, dialect))} ${likeOp} ${nextPlaceholder()}`;
+    params.push(`%${escapedRaw}%`);
+    return `${castText(quoteCol(c, dialect))} ${likeOp} ${nextPlaceholder()} ${likeEscape}`;
   });
   return { clause: `(${sub.join(" OR ")})`, params };
 }
@@ -576,12 +588,46 @@ export function computeSchemaDiffDdl(
       return "TEXT";
     return s;
   };
+  const quoteSqlLiteral = (val: string): string => {
+    if (dialect === "mysql") {
+      return `'${val.replace(/\\/g, "\\\\").replace(/'/g, "''")}'`;
+    }
+    if (dialect === "postgres" && val.includes("\\")) {
+      return `E'${val.replace(/\\/g, "\\\\").replace(/'/g, "''")}'`;
+    }
+    return `'${val.replace(/'/g, "''")}'`;
+  };
   const safeDdlDefault = (rawDflt: unknown): string => {
     if (rawDflt === undefined || rawDflt === null || String(rawDflt) === "")
       return "";
     const s = String(rawDflt).trim();
-    if (!s || /;|--|\/\*|\*\//.test(s)) return "";
-    return ` DEFAULT ${s}`;
+    if (!s) return "";
+    if (
+      /^(NULL|TRUE|FALSE|CURRENT_TIMESTAMP|CURRENT_DATE|CURRENT_TIME)$/i.test(s)
+    ) {
+      return ` DEFAULT ${s.toUpperCase()}`;
+    }
+    if (/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(s)) {
+      return ` DEFAULT ${s}`;
+    }
+    if (s.startsWith("'")) {
+      if (s.length < 2 || !s.endsWith("'")) return "";
+      const inner = s.slice(1, -1);
+      let decoded = "";
+      for (let i = 0; i < inner.length; i++) {
+        const ch = inner[i]!;
+        if (ch === "'") {
+          if (inner[i + 1] !== "'") return "";
+          decoded += "'";
+          i++;
+        } else {
+          decoded += ch;
+        }
+      }
+      return ` DEFAULT ${quoteSqlLiteral(decoded)}`;
+    }
+    if (/;|--|\/\*|\*\/|#/.test(s)) return "";
+    return ` DEFAULT ${quoteSqlLiteral(s)}`;
   };
 
   for (const [name, curr] of currMap.entries()) {

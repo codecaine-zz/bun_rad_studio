@@ -277,6 +277,9 @@ export class SimpleControlRef {
       ) {
         (this.window as any)._renameControlInLayoutSections(oldId, idStr);
       }
+      if ((this.window as any).lastControlId === oldId) {
+        (this.window as any).lastControlId = idStr;
+      }
     }
     this.spec.id = idStr;
     this.spec.name = idStr;
@@ -897,18 +900,20 @@ export class SimpleControlRef {
 
   /** Expands all nodes in this tree view, tree grid, or accordion control in the live window. */
   expandAll(): this {
-    if (this.window && (this.window as any).evalJs) {
-      (this.window as any).evalJs(
-        `if(window['${this.spec.id}_expandAll'])window['${this.spec.id}_expandAll']();`,
+    const fnKey = JSON.stringify(`${this.spec.id}_expandAll`);
+    if (this.window && typeof this.window.evalJS === "function") {
+      this.window.evalJS(
+        `if(typeof window[${fnKey}]==='function')window[${fnKey}]();`,
       );
     }
     return this;
   }
   /** Collapses all nodes in this tree view, tree grid, or accordion control in the live window. */
   collapseAll(): this {
-    if (this.window && (this.window as any).evalJs) {
-      (this.window as any).evalJs(
-        `if(window['${this.spec.id}_collapseAll'])window['${this.spec.id}_collapseAll']();`,
+    const fnKey = JSON.stringify(`${this.spec.id}_collapseAll`);
+    if (this.window && typeof this.window.evalJS === "function") {
+      this.window.evalJS(
+        `if(typeof window[${fnKey}]==='function')window[${fnKey}]();`,
       );
     }
     return this;
@@ -1193,12 +1198,17 @@ export function writeFileAtomic(filePath: string, content: string): void {
   const resolved = resolveUserPath(filePath);
   const parentDir = path.dirname(resolved);
   if (parentDir && !fs.existsSync(parentDir)) {
-    fs.mkdirSync(parentDir, { recursive: true });
+    fs.mkdirSync(parentDir, { recursive: true, mode: 0o700 });
   }
   const randId = `${process.pid}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   const tmpPath = `${resolved}.${randId}.tmp`;
-  fs.writeFileSync(tmpPath, content, "utf-8");
+  fs.writeFileSync(tmpPath, content, { encoding: "utf-8", mode: 0o600 });
   try {
+    if (process.platform !== "win32") {
+      try {
+        fs.chmodSync(tmpPath, 0o600);
+      } catch (e) {}
+    }
     if (process.platform === "win32" && fs.existsSync(resolved)) {
       try {
         fs.unlinkSync(resolved);
@@ -1293,7 +1303,17 @@ export function shouldPersistControl(ctrl: any): boolean {
   ) {
     return false;
   }
-  const kind = String(ctrl.kind || ctrl.type || "").toLowerCase();
+  const kind = String(
+    ctrl.kind || ctrl.control_type || ctrl.type || "",
+  ).toLowerCase();
+  if (
+    ctrl.masked === true ||
+    ctrl.sensitive === true ||
+    ctrl.is_password === true ||
+    String(ctrl.input_type || ctrl.inputType || "").toLowerCase() === "password"
+  ) {
+    return false;
+  }
   const supportedKinds = [
     "input",
     "textbox",
@@ -1330,7 +1350,6 @@ export function shouldPersistControl(ctrl: any): boolean {
     "knob",
     "token_field",
     "tag_input",
-    "masked_input",
     "inline_editable_label",
     "textarea",
   ];
@@ -1362,12 +1381,17 @@ export function shouldPersistControl(ctrl: any): boolean {
     return false;
   }
 
-  // Exclude sensitive credentials, passwords, tokens
+  // Exclude sensitive credentials, passwords, tokens, API keys, and PINs
   if (
     lower.includes("password") ||
+    lower.includes("passwd") ||
+    lower.includes("passphrase") ||
     lower.includes("secret") ||
-    lower.includes("auth_token") ||
-    lower.includes("private_key")
+    lower.includes("token") ||
+    lower.includes("api_key") ||
+    lower.includes("apikey") ||
+    lower.includes("private_key") ||
+    /(?:^|[_-])(?:pwd|pin|otp|cvv|ssn)(?:$|[_-\d])/.test(lower)
   ) {
     return false;
   }
@@ -7687,10 +7711,23 @@ export class SimpleWindow {
     let alertType = "info";
     let opts: Partial<any> = {};
 
+    const CALLOUT_TYPES = new Set([
+      "info",
+      "success",
+      "warning",
+      "warn",
+      "error",
+      "danger",
+      "tip",
+      "note",
+    ]);
+
     if (
       typeof idOrTitleOrMsg === "string" &&
       typeof titleOrMsgOrType === "string" &&
-      typeof msgOrTypeOrOpts === "string"
+      typeof msgOrTypeOrOpts === "string" &&
+      (typeOrOpts !== undefined ||
+        !CALLOUT_TYPES.has(msgOrTypeOrOpts.trim().toLowerCase()))
     ) {
       explicitId = idOrTitleOrMsg;
       title = titleOrMsgOrType;
@@ -8322,6 +8359,11 @@ export class SimpleWindow {
     this.evalJS(code);
   }
 
+  /** Legacy camelCase alias of `evalJS` for compatibility. */
+  public evalJs(code: string): void {
+    this.evalJS(code);
+  }
+
   /** Retrieves the current value of the control identified by `id`. */
   public getValue(id: string): any {
     if (this.formValuesStore[id] !== undefined) {
@@ -8405,9 +8447,10 @@ export class SimpleWindow {
     }
     if (this.isWindowRunning) {
       const escaped = JSON.stringify(htmlContent);
+      const safeId = JSON.stringify(id);
       this.evalJS(`
                 (function() {
-                    const el = document.getElementById("${id}");
+                    const el = document.getElementById(${safeId});
                     if (el) {
                         el.innerHTML = ${escaped};
                     }
@@ -8629,6 +8672,9 @@ export class SimpleWindow {
     if (!this._dialogs) {
       this._dialogs = new SimpleDialogs({
         isRunning: () => this.isWindowRunning,
+        isHosted: () =>
+          this.hostedFactory !== null ||
+          Boolean((this.webview as any)?.isHosted),
         eval: (code: string) => this.evalJS(code),
         resolvers: this.promptResolversMap,
       });
@@ -9191,6 +9237,15 @@ export class SimpleWindow {
     const spec = this.buildFormSpec();
     let html = generatePreviewHtml(spec);
 
+    const safeScriptJson = (val: unknown): string =>
+      JSON.stringify(val)
+        .replace(/</g, "\\u003c")
+        .replace(/\u2028/g, "\\u2028")
+        .replace(/\u2029/g, "\\u2029");
+    const registeredShortcuts = Array.from(this.eventHandlersMap.keys())
+      .filter((k) => k.startsWith("shortcut_"))
+      .map((k) => k.slice("shortcut_".length));
+
     // Inject SimpleGUI modal dialog & IPC scripts
     const scriptInject = `
             ${DIALOG_CLIENT_HTML}
@@ -9211,7 +9266,36 @@ export class SimpleWindow {
                     if (window.handleWindowCloseIPC) window.handleWindowCloseIPC();
                 });
 
-                ${(this as any)._globalContextMenuItems ? `window.globalContextMenuItems = ${JSON.stringify((this as any)._globalContextMenuItems)};` : ""}
+                ${(this as any)._globalContextMenuItems ? `window.globalContextMenuItems = ${safeScriptJson((this as any)._globalContextMenuItems)};` : ""}
+                window.__simpleguiShortcuts = ${safeScriptJson(registeredShortcuts)};
+                window.addEventListener("keydown", function(e) {
+                    if (e.isComposing || e.keyCode === 229) return;
+                    var list = window.__simpleguiShortcuts;
+                    if (!Array.isArray(list) || list.length === 0) return;
+                    var rawKey = String(e.key || "").toLowerCase();
+                    if (!rawKey || rawKey === "control" || rawKey === "shift" || rawKey === "alt" || rawKey === "meta") return;
+                    if (rawKey === " ") rawKey = "space";
+                    else if (rawKey === "esc") rawKey = "escape";
+                    var mods = [];
+                    if (e.ctrlKey) mods.push("ctrl");
+                    if (e.altKey) mods.push("alt");
+                    if (e.shiftKey) mods.push("shift");
+                    if (e.metaKey) mods.push("meta");
+                    var canonical = mods.concat([rawKey]).join("+");
+                    var matched = "";
+                    if (list.indexOf(canonical) >= 0) {
+                        matched = canonical;
+                    } else if ((e.ctrlKey || e.metaKey) && list.indexOf(mods.map(function(m){ return m === "meta" ? "cmd" : m; }).concat([rawKey]).join("+")) >= 0) {
+                        matched = mods.map(function(m){ return m === "meta" ? "cmd" : m; }).concat([rawKey]).join("+");
+                    } else if ((e.ctrlKey || e.metaKey)) {
+                        var modOnly = ["mod"].concat(mods.filter(function(m){ return m !== "ctrl" && m !== "meta"; })).concat([rawKey]).join("+");
+                        if (list.indexOf(modOnly) >= 0) matched = modOnly;
+                    }
+                    if (matched && typeof window.handleShortcutIPC === "function") {
+                        e.preventDefault();
+                        window.handleShortcutIPC(matched);
+                    }
+                });
 
                 let lastAltTime = 0;
                 let zoomLevel = 1.0;
@@ -9569,7 +9653,7 @@ export class SimpleWindow {
     const responsiveScript = shouldInjectResponsive
       ? `
             <script>
-            window.__RAD_LAYOUT_SECTIONS__ = ${JSON.stringify(this._layoutSections)};
+            window.__RAD_LAYOUT_SECTIONS__ = ${safeScriptJson(this._layoutSections)};
             (function() {
                 function initSimpleguiUniversalResponsiveEngine() {
                     if (document.getElementById("fd_root") || window.__FD_STUDIO_ACTIVE__ || document.getElementById("rad_responsive_root") || !window.__RAD_LAYOUT_SECTIONS__ || window.__RAD_LAYOUT_SECTIONS__.length === 0) return;
@@ -10173,6 +10257,11 @@ export class SimpleWindow {
 
     this.webview.bind("open_url", (url: string) => {
       return this.openUrl(url);
+    });
+
+    this.webview.bind("handleShortcutIPC", async (chord: string) => {
+      await this.triggerShortcut(String(chord || ""));
+      return { success: true };
     });
 
     this.dialogs.bindIpc(this.webview);
@@ -11205,13 +11294,16 @@ export class SimpleWindow {
   /** Updates the displayed value for a specific `key` row inside a live property grid control. */
   public setPropertyGridValue(id: string, key: string, value: string): this {
     if (this.isWindowRunning) {
+      const safeId = JSON.stringify(id);
+      const safeKey = JSON.stringify(key);
+      const safeVal = JSON.stringify(value);
       this.evalJS(`
-                const grid = document.getElementById("${id}");
+                const grid = document.getElementById(${safeId});
                 if (grid) {
-                    const row = Array.from(grid.querySelectorAll('.prop-row')).find(r => r.textContent.includes("${key}"));
+                    const row = Array.from(grid.querySelectorAll('.prop-row')).find(r => r.textContent && r.textContent.includes(${safeKey}));
                     if (row) {
                         const valEl = row.querySelector('.prop-val');
-                        if (valEl) valEl.textContent = "${value}";
+                        if (valEl) valEl.textContent = ${safeVal};
                     }
                 }
             `);
@@ -11365,9 +11457,9 @@ export class SimpleWindow {
                         const selClass = isSelected ? ' selected-tr' : '';
 
                         return '<tr class="' + selClass + '" style="border-bottom:1px solid ' + border + ';cursor:pointer;transition:background 0.12s;' + bgStyle + '" ' +
-                            'data-pid="' + esc(rowPid) + '" ' +
-                            'onclick="const tb=this.closest(\\'tbody\\');if(tb){tb.querySelectorAll(\\'tr\\').forEach(tr=>{tr.classList.remove(\\'selected-tr\\');tr.style.background=\\'\\'});this.classList.add(\\'selected-tr\\');this.style.background=\\'' + selBg + '\\';window.selectedRowElement=this;window.selectedRowPid=\\'' + esc(rowPid) + '\\';if(window.onTableRowClick)window.onTableRowClick(this);const fn=window[\\'' + esc(ctrlId) + '_onClick\\']||window[\\'on_' + esc(ctrlId) + '_click\\'];if(fn)fn(\\'' + esc(rowPid) + '\\');}" ' +
-                            'ondblclick="const fn=window[\\'' + esc(ctrlId) + '_onDoubleClick\\']||window[\\'on_' + esc(ctrlId) + '_doubleclick\\']||window[\\'on_' + esc(ctrlId) + '_ondoubleclick\\'];if(fn)fn(\\'' + esc(rowPid) + '\\');" ' +
+                            'data-ctrl-id="' + esc(ctrlId) + '" data-pid="' + esc(rowPid) + '" ' +
+                            'onclick="const cid=this.getAttribute(\\'data-ctrl-id\\')||\\'\\',pid=this.getAttribute(\\'data-pid\\')||\\'\\',tb=this.closest(\\'tbody\\');if(tb){tb.querySelectorAll(\\'tr\\').forEach(tr=>{tr.classList.remove(\\'selected-tr\\');tr.style.background=\\'\\'});this.classList.add(\\'selected-tr\\');this.style.background=\\'' + selBg + '\\';window.selectedRowElement=this;window.selectedRowPid=pid;if(window.onTableRowClick)window.onTableRowClick(this);const fn=window[cid+\\'_onClick\\']||window[\\'on_\\'+cid+\\'_click\\'];if(fn)fn(pid);}" ' +
+                            'ondblclick="const cid=this.getAttribute(\\'data-ctrl-id\\')||\\'\\',pid=this.getAttribute(\\'data-pid\\')||\\'\\',fn=window[cid+\\'_onDoubleClick\\']||window[\\'on_\\'+cid+\\'_doubleclick\\']||window[\\'on_\\'+cid+\\'_ondoubleclick\\'];if(fn)fn(pid);" ' +
                             'onmouseover="if(!this.classList.contains(\\'selected-tr\\'))this.style.background=\\'' + hoverBg + '\\'" ' +
                             'onmouseout="if(!this.classList.contains(\\'selected-tr\\'))this.style.background=\\'\\'">' +
                             cells.map((c, i) => {
@@ -11377,7 +11469,7 @@ export class SimpleWindow {
                                 const monoStyle = (i === 0 || isNum) ? 'font-family:monospace;font-variant-numeric:tabular-nums;' : '';
                                 const isUrl = strVal.startsWith('http://') || strVal.startsWith('https://');
                                 const cellHtml = isUrl
-                                    ? ('<a href="' + esc(strVal) + '" target="_blank" rel="noopener noreferrer" style="color:' + accent + ';text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();if(typeof window.openUrl===\\'function\\'){window.openUrl(\\'' + esc(strVal) + '\\');}else if(typeof window.openExternal===\\'function\\'){window.openExternal(\\'' + esc(strVal) + '\\');}return false;">' + esc(strVal) + '</a>')
+                                    ? ('<a href="' + esc(strVal) + '" target="_blank" rel="noopener noreferrer" style="color:' + accent + ';text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();const u=this.getAttribute(\\'href\\')||\\'\\';if(typeof window.openUrl===\\'function\\'){window.openUrl(u);}else if(typeof window.openExternal===\\'function\\'){window.openExternal(u);}return false;">' + esc(strVal) + '</a>')
                                     : esc(strVal);
                                 return '<td style="padding:8px 12px;white-space:nowrap;' + alignStyle + monoStyle + '">' + cellHtml + '</td>';
                             }).join('') + '</tr>';
@@ -11419,11 +11511,40 @@ export class SimpleWindow {
 
   /** Appends a row of cell strings to a grid table control. */
   public gridAddRow(id: string, row: string[]): this {
+    const ctrl = this.findControl(id);
+    if (ctrl) {
+      const headers: string[] = Array.isArray(ctrl.headers)
+        ? ctrl.headers
+        : Array.isArray(ctrl.columns)
+          ? ctrl.columns
+          : [];
+      const rows: any[] = Array.isArray(ctrl.rows) ? [...ctrl.rows] : [];
+      rows.push(Array.isArray(row) ? row.map((c) => String(c ?? "")) : []);
+      ctrl.rows = rows;
+      this.setTableData(id, headers, rows);
+    }
     return this;
   }
 
   /** Deletes the row at `idx` from a grid table control. */
   public gridDeleteRow(id: string, idx: number): this {
+    const ctrl = this.findControl(id);
+    if (
+      ctrl &&
+      Array.isArray(ctrl.rows) &&
+      idx >= 0 &&
+      idx < ctrl.rows.length
+    ) {
+      const headers: string[] = Array.isArray(ctrl.headers)
+        ? ctrl.headers
+        : Array.isArray(ctrl.columns)
+          ? ctrl.columns
+          : [];
+      const rows = [...ctrl.rows];
+      rows.splice(idx, 1);
+      ctrl.rows = rows;
+      this.setTableData(id, headers, rows);
+    }
     return this;
   }
 
@@ -12284,11 +12405,19 @@ export class SimpleWindow {
     return this.getTitle();
   }
 
-  /** Updates the window title string in both the `SimpleWindow` state and the native webview titlebar. */
-  public set_title(titleStr: string): this {
+  /** Updates the window title string in both the `SimpleWindow` state and the native/hosted webview titlebar. */
+  public setTitle(titleStr: string): this {
     this.title = titleStr;
     if (this.webview) this.webview.title = titleStr;
+    if (this.isWindowRunning) {
+      this.evalJS(`document.title = ${JSON.stringify(titleStr)};`);
+    }
     return this;
+  }
+
+  /** Snake_case alias of `setTitle`: updates the window title string in both the `SimpleWindow` state and the native webview titlebar. */
+  public set_title(titleStr: string): this {
+    return this.setTitle(titleStr);
   }
 
   /** Snake_case alias of `setAlwaysOnTop`: configures whether the native window floats above all other windows on screen. */
@@ -13688,10 +13817,16 @@ export class SimpleWindow {
   }
 
   // 5. Settings Persistence (JSON File)
-  /** Writes all current form control values (`getFormValues()`) as formatted JSON to `filePath`. */
+  /** Writes all eligible non-sensitive form control values as formatted JSON to `filePath` with `0o600` permissions. */
   public saveValuesToFile(filePath: string): void {
-    const values = this.getFormValues();
-    fs.writeFileSync(filePath, JSON.stringify(values, null, 2), "utf-8");
+    const rawValues = this.getFormValues();
+    const safeValues: Record<string, any> = {};
+    for (const [id, val] of Object.entries(rawValues)) {
+      const ctrl = this.findControl(id) || { id };
+      if (!shouldPersistControl(ctrl)) continue;
+      safeValues[id] = val;
+    }
+    writeFileAtomic(filePath, JSON.stringify(safeValues, null, 2));
   }
   /** Snake_case alias of `saveValuesToFile`: writes all current form control values (`getFormValues()`) as formatted JSON to `filePath`. */
   public save_values_to_file(pathStr: string): void {
@@ -13705,6 +13840,8 @@ export class SimpleWindow {
       const values = JSON.parse(content);
       for (const [id, val] of Object.entries(values)) {
         if (this.hasControl(id)) {
+          const ctrl = this.findControl(id);
+          if (ctrl && !shouldPersistControl(ctrl)) continue;
           this.setValue(id, val);
         }
       }
@@ -14896,10 +15033,84 @@ export class SimpleWindow {
     return this.onEvent(controlId, eventName, callback);
   }
 
+  private normalizeShortcutChord(shortcut: string): string {
+    const parts = String(shortcut || "")
+      .trim()
+      .toLowerCase()
+      .split("+")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    const mods = new Set<string>();
+    let mainKey = "";
+    for (const part of parts) {
+      if (part === "ctrl" || part === "control") mods.add("ctrl");
+      else if (part === "alt" || part === "opt" || part === "option")
+        mods.add("alt");
+      else if (part === "shift") mods.add("shift");
+      else if (
+        part === "cmd" ||
+        part === "command" ||
+        part === "meta" ||
+        part === "super" ||
+        part === "win"
+      )
+        mods.add("meta");
+      else if (
+        part === "mod" ||
+        part === "cmdorctrl" ||
+        part === "commandorcontrol"
+      )
+        mods.add("mod");
+      else if (part === "esc") mainKey = "escape";
+      else if (part === "spacebar") mainKey = "space";
+      else mainKey = part;
+    }
+    const ordered: string[] = [];
+    if (mods.has("mod")) ordered.push("mod");
+    if (mods.has("ctrl")) ordered.push("ctrl");
+    if (mods.has("alt")) ordered.push("alt");
+    if (mods.has("shift")) ordered.push("shift");
+    if (mods.has("meta")) ordered.push("meta");
+    if (mainKey) ordered.push(mainKey);
+    return (
+      ordered.join("+") ||
+      String(shortcut || "")
+        .trim()
+        .toLowerCase()
+    );
+  }
+
   /** Registers a global keyboard shortcut handler (for example, `"ctrl+s"` or `"cmd+k"`) on the window. */
   public onShortcut(shortcut: string, callback: EventCallback): this {
-    const key = `shortcut_${shortcut.toLowerCase()}`;
-    this.eventHandlersMap.set(key, callback);
+    const raw = String(shortcut || "")
+      .trim()
+      .toLowerCase();
+    const norm = this.normalizeShortcutChord(shortcut);
+    this.eventHandlersMap.set(`shortcut_${raw}`, callback);
+    this.eventHandlersMap.set(`shortcut_${norm}`, callback);
+    if (this.isWindowRunning) {
+      const shortcuts = Array.from(this.eventHandlersMap.keys())
+        .filter((k) => k.startsWith("shortcut_"))
+        .map((k) => k.slice("shortcut_".length));
+      this.evalJS(
+        `window.__simpleguiShortcuts = ${JSON.stringify(shortcuts)};`,
+      );
+    }
+    return this;
+  }
+
+  /** Programmatically dispatches a registered keyboard shortcut handler (for testing or custom chord routing). */
+  public async triggerShortcut(shortcut: string): Promise<this> {
+    const raw = String(shortcut || "")
+      .trim()
+      .toLowerCase();
+    const norm = this.normalizeShortcutChord(shortcut);
+    const cb =
+      this.eventHandlersMap.get(`shortcut_${norm}`) ||
+      this.eventHandlersMap.get(`shortcut_${raw}`);
+    if (cb) {
+      await cb(this, norm || raw);
+    }
     return this;
   }
   /** Snake_case alias of `onShortcut`: registers a global keyboard shortcut handler (for example, `"ctrl+s"` or `"cmd+k"`) on the window. */
@@ -15083,7 +15294,7 @@ export class SimpleWindow {
   /** Binds a click callback to the most recently added control. */
   public onclick(cb: EventCallback): this {
     if (this.lastControlId) {
-      this.eventHandlersMap.set(`${this.lastControlId}:click`, cb);
+      this.bindControlEvent(this.lastControlId, "onClick", cb);
       this.eventHandlersMap.set(`click_${this.lastControlId}`, cb);
     }
     return this;
@@ -15092,7 +15303,7 @@ export class SimpleWindow {
   /** Binds a value-change callback to the most recently added control. */
   public onchange(cb: EventCallback): this {
     if (this.lastControlId) {
-      this.eventHandlersMap.set(`${this.lastControlId}:change`, cb);
+      this.bindControlEvent(this.lastControlId, "onChange", cb);
       this.eventHandlersMap.set(`change_${this.lastControlId}`, cb);
     }
     return this;
@@ -15101,7 +15312,7 @@ export class SimpleWindow {
   /** Binds an Enter-key callback to the most recently added control. */
   public onenter(cb: EventCallback): this {
     if (this.lastControlId) {
-      this.eventHandlersMap.set(`${this.lastControlId}:enter`, cb);
+      this.bindControlEvent(this.lastControlId, "onEnter", cb);
       this.eventHandlersMap.set(`enter_${this.lastControlId}`, cb);
     }
     return this;

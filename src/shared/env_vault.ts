@@ -38,7 +38,7 @@ export function parseEnv(text: string): ParsedEnv {
     const eq = line.indexOf("=");
     if (eq === -1) {
       syntaxErrors.push(
-        `Line ${i + 1}: there is no "=" in "${line.slice(0, 60)}"`,
+        `Line ${i + 1}: there is no "=" assignment on this line`,
       );
       continue;
     }
@@ -76,7 +76,11 @@ export function parseEnv(text: string): ParsedEnv {
 /** Names that hold secrets. Whole words are matched (so PASSPORT_COUNTRY is not a password, but PASSPORT_SECRET still is). */
 export function isSecretKey(key: string): boolean {
   const k = key.toUpperCase();
-  if (/SECRET|PASSWORD|PASSWD|TOKEN|CREDENTIAL|PRIVATE|AUTH|SIGNING/.test(k))
+  if (
+    /SECRET|PASSWORD|PASSWD|PASSPHRASE|APIKEY|TOKEN|CREDENTIAL|PRIVATE|AUTH|SIGNING/.test(
+      k,
+    )
+  )
     return true;
   return k
     .split(/[_.]/)
@@ -102,13 +106,18 @@ export function isSafeExampleValue(key: string, value: string): boolean {
   );
 }
 
+const URL_CREDENTIALS_RE = /[a-z][a-z0-9+.-]*:\/\/[^/\s:@]+:[^/\s@]+@/i;
+
 /** Hides the value of every secret. */
 export function maskEnv(text: string): string {
   return text
     .split("\n")
     .map((l) => {
-      const m = /^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_.]*)(\s*=)/.exec(l);
-      if (!m || !isSecretKey(m[2]!)) return l;
+      const m = /^(\s*(?:export\s+)?)([A-Za-z_][A-Za-z0-9_.]*)(\s*=)(.*)$/.exec(
+        l,
+      );
+      if (!m) return l;
+      if (!isSecretKey(m[2]!) && !URL_CREDENTIALS_RE.test(m[4]!)) return l;
       return `${m[1]}${m[2]}${m[3]}"${MASK}"`;
     })
     .join("\n");
@@ -122,6 +131,7 @@ export function unmaskEnv(maskedText: string, rawText: string): string {
     if (m)
       (originals.get(m[1]!) ?? originals.set(m[1]!, []).get(m[1]!)!).push(l);
   }
+  const seenIdx = new Map<string, number>();
   return maskedText
     .split("\n")
     .map((l) => {
@@ -129,9 +139,13 @@ export function unmaskEnv(maskedText: string, rawText: string): string {
         /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_.]*)\s*=\s*["']?(.*?)["']?\s*$/.exec(
           l,
         );
-      if (!m || m[2] !== MASK) return l;
-      const queue = originals.get(m[1]!);
-      return queue?.length ? queue.shift()! : l;
+      if (!m) return l;
+      const key = m[1]!;
+      const idx = seenIdx.get(key) ?? 0;
+      seenIdx.set(key, idx + 1);
+      if (m[2] !== MASK) return l;
+      const queue = originals.get(key);
+      return queue && idx < queue.length ? queue[idx]! : l;
     })
     .join("\n");
 }

@@ -20,6 +20,8 @@
  *   bun run demo:menu
  */
 
+import { homedir } from "os";
+import { join } from "path";
 import { newSimpleWindow, SimpleWindow } from "../src/simplegui";
 
 export function createContextMenuAndMenuDemo(): SimpleWindow {
@@ -259,11 +261,14 @@ console.log("Calculated:", calculateVelocity(100, 4));`;
       },
     );
 
+  const sampleGuiPath = join(
+    homedir(),
+    "bun_rad_studio",
+    "src",
+    "simplegui.ts",
+  );
   win
-    .addFilePathBar(
-      "/Users/codecaine/bun_rad_studio/src/simplegui.ts",
-      "fpath_demo",
-    )
+    .addFilePathBar(sampleGuiPath, "fpath_demo")
     .width(275)
     .contextMenu(
       [
@@ -274,11 +279,7 @@ console.log("Calculated:", calculateVelocity(100, 4));`;
         "📊 Inspect File Permissions",
       ],
       (_w, action) => {
-        triggerAction(
-          "File Path Context Menu",
-          action,
-          "/Users/codecaine/bun_rad_studio/src/simplegui.ts",
-        );
+        triggerAction("File Path Context Menu", action, sampleGuiPath);
       },
     );
   win.endRow();

@@ -75,6 +75,8 @@ export class HostedSession {
   html = "";
   title = "";
   closed = false;
+  onReconnect?: (peer: HostedPeer) => void;
+  private hasAttachedOnce = false;
   private readonly peers = new Set<HostedPeer>();
   private backlog: string[] = [];
 
@@ -103,6 +105,8 @@ export class HostedSession {
   /** Attaches a connected WebSocket peer to this session and flushes any queued backlog messages. */
   attach(peer: HostedPeer): void {
     if (this.closed) return;
+    const isReconnect = this.hasAttachedOnce;
+    this.hasAttachedOnce = true;
     this.peers.add(peer);
     const waiting = this.backlog;
     this.backlog = [];
@@ -112,6 +116,13 @@ export class HostedSession {
       } catch {
         this.peers.delete(peer);
         return;
+      }
+    }
+    if (isReconnect && this.onReconnect) {
+      try {
+        this.onReconnect(peer);
+      } catch {
+        /* ignore reconnect sync errors */
       }
     }
   }
@@ -203,6 +214,27 @@ export function createHostedHub(maxOpen = 6): HostedHub {
         session.close();
         throw err;
       }
+      session.onReconnect = (peer) => {
+        const vals = win.getFormValues();
+        const entries = Object.entries(vals);
+        if (entries.length === 0 && !win.getTitle()) return;
+        const syncCode = `(function(){
+          document.title = ${JSON.stringify(win.getTitle())};
+          var vals = ${JSON.stringify(vals)};
+          Object.keys(vals).forEach(function(id) {
+            var rawEl = document.getElementById(id);
+            if (!rawEl) return;
+            var val = vals[id];
+            var el = (rawEl.tagName === "INPUT" || rawEl.tagName === "SELECT" || rawEl.tagName === "TEXTAREA")
+              ? rawEl
+              : (rawEl.querySelector("input, select, textarea") || rawEl);
+            if (el.type === "checkbox" || el.type === "radio") el.checked = Boolean(val);
+            else if (el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA") el.value = String(val == null ? "" : val);
+            else if (!rawEl.querySelector("table, svg")) rawEl.textContent = String(val == null ? "" : val);
+          });
+        })();`;
+        peer.send(JSON.stringify({ t: "eval", code: syncCode }));
+      };
       open.set(key, { session, win });
       return session;
     },
@@ -224,28 +256,98 @@ function clientScript(names: string[], wsUrl: string): string {
   function flushEvals() { domReady = true; evals.splice(0).forEach(runEval); if (_lastFmTheme) applyFmTheme(_lastFmTheme); }
   if (!domReady) document.addEventListener("DOMContentLoaded", flushEvals);
   var _lastFmTheme = null;
+  var _verifiedParentOrigin = "";
+  var _loopbackHosts = { "127.0.0.1": 1, "localhost": 1, "::1": 1, "[::1]": 1 };
+  function cleanCssVal(val, fallback) {
+    var s = typeof val === "string" ? val.trim() : "";
+    if (!s || s.length > 160 || /[{}<>\\\\;]|\\burl\\s*\\(|@import/i.test(s)) return fallback;
+    return s;
+  }
+  function getParentWin() {
+    var p = (typeof parent !== "undefined" && parent) ? parent : window.parent;
+    return (p && p !== window) ? p : null;
+  }
+  function getTrustedParentOrigin(p) {
+    if (_verifiedParentOrigin) return _verifiedParentOrigin;
+    try {
+      if (p && p.location && p.location.origin && p.location.origin !== "null") {
+        return p.location.origin;
+      }
+    } catch (_) {}
+    try {
+      var loc = window.location;
+      if (!loc) return "";
+      if (document.referrer) {
+        var ref = new URL(document.referrer);
+        var lh = (loc.hostname || "").toLowerCase();
+        var rh = (ref.hostname || "").toLowerCase();
+        if (ref.origin === loc.origin || (ref.protocol === loc.protocol && ref.port === loc.port && _loopbackHosts[lh] && _loopbackHosts[rh])) {
+          return ref.origin;
+        }
+      }
+      var h = (loc.hostname || "").toLowerCase();
+      if (h === "localhost") return loc.protocol + "//127.0.0.1" + (loc.port ? ":" + loc.port : "");
+      if (h === "127.0.0.1") return loc.protocol + "//localhost" + (loc.port ? ":" + loc.port : "");
+      return loc.origin && loc.origin !== "null" ? loc.origin : "";
+    } catch (_) {
+      return "";
+    }
+  }
+  function postToParent(payload, includeTop) {
+    var p = getParentWin();
+    if (!p) return;
+    var targetOrigin = getTrustedParentOrigin(p);
+    if (!targetOrigin) return;
+    try {
+      if (includeTop && window.top && window.top !== window && window.top !== p) {
+        window.top.postMessage(payload, targetOrigin);
+      }
+      p.postMessage(payload, targetOrigin);
+    } catch (_) {}
+  }
+  function isTrustedParentMessage(e) {
+    if (!e || !window.parent || window.parent === window || e.source !== window.parent) return false;
+    var orig = String(e.origin || "");
+    if (!orig || orig === "null") return false;
+    var loc = window.location;
+    if (loc && orig === loc.origin) {
+      _verifiedParentOrigin = orig;
+      return true;
+    }
+    try {
+      var u = new URL(orig);
+      if (loc && u.protocol === loc.protocol && u.port === loc.port && _loopbackHosts[(u.hostname || "").toLowerCase()] && _loopbackHosts[(loc.hostname || "").toLowerCase()]) {
+        _verifiedParentOrigin = orig;
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
   function applyFmTheme(t) {
     if (!t || typeof t !== "object") return;
     _lastFmTheme = t;
     var v = t.vars || {};
-    var bg = v.bg || (t.scheme === "light" ? "#ffffff" : "#141820");
-    var panel = v.panel || (t.scheme === "light" ? "#f3f5f8" : "#1c222d");
-    var sunken = v["surface-sunken"] || bg;
-    var text = v.text || (t.scheme === "light" ? "#0f172a" : "#f8fafc");
-    var muted = v.muted || (t.scheme === "light" ? "#334155" : "#bcc6d4");
-    var border = v.border || (t.scheme === "light" ? "#cbd5e1" : "#384252");
-    var accent = v.accent || "#38bdf8";
-    var accentText = v["accent-text"] || "#ffffff";
-    var hover = v.hover || panel;
+    var scheme = t.scheme === "light" ? "light" : "dark";
+    var bg = cleanCssVal(v.bg, scheme === "light" ? "#ffffff" : "#141820");
+    var panel = cleanCssVal(v.panel, scheme === "light" ? "#f3f5f8" : "#1c222d");
+    var sunken = cleanCssVal(v["surface-sunken"], bg);
+    var text = cleanCssVal(v.text, scheme === "light" ? "#0f172a" : "#f8fafc");
+    var muted = cleanCssVal(v.muted, scheme === "light" ? "#334155" : "#bcc6d4");
+    var border = cleanCssVal(v.border, scheme === "light" ? "#cbd5e1" : "#384252");
+    var accent = cleanCssVal(v.accent, "#38bdf8");
+    var hover = cleanCssVal(v.hover, panel);
     var r = document.documentElement;
-    r.dataset.theme = t.scheme || "dark";
-    r.dataset.palette = t.palette || "";
-    r.style.colorScheme = t.scheme || "dark";
+    r.dataset.theme = scheme;
+    r.dataset.palette = typeof t.palette === "string" ? t.palette.slice(0, 64) : "";
+    r.style.colorScheme = scheme;
     for (var k in v) {
-      if (Object.prototype.hasOwnProperty.call(v, k)) r.style.setProperty("--" + k, v[k]);
+      if (Object.prototype.hasOwnProperty.call(v, k) && /^[a-zA-Z0-9_-]{1,64}$/.test(k)) {
+        var cv = cleanCssVal(v[k], "");
+        if (cv) r.style.setProperty("--" + k, cv);
+      }
     }
     r.style.setProperty("--accent", accent);
-    r.style.setProperty("--accent-secondary", v.selected || accent);
+    r.style.setProperty("--accent-secondary", cleanCssVal(v.selected, accent));
     r.style.setProperty("--btn-bg", panel);
     r.style.setProperty("--btn-fg", text);
     r.style.setProperty("--card-bg", panel);
@@ -274,16 +376,13 @@ function clientScript(names: string[], wsUrl: string): string {
     }
   }
   window.addEventListener("message", function (e) {
+    if (!isTrustedParentMessage(e)) return;
     if (e.data && typeof e.data === "object" && e.data.fmTheme) {
       applyFmTheme(e.data.fmTheme);
     }
   });
   window.addEventListener("load", function () {
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ fmRequestTheme: true }, "*");
-      }
-    } catch (_) {}
+    postToParent({ fmRequestTheme: true }, false);
   });
   function define(name) {
     if (window[name] && window[name].__hosted) return;
@@ -327,17 +426,14 @@ function clientScript(names: string[], wsUrl: string): string {
   var _f11Down = false;
   window.addEventListener("blur", function () { _f11Down = false; });
   window.addEventListener("keydown", function (e) {
-    if (!window.parent || window.parent === window) return;
+    if (!getParentWin()) return;
     var mod = e.ctrlKey || e.metaKey;
     var k = (e.key || "").toLowerCase();
     if ((mod && !e.altKey && !e.shiftKey && (k === "q" || k === "w" || e.code === "KeyQ" || e.code === "KeyW")) || (e.altKey && !mod && !e.shiftKey && (e.key === "F4" || e.code === "F4" || k === "q" || k === "w" || e.code === "KeyQ" || e.code === "KeyW"))) {
       e.preventDefault();
       e.stopPropagation();
       if (!e.repeat && !e.isComposing) {
-        try { window.top.postMessage({ fmCloseApp: true }, "*"); } catch (_) {}
-        if (window.parent !== window.top) {
-          try { parent.postMessage({ fmCloseApp: true }, "*"); } catch (_) {}
-        }
+        postToParent({ fmCloseApp: true }, true);
       }
       return;
     }
@@ -347,7 +443,7 @@ function clientScript(names: string[], wsUrl: string): string {
       e.preventDefault();
       e.stopPropagation();
       if (!e.repeat) {
-        try { parent.postMessage({ fmToggleExpand: true }, "*"); } catch (_) {}
+        postToParent({ fmToggleExpand: true }, false);
       }
       return;
     }
@@ -355,7 +451,7 @@ function clientScript(names: string[], wsUrl: string): string {
     if (mod && !e.altKey && !e.shiftKey && (k === "k" || e.code === "KeyK")) {
       e.preventDefault();
       e.stopPropagation();
-      try { parent.postMessage({ fmFilterTools: true }, "*"); } catch (_) {}
+      postToParent({ fmFilterTools: true }, false);
       return;
     }
     if (mod && !e.altKey && !e.shiftKey && (k === "c" || e.code === "KeyC")) {
@@ -369,21 +465,21 @@ function clientScript(names: string[], wsUrl: string): string {
       }
       if (t) {
         e.preventDefault();
-        try { parent.postMessage({ fmCopyText: t }, "*"); } catch (_) {}
+        postToParent({ fmCopyText: t }, false);
         return;
       }
     }
   }, true);
   window.addEventListener("keydown", function (e) {
-    if (!window.parent || window.parent === window) return;
+    if (!getParentWin()) return;
     if (e.key === "Escape" && (!e.defaultPrevented || e.__radEscBeepPrevented) && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
       if (document.querySelector && document.querySelector(".sgd-container, .modal-backdrop.active, .modal-overlay.open, .modal-overlay.active, dialog[open]")) return;
       e.preventDefault();
-      try { parent.postMessage({ fmEscapeExpand: true }, "*"); } catch (_) {}
+      postToParent({ fmEscapeExpand: true }, false);
     }
   }, false);
   window.addEventListener("keyup", function (e) {
-    if (!window.parent || window.parent === window) return;
+    if (!getParentWin()) return;
     var isF11 = e.key === "F11" || e.code === "F11" || e.key === "\\uF70E" || e.key === "SunF36" || e.keyCode === 122 || e.which === 122;
     if (!isF11) return;
     if (_f11Down) {
@@ -394,7 +490,7 @@ function clientScript(names: string[], wsUrl: string): string {
     }
     e.preventDefault();
     e.stopPropagation();
-    try { parent.postMessage({ fmToggleExpand: true }, "*"); } catch (_) {}
+    postToParent({ fmToggleExpand: true }, false);
   }, true);
 })();`;
 }

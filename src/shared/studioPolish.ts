@@ -596,24 +596,70 @@ function studioPolishClient() {
       }
     } catch (e) {}
   }
+  function cleanCssVal(val, fallback) {
+    const s = typeof val === "string" ? val.trim() : "";
+    if (!s || s.length > 160 || /[{}<>\\;]|\burl\s*\(|@import/i.test(s))
+      return fallback;
+    return s;
+  }
+  function isTrustedParentMessage(e) {
+    if (
+      !e ||
+      !window.parent ||
+      window.parent === window ||
+      (e.source !== window.parent && e.source !== window.top)
+    )
+      return false;
+    const orig = String(e.origin || "");
+    if (!orig || orig === "null") return false;
+    const loc = window.location;
+    if (loc && orig === loc.origin) return true;
+    try {
+      const u = new URL(orig);
+      const lp = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
+      if (
+        loc &&
+        u.protocol === loc.protocol &&
+        u.port === loc.port &&
+        lp.has((u.hostname || "").toLowerCase()) &&
+        lp.has((loc.hostname || "").toLowerCase())
+      ) {
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
   function applyFmTheme(t) {
     if (!t || typeof t !== "object") return;
     const v = t.vars || {};
     const sv = t.subStudioVars || {};
-    const bg = v.bg || (t.scheme === "light" ? "#ffffff" : "#07090e");
-    const panel = v.panel || (t.scheme === "light" ? "#f3f5f8" : "#0d1117");
-    const card = v["surface-elevated"] || panel;
-    const sunken = v["surface-sunken"] || bg;
-    const text = v.text || (t.scheme === "light" ? "#0f172a" : "#e2e8f0");
-    const muted = v.muted || (t.scheme === "light" ? "#334155" : "#94a3b8");
-    const border =
-      v.border || (t.scheme === "light" ? "#cbd5e1" : "rgba(255,255,255,0.12)");
-    const accent = v.accent || "#38bdf8";
-    const hover = v.hover || panel;
+    const scheme = t.scheme === "light" ? "light" : "dark";
+    const bg = cleanCssVal(v.bg, scheme === "light" ? "#ffffff" : "#07090e");
+    const panel = cleanCssVal(
+      v.panel,
+      scheme === "light" ? "#f3f5f8" : "#0d1117",
+    );
+    const card = cleanCssVal(v["surface-elevated"], panel);
+    const sunken = cleanCssVal(v["surface-sunken"], bg);
+    const text = cleanCssVal(
+      v.text,
+      scheme === "light" ? "#0f172a" : "#e2e8f0",
+    );
+    const muted = cleanCssVal(
+      v.muted,
+      scheme === "light" ? "#334155" : "#94a3b8",
+    );
+    const border = cleanCssVal(
+      v.border,
+      scheme === "light" ? "#cbd5e1" : "rgba(255,255,255,0.12)",
+    );
+    const accent = cleanCssVal(v.accent, "#38bdf8");
+    const hover = cleanCssVal(v.hover, panel);
     const r = document.documentElement;
-    r.dataset.theme = t.scheme || "dark";
-    r.dataset.palette = t.palette || "";
-    r.style.colorScheme = t.scheme || "dark";
+    r.dataset.theme = scheme;
+    r.dataset.palette =
+      typeof t.palette === "string" ? t.palette.slice(0, 64) : "";
+    r.style.colorScheme = scheme;
     r.style.setProperty("--bg-base", bg);
     r.style.setProperty("--bg-surface", panel);
     r.style.setProperty("--bg-card", card);
@@ -622,13 +668,16 @@ function studioPolishClient() {
     r.style.setProperty("--text-dim", muted);
     r.style.setProperty("--cyan", accent);
     r.style.setProperty("--cyan-glow", accent);
-    r.style.setProperty("--purple", v.selected || accent);
-    r.style.setProperty("--emerald", v.good || "#10b981");
-    r.style.setProperty("--rose", v.danger || "#f43f5e");
-    r.style.setProperty("--amber", v["warn-text"] || "#f59e0b");
+    r.style.setProperty("--purple", cleanCssVal(v.selected, accent));
+    r.style.setProperty("--emerald", cleanCssVal(v.good, "#10b981"));
+    r.style.setProperty("--rose", cleanCssVal(v.danger, "#f43f5e"));
+    r.style.setProperty("--amber", cleanCssVal(v["warn-text"], "#f59e0b"));
     r.style.setProperty("--border-subtle", border);
     r.style.setProperty("--sc-line", border);
-    r.style.setProperty("--sc-line-strong", v["border-strong"] || border);
+    r.style.setProperty(
+      "--sc-line-strong",
+      cleanCssVal(v["border-strong"], border),
+    );
     r.style.setProperty("--sc-hover", hover);
     let st = document.getElementById("fm-db-studio-theme");
     if (!st && document.head) {
@@ -637,8 +686,8 @@ function studioPolishClient() {
       document.head.appendChild(st);
     }
     if (st) {
-      const thBg = sv["--fm-db-header-bg"] || panel;
-      const rowAlt = sv["--fm-db-row-alt"] || sunken;
+      const thBg = cleanCssVal(sv["--fm-db-header-bg"], panel);
+      const rowAlt = cleanCssVal(sv["--fm-db-row-alt"], sunken);
       st.textContent =
         `html, body { background: ${bg} !important; color: ${text} !important; }\n` +
         `header, aside, #sidebar, #mainSidebar, .sidebar, .editor-banner, .toolbar, .status-bar { background: ${panel} !important; border-color: ${border} !important; color: ${text} !important; }\n` +
@@ -650,6 +699,7 @@ function studioPolishClient() {
     }
   }
   window.addEventListener("message", (e) => {
+    if (!isTrustedParentMessage(e)) return;
     if (e.data && typeof e.data === "object" && e.data.fmTheme) {
       applyFmTheme(e.data.fmTheme);
     }

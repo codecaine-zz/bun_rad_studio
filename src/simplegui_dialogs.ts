@@ -216,6 +216,7 @@ export type FileDialogMode = "open" | "save" | "folder";
 /** Host bridge contract connecting `SimpleDialogs` to an active `SimpleWindow` webview instance. */
 export interface DialogHost {
   isRunning(): boolean;
+  isHosted?: () => boolean;
   eval(code: string): void;
   resolvers: Map<string, (val: any) => void>;
 }
@@ -869,7 +870,7 @@ const DIALOG_CLIENT_JS = String.raw`
       st.last = i; paint();
     }
     function go(p) {
-      ipc('simpleguiBrowseDirIPC', p, st.hidden).then(function (r) {
+      ipc('simpleguiBrowseDirIPC', p, st.hidden, o.token).then(function (r) {
         if (r.error) { setMsg(r.error); return; }
         st.dir = r.currentDir; st.parent = r.parentDir; st.entries = r.entries || []; st.places = r.places || st.places; st.sep = r.sep || '/';
         st.sel = []; st.last = -1; st.armed = false; pathIn.value = r.currentDir; up.disabled = !r.parentDir; setMsg('');
@@ -885,7 +886,7 @@ const DIALOG_CLIENT_JS = String.raw`
     mkNo.onclick = function () { mkRow.classList.remove('on'); };
     function doMk() {
       var n = mkIn.value.trim(); if (!n) return;
-      ipc('simpleguiMkdirIPC', st.dir, n).then(function (r) { if (r.error) { setMsg(r.error); return; } mkRow.classList.remove('on'); go(r.path); }).catch(function (e) { setMsg(String(e && e.message || e)); });
+      ipc('simpleguiMkdirIPC', st.dir, n, o.token).then(function (r) { if (r.error) { setMsg(r.error); return; } mkRow.classList.remove('on'); go(r.path); }).catch(function (e) { setMsg(String(e && e.message || e)); });
     }
     mkOk.onclick = doMk; mkIn.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); doMk(); } });
     if (nameIn) nameIn.addEventListener('input', function () { st.armed = false; setMsg(''); });
@@ -976,7 +977,8 @@ function parseExts(filter?: string | string[]): string[] {
     )
     .filter((s) => s && s !== "*" && s !== "*.*");
 }
-const psq = (s: string) => String(s).replace(/'/g, "''");
+export const psq = (s: string) =>
+  String(s).replace(/['\u2018\u2019\u201A\u201B]/g, "''");
 const asq = (s: string) =>
   String(s)
     .replace(/\\/g, "\\\\")
@@ -1057,21 +1059,33 @@ function runNative(mode: FileDialogMode, o: FileDialogOptions): NativeResult {
       const filt = exts.length
         ? `Files|${exts.map((e) => "*." + e).join(";")}|All files|*.*`
         : "All files|*.*";
+      const defaultFile = o.defaultName || "untitled.txt";
       let body: string;
       if (mode === "folder") {
-        body = `$f=New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description='${psq(title)}'; ${dir ? `$f.SelectedPath='${psq(dir)}';` : ""} if($f.ShowDialog() -eq 'OK'){ $f.SelectedPath }`;
+        body = `$f=New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description=$env:RAD_DLG_TITLE; if($env:RAD_DLG_DIR){ $f.SelectedPath=$env:RAD_DLG_DIR }; if($f.ShowDialog() -eq 'OK'){ $f.SelectedPath }`;
       } else if (mode === "save") {
-        body = `$f=New-Object System.Windows.Forms.SaveFileDialog; $f.Title='${psq(title)}'; $f.FileName='${psq(o.defaultName || "untitled.txt")}'; $f.Filter='${psq(filt)}'; ${dir ? `$f.InitialDirectory='${psq(dir)}';` : ""} if($f.ShowDialog() -eq 'OK'){ $f.FileName }`;
+        body = `$f=New-Object System.Windows.Forms.SaveFileDialog; $f.Title=$env:RAD_DLG_TITLE; $f.FileName=$env:RAD_DLG_FILE; $f.Filter=$env:RAD_DLG_FILTER; if($env:RAD_DLG_DIR){ $f.InitialDirectory=$env:RAD_DLG_DIR }; if($f.ShowDialog() -eq 'OK'){ $f.FileName }`;
       } else {
-        body = `$f=New-Object System.Windows.Forms.OpenFileDialog; $f.Title='${psq(title)}'; $f.Multiselect=$${o.multiple ? "true" : "false"}; $f.Filter='${psq(filt)}'; ${dir ? `$f.InitialDirectory='${psq(dir)}';` : ""} if($f.ShowDialog() -eq 'OK'){ $f.FileNames | ForEach-Object { $_ } }`;
+        body = `$f=New-Object System.Windows.Forms.OpenFileDialog; $f.Title=$env:RAD_DLG_TITLE; $f.Multiselect=$${o.multiple ? "true" : "false"}; $f.Filter=$env:RAD_DLG_FILTER; if($env:RAD_DLG_DIR){ $f.InitialDirectory=$env:RAD_DLG_DIR }; if($f.ShowDialog() -eq 'OK'){ $f.FileNames | ForEach-Object { $_ } }`;
       }
-      const proc = Bun.spawnSync([
-        "powershell",
-        "-NoProfile",
-        "-STA",
-        "-Command",
-        `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Add-Type -AssemblyName System.Windows.Forms; ${body}`,
-      ]);
+      const proc = Bun.spawnSync(
+        [
+          "powershell",
+          "-NoProfile",
+          "-STA",
+          "-Command",
+          `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Add-Type -AssemblyName System.Windows.Forms; ${body}`,
+        ],
+        {
+          env: {
+            ...process.env,
+            RAD_DLG_TITLE: title,
+            RAD_DLG_FILE: defaultFile,
+            RAD_DLG_FILTER: filt,
+            RAD_DLG_DIR: dir,
+          },
+        },
+      );
       if (proc.exitCode !== 0) return { status: "unavailable" };
       const paths = split(proc.stdout.toString(), /\r?\n/);
       return paths.length ? { status: "ok", paths } : { status: "cancel" };
@@ -1118,6 +1132,7 @@ export class SimpleDialogs {
       }
     >;
     open: Set<string>;
+    filePickers: Set<string>;
   };
 
   /** Creates a `SimpleDialogs` controller attached to the given window host with optional default dialog options. */
@@ -1128,7 +1143,11 @@ export class SimpleDialogs {
   ) {
     this.host = host;
     this.defaults = defaults;
-    this.shared = shared ?? { hooks: new Map(), open: new Set() };
+    this.shared = shared ?? {
+      hooks: new Map(),
+      open: new Set(),
+      filePickers: new Set(),
+    };
   }
 
   /** New instance sharing this window but with extra default options (like `Swal.mixin`). */
@@ -1535,6 +1554,7 @@ export class SimpleDialogs {
   }
   /** Closes all open modal dialogs and active toast notifications immediately. */
   closeAll(): void {
+    this.shared.filePickers.clear();
     this.host.eval(
       `window.SimpleDialogClient&&window.SimpleDialogClient.closeAll();`,
     );
@@ -1554,7 +1574,7 @@ export class SimpleDialogs {
 
   /**
    * Generic file dialog. Native OS dialog first (`native: "auto"`); the in-webview picker is used ONLY when the native
-   * dialog is unavailable — a user pressing Cancel never opens a second dialog.
+   * dialog is unavailable (or when hosted in a browser) — a user pressing Cancel never opens a second dialog.
    * Result: path string, array of paths (when `multiple`), or `null` when cancelled.
    */
   fileDialog(
@@ -1570,8 +1590,9 @@ export class SimpleDialogs {
       }
       return Promise.resolve(v);
     };
+    const hosted = Boolean(this.host.isHosted?.());
     const native = opts.native ?? "auto";
-    if (native !== "never") {
+    if (native !== "never" && !hosted) {
       const r = runNative(mode, opts);
       if (r.status === "ok")
         return finish(
@@ -1582,11 +1603,16 @@ export class SimpleDialogs {
         console.warn("[SimpleDialogs] Native file dialog unavailable.");
         return finish(null);
       }
+    } else if (native === "always" && hosted) {
+      // Hosted browser sessions cannot display a native desktop OS dialog without blocking the server.
     }
     if (!this.host.isRunning()) return finish(null);
     return new Promise((resolve) => {
-      const reqId = `file_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const reqId = `file_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      const pickerToken = `fp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}_${Math.random().toString(36).slice(2, 12)}`;
+      this.shared.filePickers.add(pickerToken);
       this.host.resolvers.set(reqId, (v: any) => {
+        this.shared.filePickers.delete(pickerToken);
         const out = v ?? null;
         try {
           cb?.(out);
@@ -1603,6 +1629,7 @@ export class SimpleDialogs {
         initialDir: opts.initialDir || process.cwd(),
         multiple: !!opts.multiple,
         showHidden: !!opts.showHidden,
+        token: pickerToken,
       });
       this.host.eval(
         `(function(){var c=window.SimpleDialogClient;var done=function(r){if(window.handlePromptResultIPC)window.handlePromptResultIPC(${JSON.stringify(reqId)},r);};` +
@@ -1660,11 +1687,38 @@ export class SimpleDialogs {
         /* already bound */
       }
     };
-    safeBind("simpleguiBrowseDirIPC", (dir: string, showHidden?: boolean) =>
-      this.browseDir(dir, !!showHidden),
+    safeBind(
+      "simpleguiBrowseDirIPC",
+      (dir: string, showHidden?: boolean, token?: string) => {
+        if (
+          typeof token !== "string" ||
+          !token ||
+          !this.shared.filePickers.has(token)
+        ) {
+          return {
+            error: "No active file dialog session.",
+            currentDir: "",
+            parentDir: null,
+            entries: [],
+            places: [],
+            sep: path.sep,
+          };
+        }
+        return this.browseDir(dir, !!showHidden);
+      },
     );
-    safeBind("simpleguiMkdirIPC", (parent: string, name: string) =>
-      this.makeDir(parent, name),
+    safeBind(
+      "simpleguiMkdirIPC",
+      (parent: string, name: string, token?: string) => {
+        if (
+          typeof token !== "string" ||
+          !token ||
+          !this.shared.filePickers.has(token)
+        ) {
+          return { error: "No active file dialog session." };
+        }
+        return this.makeDir(parent, name);
+      },
     );
     safeBind(
       "simpleguiDialogHookIPC",

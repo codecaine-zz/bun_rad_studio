@@ -12,12 +12,21 @@
  * - Dynamic Helper Functions: setPropertyGridData, setPopupMenuItems, setCalendarDate, setColorSwatchColor, setFilePathBarPath, setToast, setStatusBarText
  */
 
+import { homedir } from "os";
+import { join } from "path";
 import { SizeHint, Webview } from "webview-bun";
 import {
   generatePreviewHtml,
   setAlwaysOnTopNative,
   toggleFullscreenNative,
 } from "../index.ts";
+
+const defaultProjectDir = join(homedir(), "bun_rad_studio");
+const defaultDemoPath = join(
+  defaultProjectDir,
+  "demos",
+  "12_advanced_desktop_app_controls.ts",
+);
 
 const formSpec = {
   title: "Demo 12 - Advanced Desktop Application Controls Studio",
@@ -149,7 +158,7 @@ const formSpec = {
       y: 490,
       width: 640,
       height: 40,
-      text: "/Users/codecaine/bun_rad_studio/demos/12_advanced_desktop_app_controls.ts",
+      text: defaultDemoPath,
       event_handlers: { onClick: "on_path_bar_click" },
     },
 
@@ -261,7 +270,7 @@ webview.bind("on_desktop_toolbar_click", (action?: string) => {
   }
 
   execJS(
-    `if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "Toolbar Action: ${act}");`,
+    `if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", ${JSON.stringify(`Toolbar Action: ${act}`)});`,
   );
 });
 
@@ -269,8 +278,8 @@ webview.bind("on_ctx_menu_click", (item?: string) => {
   const it = item || "Action";
   console.log(`[IPC] Context Menu Action: ${it}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "Context Menu Action: ${it}");
-        if (window.setToast) window.setToast("status_toast", "Menu Action", "Executed ${it} action.", "success");
+        if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", ${JSON.stringify(`Context Menu Action: ${it}`)});
+        if (window.setToast) window.setToast("status_toast", "Menu Action", ${JSON.stringify(`Executed ${it} action.`)}, "success");
     `);
 });
 
@@ -280,7 +289,7 @@ webview.bind("on_app_calendar_change", (day?: number | string) => {
   const d = day || 25;
   console.log(`[IPC] Calendar Selected Day: ${d}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "Selected Date: ${currentCalendarMonth} ${d}");
+        if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", ${JSON.stringify(`Selected Date: ${currentCalendarMonth} ${d}`)});
     `);
 });
 
@@ -288,7 +297,7 @@ webview.bind("app_calendar_onPrev", (monthStr?: string) => {
   currentCalendarMonth = monthStr || "June 2026";
   console.log(`[IPC] Calendar Navigated Prev: ${currentCalendarMonth}`);
   execJS(
-    `if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "Calendar: ${currentCalendarMonth}");`,
+    `if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", ${JSON.stringify(`Calendar: ${currentCalendarMonth}`)});`,
   );
 });
 
@@ -296,7 +305,7 @@ webview.bind("app_calendar_onNext", (monthStr?: string) => {
   currentCalendarMonth = monthStr || "August 2026";
   console.log(`[IPC] Calendar Navigated Next: ${currentCalendarMonth}`);
   execJS(
-    `if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "Calendar: ${currentCalendarMonth}");`,
+    `if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", ${JSON.stringify(`Calendar: ${currentCalendarMonth}`)});`,
   );
 });
 
@@ -304,8 +313,8 @@ webview.bind("on_color_palette_change", (colorHex?: string) => {
   const hex = colorHex || "#0284c7";
   console.log(`[IPC] Color Swatch Changed: ${hex}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "Active Theme Accent Color: ${hex}");
-        if (window.setToast) window.setToast("status_toast", "Color Updated", "Selected accent color: ${hex}", "info");
+        if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", ${JSON.stringify(`Active Theme Accent Color: ${hex}`)});
+        if (window.setToast) window.setToast("status_toast", "Color Updated", ${JSON.stringify(`Selected accent color: ${hex}`)}, "info");
     `);
 });
 
@@ -313,7 +322,7 @@ webview.bind("on_path_bar_click", (pathStr?: string) => {
   const pathVal = pathStr || "Path";
   console.log(`[IPC] Browse Location Clicked: ${pathVal}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "Opening File Dialog for: ${pathVal}");
+        if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", ${JSON.stringify(`Opening File Dialog for: ${pathVal}`)});
         if (window.setToast) window.setToast("status_toast", "Browse Triggered", "Opened file picker dialog.", "info");
     `);
 });
@@ -339,7 +348,7 @@ webview.bind("on_btn_calendar_today_click", () => {
 webview.bind("on_btn_path_reset_click", () => {
   console.log("[IPC] Button Clicked: Reset Project Path");
   execJS(`
-        if (window.setFilePathBarPath) window.setFilePathBarPath("path_bar", "/Users/codecaine/bun_rad_studio");
+        if (window.setFilePathBarPath) window.setFilePathBarPath("path_bar", ${JSON.stringify(defaultProjectDir)});
         if (window.setStatusBarText) window.setStatusBarText("desktop_status_bar", "File path reset to project root.");
     `);
 });

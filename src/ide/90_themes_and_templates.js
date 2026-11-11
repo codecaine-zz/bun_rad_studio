@@ -177,6 +177,7 @@
 
 		function loadTemplate(name) {
 			saveHistoryState();
+			formSpec.non_visual_controls = [];
 			if (name === "login") {
 				formSpec.title = "User Authentication Dialog";
 				formSpec.width = 480;

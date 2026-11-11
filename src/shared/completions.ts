@@ -8,24 +8,37 @@ export interface FlagDefinition {
   desc: string;
 }
 
+function sanitizeShellCmd(cliName: string): string {
+  return String(cliName || "cli").replace(/[^a-zA-Z0-9._-]/g, "_") || "cli";
+}
+
+function sanitizeShellFn(cliName: string): string {
+  return sanitizeShellCmd(cliName).replace(/[^a-zA-Z0-9_]/g, "_");
+}
+
 /** Generates a Bash completion script (`complete -F`) for `cliName` with the given `flags`. */
 export function generateBashCompletion(
   cliName: string,
   flags: string[],
 ): string {
-  const optsStr = flags.join(" ");
-  return `# Bash completion for ${cliName}
-_${cliName}() {
+  const safeCmd = sanitizeShellCmd(cliName);
+  const safeFn = sanitizeShellFn(cliName);
+  const optsStr = flags
+    .map((f) => String(f).replace(/[^a-zA-Z0-9._=-]/g, ""))
+    .filter(Boolean)
+    .join(" ");
+  return `# Bash completion for ${safeCmd}
+_${safeFn}() {
     local cur
     COMPREPLY=()
     cur="\${COMP_WORDS[COMP_CWORD]}"
 
     if [[ \${cur} == * ]] ; then
-        COMPREPLY=( $(compgen -W "${optsStr}" -- \${cur}) )
+        COMPREPLY=( $(compgen -W "${optsStr}" -- "\${cur}") )
         return 0
     fi
 }
-complete -F _${cliName} ${cliName}
+complete -F _${safeFn} ${safeCmd}
 `;
 }
 
@@ -34,20 +47,24 @@ export function generateZshCompletion(
   cliName: string,
   flagDefs: FlagDefinition[],
 ): string {
+  const safeCmd = sanitizeShellCmd(cliName);
+  const safeFn = sanitizeShellFn(cliName);
   const options = flagDefs
     .map((d) => {
-      const escaped = d.desc
+      const cleanFlag = String(d.flag).replace(/[^a-zA-Z0-9._=-]/g, "");
+      const escaped = String(d.desc || "")
         .replace(/'/g, "'\\''")
         .replace(/\[/g, "\\[")
-        .replace(/\]/g, "\\]");
-      return `        '${d.flag}[${escaped}]'`;
+        .replace(/\]/g, "\\]")
+        .replace(/[\r\n]+/g, " ");
+      return `        '${cleanFlag}[${escaped}]'`;
     })
     .join("\n");
 
-  return `#compdef ${cliName}
-# Zsh completion for ${cliName}
+  return `#compdef ${safeCmd}
+# Zsh completion for ${safeCmd}
 
-_${cliName}() {
+_${safeFn}() {
     local -a options
     options=(
 ${options}
@@ -55,7 +72,7 @@ ${options}
     _arguments -s -S $options
 }
 
-_${cliName} "$@"
+_${safeFn} "$@"
 `;
 }
 
@@ -64,17 +81,25 @@ export function generateFishCompletion(
   cliName: string,
   flagDefs: FlagDefinition[],
 ): string {
+  const safeCmd = sanitizeShellCmd(cliName);
   const lines: string[] = [
-    `# Fish completion for ${cliName}`,
-    `complete -c ${cliName} -f`,
+    `# Fish completion for ${safeCmd}`,
+    `complete -c ${safeCmd} -f`,
   ];
 
   for (const def of flagDefs) {
-    const cleanFlag = def.flag.replace(/^--?/, "");
+    const cleanFlag = def.flag
+      .replace(/^--?/, "")
+      .replace(/[^a-zA-Z0-9._-]/g, "");
     const isLong = def.flag.startsWith("--");
     const flagArg = isLong ? `-l ${cleanFlag}` : `-s ${cleanFlag}`;
-    const desc = def.desc.replace(/"/g, '\\"');
-    lines.push(`complete -c ${cliName} ${flagArg} -d "${desc}"`);
+    const desc = String(def.desc || "")
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"')
+      .replace(/\$/g, "\\$")
+      .replace(/`/g, "\\`")
+      .replace(/[\r\n]+/g, " ");
+    lines.push(`complete -c ${safeCmd} ${flagArg} -d "${desc}"`);
   }
 
   return lines.join("\n") + "\n";

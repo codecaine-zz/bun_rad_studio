@@ -766,6 +766,91 @@ export class BackendClient {
     return headers;
   }
 
+  private async fetchWithSafeRedirects(
+    initialUrl: string,
+    init: {
+      method?: string;
+      headers?: Record<string, string>;
+      body?: any;
+      signal?: AbortSignal;
+    },
+  ): Promise<{ res: Response; finalUrl: string }> {
+    let currentUrl = initialUrl;
+    let currentMethod = (init.method || "GET").toUpperCase();
+    let currentHeaders: Record<string, string> = { ...(init.headers || {}) };
+    let currentBody = init.body;
+    const maxRedirects = 10;
+
+    for (let hop = 0; hop <= maxRedirects; hop++) {
+      const res = await fetch(currentUrl, {
+        method: currentMethod,
+        headers: currentHeaders,
+        body: currentBody,
+        signal: init.signal,
+        redirect: "manual",
+      });
+
+      if (![301, 302, 303, 307, 308].includes(res.status)) {
+        return { res, finalUrl: currentUrl };
+      }
+
+      const location = res.headers.get("location");
+      if (!location) {
+        return { res, finalUrl: currentUrl };
+      }
+      if (hop === maxRedirects) {
+        throw new Error(`Maximum redirect count (${maxRedirects}) exceeded`);
+      }
+
+      let nextParsed: URL;
+      try {
+        nextParsed = new URL(location, currentUrl);
+      } catch {
+        return { res, finalUrl: currentUrl };
+      }
+      if (nextParsed.protocol !== "http:" && nextParsed.protocol !== "https:") {
+        throw new Error(
+          `Refusing redirect to unsupported protocol: ${nextParsed.protocol}`,
+        );
+      }
+
+      const nextUrl = nextParsed.toString();
+      const prevOrigin = extractOrigin(currentUrl);
+      const nextOrigin = extractOrigin(nextUrl);
+      if (
+        !this.allowCrossOriginAuth &&
+        prevOrigin &&
+        nextOrigin &&
+        prevOrigin !== nextOrigin
+      ) {
+        const stripped: Record<string, string> = {};
+        for (const [k, v] of Object.entries(currentHeaders)) {
+          if (this.isSensitiveHeader(k)) continue;
+          stripped[k] = v;
+        }
+        currentHeaders = stripped;
+      }
+
+      if (
+        res.status === 303 ||
+        ((res.status === 301 || res.status === 302) && currentMethod === "POST")
+      ) {
+        currentMethod = "GET";
+        currentBody = undefined;
+        for (const k of Object.keys(currentHeaders)) {
+          const lk = k.toLowerCase();
+          if (lk === "content-type" || lk === "content-length") {
+            delete currentHeaders[k];
+          }
+        }
+      }
+
+      currentUrl = nextUrl;
+    }
+
+    throw new Error(`Maximum redirect count (${maxRedirects}) exceeded`);
+  }
+
   private async enforceRateLimit(): Promise<void> {
     if (this.rateLimitMaxRequests <= 0) return;
     while (true) {
@@ -988,7 +1073,7 @@ export class BackendClient {
       }
 
       try {
-        const res = await fetch(ctx.url, {
+        const { res, finalUrl } = await this.fetchWithSafeRedirects(ctx.url, {
           method: ctx.method,
           headers: ctx.headers,
           body: ctx.body,
@@ -1049,7 +1134,7 @@ export class BackendClient {
           statusText: res.statusText || "",
           body: resBody,
           data: parsedData as T,
-          url: res.url || ctx.url,
+          url: finalUrl || res.url || ctx.url,
           headers: respHeaders,
           durationMs,
           attempts,
@@ -1296,9 +1381,14 @@ export class BackendClient {
     path: string,
     options?: RequestOptions,
   ): Promise<Uint8Array> {
+    const mergedVars = { ...this.vars, ...(options?.vars || {}) };
     const resolvedUrl = this.resolveUrl(path, options?.query, options?.vars);
-    const headers = { ...this.defaultHeaders, ...(options?.headers || {}) };
-    const res = await fetch(resolvedUrl, {
+    const headers = this.buildRequestHeaders(
+      resolvedUrl,
+      mergedVars,
+      options?.headers,
+    );
+    const { res } = await this.fetchWithSafeRedirects(resolvedUrl, {
       method: "GET",
       headers,
       signal: options?.signal,
@@ -1509,7 +1599,11 @@ export class BackendClient {
       mergedVars,
       options?.headers,
     );
-    const res = await fetch(resolvedUrl, { headers, signal: options?.signal });
+    const { res } = await this.fetchWithSafeRedirects(resolvedUrl, {
+      method: "GET",
+      headers,
+      signal: options?.signal,
+    });
     if (!res.ok) {
       throw new Error(
         `HTTP Download failed with status ${res.status}: ${res.statusText}`,
@@ -1684,7 +1778,7 @@ export class BackendClient {
         if (currentCursor) query[cursorParam] = currentCursor;
       }
 
-      const res = await this.get<any>(nextUrl, {
+      const res: BackendResponse<any> = await this.get<any>(nextUrl, {
         headers: options.headers,
         query: mode === "link" && pagesFetched > 1 ? undefined : query,
       });
@@ -1698,7 +1792,21 @@ export class BackendClient {
       if (mode === "link") {
         const linkNext = parseLinkNextHeader(res.header("link"));
         if (!linkNext) break;
-        nextUrl = linkNext;
+        try {
+          const resolvedLink: URL = new URL(
+            linkNext,
+            res.url || this.resolveUrl(nextUrl),
+          );
+          if (
+            resolvedLink.protocol !== "http:" &&
+            resolvedLink.protocol !== "https:"
+          ) {
+            break;
+          }
+          nextUrl = resolvedLink.toString();
+        } catch {
+          break;
+        }
       } else if (mode === "cursor") {
         const extractor =
           options.extractNextCursor ??
@@ -1789,7 +1897,7 @@ export class BackendClient {
       ...this.buildRequestHeaders(resolvedUrl, mergedVars, options.headers),
     };
 
-    const res = await fetch(resolvedUrl, {
+    const { res } = await this.fetchWithSafeRedirects(resolvedUrl, {
       method: options.body !== undefined ? "POST" : "GET",
       headers,
       body:
@@ -1817,6 +1925,7 @@ export class BackendClient {
 
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
+    let scanOffset = 0;
     while (true) {
       const { done, value } = await reader.read();
       if (done) {
@@ -1825,13 +1934,20 @@ export class BackendClient {
       }
       if (value) {
         buffer += decoder.decode(value, { stream: true });
-        let sepMatch = buffer.match(/\r?\n\r?\n/);
-        while (sepMatch && sepMatch.index !== undefined) {
-          const block = buffer.slice(0, sepMatch.index);
-          buffer = buffer.slice(sepMatch.index + sepMatch[0].length);
+        while (true) {
+          const searchStart = Math.max(0, scanOffset - 3);
+          const sub = buffer.slice(searchStart);
+          const sepMatch = /\r?\n\r?\n/.exec(sub);
+          if (!sepMatch || sepMatch.index === undefined) {
+            scanOffset = buffer.length;
+            break;
+          }
+          const absIdx = searchStart + sepMatch.index;
+          const block = buffer.slice(0, absIdx);
+          buffer = buffer.slice(absIdx + sepMatch[0].length);
+          scanOffset = 0;
           const ev = this.parseSseBlock(block);
           if (ev) await onEvent(ev);
-          sepMatch = buffer.match(/\r?\n\r?\n/);
         }
       }
     }
@@ -1859,7 +1975,7 @@ export class BackendClient {
       options.headers,
     );
 
-    const res = await fetch(resolvedUrl, {
+    const { res } = await this.fetchWithSafeRedirects(resolvedUrl, {
       method: options.body !== undefined ? "POST" : "GET",
       headers,
       body:
@@ -2120,10 +2236,11 @@ export class BackendClient {
     const url = this.resolveUrl(targetPath, options.query, options.vars);
     const sq = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
 
-    const headers: Record<string, string> = {
-      ...this.defaultHeaders,
-      ...(options.headers || {}),
-    };
+    const headers: Record<string, string> = this.buildRequestHeaders(
+      url,
+      mergedVars,
+      options.headers,
+    );
     let bodyStr = "";
     if (
       options.body !== undefined &&

@@ -251,13 +251,23 @@ webview.bind("quitApp", () => {
   process.exit(0);
 });
 
+function formatBreadcrumbHtml(rawPath: string): string {
+  const esc = rawPath
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+  return `📁 ${esc.replace(/›/g, '<span style="opacity:0.4;margin:0 4px;">›</span>')}`;
+}
+
 // IPC Event Handlers
 webview.bind("on_ide_toolbar_click", (action?: string) => {
   const act = action || "Action";
   console.log(`⚡ [IPC] IDE Toolbar Action: ${act}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("ide_status_bar", "🛠️ IDE Action: ${act}");
-        if (window.setAlertBannerText) window.setAlertBannerText("build_status_card", "${act} executed");
+        if (window.setStatusBarText) window.setStatusBarText("ide_status_bar", ${JSON.stringify(`🛠️ IDE Action: ${act}`)});
+        if (window.setAlertBannerText) window.setAlertBannerText("build_status_card", ${JSON.stringify(`${act} executed`)});
     `);
 });
 
@@ -267,17 +277,16 @@ webview.bind("on_editor_tabs_change", (bufferName?: string) => {
   currentBufferIndex = bufferList.indexOf(buf);
   if (currentBufferIndex === -1) currentBufferIndex = 0;
   const item = bufferSnippets[buf] || bufferSnippets["App.ts"]!;
-  const escCode = item.code.replace(/\n/g, "\\n").replace(/'/g, "\\'");
   execJS(`
-        if (window.setTabsActive) window.setTabsActive("editor_tabs", "${buf}");
+        if (window.setTabsActive) window.setTabsActive("editor_tabs", ${JSON.stringify(buf)});
         const pathEl = document.getElementById("file_path");
-        if (pathEl) pathEl.innerHTML = "📁 ${item.path.replace(/›/g, '<span style=\"opacity:0.4;margin:0 4px;\">›</span>')}";
+        if (pathEl) pathEl.innerHTML = ${JSON.stringify(formatBreadcrumbHtml(item.path))};
         const editor = document.getElementById("code_editor_view");
         if (editor) {
             const ta = editor.querySelector("textarea");
-            if (ta) ta.value = '${escCode}';
+            if (ta) ta.value = ${JSON.stringify(item.code)};
         }
-        if (window.setStatusBarText) window.setStatusBarText("ide_status_bar", "📄 Active Buffer: ${buf}");
+        if (window.setStatusBarText) window.setStatusBarText("ide_status_bar", ${JSON.stringify(`📄 Active Buffer: ${buf}`)});
     `);
 });
 
@@ -288,17 +297,16 @@ webview.bind("on_file_tree_select", (nodeName?: string) => {
   if (bufferList.includes(cleanName)) {
     currentBufferIndex = bufferList.indexOf(cleanName);
     const item = bufferSnippets[cleanName] || bufferSnippets["App.ts"]!;
-    const escCode = item.code.replace(/\n/g, "\\n").replace(/'/g, "\\'");
     execJS(`
-            if (window.setTabsActive) window.setTabsActive("editor_tabs", "${cleanName}");
+            if (window.setTabsActive) window.setTabsActive("editor_tabs", ${JSON.stringify(cleanName)});
             const pathEl = document.getElementById("file_path");
-            if (pathEl) pathEl.innerHTML = "📁 ${item.path.replace(/›/g, '<span style=\"opacity:0.4;margin:0 4px;\">›</span>')}";
+            if (pathEl) pathEl.innerHTML = ${JSON.stringify(formatBreadcrumbHtml(item.path))};
             const editor = document.getElementById("code_editor_view");
             if (editor) {
                 const ta = editor.querySelector("textarea");
-                if (ta) ta.value = '${escCode}';
+                if (ta) ta.value = ${JSON.stringify(item.code)};
             }
-            if (window.setStatusBarText) window.setStatusBarText("ide_status_bar", "📂 Opened File: ${cleanName}");
+            if (window.setStatusBarText) window.setStatusBarText("ide_status_bar", ${JSON.stringify(`📂 Opened File: ${cleanName}`)});
         `);
   }
 });
@@ -306,7 +314,7 @@ webview.bind("on_file_tree_select", (nodeName?: string) => {
 webview.bind("on_ide_cmd_change", (val?: string) => {
   console.log(`⚡ [IPC] IDE Command Input: ${val}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("ide_status_bar", "⌘ Command Search: ${val}");
+        if (window.setStatusBarText) window.setStatusBarText("ide_status_bar", ${JSON.stringify(`⌘ Command Search: ${val ?? ""}`)});
     `);
 });
 
@@ -315,9 +323,12 @@ webview.bind("on_btn_toggle_pin_click", () => {
   console.log(`⚡ [IPC] Toggling Window Pin state: ${isWindowPinned}`);
   setAlwaysOnTopNative(webview, isWindowPinned);
   const label = isWindowPinned ? "📌 Pinned Window" : "🔓 Unpinned Window";
+  const pinMsg = isWindowPinned
+    ? "📌 Window Pinned Always On Top"
+    : "🔓 Window Unpinned";
   execJS(`
-        if (window.setToggleButtonState) window.setToggleButtonState("btn_toggle_pin", ${isWindowPinned}, "${label}");
-        if (window.setStatusBarText) window.setStatusBarText("ide_status_bar", "${isWindowPinned ? "📌 Window Pinned Always On Top" : "🔓 Window Unpinned"}");
+        if (window.setToggleButtonState) window.setToggleButtonState("btn_toggle_pin", ${Boolean(isWindowPinned)}, ${JSON.stringify(label)});
+        if (window.setStatusBarText) window.setStatusBarText("ide_status_bar", ${JSON.stringify(pinMsg)});
     `);
 });
 
@@ -334,17 +345,16 @@ webview.bind("on_btn_next_buffer_click", () => {
   const nextBuf = bufferList[currentBufferIndex] || "App.ts";
   console.log(`⚡ [IPC] Cycling Buffer to: ${nextBuf}`);
   const item = bufferSnippets[nextBuf] || bufferSnippets["App.ts"]!;
-  const escCode = item.code.replace(/\n/g, "\\n").replace(/'/g, "\\'");
   execJS(`
-        if (window.setTabsActive) window.setTabsActive("editor_tabs", "${nextBuf}");
+        if (window.setTabsActive) window.setTabsActive("editor_tabs", ${JSON.stringify(nextBuf)});
         const pathEl = document.getElementById("file_path");
-        if (pathEl) pathEl.innerHTML = "📁 ${item.path.replace(/›/g, '<span style=\"opacity:0.4;margin:0 4px;\">›</span>')}";
+        if (pathEl) pathEl.innerHTML = ${JSON.stringify(formatBreadcrumbHtml(item.path))};
         const editor = document.getElementById("code_editor_view");
         if (editor) {
             const ta = editor.querySelector("textarea");
-            if (ta) ta.value = '${escCode}';
+            if (ta) ta.value = ${JSON.stringify(item.code)};
         }
-        if (window.setStatusBarText) window.setStatusBarText("ide_status_bar", "🔄 Switched Buffer to ${nextBuf}");
+        if (window.setStatusBarText) window.setStatusBarText("ide_status_bar", ${JSON.stringify(`🔄 Switched Buffer to ${nextBuf}`)});
     `);
 });
 

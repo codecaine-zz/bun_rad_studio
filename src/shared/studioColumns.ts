@@ -790,10 +790,10 @@ function studioColumnsClient() {
     };
     const wildcardRe = (pat) => {
       let r = "^";
-      const s = String(pat ?? "");
+      const s = String(pat ?? "").replace(/[*%]+/g, "*");
       for (let i = 0; i < s.length; i++) {
         const c = s[i];
-        if (c === "*" || c === "%") r += ".*";
+        if (c === "*") r += ".*";
         else if (c === "?" || c === "_") r += ".";
         else if (/[.+^${}()|[\]\\]/.test(c)) r += "\\" + c;
         else r += c;
@@ -1963,7 +1963,13 @@ function studioColumnsClient() {
     function resetDefault() {
       store.del(inst.scopeKey);
       store.del(EXPORT_KEY);
+      store.del(ALIAS_KEY);
       inst.hidden = new Set();
+      inst.layout = emptyLayout();
+      inst.ordered = inst.all.slice();
+      if (inst.ds && typeof inst.ds.clearFilters === "function") {
+        inst.ds.clearFilters();
+      }
       if (opts.rerender) opts.rerender();
       else {
         inst.shown = inst.all.slice();

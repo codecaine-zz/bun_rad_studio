@@ -536,7 +536,7 @@ R.mentions = function (el, c) {
         var pos = ta.selectionStart, before = ta.value.slice(0, pos), m = before.match(new RegExp("(^|\\s)" + reEsc(trig) + "([\\w.\\-]*)$"));
         if (!m) return closeP(); start = pos - m[2].length - trig.length; var q = m[2].toLowerCase(); flt = opts.filter(function (o) { return o.label.toLowerCase().indexOf(q) >= 0; }); if (!flt.length) return closeP(); if (hi >= flt.length) hi = 0;
         var n = E("div", "sgu-list"); flt.forEach(function (o, i) { var d = E("div", "sgu-opt" + (i === hi ? " sgu-hi" : "")); if (o.icon) d.appendChild(E("span", "", ic(o.icon))); else d.appendChild(avatar({ name: o.label }, 22)); d.appendChild(E("span", "", o.label)); on(d, "mousedown", function (e) { e.preventDefault(); pick(o); }); n.appendChild(d); });
-        if (pop) pop.close(); pop = popup(ta, n, { placement: "bottom-start", keep: true, onClose: function () { pop = null; } }); n.parentNode.style.minWidth = "180px";
+        if (pop) pop.close(); n.style.minWidth = "180px"; pop = popup(ta, n, { placement: "bottom-start", keep: true, onClose: function () { pop = null; } });
     }
     function pick(o) { var pos = ta.selectionStart; var ins = trig + o.label + " "; ta.value = ta.value.slice(0, start) + ins + ta.value.slice(pos); var np = start + ins.length; ta.setSelectionRange(np, np); closeP(); ta.focus(); emit(el, "change", ta.value); }
     on(ta, "input", function () { hi = 0; update(); emit(el, "change", ta.value); });
@@ -561,11 +561,36 @@ R.richText = function (el, c) {
     var wrap = E("div", "sgu-rt"), tb = E("div", "sgu-tb"), ed = E("div", "sgu-ed"); ed.contentEditable = c.readOnly ? "false" : "true"; ed.setAttribute("data-ph", c.placeholder || "Write something..."); ed.innerHTML = c.value || "";
     var tools = c.toolbar || ["bold", "italic", "underline", "strike", "|", "h2", "quote", "ul", "ol", "|", "link", "clear", "|", "undo", "redo"];
     var defs = { bold: ["B", "bold"], italic: ["I", "italic"], underline: ["U", "underline"], strike: ["S", "strikeThrough"], ul: ["\u2022", "insertUnorderedList"], ol: ["1.", "insertOrderedList"], h1: ["H1", "formatBlock", "H1"], h2: ["H2", "formatBlock", "H2"], h3: ["H3", "formatBlock", "H3"], quote: ["\u275D", "formatBlock", "BLOCKQUOTE"], clear: ["\u2715", "removeFormat"], undo: ["\u21B6", "undo"], redo: ["\u21B7", "redo"], left: ["\u2B05", "justifyLeft"], center: ["\u2194", "justifyCenter"], right: ["\u27A1", "justifyRight"], code: ["</>", "formatBlock", "PRE"], link: ["\u{1F517}", "link"], hr: ["\u2015", "insertHorizontalRule"] };
-    tools.forEach(function (t) { if (t === "|") { tb.appendChild(E("i")); return; } var d = defs[t]; if (!d) return; var b = E("button", "", d[0]); b.type = "button"; b.title = t; if (t === "bold") b.style.fontWeight = "800"; if (t === "italic") b.style.fontStyle = "italic"; if (t === "underline") b.style.textDecoration = "underline"; on(b, "mousedown", function (e) { e.preventDefault(); }); on(b, "click", function () { ed.focus(); if (d[1] === "link") { var selRange = null; try { var s = window.getSelection(); if (s && s.rangeCount > 0) selRange = s.getRangeAt(0).cloneRange(); } catch (e) {} if (window.SimpleDialogClient && typeof window.SimpleDialogClient.fire === "function") { window.SimpleDialogClient.fire({ title: "Insert Link", input: "url", inputValue: "https://", showCancelButton: true }).then(function (res) { if (res && res.isConfirmed && res.value) { ed.focus(); try { if (selRange) { var s2 = window.getSelection(); s2.removeAllRanges(); s2.addRange(selRange); } } catch (e) {} document.execCommand("createLink", false, res.value); emit(el, "change", ed.innerHTML); } }); return; } var u = window.prompt("Link URL", "https://"); if (u) document.execCommand("createLink", false, u); } else document.execCommand(d[1], false, d[2] || null); emit(el, "change", ed.innerHTML); }); tb.appendChild(b); });
+    function safeLinkUrl(raw) {
+        var s = String(raw || "").trim();
+        if (!s) return "";
+        if (s[0] === "#" || (s[0] === "/" && s[1] !== "/")) return s;
+        try {
+            var u = new URL(s);
+            if (u.protocol === "http:" || u.protocol === "https:" || u.protocol === "mailto:") return u.href;
+        } catch (e) {}
+        return "";
+    }
+    tools.forEach(function (t) { if (t === "|") { tb.appendChild(E("i")); return; } var d = defs[t]; if (!d) return; var b = E("button", "", d[0]); b.type = "button"; b.title = t; if (t === "bold") b.style.fontWeight = "800"; if (t === "italic") b.style.fontStyle = "italic"; if (t === "underline") b.style.textDecoration = "underline"; on(b, "mousedown", function (e) { e.preventDefault(); }); on(b, "click", function () { ed.focus(); if (d[1] === "link") { var selRange = null; try { var s = window.getSelection(); if (s && s.rangeCount > 0) selRange = s.getRangeAt(0).cloneRange(); } catch (e) {} if (window.SimpleDialogClient && typeof window.SimpleDialogClient.fire === "function") { window.SimpleDialogClient.fire({ title: "Insert Link", input: "url", inputValue: "https://", showCancelButton: true }).then(function (res) { var safe = res && res.isConfirmed ? safeLinkUrl(res.value) : ""; if (safe) { ed.focus(); try { if (selRange) { var s2 = window.getSelection(); s2.removeAllRanges(); s2.addRange(selRange); } } catch (e) {} document.execCommand("createLink", false, safe); emit(el, "change", ed.innerHTML); } }); return; } var u = safeLinkUrl(window.prompt("Link URL", "https://")); if (u) document.execCommand("createLink", false, u); } else document.execCommand(d[1], false, d[2] || null); emit(el, "change", ed.innerHTML); }); tb.appendChild(b); });
     if (!c.readOnly) wrap.appendChild(tb); wrap.appendChild(ed); on(ed, "input", function () { emit(el, "change", ed.innerHTML); }); el.appendChild(wrap);
     return { setValue: function (v) { ed.innerHTML = v || ""; }, getValue: function () { return ed.innerHTML; } };
 };
-function copyText(t) { var str = String(t === undefined || t === null ? "" : t); if (typeof window.__radClipboardWrite === "function") { try { return Promise.resolve(window.__radClipboardWrite(str)).catch(function () { fallbackCopy(str); }); } catch (e) {} } if (window.parent && window.parent !== window) { try { window.parent.postMessage({ fmCopyText: str }, "*"); } catch (e) {} } if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(str).catch(function () { fallbackCopy(str); }); fallbackCopy(str); return Promise.resolve(); }
+function getTrustedParentOrigin() {
+    try {
+        var loc = window.location;
+        if (!loc) return "";
+        var lp = { "127.0.0.1": 1, "localhost": 1, "::1": 1, "[::1]": 1 };
+        if (document.referrer) {
+            var ref = new URL(document.referrer);
+            if (ref.origin === loc.origin || (ref.protocol === loc.protocol && ref.port === loc.port && lp[(loc.hostname || "").toLowerCase()] && lp[(ref.hostname || "").toLowerCase()])) return ref.origin;
+        }
+        var h = (loc.hostname || "").toLowerCase();
+        if (h === "localhost") return loc.protocol + "//127.0.0.1" + (loc.port ? ":" + loc.port : "");
+        if (h === "127.0.0.1") return loc.protocol + "//localhost" + (loc.port ? ":" + loc.port : "");
+        return loc.origin && loc.origin !== "null" ? loc.origin : "";
+    } catch (e) { return ""; }
+}
+function copyText(t) { var str = String(t === undefined || t === null ? "" : t); if (typeof window.__radClipboardWrite === "function") { try { return Promise.resolve(window.__radClipboardWrite(str)).catch(function () { fallbackCopy(str); }); } catch (e) {} } if (window.parent && window.parent !== window) { var po = getTrustedParentOrigin(); if (po) { try { window.parent.postMessage({ fmCopyText: str }, po); } catch (e) {} } } if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(str).catch(function () { fallbackCopy(str); }); fallbackCopy(str); return Promise.resolve(); }
 function fallbackCopy(t) { var ta = E("textarea"); ta.value = t; ta.style.cssText = "position:fixed;opacity:0"; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e) {} ta.remove(); }
 R.copyButton = function (el, c) {
     var label = c.label || "Copy", b = btn((c.icon === false ? "" : ic("copy") + " ") + label, c.variant || "", function () { var t = c.text; if (c.target) { var tn = document.querySelector(c.target); if (tn) t = tn.value !== undefined ? tn.value : tn.textContent; } copyText(t === undefined ? "" : String(t)).then(function () { b.textContent = ic("check") + " " + (c.copiedLabel || "Copied!"); setTimeout(function () { b.textContent = (c.icon === false ? "" : ic("copy") + " ") + label; }, c.resetMs || 1500); emit(el, "click", t); }); });

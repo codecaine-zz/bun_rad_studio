@@ -19,6 +19,7 @@ import {
 } from "../core/client.ts";
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
+import * as net from "node:net";
 import * as path from "node:path";
 
 function normalizeStdlibRequestOptions(
@@ -94,43 +95,145 @@ export class Stdlib {
     return crypto.createHash("sha256").update(keyOrPassphrase, "utf8").digest();
   }
 
-  /** Encrypts `text` with AES-256-CBC using `keyOrPassphrase` and returns `<ivHex>:<base64Ciphertext>`. */
+  private static deriveKeyV2(keyOrPassphrase: string, salt: Buffer): Buffer {
+    if (/^[0-9a-fA-F]{64}$/.test(keyOrPassphrase)) {
+      return Buffer.from(
+        crypto.hkdfSync(
+          "sha256",
+          Buffer.from(keyOrPassphrase, "hex"),
+          salt,
+          Buffer.from("bun-stdlib-aes-gcm-v2", "utf8"),
+          32,
+        ),
+      );
+    }
+    return crypto.scryptSync(keyOrPassphrase, salt, 32, {
+      N: 16384,
+      r: 8,
+      p: 1,
+    });
+  }
+
+  /** Encrypts `text` with salted authenticated AES-256-GCM using `keyOrPassphrase` and returns `<saltHex>:<base64Envelope>`. */
   public static aesEncrypt(
     text: string,
     keyOrPassphrase: string,
     ivHex?: string,
   ): string {
-    const key = Stdlib.deriveKey(keyOrPassphrase);
-    const iv =
+    const salt =
       ivHex && /^[0-9a-fA-F]{32}$/.test(ivHex)
         ? Buffer.from(ivHex, "hex")
         : crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
-    let encrypted = cipher.update(text, "utf8", "base64");
-    encrypted += cipher.final("base64");
-    return `${iv.toString("hex")}:${encrypted}`;
+    const key = Stdlib.deriveKeyV2(keyOrPassphrase, salt);
+    const magicAndIv = Buffer.allocUnsafe(16);
+    // "SGC2" envelope header (4 bytes) + 12-byte random GCM nonce = 16 bytes
+    magicAndIv[0] = 0x53;
+    magicAndIv[1] = 0x47;
+    magicAndIv[2] = 0x43;
+    magicAndIv[3] = 0x32;
+    crypto.randomBytes(12).copy(magicAndIv, 4);
+
+    const plainBuf = Buffer.from(text, "utf8");
+    const padLen = 16 - (plainBuf.length % 16);
+    const padded = Buffer.allocUnsafe(plainBuf.length + padLen);
+    plainBuf.copy(padded, 0);
+    padded.fill(padLen, plainBuf.length);
+
+    const cipher = crypto.createCipheriv(
+      "aes-256-gcm",
+      key,
+      magicAndIv.subarray(4, 16),
+    );
+    cipher.setAAD(Buffer.concat([salt, magicAndIv]));
+    const encrypted = Buffer.concat([cipher.update(padded), cipher.final()]);
+    const authTag = cipher.getAuthTag();
+    const envelope = Buffer.concat([magicAndIv, encrypted, authTag]);
+    return `${salt.toString("hex")}:${envelope.toString("base64")}`;
   }
 
-  /** Decrypts an `<ivHex>:<base64Ciphertext>` payload produced by `aesEncrypt`. */
+  /** Decrypts a `<saltHex>:<base64Envelope>` AES-256-GCM payload (with legacy `<ivHex>:<base64Data>` AES-256-CBC fallback). */
   public static aesDecrypt(
     cipherPayload: string,
     keyOrPassphrase: string,
   ): string {
-    const parts = cipherPayload.split(":");
-    if (parts.length !== 2)
+    const compact = String(cipherPayload ?? "").trim();
+    const parts = compact.split(":");
+    if (parts.length !== 2) {
       throw new Error(
-        "Invalid cipher payload format (expected ivHex:base64Data)",
+        "Invalid cipher payload format (expected hexPrefix:base64Data)",
       );
-    const iv = Buffer.from(parts[0] || "", "hex");
-    const encryptedData = parts[1] || "";
-    const key = Stdlib.deriveKey(keyOrPassphrase);
-    const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
-    let decrypted = decipher.update(encryptedData, "base64", "utf8") as string;
-    decrypted += decipher.final("utf8");
-    return decrypted;
+    }
+    const hexPart = parts[0] || "";
+    const b64Part = parts[1] || "";
+    if (
+      !/^[0-9a-fA-F]{32}$/.test(hexPart) ||
+      !b64Part ||
+      !/^[A-Za-z0-9+/]+={0,2}$/.test(b64Part) ||
+      b64Part.length % 4 !== 0
+    ) {
+      throw new Error("Invalid cipher payload encoding");
+    }
+    const prefixBuf = Buffer.from(hexPart, "hex");
+    const raw = Buffer.from(b64Part, "base64");
+
+    if (
+      raw.length >= 4 &&
+      raw[0] === 0x53 &&
+      raw[1] === 0x47 &&
+      raw[2] === 0x43 &&
+      raw[3] === 0x32
+    ) {
+      if (raw.length < 48 || raw.length % 16 !== 0) {
+        throw new Error("Encrypted payload is truncated or malformed");
+      }
+      const magicAndIv = raw.subarray(0, 16);
+      const iv = raw.subarray(4, 16);
+      const authTag = raw.subarray(raw.length - 16);
+      const ciphertext = raw.subarray(16, raw.length - 16);
+      const key = Stdlib.deriveKeyV2(keyOrPassphrase, prefixBuf);
+      let padded: Buffer;
+      try {
+        const decipher = crypto.createDecipheriv("aes-256-gcm", key, iv);
+        decipher.setAAD(Buffer.concat([prefixBuf, magicAndIv]));
+        decipher.setAuthTag(authTag);
+        padded = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+      } catch {
+        throw new Error(
+          "Cipher authentication failed: wrong passphrase or modified payload",
+        );
+      }
+      if (padded.length === 0 || padded.length % 16 !== 0) {
+        throw new Error("Decrypted block length is invalid");
+      }
+      const padLen = padded[padded.length - 1]!;
+      if (padLen < 1 || padLen > 16 || padLen > padded.length) {
+        throw new Error("Decrypted padding is invalid");
+      }
+      for (let i = padded.length - padLen; i < padded.length; i++) {
+        if (padded[i] !== padLen) {
+          throw new Error("Decrypted padding check failed");
+        }
+      }
+      return padded.subarray(0, padded.length - padLen).toString("utf8");
+    }
+
+    // Legacy v1 fallback (<ivHex>:<aes256CbcBase64>)
+    if (raw.length === 0 || raw.length % 16 !== 0) {
+      throw new Error("Encrypted payload length is invalid");
+    }
+    try {
+      const key = Stdlib.deriveKey(keyOrPassphrase);
+      const decipher = crypto.createDecipheriv("aes-256-cbc", key, prefixBuf);
+      const plain = Buffer.concat([decipher.update(raw), decipher.final()]);
+      return plain.toString("utf8");
+    } catch {
+      throw new Error(
+        "Decryption failed: wrong passphrase or modified payload",
+      );
+    }
   }
 
-  /** Hashes a plaintext `password` using `Bun.password` bcrypt (or PBKDF2-SHA256 fallback). */
+  /** Hashes a plaintext `password` using `Bun.password` bcrypt (or 210,000-iteration PBKDF2-SHA256 fallback). */
   public static async bcryptHash(password: string): Promise<string> {
     if (typeof (Bun as any)?.password?.hash === "function") {
       return (Bun as any).password.hash(password, {
@@ -138,12 +241,12 @@ export class Stdlib {
         cost: 10,
       });
     }
-    // WebCrypto / fallback HMAC-based token for test environments without Bun password
+    const iterations = 210_000;
     const salt = crypto.randomBytes(16).toString("hex");
     const hash = crypto
-      .pbkdf2Sync(password, salt, 1000, 32, "sha256")
+      .pbkdf2Sync(password, salt, iterations, 32, "sha256")
       .toString("hex");
-    return `$pbkdf2$${salt}$${hash}`;
+    return `$pbkdf2$${iterations}$${salt}$${hash}`;
   }
 
   /** Verifies a plaintext `password` against a hash string produced by `bcryptHash`. */
@@ -159,10 +262,22 @@ export class Stdlib {
     }
     if (hash.startsWith("$pbkdf2$")) {
       const parts = hash.split("$");
-      const salt = parts[2] || "";
-      const expected = parts[3] || "";
+      let iterations = 1000;
+      let salt = "";
+      let expected = "";
+      if (parts.length >= 5) {
+        const parsedIter = parseInt(parts[2] || "", 10);
+        if (!Number.isFinite(parsedIter) || parsedIter < 1000) return false;
+        iterations = Math.min(parsedIter, 10_000_000);
+        salt = parts[3] || "";
+        expected = parts[4] || "";
+      } else {
+        salt = parts[2] || "";
+        expected = parts[3] || "";
+      }
+      if (!salt || !expected) return false;
       const actual = crypto
-        .pbkdf2Sync(password, salt, 1000, 32, "sha256")
+        .pbkdf2Sync(password, salt, iterations, 32, "sha256")
         .toString("hex");
       const aBuf = Buffer.from(actual, "utf8");
       const bBuf = Buffer.from(expected, "utf8");
@@ -842,37 +957,60 @@ export class Stdlib {
   // 6. CSV & TOML Parsing
   // ===========================================================================
 
-  /** Parses CSV text into a 2D array of string cells, respecting quoted fields and escaped quotes. */
+  /** Parses CSV text into a 2D array of string cells, respecting quoted fields, multiline values, and escaped quotes. */
   public static csvParse(csvText: string, delimiter: string = ","): string[][] {
-    const rows: string[][] = [];
-    const lines = csvText
+    const normalized = String(csvText ?? "")
       .replace(/\r\n/g, "\n")
-      .split("\n")
-      .filter((l) => l.trim().length > 0);
+      .replace(/\r/g, "\n");
+    if (!normalized.trim()) return [];
+    const rows: string[][] = [];
+    let row: string[] = [];
+    let cur = "";
+    let inQuotes = false;
+    let fieldQuoted = false;
 
-    for (const line of lines) {
-      const row: string[] = [];
-      let inQuotes = false;
-      let cur = "";
+    const pushCell = () => {
+      row.push(fieldQuoted ? cur : cur.trim());
+      cur = "";
+      fieldQuoted = false;
+    };
 
-      for (let i = 0; i < line.length; i++) {
-        const c = line[i];
-        if (c === '"') {
-          if (inQuotes && line[i + 1] === '"') {
-            cur += '"';
-            i++;
-          } else {
-            inQuotes = !inQuotes;
-          }
-        } else if (c === delimiter && !inQuotes) {
-          row.push(cur.trim());
-          cur = "";
-        } else {
-          cur += c;
-        }
+    const pushRow = () => {
+      if (row.length === 1 && row[0] === "" && !fieldQuoted) {
+        row = [];
+        return;
       }
-      row.push(cur.trim());
       rows.push(row);
+      row = [];
+    };
+
+    for (let i = 0; i < normalized.length; i++) {
+      const c = normalized[i]!;
+      if (c === '"') {
+        if (inQuotes && normalized[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          if (!inQuotes && cur.trim() === "") {
+            cur = "";
+            fieldQuoted = true;
+          }
+          inQuotes = !inQuotes;
+        }
+      } else if (!inQuotes && normalized.startsWith(delimiter, i)) {
+        pushCell();
+        i += delimiter.length - 1;
+      } else if (!inQuotes && c === "\n") {
+        pushCell();
+        pushRow();
+      } else {
+        cur += c;
+      }
+    }
+
+    if (cur.length > 0 || fieldQuoted || row.length > 0) {
+      pushCell();
+      pushRow();
     }
     return rows;
   }
@@ -944,9 +1082,9 @@ export class Stdlib {
     );
   }
 
-  /** Returns `true` if `val` is a full 8-group colon-separated IPv6 address. */
+  /** Returns `true` if `val` is a valid IPv6 address (full, compressed, or IPv4-mapped). */
   public static isIPv6(val: string): boolean {
-    return /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/.test(val);
+    return net.isIPv6(String(val ?? "").trim());
   }
 
   /** Returns `true` if `val` is an integer TCP/UDP port in the range `1..65535`. */
@@ -1312,6 +1450,10 @@ export class LRUCache<K, V> {
 
   /** Inserts or updates `key` with `value`, evicting the least-recently used entry if at capacity. */
   public set(key: K, value: V): void {
+    if (this.capacity <= 0) {
+      this.cache.clear();
+      return;
+    }
     if (this.cache.has(key)) {
       this.cache.delete(key);
     } else if (this.cache.size >= this.capacity) {

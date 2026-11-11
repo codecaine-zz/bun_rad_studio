@@ -90,6 +90,13 @@ function send(args: FFIType[], returns: FFIType): any {
 }
 
 const selectors = new Map<string, Pointer>();
+const objcClasses = new Map<string, Pointer | null>();
+let lookupObjcClass: ((name: Buffer) => Pointer) | undefined;
+let cgDisplaySymbols: {
+  CGMainDisplayID: () => number;
+  CGDisplayPixelsWide: (id: number) => number | bigint;
+  CGDisplayPixelsHigh: (id: number) => number | bigint;
+} | null = null;
 
 function sel(name: string): Pointer {
   let cached = selectors.get(name);
@@ -100,6 +107,30 @@ function sel(name: string): Pointer {
   cached = registerSelector(Buffer.from(`${name}\0`));
   selectors.set(name, cached);
   return cached;
+}
+
+function getObjcClass(name: string): Pointer | null {
+  if (objcClasses.has(name)) return objcClasses.get(name) ?? null;
+  lookupObjcClass ??= dlopen("libobjc.dylib", {
+    objc_getClass: { args: [FFIType.cstring], returns: P },
+  }).symbols.objc_getClass as unknown as (name: Buffer) => Pointer;
+  const cls = lookupObjcClass(Buffer.from(`${name}\0`)) || null;
+  objcClasses.set(name, cls);
+  return cls;
+}
+
+function getCgDisplaySymbols() {
+  if (!cgDisplaySymbols) {
+    cgDisplaySymbols = dlopen(
+      "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+      {
+        CGMainDisplayID: { args: [], returns: FFIType.u32 },
+        CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
+        CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
+      },
+    ).symbols as unknown as NonNullable<typeof cgDisplaySymbols>;
+  }
+  return cgDisplaySymbols;
 }
 
 const ok = (fn: () => void): boolean => {
@@ -238,6 +269,12 @@ export function silenceMacKeyBeep(): void {
     };
     process.once("exit", restoreHotKeys);
     process.once("beforeExit", restoreHotKeys);
+    for (const sig of ["SIGINT", "SIGTERM"] as const) {
+      process.once(sig, () => {
+        restoreHotKeys();
+        process.kill(process.pid, sig);
+      });
+    }
   });
 }
 
@@ -318,17 +355,10 @@ function macNative(wv: Webview): WindowNative {
     }
     if (!screens.length) {
       try {
-        const cg = dlopen(
-          "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
-          {
-            CGMainDisplayID: { args: [], returns: FFIType.u32 },
-            CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
-            CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
-          },
-        );
-        const id = cg.symbols.CGMainDisplayID();
-        const width = Number(cg.symbols.CGDisplayPixelsWide(id));
-        const height = Number(cg.symbols.CGDisplayPixelsHigh(id));
+        const cg = getCgDisplaySymbols();
+        const id = cg.CGMainDisplayID();
+        const width = Number(cg.CGDisplayPixelsWide(id));
+        const height = Number(cg.CGDisplayPixelsHigh(id));
         const menuBar = 38;
         if (width > 0 && height > 0)
           screens = [
@@ -360,10 +390,7 @@ function macNative(wv: Webview): WindowNative {
   const activateAndOrderFront = () => {
     send([P, P, P], FFIType.void)(win(), sel("makeKeyAndOrderFront:"), null);
     try {
-      const objc = dlopen("libobjc.dylib", {
-        objc_getClass: { args: [FFIType.cstring], returns: P },
-      }).symbols;
-      const nsAppClass = objc.objc_getClass(Buffer.from("NSApplication\0"));
+      const nsAppClass = getObjcClass("NSApplication");
       const nsApp = nsAppClass
         ? send([P, P], P)(nsAppClass, sel("sharedApplication"))
         : null;
@@ -439,11 +466,8 @@ function macNative(wv: Webview): WindowNative {
     },
     setWindowAppearance(opts) {
       return ok(() => {
-        const objc = dlopen("libobjc.dylib", {
-          objc_getClass: { args: [FFIType.cstring], returns: P },
-        }).symbols;
-        const nsString = objc.objc_getClass(Buffer.from("NSString\0"));
-        const nsAppearance = objc.objc_getClass(Buffer.from("NSAppearance\0"));
+        const nsString = getObjcClass("NSString");
+        const nsAppearance = getObjcClass("NSAppearance");
         if (!nsString || !nsAppearance) return;
         const vibrant = opts.backdrop && opts.backdrop !== "none";
         const name =
@@ -526,6 +550,10 @@ function getUser32() {
       },
       MonitorFromWindow: { args: [P, FFIType.u32], returns: P },
       GetMonitorInfoW: { args: [P, P], returns: FFIType.bool },
+      PostMessageW: {
+        args: [P, FFIType.u32, P, P],
+        returns: FFIType.bool,
+      },
     }).symbols;
   }
   return _user32Symbols as {
@@ -538,7 +566,7 @@ function getUser32() {
     IsZoomed: (h: Pointer) => boolean;
     SetWindowPos: (
       h: Pointer,
-      after: Pointer | null,
+      after: Pointer | null | number,
       x: number,
       y: number,
       cx: number,
@@ -557,6 +585,12 @@ function getUser32() {
     SetWindowLongPtrW: (h: Pointer, n: number, v: bigint) => bigint;
     MonitorFromWindow: (h: Pointer, f: number) => Pointer;
     GetMonitorInfoW: (m: Pointer, p: Pointer) => boolean;
+    PostMessageW: (
+      h: Pointer,
+      msg: number,
+      wParam: Pointer | null,
+      lParam: Pointer | null,
+    ) => boolean;
   };
 }
 
@@ -948,4 +982,188 @@ export function createWindowNative(
   if (process.platform === "darwin") return macNative(wv);
   if (process.platform === "win32") return windowsNative(wv);
   return linuxNative(wv, title);
+}
+
+/** Enables macOS fullscreen collection behavior, WKWebView media capabilities, and key-beep silencing using cached FFI symbols. */
+export function configureMacWindowShortcutsNative(wv: Webview): void {
+  if (process.platform !== "darwin") return;
+  const handle = wv?.unsafeWindowHandle as Pointer | undefined;
+  if (!handle) return;
+  ok(() => {
+    const cb = BigInt(
+      send([P, P], FFIType.u64)(handle, sel("collectionBehavior")),
+    );
+    send([P, P, FFIType.u64], FFIType.void)(
+      handle,
+      sel("setCollectionBehavior:"),
+      cb | 128n,
+    );
+  });
+  enableMacWebviewMediaCapabilities(handle);
+  silenceMacKeyBeep();
+}
+
+/** Sets or clears always-on-top window stacking on macOS or Windows using cached FFI bindings. */
+export function setAlwaysOnTopWindowNative(wv: Webview, onTop: boolean): void {
+  const handle = wv?.unsafeWindowHandle as Pointer | undefined;
+  if (!handle) return;
+  if (process.platform === "darwin") {
+    const level = onTop ? 5n : 0n;
+    send([P, P, FFIType.i64], FFIType.void)(handle, sel("setLevel:"), level);
+  } else if (process.platform === "win32") {
+    const u = getUser32();
+    u.SetWindowPos(
+      handle,
+      (onTop ? -1 : -2) as unknown as Pointer,
+      0,
+      0,
+      0,
+      0,
+      3,
+    );
+  }
+}
+
+/** Toggles native fullscreen on macOS or maximized state on Windows using cached FFI bindings. */
+export function toggleFullscreenWindowNative(wv: Webview): void {
+  const handle = wv?.unsafeWindowHandle as Pointer | undefined;
+  if (!handle) return;
+  if (process.platform === "darwin") {
+    const cb = BigInt(
+      send([P, P], FFIType.u64)(handle, sel("collectionBehavior")),
+    );
+    send([P, P, FFIType.u64], FFIType.void)(
+      handle,
+      sel("setCollectionBehavior:"),
+      cb | 128n,
+    );
+    send([P, P, P], FFIType.void)(handle, sel("toggleFullScreen:"), null);
+  } else if (process.platform === "win32") {
+    const u = getUser32();
+    const zoomed = u.IsZoomed(handle);
+    u.ShowWindow(handle, zoomed ? 9 : 3);
+  }
+}
+
+/** Queries whether the native window is currently in fullscreen (macOS) or maximized (Windows) mode using cached FFI bindings. */
+export function isFullscreenWindowNative(wv: Webview): boolean {
+  const handle = wv?.unsafeWindowHandle as Pointer | undefined;
+  if (!handle) return false;
+  if (process.platform === "darwin") {
+    const mask = BigInt(send([P, P], FFIType.u64)(handle, sel("styleMask")));
+    return (mask & (1n << 14n)) !== 0n;
+  }
+  if (process.platform === "win32") {
+    return Boolean(getUser32().IsZoomed(handle));
+  }
+  return false;
+}
+
+/** Minimizes the native window on macOS or Windows using cached FFI bindings. */
+export function minimizeWindowNativeCached(
+  wv: Webview,
+  exitFullscreenFirst?: () => void,
+): void {
+  const handle = wv?.unsafeWindowHandle as Pointer | undefined;
+  if (!handle) return;
+  if (process.platform === "darwin") {
+    if (isFullscreenWindowNative(wv) && exitFullscreenFirst) {
+      exitFullscreenFirst();
+      setTimeout(() => {
+        ok(() => {
+          send([P, P, P], FFIType.void)(handle, sel("miniaturize:"), null);
+        });
+      }, 350);
+      return;
+    }
+    ok(() => {
+      send([P, P, P], FFIType.void)(handle, sel("performMiniaturize:"), null);
+    });
+    send([P, P, P], FFIType.void)(handle, sel("miniaturize:"), null);
+  } else if (process.platform === "win32") {
+    getUser32().ShowWindow(handle, 6);
+  }
+}
+
+/** Hides the macOS `NSApplication` using cached FFI bindings, returning `true` when handled. */
+export function hideAppNativeCached(): boolean {
+  if (process.platform !== "darwin") return false;
+  return ok(() => {
+    const cls = getObjcClass("NSApplication");
+    if (!cls) throw new Error("NSApplication unavailable");
+    const app = send([P, P], P)(cls, sel("sharedApplication"));
+    if (!app) throw new Error("sharedApplication unavailable");
+    send([P, P, P], FFIType.void)(app, sel("hide:"), null);
+  });
+}
+
+/** Sends a native close message (`performClose:` on macOS or `WM_CLOSE` on Windows) using cached FFI bindings. */
+export function closeWindowNativeCached(wv: Webview): void {
+  const handle = wv?.unsafeWindowHandle as Pointer | undefined;
+  if (!handle) return;
+  if (process.platform === "darwin") {
+    ok(() => {
+      send([P, P, P], FFIType.void)(handle, sel("performClose:"), null);
+    });
+  } else if (process.platform === "win32") {
+    ok(() => {
+      getUser32().PostMessageW(handle, 0x0010, null, null);
+    });
+  }
+}
+
+/** Queries primary display dimensions on macOS or Windows using cached FFI bindings. */
+export function getPrimaryScreenDimensionsNative(): {
+  width: number;
+  height: number;
+} | null {
+  try {
+    if (process.platform === "darwin") {
+      const cg = getCgDisplaySymbols();
+      const id = cg.CGMainDisplayID();
+      const width = Number(cg.CGDisplayPixelsWide(id));
+      const height = Number(cg.CGDisplayPixelsHigh(id));
+      if (width > 0 && height > 0) return { width, height };
+    } else if (process.platform === "win32") {
+      const u = getUser32();
+      const width = u.GetSystemMetrics(0);
+      const height = u.GetSystemMetrics(1);
+      if (width > 0 && height > 0) return { width, height };
+    }
+  } catch {}
+  return null;
+}
+
+/** Positions or centers a native window on macOS or Windows using cached FFI bindings. */
+export function setWindowPositionNativeCached(
+  wv: Webview,
+  targetX: number,
+  targetTopY: number,
+  screenH: number,
+  centerOnMac: boolean,
+): void {
+  const handle = wv?.unsafeWindowHandle as Pointer | undefined;
+  if (!handle) return;
+  if (process.platform === "darwin") {
+    if (centerOnMac) {
+      send([P, P], FFIType.void)(handle, sel("center"));
+    } else {
+      send([P, P, FFIType.f64, FFIType.f64], FFIType.void)(
+        handle,
+        sel("setFrameTopLeftPoint:"),
+        Number(targetX),
+        Number(screenH - targetTopY),
+      );
+    }
+  } else if (process.platform === "win32") {
+    getUser32().SetWindowPos(
+      handle,
+      null,
+      Number(targetX),
+      Number(targetTopY),
+      0,
+      0,
+      5,
+    );
+  }
 }

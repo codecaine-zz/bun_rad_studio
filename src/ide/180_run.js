@@ -1,16 +1,5 @@
 
-		// Hook into renderCode to keep modern exporters populated
-		const origRenderCode = renderCode;
-		renderCode = function() {
-			origRenderCode();
-			const reactEl = document.getElementById("reactPreviewText");
-			if (reactEl) reactEl.value = generateReactTailwindCode();
-			const vueEl = document.getElementById("vuePreviewText");
-			if (vueEl) vueEl.value = generateVueCode();
-			const pyEl = document.getElementById("pythonPreviewText");
-			if (pyEl) pyEl.value = generatePythonTkinterCode();
-			renderNonVisualTray();
-		};
+		// Modern exporters (React/Vue/Python) and non-visual tray are lazily flushed by renderCode() / flushCodeTab().
 
 		function triggerRunForm() {
 			const status = document.getElementById("statusMsg");

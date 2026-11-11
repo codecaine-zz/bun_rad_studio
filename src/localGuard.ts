@@ -14,33 +14,80 @@
  *   - requests carrying an `Origin` that is not this server's own origin (cross-site requests).
  * Non-browser clients (tests, curl) send no `Origin` and are unaffected.
  */
-export function guardLocalRequest(req: Request): Response | null {
-  const host = (req.headers.get("host") || "").toLowerCase();
-  const hostname = host.replace(/:\d+$/, "").replace(/^\[|\]$/g, "");
+function extractLoopbackHostname(rawHost: string): string | null {
+  const host = rawHost.trim().toLowerCase();
+  if (!host) return null;
+  let hostname = "";
+  if (host.startsWith("[")) {
+    const m = /^\[([^\]]+)\](?::(\d+))?$/.exec(host);
+    if (!m) return null;
+    hostname = m[1]!;
+  } else {
+    const firstColon = host.indexOf(":");
+    const lastColon = host.lastIndexOf(":");
+    if (firstColon !== -1 && firstColon !== lastColon) {
+      // Unbracketed IPv6 literal (no port suffix), e.g. "::1" or "::ffff:127.0.0.1".
+      hostname = host;
+    } else {
+      const m = /^([^:]+)(?::(\d+))?$/.exec(host);
+      if (!m) return null;
+      hostname = m[1]!;
+    }
+  }
   if (
-    host &&
-    hostname !== "127.0.0.1" &&
-    hostname !== "localhost" &&
-    hostname !== "::1"
+    hostname === "127.0.0.1" ||
+    hostname === "localhost" ||
+    hostname === "::1" ||
+    hostname === "0:0:0:0:0:0:0:1" ||
+    hostname === "::ffff:127.0.0.1"
   ) {
+    return host;
+  }
+  return null;
+}
+
+export function guardLocalRequest(req: Request): Response | null {
+  let rawHost = req.headers.get("host");
+  if (
+    rawHost === null &&
+    !req.headers.has("host") &&
+    req.headers.get("x-workbench-token") &&
+    /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i.test(req.url)
+  ) {
+    try {
+      rawHost = new URL(req.url).host;
+    } catch {}
+  }
+  const host = rawHost !== null ? extractLoopbackHostname(rawHost) : null;
+  if (!host) {
     return new Response("Forbidden: non-loopback Host header", { status: 403 });
   }
   const origin = req.headers.get("origin");
-  if (origin && origin.toLowerCase() !== `http://${host}`) {
-    return new Response("Forbidden: cross-origin request blocked", {
-      status: 403,
-    });
+  if (origin) {
+    const normOrigin = origin.trim().toLowerCase();
+    const expectedOrigin =
+      host.includes(":") &&
+      !host.startsWith("[") &&
+      host.indexOf(":") !== host.lastIndexOf(":")
+        ? `http://[${host}]`
+        : `http://${host}`;
+    if (normOrigin !== expectedOrigin) {
+      return new Response("Forbidden: cross-origin request blocked", {
+        status: 403,
+      });
+    }
   }
-  const fetchSite = (req.headers.get("sec-fetch-site") || "").toLowerCase();
-  if (fetchSite === "cross-site") {
+  const fetchSite = (req.headers.get("sec-fetch-site") || "")
+    .trim()
+    .toLowerCase();
+  if (fetchSite === "cross-site" || fetchSite === "same-site") {
     let pathname = "";
     try {
-      pathname = new URL(req.url).pathname;
+      pathname = new URL(req.url, "http://127.0.0.1").pathname;
     } catch {}
-    const isEmbeddedAppRoute = pathname.startsWith("/app/");
-    const isSafePageOrStaticGet =
-      (req.method === "GET" || req.method === "HEAD") &&
-      !pathname.startsWith("/api/");
+    const isSafeMethod = req.method === "GET" || req.method === "HEAD";
+    const isEmbeddedAppRoute = isSafeMethod && pathname.startsWith("/app/");
+    const isSafePageOrStaticGet = isSafeMethod && !pathname.startsWith("/api/");
     if (!isEmbeddedAppRoute && !isSafePageOrStaticGet) {
       return new Response("Forbidden: cross-site request blocked", {
         status: 403,

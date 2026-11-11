@@ -26,6 +26,7 @@ import {
   writeFileSync,
   mkdirSync,
   existsSync,
+  statSync,
   renameSync,
   unlinkSync,
   openSync,
@@ -35,8 +36,18 @@ import {
 import { spawn, spawnSync } from "child_process";
 import { join, dirname } from "path";
 import { homedir } from "os";
-import { dlopen, FFIType } from "bun:ffi";
 import { writeClipboardSync, readClipboardSync } from "./src/localGuard";
+import {
+  closeWindowNativeCached,
+  configureMacWindowShortcutsNative,
+  getPrimaryScreenDimensionsNative,
+  hideAppNativeCached,
+  isFullscreenWindowNative,
+  minimizeWindowNativeCached,
+  setAlwaysOnTopWindowNative,
+  setWindowPositionNativeCached,
+  toggleFullscreenWindowNative,
+} from "./src/windowNative";
 
 function getLinuxDisplaySizeFallback() {
   try {
@@ -62,42 +73,8 @@ export function setAlwaysOnTopNative(wv: Webview, onTop: boolean) {
     const handle = wv.unsafeWindowHandle;
     if (!handle) return;
 
-    if (process.platform === "darwin") {
-      const libobjc = dlopen("libobjc.dylib", {
-        objc_msgSend: {
-          args: [FFIType.pointer, FFIType.pointer, FFIType.i64],
-          returns: FFIType.void,
-        },
-        sel_registerName: {
-          args: [FFIType.cstring],
-          returns: FFIType.pointer,
-        },
-      });
-      const sel_setLevel = libobjc.symbols.sel_registerName(
-        Buffer.from("setLevel:\0"),
-      );
-      // Level 5 = NSFloatingWindowLevel (Always On Top), 0 = NSNormalWindowLevel
-      const level = onTop ? 5n : 0n;
-      libobjc.symbols.objc_msgSend(handle, sel_setLevel, level);
-    } else if (process.platform === "win32") {
-      const user32 = dlopen("user32.dll", {
-        SetWindowPos: {
-          args: [
-            FFIType.pointer,
-            FFIType.pointer,
-            FFIType.i32,
-            FFIType.i32,
-            FFIType.i32,
-            FFIType.i32,
-            FFIType.u32,
-          ],
-          returns: FFIType.bool,
-        },
-      });
-      // HWND_TOPMOST = -1, HWND_NOTOPMOST = -2
-      // SWP_NOMOVE (2) | SWP_NOSIZE (1) = 3
-      const insertAfter = onTop ? -1 : -2;
-      user32.symbols.SetWindowPos(handle, insertAfter, 0, 0, 0, 0, 3);
+    if (process.platform === "darwin" || process.platform === "win32") {
+      setAlwaysOnTopWindowNative(wv, onTop);
     } else if (process.platform === "linux") {
       // Linux/Wayland builds in Bun can crash when directly calling GTK/GDK FFI.
       // The safe fallback is to leave the window at normal stacking until a stable host API is available.
@@ -124,47 +101,8 @@ export function toggleFullscreenNative(wv: Webview) {
     const handle = wv.unsafeWindowHandle;
     if (!handle) return;
 
-    if (process.platform === "darwin") {
-      const libobjc = dlopen("libobjc.dylib", {
-        objc_msgSend: {
-          args: [FFIType.pointer, FFIType.pointer, FFIType.u64],
-          returns: FFIType.u64,
-        },
-        sel_registerName: {
-          args: [FFIType.cstring],
-          returns: FFIType.pointer,
-        },
-      });
-      const sel_cb = libobjc.symbols.sel_registerName(
-        Buffer.from("collectionBehavior\0"),
-      );
-      const sel_scb = libobjc.symbols.sel_registerName(
-        Buffer.from("setCollectionBehavior:\0"),
-      );
-      const sel_toggle = libobjc.symbols.sel_registerName(
-        Buffer.from("toggleFullScreen:\0"),
-      );
-
-      // Enable NSWindowCollectionBehaviorFullScreenPrimary (128) on NSWindow
-      const cb = BigInt(libobjc.symbols.objc_msgSend(handle, sel_cb, 0n));
-      libobjc.symbols.objc_msgSend(handle, sel_scb, cb | 128n);
-
-      // Perform Cocoa toggleFullScreen:
-      libobjc.symbols.objc_msgSend(handle, sel_toggle, 0n);
-    } else if (process.platform === "win32") {
-      const user32 = dlopen("user32.dll", {
-        IsZoomed: {
-          args: [FFIType.pointer],
-          returns: FFIType.bool,
-        },
-        ShowWindow: {
-          args: [FFIType.pointer, FFIType.i32],
-          returns: FFIType.bool,
-        },
-      });
-      const isZoomed = user32.symbols.IsZoomed(handle);
-      // SW_MAXIMIZE = 3, SW_RESTORE = 9
-      user32.symbols.ShowWindow(handle, isZoomed ? 9 : 3);
+    if (process.platform === "darwin" || process.platform === "win32") {
+      toggleFullscreenWindowNative(wv);
     } else if (process.platform === "linux") {
       // GTK/GDK direct FFI is unstable under Bun on Ubuntu/Wayland and can segfault.
       // Keep the state in memory but avoid the unsafe native call.
@@ -186,32 +124,8 @@ export function isFullscreenNative(wv: Webview): boolean {
     const handle = wv.unsafeWindowHandle;
     if (!handle) return false;
 
-    if (process.platform === "darwin") {
-      const libobjc = dlopen("libobjc.dylib", {
-        objc_msgSend: {
-          args: [FFIType.pointer, FFIType.pointer, FFIType.u64],
-          returns: FFIType.u64,
-        },
-        sel_registerName: {
-          args: [FFIType.cstring],
-          returns: FFIType.pointer,
-        },
-      });
-      const sel_styleMask = libobjc.symbols.sel_registerName(
-        Buffer.from("styleMask\0"),
-      );
-      const mask = BigInt(
-        libobjc.symbols.objc_msgSend(handle, sel_styleMask, 0n),
-      );
-      return (mask & (1n << 14n)) !== 0n;
-    } else if (process.platform === "win32") {
-      const user32 = dlopen("user32.dll", {
-        IsZoomed: {
-          args: [FFIType.pointer],
-          returns: FFIType.bool,
-        },
-      });
-      return Boolean(user32.symbols.IsZoomed(handle));
+    if (process.platform === "darwin" || process.platform === "win32") {
+      return isFullscreenWindowNative(wv);
     } else if (process.platform === "linux") {
       return Boolean(fullscreenStateMap.get(wv));
     }
@@ -241,49 +155,8 @@ export function minimizeWindowNative(wv: Webview) {
     const handle = wv?.unsafeWindowHandle;
     if (!handle) return;
 
-    if (process.platform === "darwin") {
-      const libobjc = dlopen("libobjc.dylib", {
-        objc_msgSend: {
-          args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
-          returns: FFIType.void,
-        },
-        sel_registerName: {
-          args: [FFIType.cstring],
-          returns: FFIType.pointer,
-        },
-      });
-      const isFull = isFullscreenNative(wv);
-      if (isFull) {
-        setFullscreenNative(wv, false);
-        setTimeout(() => {
-          try {
-            const sel_miniaturize = libobjc.symbols.sel_registerName(
-              Buffer.from("miniaturize:\0"),
-            );
-            libobjc.symbols.objc_msgSend(handle, sel_miniaturize, null);
-          } catch {}
-        }, 350);
-        return;
-      }
-      try {
-        const sel_perf = libobjc.symbols.sel_registerName(
-          Buffer.from("performMiniaturize:\0"),
-        );
-        libobjc.symbols.objc_msgSend(handle, sel_perf, null);
-      } catch {}
-      const sel_miniaturize = libobjc.symbols.sel_registerName(
-        Buffer.from("miniaturize:\0"),
-      );
-      libobjc.symbols.objc_msgSend(handle, sel_miniaturize, null);
-    } else if (process.platform === "win32") {
-      const user32 = dlopen("user32.dll", {
-        ShowWindow: {
-          args: [FFIType.pointer, FFIType.i32],
-          returns: FFIType.bool,
-        },
-      });
-      // SW_MINIMIZE = 6
-      user32.symbols.ShowWindow(handle, 6);
+    if (process.platform === "darwin" || process.platform === "win32") {
+      minimizeWindowNativeCached(wv, () => setFullscreenNative(wv, false));
     } else if (process.platform === "linux") {
       console.warn(
         "Linux minimize is unavailable in this Bun/Wayland environment; skipping native call.",
@@ -297,33 +170,8 @@ export function minimizeWindowNative(wv: Webview) {
 /** Hides the application via `NSApplication.hide:` on macOS, or falls back to minimizing the window. */
 export function hideAppNative(wv?: Webview) {
   try {
-    if (process.platform === "darwin") {
-      const libobjc = dlopen("libobjc.dylib", {
-        objc_getClass: {
-          args: [FFIType.cstring],
-          returns: FFIType.pointer,
-        },
-        objc_msgSend: {
-          args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
-          returns: FFIType.pointer,
-        },
-        sel_registerName: {
-          args: [FFIType.cstring],
-          returns: FFIType.pointer,
-        },
-      });
-      const cls = libobjc.symbols.objc_getClass(Buffer.from("NSApplication\0"));
-      const selShared = libobjc.symbols.sel_registerName(
-        Buffer.from("sharedApplication\0"),
-      );
-      const app = libobjc.symbols.objc_msgSend(cls, selShared, null);
-      if (app) {
-        const selHide = libobjc.symbols.sel_registerName(
-          Buffer.from("hide:\0"),
-        );
-        libobjc.symbols.objc_msgSend(app, selHide, null);
-        return;
-      }
+    if (process.platform === "darwin" && hideAppNativeCached()) {
+      return;
     }
   } catch {}
   if (wv) minimizeWindowNative(wv);
@@ -332,41 +180,7 @@ export function hideAppNative(wv?: Webview) {
 /** Sends a native close message (`performClose:` on macOS or `WM_CLOSE` on Windows) to the Webview window. */
 export function closeWindowNative(wv: Webview) {
   try {
-    const handle = wv?.unsafeWindowHandle;
-    if (handle && process.platform === "darwin") {
-      try {
-        const libobjc = dlopen("libobjc.dylib", {
-          objc_msgSend: {
-            args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
-            returns: FFIType.void,
-          },
-          sel_registerName: {
-            args: [FFIType.cstring],
-            returns: FFIType.pointer,
-          },
-        });
-        const sel_performClose = libobjc.symbols.sel_registerName(
-          Buffer.from("performClose:\0"),
-        );
-        libobjc.symbols.objc_msgSend(handle, sel_performClose, null);
-      } catch {}
-    } else if (handle && process.platform === "win32") {
-      try {
-        const user32 = dlopen("user32.dll", {
-          PostMessageW: {
-            args: [
-              FFIType.pointer,
-              FFIType.u32,
-              FFIType.pointer,
-              FFIType.pointer,
-            ],
-            returns: FFIType.bool,
-          },
-        });
-        // WM_CLOSE = 0x0010
-        user32.symbols.PostMessageW(handle, 0x0010, null, null);
-      } catch {}
-    }
+    closeWindowNativeCached(wv);
   } catch (e) {
     console.warn("Could not close native window:", e);
   }
@@ -374,32 +188,15 @@ export function closeWindowNative(wv: Webview) {
 
 /** Queries the primary display dimensions in pixels via CoreGraphics on macOS or User32 on Windows. */
 export function getScreenDimensions(): { width: number; height: number } {
-  let screenW = 1920;
-  let screenH = 1080;
   try {
-    if (process.platform === "darwin") {
-      const cg = dlopen(
-        "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
-        {
-          CGMainDisplayID: { args: [], returns: FFIType.u32 },
-          CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
-          CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
-        },
-      );
-      const mainId = cg.symbols.CGMainDisplayID();
-      screenW = Number(cg.symbols.CGDisplayPixelsWide(mainId));
-      screenH = Number(cg.symbols.CGDisplayPixelsHigh(mainId));
-    } else if (process.platform === "win32") {
-      const user32 = dlopen("user32.dll", {
-        GetSystemMetrics: { args: [FFIType.i32], returns: FFIType.i32 },
-      });
-      screenW = user32.symbols.GetSystemMetrics(0);
-      screenH = user32.symbols.GetSystemMetrics(1);
+    if (process.platform === "darwin" || process.platform === "win32") {
+      const dims = getPrimaryScreenDimensionsNative();
+      if (dims) return dims;
     } else if (process.platform === "linux") {
       return getLinuxDisplaySizeFallback();
     }
   } catch {}
-  return { width: screenW, height: screenH };
+  return { width: 1920, height: 1080 };
 }
 
 /** Centers a Webview window on the primary screen given its width and height. */
@@ -432,166 +229,7 @@ export function attachWindowShortcuts(
 
   // Enable macOS FullScreen Collection Behavior immediately on creation and silence unhandled-key NSBeep()
   if (process.platform === "darwin" && wv?.unsafeWindowHandle) {
-    try {
-      const libobjc = dlopen("libobjc.dylib", {
-        objc_getClass: { args: [FFIType.cstring], returns: FFIType.pointer },
-        objc_msgSend: {
-          args: [FFIType.pointer, FFIType.pointer, FFIType.u64],
-          returns: FFIType.u64,
-        },
-        sel_registerName: { args: [FFIType.cstring], returns: FFIType.pointer },
-        class_getMethodImplementation: {
-          args: [FFIType.pointer, FFIType.pointer],
-          returns: FFIType.pointer,
-        },
-        class_replaceMethod: {
-          args: [
-            FFIType.pointer,
-            FFIType.pointer,
-            FFIType.pointer,
-            FFIType.cstring,
-          ],
-          returns: FFIType.pointer,
-        },
-      });
-      const sel_cb = libobjc.symbols.sel_registerName(
-        Buffer.from("collectionBehavior\0"),
-      );
-      const sel_scb = libobjc.symbols.sel_registerName(
-        Buffer.from("setCollectionBehavior:\0"),
-      );
-      const cb = BigInt(
-        libobjc.symbols.objc_msgSend(wv.unsafeWindowHandle, sel_cb, 0n),
-      );
-      libobjc.symbols.objc_msgSend(wv.unsafeWindowHandle, sel_scb, cb | 128n);
-      try {
-        const objcPtr = dlopen("libobjc.dylib", {
-          objc_msgSend: {
-            args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
-            returns: FFIType.pointer,
-          },
-        });
-        const objcBool = dlopen("libobjc.dylib", {
-          objc_msgSend: {
-            args: [FFIType.pointer, FFIType.pointer, FFIType.bool],
-            returns: FFIType.void,
-          },
-        });
-        const s = (name: string) =>
-          libobjc.symbols.sel_registerName(Buffer.from(name + "\0"));
-        const responds = (obj: any, selPtr: any) =>
-          Boolean(
-            objcPtr.symbols.objc_msgSend(obj, s("respondsToSelector:"), selPtr),
-          );
-        const contentView = objcPtr.symbols.objc_msgSend(
-          wv.unsafeWindowHandle,
-          s("contentView"),
-          null,
-        );
-        let wkView = contentView;
-        if (wkView && !responds(wkView, s("configuration"))) {
-          const subs = objcPtr.symbols.objc_msgSend(
-            wkView,
-            s("subviews"),
-            null,
-          );
-          if (subs)
-            wkView = objcPtr.symbols.objc_msgSend(subs, s("firstObject"), null);
-        }
-        if (wkView && responds(wkView, s("configuration"))) {
-          const cfg = objcPtr.symbols.objc_msgSend(
-            wkView,
-            s("configuration"),
-            null,
-          );
-          if (cfg) {
-            if (responds(cfg, s("setAllowsAirPlayForMediaPlayback:"))) {
-              objcBool.symbols.objc_msgSend(
-                cfg,
-                s("setAllowsAirPlayForMediaPlayback:"),
-                true,
-              );
-            }
-            const prefs = objcPtr.symbols.objc_msgSend(
-              cfg,
-              s("preferences"),
-              null,
-            );
-            if (prefs) {
-              for (const name of [
-                "_setAllowsPictureInPictureMediaPlayback:",
-                "_setAllowsInlineMediaPlayback:",
-              ]) {
-                const selP = s(name);
-                if (responds(prefs, selP))
-                  objcBool.symbols.objc_msgSend(prefs, selP, true);
-              }
-            }
-          }
-        }
-      } catch {}
-      const nsObject = libobjc.symbols.objc_getClass(Buffer.from("NSObject\0"));
-      const nsResponder = libobjc.symbols.objc_getClass(
-        Buffer.from("NSResponder\0"),
-      );
-      const nsWindow = libobjc.symbols.objc_getClass(Buffer.from("NSWindow\0"));
-      const noopImp = nsObject
-        ? libobjc.symbols.class_getMethodImplementation(
-            nsObject,
-            libobjc.symbols.sel_registerName(Buffer.from("self\0")),
-          )
-        : null;
-      if (noopImp && nsResponder) {
-        libobjc.symbols.class_replaceMethod(
-          nsResponder,
-          libobjc.symbols.sel_registerName(Buffer.from("noResponderFor:\0")),
-          noopImp,
-          Buffer.from("v@::\0"),
-        );
-      }
-      if (noopImp && nsWindow) {
-        libobjc.symbols.class_replaceMethod(
-          nsWindow,
-          libobjc.symbols.sel_registerName(Buffer.from("cancelOperation:\0")),
-          noopImp,
-          Buffer.from("v@:@\0"),
-        );
-        libobjc.symbols.class_replaceMethod(
-          nsWindow,
-          libobjc.symbols.sel_registerName(Buffer.from("_cancelKey:\0")),
-          noopImp,
-          Buffer.from("v@:@\0"),
-        );
-      }
-      const cg = dlopen(
-        "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
-        {
-          CGSIsSymbolicHotKeyEnabled: {
-            args: [FFIType.i32],
-            returns: FFIType.bool,
-          },
-          CGSSetSymbolicHotKeyEnabled: {
-            args: [FFIType.i32, FFIType.bool],
-            returns: FFIType.i32,
-          },
-        },
-      );
-      const was36 = Boolean(cg.symbols.CGSIsSymbolicHotKeyEnabled(36));
-      const was37 = Boolean(cg.symbols.CGSIsSymbolicHotKeyEnabled(37));
-      cg.symbols.CGSSetSymbolicHotKeyEnabled(36, false);
-      cg.symbols.CGSSetSymbolicHotKeyEnabled(37, false);
-      let restored = false;
-      const restoreHotKeys = () => {
-        if (restored) return;
-        restored = true;
-        try {
-          if (was36) cg.symbols.CGSSetSymbolicHotKeyEnabled(36, true);
-          if (was37) cg.symbols.CGSSetSymbolicHotKeyEnabled(37, true);
-        } catch {}
-      };
-      process.once("exit", restoreHotKeys);
-      process.once("beforeExit", restoreHotKeys);
-    } catch (e) {}
+    configureMacWindowShortcutsNative(wv);
   }
 
   try {
@@ -720,44 +358,40 @@ export function attachWindowShortcuts(
   const lastOpenedUrls = new Map<string, number>();
   try {
     wv.bind("openExternalUrl", (url: string) => {
-      if (
-        typeof url === "string" &&
-        (url.startsWith("http://") ||
-          url.startsWith("https://") ||
-          url.startsWith("mailto:"))
-      ) {
-        let safeUrl = "";
-        try {
-          const parsed = new URL(url);
-          if (
-            parsed.protocol !== "http:" &&
-            parsed.protocol !== "https:" &&
-            parsed.protocol !== "mailto:"
-          ) {
-            return { success: false };
-          }
-          if (/[\r\n\0]/.test(url)) return { success: false };
-          safeUrl = parsed.toString();
-        } catch {
+      if (typeof url !== "string" || /[\r\n\0]/.test(url)) {
+        return { success: false };
+      }
+      let safeUrl = "";
+      try {
+        const parsed = new URL(url.trim());
+        if (
+          parsed.protocol !== "http:" &&
+          parsed.protocol !== "https:" &&
+          parsed.protocol !== "mailto:"
+        ) {
           return { success: false };
         }
-        const now = Date.now();
-        const lastTime = lastOpenedUrls.get(safeUrl) || 0;
-        if (now - lastTime < 1000) {
-          return { success: true, deduped: true };
+        safeUrl = parsed.toString();
+      } catch {
+        return { success: false };
+      }
+      const now = Date.now();
+      const lastTime = lastOpenedUrls.get(safeUrl) || 0;
+      if (now - lastTime < 1000) {
+        return { success: true, deduped: true };
+      }
+      lastOpenedUrls.set(safeUrl, now);
+      try {
+        if (process.platform === "darwin") {
+          Bun.spawn(["open", safeUrl]);
+        } else if (process.platform === "win32") {
+          Bun.spawn(["rundll32.exe", "url.dll,FileProtocolHandler", safeUrl]);
+        } else {
+          Bun.spawn(["xdg-open", safeUrl]);
         }
-        lastOpenedUrls.set(safeUrl, now);
-        try {
-          if (process.platform === "darwin") {
-            Bun.spawn(["open", safeUrl]);
-          } else if (process.platform === "win32") {
-            Bun.spawn(["rundll32", "url.dll,FileProtocolHandler", safeUrl]);
-          } else {
-            Bun.spawn(["xdg-open", safeUrl]);
-          }
-        } catch (err) {
-          console.error("Failed to open external URL:", err);
-        }
+      } catch (err) {
+        console.error("Failed to open external URL:", err);
+        return { success: false };
       }
       return { success: true };
     });
@@ -1225,33 +859,9 @@ export function setWindowPositionNative(
   winHeight = 900,
 ) {
   try {
-    let screenW = 1920;
-    let screenH = 1080;
-
-    if (process.platform === "darwin") {
-      const cg = dlopen(
-        "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
-        {
-          CGMainDisplayID: { args: [], returns: FFIType.u32 },
-          CGDisplayPixelsWide: { args: [FFIType.u32], returns: FFIType.u64 },
-          CGDisplayPixelsHigh: { args: [FFIType.u32], returns: FFIType.u64 },
-        },
-      );
-      const mainId = cg.symbols.CGMainDisplayID();
-      screenW = Number(cg.symbols.CGDisplayPixelsWide(mainId));
-      screenH = Number(cg.symbols.CGDisplayPixelsHigh(mainId));
-    } else if (process.platform === "win32") {
-      const user32 = dlopen("user32.dll", {
-        GetSystemMetrics: { args: [FFIType.i32], returns: FFIType.i32 },
-      });
-      // SM_CXSCREEN = 0, SM_CYSCREEN = 1
-      screenW = user32.symbols.GetSystemMetrics(0);
-      screenH = user32.symbols.GetSystemMetrics(1);
-    } else if (process.platform === "linux") {
-      const fallback = getLinuxDisplaySizeFallback();
-      screenW = fallback.width;
-      screenH = fallback.height;
-    }
+    const dims = getScreenDimensions();
+    const screenW = dims.width;
+    const screenH = dims.height;
 
     let targetX = 40;
     let targetTopY = 40;
@@ -1295,79 +905,22 @@ export function setWindowPositionNative(
 
     const handle = wv.unsafeWindowHandle;
     if (handle) {
-      if (process.platform === "darwin") {
+      if (process.platform === "darwin" || process.platform === "win32") {
         const presetStr = typeof pos === "string" ? pos.toLowerCase() : "";
-        if (
-          presetStr === "center" ||
-          presetStr === "middle" ||
-          presetStr === "middle_center" ||
-          presetStr === "center_center" ||
-          !presetStr
-        ) {
-          const libobjc = dlopen("libobjc.dylib", {
-            objc_msgSend: {
-              args: [FFIType.pointer, FFIType.pointer],
-              returns: FFIType.void,
-            },
-            sel_registerName: {
-              args: [FFIType.cstring],
-              returns: FFIType.pointer,
-            },
-          });
-          const sel_center = libobjc.symbols.sel_registerName(
-            Buffer.from("center\0"),
-          );
-          libobjc.symbols.objc_msgSend(handle, sel_center);
-        } else {
-          const libobjc = dlopen("libobjc.dylib", {
-            objc_msgSend: {
-              args: [
-                FFIType.pointer,
-                FFIType.pointer,
-                FFIType.f64,
-                FFIType.f64,
-              ],
-              returns: FFIType.void,
-            },
-            sel_registerName: {
-              args: [FFIType.cstring],
-              returns: FFIType.pointer,
-            },
-          });
-          const sel_setFrameTopLeft = libobjc.symbols.sel_registerName(
-            Buffer.from("setFrameTopLeftPoint:\0"),
-          );
-          libobjc.symbols.objc_msgSend(
-            handle,
-            sel_setFrameTopLeft,
-            Number(targetX),
-            Number(screenH - targetTopY),
-          );
-        }
-      } else if (process.platform === "win32") {
-        const user32 = dlopen("user32.dll", {
-          SetWindowPos: {
-            args: [
-              FFIType.pointer,
-              FFIType.pointer,
-              FFIType.i32,
-              FFIType.i32,
-              FFIType.i32,
-              FFIType.i32,
-              FFIType.u32,
-            ],
-            returns: FFIType.bool,
-          },
-        });
-        // SWP_NOSIZE (1) | SWP_NOZORDER (4) = 5
-        user32.symbols.SetWindowPos(
-          handle,
-          null,
+        const centerOnMac =
+          typeof pos !== "object" &&
+          (presetStr === "center" ||
+            presetStr === "screen_center" ||
+            presetStr === "middle" ||
+            presetStr === "middle_center" ||
+            presetStr === "center_center" ||
+            !presetStr);
+        setWindowPositionNativeCached(
+          wv,
           Number(targetX),
           Number(targetTopY),
-          0,
-          0,
-          5,
+          Number(screenH),
+          centerOnMac,
         );
       } else if (process.platform === "linux") {
         // Direct GTK/GDK FFI is unsafe under Bun on Ubuntu/Wayland and can segfault.
@@ -1385,19 +938,24 @@ export function setWindowPositionNative(
 // Main IDE entry point helper
 /** Cached HTML markup for the main Bun RAD Studio IDE interface. */
 export let html = "";
+let cachedIdeHtmlEntry: {
+  path: string;
+  mtimeMs: number;
+  rendered: string;
+} | null = null;
+const DEFAULT_IDE_SPEC_JSON = JSON.stringify({
+  title: "Form1",
+  width: 800,
+  height: 600,
+  background_color: "#0f172a",
+  font_color: "#e2e8f0",
+  padding: 20,
+  spacing: 12,
+  controls: [],
+});
+
 /** Loads and returns the Bun RAD Studio IDE HTML template populated with a default form specification. */
 export function getIdeHtml(): string {
-  const defaultSpec = JSON.stringify({
-    title: "Form1",
-    width: 800,
-    height: 600,
-    background_color: "#0f172a",
-    font_color: "#e2e8f0",
-    padding: 20,
-    spacing: 12,
-    controls: [],
-  });
-
   const candidates = [
     join(process.cwd(), "src", "ide.html"),
     join(import.meta.dir, "src", "ide.html"),
@@ -1407,8 +965,18 @@ export function getIdeHtml(): string {
   for (const p of candidates) {
     if (existsSync(p)) {
       try {
+        const mtimeMs = statSync(p).mtimeMs;
+        if (
+          cachedIdeHtmlEntry &&
+          cachedIdeHtmlEntry.path === p &&
+          cachedIdeHtmlEntry.mtimeMs === mtimeMs
+        ) {
+          return cachedIdeHtmlEntry.rendered;
+        }
         const raw = readFileSync(p, "utf-8");
-        return raw.replace("__SPEC_JSON__", defaultSpec);
+        const rendered = raw.replace("__SPEC_JSON__", DEFAULT_IDE_SPEC_JSON);
+        cachedIdeHtmlEntry = { path: p, mtimeMs, rendered };
+        return rendered;
       } catch {}
     }
   }
@@ -1472,7 +1040,7 @@ export function saveDraftHelper(
     if (!spec || typeof spec !== "object" || !Array.isArray(spec.controls))
       return { ok: false, error: "Not a form." };
     const file = draftFilePath(customDir);
-    mkdirSync(dirname(file), { recursive: true });
+    mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
     const tmp = `${file}.${process.pid}.tmp`;
     writeFileSync(
       tmp,
@@ -1543,7 +1111,7 @@ export function exportProjectHelper(
     };
     keep(writeGeneratedFile(join(exportDir, "index.html"), previewHtml));
 
-    let boundMethods: string[] = [];
+    const boundMethods = new Set<string>();
     let customHandlers: {
       name: string;
       ctrlId: string;
@@ -1557,8 +1125,8 @@ export function exportProjectHelper(
         if (handler && typeof handler === "string" && handler.trim()) {
           const clean = handler.trim();
           const isFuncName = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(clean);
-          if (isFuncName && !boundMethods.includes(clean)) {
-            boundMethods.push(clean);
+          if (isFuncName && !boundMethods.has(clean)) {
+            boundMethods.add(clean);
             customHandlers.push({
               name: clean,
               ctrlId: c.id,
@@ -1626,112 +1194,169 @@ export function execJS(code: string) {
 }
 
 export function setControlText(controlId: string, text: string) {
+    const idLit = JSON.stringify(controlId);
     const escaped = JSON.stringify(text);
-    execJS(\`const el=document.getElementById("\${controlId}");if(el){if(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT"){el.value=\${escaped};if(el.tagName==="TEXTAREA")el.scrollTop=el.scrollHeight;}else{el.textContent=\${escaped};el.innerText=\${escaped};}}\`);
+    execJS(\`const el=document.getElementById(\${idLit});if(el){if(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT"){el.value=\${escaped};if(el.tagName==="TEXTAREA")el.scrollTop=el.scrollHeight;}else{el.textContent=\${escaped};el.innerText=\${escaped};}}\`);
 }
 
 export function setControlValue(controlId: string, value: any) {
+    const idLit = JSON.stringify(controlId);
     const escaped = JSON.stringify(value);
-    execJS(\`const el=document.getElementById("\${controlId}");if(el){if(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT"){el.value=\${escaped};if(el.tagName==="TEXTAREA")el.scrollTop=el.scrollHeight;}else{el.textContent=\${escaped};el.innerText=\${escaped};if(el.dataset)el.dataset.value=\${escaped};}}\`);
+    execJS(\`const el=document.getElementById(\${idLit});if(el){if(el.tagName==="INPUT"||el.tagName==="TEXTAREA"||el.tagName==="SELECT"){el.value=\${escaped};if(el.tagName==="TEXTAREA")el.scrollTop=el.scrollHeight;}else{el.textContent=\${escaped};el.innerText=\${escaped};if(el.dataset)el.dataset.value=\${escaped};}}\`);
 }
 
 export function setControlPlaceholder(controlId: string, placeholder: string) {
+    const idLit = JSON.stringify(controlId);
     const escaped = JSON.stringify(placeholder);
-    execJS(\`const el=document.getElementById("\${controlId}");if(el){if("placeholder" in el)el.placeholder=\${escaped};else{const inp=el.querySelector("input, textarea");if(inp)inp.placeholder=\${escaped};}}\`);
+    execJS(\`const el=document.getElementById(\${idLit});if(el){if("placeholder" in el)el.placeholder=\${escaped};else{const inp=el.querySelector("input, textarea");if(inp)inp.placeholder=\${escaped};}}\`);
 }
 
 export function setControlReadOnly(controlId: string, readOnly: boolean) {
-    execJS(\`const el=document.getElementById("\${controlId}");if(el){if("readOnly" in el)el.readOnly=\${readOnly};else{const inp=el.querySelector("input, textarea");if(inp)inp.readOnly=\${readOnly};}}\`);
+    const idLit = JSON.stringify(controlId);
+    const flag = Boolean(readOnly);
+    execJS(\`const el=document.getElementById(\${idLit});if(el){if("readOnly" in el)el.readOnly=\${flag};else{const inp=el.querySelector("input, textarea");if(inp)inp.readOnly=\${flag};}}\`);
 }
 
 export function setControlRequired(controlId: string, required: boolean) {
-    execJS(\`const el=document.getElementById("\${controlId}");if(el){if("required" in el)el.required=\${required};else{const inp=el.querySelector("input, textarea, select");if(inp)inp.required=\${required};}}\`);
+    const idLit = JSON.stringify(controlId);
+    const flag = Boolean(required);
+    execJS(\`const el=document.getElementById(\${idLit});if(el){if("required" in el)el.required=\${flag};else{const inp=el.querySelector("input, textarea, select");if(inp)inp.required=\${flag};}}\`);
 }
 
 export function setControlMaxLength(controlId: string, maxLength: number) {
-    execJS(\`const el=document.getElementById("\${controlId}");if(el){if("maxLength" in el)el.maxLength=\${maxLength};else{const inp=el.querySelector("input, textarea");if(inp)inp.maxLength=\${maxLength};}}\`);
+    const idLit = JSON.stringify(controlId);
+    const n = Math.max(0, Math.floor(Number(maxLength) || 0));
+    execJS(\`const el=document.getElementById(\${idLit});if(el){if("maxLength" in el)el.maxLength=\${n};else{const inp=el.querySelector("input, textarea");if(inp)inp.maxLength=\${n};}}\`);
 }
 
 export function setControlEnabled(controlId: string, enabled: boolean) {
-    execJS(\`const el=document.getElementById("\${controlId}");if(el){el.disabled=\${!enabled};el.style.opacity=\${enabled ? "1" : "0.55"};el.style.pointerEvents=\${enabled ? "auto" : "none"};}\`);
+    const idLit = JSON.stringify(controlId);
+    const flag = Boolean(enabled);
+    execJS(\`const el=document.getElementById(\${idLit});if(el){el.disabled=\${!flag};el.style.opacity=\${flag ? '"1"' : '"0.55"'};el.style.pointerEvents=\${flag ? '"auto"' : '"none"'};}\`);
 }
 
 export function setControlVisible(controlId: string, visible: boolean) {
-    execJS(\`const el=document.getElementById("\${controlId}");if(el){el.style.display=\${visible ? "" : "none"};}\`);
+    const idLit = JSON.stringify(controlId);
+    const flag = Boolean(visible);
+    execJS(\`const el=document.getElementById(\${idLit});if(el){el.style.display=\${flag ? '""' : '"none"'};}\`);
 }
 
 export function setSegmentedSelected(controlId: string, itemText: string) {
+    const idLit = JSON.stringify(controlId);
     const escaped = JSON.stringify(itemText);
-    execJS(\`const container=document.getElementById("\${controlId}");if(container){container.querySelectorAll("button").forEach(b=>{const isSel=b.textContent.trim()===\${escaped};b.style.background=isSel?"var(--accent, #38bdf8)":"transparent";b.style.color=isSel?"#ffffff":"inherit";});}\`);
+    execJS(\`const container=document.getElementById(\${idLit});if(container){container.querySelectorAll("button").forEach(b=>{const isSel=b.textContent.trim()===\${escaped};b.style.background=isSel?"var(--accent, #38bdf8)":"transparent";b.style.color=isSel?"#ffffff":"inherit";});}\`);
 }
 
 export function setStatChart(controlId: string, opts: { title?: string; value?: string; trend?: string }) {
+    const idLit = JSON.stringify(controlId);
     const title = opts.title !== undefined ? JSON.stringify(opts.title) : "null";
     const value = opts.value !== undefined ? JSON.stringify(opts.value) : "null";
     const trend = opts.trend !== undefined ? JSON.stringify(opts.trend) : "null";
-    execJS(\`const c=document.getElementById("\${controlId}");if(c){const tEl=c.querySelector("span");const vEl=c.querySelector("div:nth-child(2)");const trEl=c.querySelectorAll("span")[1];if(tEl&&\${title}!==null)tEl.textContent=\${title};if(vEl&&\${value}!==null)vEl.textContent=\${value};if(trEl&&\${trend}!==null)trEl.textContent=\${trend};}\`);
+    execJS(\`const c=document.getElementById(\${idLit});if(c){const tEl=c.querySelector("span");const vEl=c.querySelector("div:nth-child(2)");const trEl=c.querySelectorAll("span")[1];if(tEl&&\${title}!==null)tEl.textContent=\${title};if(vEl&&\${value}!==null)vEl.textContent=\${value};if(trEl&&\${trend}!==null)trEl.textContent=\${trend};}\`);
 }
 
 export function setToast(controlId: string, title: string, message?: string, alertType?: string) {
+    const idLit = JSON.stringify(controlId);
     const tStr = JSON.stringify(title);
     const mStr = message !== undefined ? JSON.stringify(message) : "null";
     const aStr = alertType !== undefined ? JSON.stringify(alertType) : "null";
-    execJS(\`const c=document.getElementById("\${controlId}");if(c){const tEl=c.querySelector("span:nth-child(1)");const mEl=c.querySelector("span:nth-child(2)");if(tEl&&\${tStr}!==null)tEl.textContent=\${tStr};if(mEl&&\${mStr}!==null)mEl.textContent=\${mStr};if(\${aStr}!==null){const col=\${aStr}==='error'?'#ef4444':\${aStr}==='warning'?'#f59e0b':'#10b981';c.style.borderLeftColor=col;}}\`);
+    execJS(\`const c=document.getElementById(\${idLit});if(c){const tEl=c.querySelector("span:nth-child(1)");const mEl=c.querySelector("span:nth-child(2)");if(tEl&&\${tStr}!==null)tEl.textContent=\${tStr};if(mEl&&\${mStr}!==null)mEl.textContent=\${mStr};if(\${aStr}!==null){const col=\${aStr}==='error'?'#ef4444':\${aStr}==='warning'?'#f59e0b':'#10b981';c.style.borderLeftColor=col;}}\`);
 }
 
 export function setTimePickerValue(controlId: string, timeStr: string) {
+    const idLit = JSON.stringify(controlId);
     const escaped = JSON.stringify(timeStr);
-    execJS(\`const c=document.getElementById("\${controlId}");if(c){const inp=c.querySelector("input[type=time]");if(inp)inp.value=\${escaped};}\`);
+    execJS(\`const c=document.getElementById(\${idLit});if(c){const inp=c.querySelector("input[type=time]");if(inp)inp.value=\${escaped};}\`);
 }
 
 export function setAccordionOpen(controlId: string, open: boolean) {
-    execJS(\`const c=document.getElementById("\${controlId}");if(c){const body=c.querySelector("div:nth-child(2)");const arrow=c.querySelector(".acc-arrow");if(body)body.style.display=\${open ? "'block'" : "'none'"};if(arrow)arrow.textContent=\${open ? "'▼'" : "'▶'"};}\`);
+    const idLit = JSON.stringify(controlId);
+    const flag = Boolean(open);
+    execJS(\`const c=document.getElementById(\${idLit});if(c){const body=c.querySelector("div:nth-child(2)");const arrow=c.querySelector(".acc-arrow");if(body)body.style.display=\${flag ? "'block'" : "'none'"};if(arrow)arrow.textContent=\${flag ? "'▼'" : "'▶'"};}\`);
+}
+
+function escHtmlInline(s: string): string {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 export function setTimelineSteps(controlId: string, stepsCSV: string) {
-    const escaped = JSON.stringify(stepsCSV);
-    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const steps=\${escaped}.split(",").map(s=>s.trim());c.innerHTML=steps.map((st,i)=>\\\`<div style="display:flex;align-items:center;gap:10px;font-size:11px;"><div style="width:10px;height:10px;border-radius:50%;background:\\\${i<=1?'var(--accent, #38bdf8)':'rgba(255,255,255,0.2)'};"></div><span>\\\${st}</span></div>\\\`).join("");}\`);
+    const idLit = JSON.stringify(controlId);
+    const stepsHtml = JSON.stringify(
+        String(stepsCSV || "")
+            .split(",")
+            .map((s) => escHtmlInline(s.trim()))
+            .map((st, i) => \`<div style="display:flex;align-items:center;gap:10px;font-size:11px;"><div style="width:10px;height:10px;border-radius:50%;background:\${i <= 1 ? "var(--accent, #38bdf8)" : "rgba(255,255,255,0.2)"};"></div><span>\${st}</span></div>\`)
+            .join(""),
+    );
+    execJS(\`const c=document.getElementById(\${idLit});if(c&&\${stepsHtml})c.innerHTML=\${stepsHtml};\`);
 }
 
 export function setBreadcrumbs(controlId: string, crumbsCSV: string) {
-    const escaped = JSON.stringify(crumbsCSV);
-    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const crumbs=\${escaped}.split(",").map(s=>s.trim());c.innerHTML=crumbs.map((cr,i)=>\\\`\\\${i>0?'<span style="opacity:0.4;">›</span>':''}<span style="\\\${i===crumbs.length-1?'font-weight:700;color:var(--accent,#38bdf8);':'opacity:0.7;'}">\\\${cr}</span>\\\`).join("");}\`);
+    const idLit = JSON.stringify(controlId);
+    const crumbs = String(crumbsCSV || "").split(",").map((s) => escHtmlInline(s.trim()));
+    const crumbsHtml = JSON.stringify(
+        crumbs
+            .map((cr, i) => \`\${i > 0 ? '<span style="opacity:0.4;">›</span>' : ""}<span style="\${i === crumbs.length - 1 ? "font-weight:700;color:var(--accent,#38bdf8);" : "opacity:0.7;"}">\${cr}</span>\`)
+            .join(""),
+    );
+    execJS(\`const c=document.getElementById(\${idLit});if(c&&\${crumbsHtml})c.innerHTML=\${crumbsHtml};\`);
 }
 
 export function setTreeNodes(controlId: string, nodesCSV: string) {
-    const escaped = JSON.stringify(nodesCSV);
-    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const nodes=\${escaped}.split(",").map(s=>s.trim());c.innerHTML=nodes.map((n,i)=>\\\`<div style="padding-left:\\\${i===0?0:16}px;display:flex;align-items:center;gap:6px;"><span style="opacity:0.6;">\\\${i===0?'▼ 📁':'├─'}</span><span>\\\${n}</span></div>\\\`).join("");}\`);
+    const idLit = JSON.stringify(controlId);
+    const nodesHtml = JSON.stringify(
+        String(nodesCSV || "")
+            .split(",")
+            .map((s) => escHtmlInline(s.trim()))
+            .map((n, i) => \`<div style="padding-left:\${i === 0 ? 0 : 16}px;display:flex;align-items:center;gap:6px;"><span style="opacity:0.6;">\${i === 0 ? "▼ 📁" : "├─"}</span><span>\${n}</span></div>\`)
+            .join(""),
+    );
+    execJS(\`const c=document.getElementById(\${idLit});if(c&&\${nodesHtml})c.innerHTML=\${nodesHtml};\`);
 }
 
 export function setAvatarGroup(controlId: string, avatarsCSV: string) {
-    const escaped = JSON.stringify(avatarsCSV);
-    execJS(\`const c=document.getElementById("\${controlId}");if(c&&\${escaped}){const avs=\${escaped}.split(",").map(s=>s.trim());const avCols=['#0284c7','#7c3aed','#059669','#d97706','#dc2626'];c.innerHTML=avs.map((av,i)=>\\\`<div style="width:32px;height:32px;border-radius:50%;background:\\\${av.startsWith('+')?'rgba(255,255,255,0.2)':avCols[i%avCols.length]};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid transparent;margin-left:\\\${i===0?0:-8}px;">\\\${av}</div>\\\`).join("");}\`);
+    const idLit = JSON.stringify(controlId);
+    const avCols = ["#0284c7", "#7c3aed", "#059669", "#d97706", "#dc2626"];
+    const avsHtml = JSON.stringify(
+        String(avatarsCSV || "")
+            .split(",")
+            .map((s) => s.trim())
+            .map((av, i) => \`<div style="width:32px;height:32px;border-radius:50%;background:\${av.startsWith("+") ? "rgba(255,255,255,0.2)" : avCols[i % avCols.length]};color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid transparent;margin-left:\${i === 0 ? 0 : -8}px;">\${escHtmlInline(av)}</div>\`)
+            .join(""),
+    );
+    execJS(\`const c=document.getElementById(\${idLit});if(c&&\${avsHtml})c.innerHTML=\${avsHtml};\`);
 }
 
 export function setRichSelectText(controlId: string, text: string) {
+    const idLit = JSON.stringify(controlId);
     const escaped = JSON.stringify(text);
-    execJS(\`const c=document.getElementById("\${controlId}");if(c){const span=c.querySelector("span:nth-child(2)");if(span)span.textContent=\${escaped};}\`);
+    execJS(\`const c=document.getElementById(\${idLit});if(c){const span=c.querySelector("span:nth-child(2)");if(span)span.textContent=\${escaped};}\`);
 }
 
 export function setTabsActive(controlId: string, tabName: string) {
+    const idLit = JSON.stringify(controlId);
     const escaped = JSON.stringify(tabName);
-    execJS(\`const container=document.getElementById("\${controlId}");if(container){container.dataset.value=\${escaped};container.querySelectorAll("button").forEach(b=>{const isSel=b.textContent.trim()===\${escaped};b.style.borderBottom=isSel?"2px solid var(--accent, #38bdf8)":"none";b.style.color=isSel?"var(--accent, #38bdf8)":"inherit";b.style.fontWeight=isSel?"700":"normal";});}\`);
+    execJS(\`const container=document.getElementById(\${idLit});if(container){container.dataset.value=\${escaped};container.querySelectorAll("button").forEach(b=>{const isSel=b.textContent.trim()===\${escaped};b.style.borderBottom=isSel?"2px solid var(--accent, #38bdf8)":"none";b.style.color=isSel?"var(--accent, #38bdf8)":"inherit";b.style.fontWeight=isSel?"700":"normal";});}\`);
 }
 
 export function setStatusBarText(controlId: string, statusText: string) {
+    const idLit = JSON.stringify(controlId);
     const escaped = JSON.stringify(statusText);
-    execJS(\`const c=document.getElementById("\${controlId}");if(c){const span=c.querySelector("div:nth-child(1) span:nth-child(3)");if(span)span.textContent=\${escaped};}\`);
+    execJS(\`const c=document.getElementById(\${idLit});if(c){const span=c.querySelector("div:nth-child(1) span:nth-child(3)");if(span)span.textContent=\${escaped};}\`);
 }
 
 export function setPaginationPage(controlId: string, pageNum: number | string) {
+    const idLit = JSON.stringify(controlId);
     const pageStr = String(pageNum);
     const escaped = JSON.stringify(pageStr);
-    execJS(\`const c=document.getElementById("\${controlId}");if(c){c.querySelectorAll("button").forEach(b=>{if(!isNaN(parseInt(b.textContent.trim()))){const isSel=b.textContent.trim()===\${escaped};b.style.background=isSel?"var(--accent, #38bdf8)":"rgba(255,255,255,0.06)";b.style.color=isSel?"#ffffff":"inherit";b.style.fontWeight=isSel?"700":"normal";}});}\`);
+    execJS(\`const c=document.getElementById(\${idLit});if(c){c.querySelectorAll("button").forEach(b=>{if(!isNaN(parseInt(b.textContent.trim()))){const isSel=b.textContent.trim()===\${escaped};b.style.background=isSel?"var(--accent, #38bdf8)":"rgba(255,255,255,0.06)";b.style.color=isSel?"#ffffff":"inherit";b.style.fontWeight=isSel?"700":"normal";}});}\`);
 }
 
 export function setToggleButtonState(controlId: string, active: boolean, labelText?: string) {
+    const idLit = JSON.stringify(controlId);
+    const flag = Boolean(active);
     const label = labelText !== undefined ? JSON.stringify(labelText) : "null";
-    execJS(\`const btn=document.getElementById("\${controlId}");if(btn){btn.dataset.checked="\${active}";btn.style.background=\${active}?"var(--accent, #38bdf8)":"rgba(255,255,255,0.08)";btn.style.color=\${active}?"#ffffff":"inherit";if(\${label}!==null)btn.textContent=\${label};}\`);
+    execJS(\`const btn=document.getElementById(\${idLit});if(btn){btn.dataset.checked="\${flag}";btn.style.background=\${flag}?"var(--accent, #38bdf8)":"rgba(255,255,255,0.08)";btn.style.color=\${flag}?"#ffffff":"inherit";if(\${label}!==null)btn.textContent=\${label};}\`);
 }
 
 export function setPropertyGridData(controlId: string, properties: string | Record<string, string>) {
@@ -1969,29 +1594,7 @@ if (import.meta.main) {
   webview.size = { width: 1400, height: 900, hint: SizeHint.NONE };
 
   if (process.platform === "darwin" && webview.unsafeWindowHandle) {
-    try {
-      const libobjc = dlopen("libobjc.dylib", {
-        objc_msgSend: {
-          args: [FFIType.pointer, FFIType.pointer, FFIType.u64],
-          returns: FFIType.u64,
-        },
-        sel_registerName: { args: [FFIType.cstring], returns: FFIType.pointer },
-      });
-      const sel_cb = libobjc.symbols.sel_registerName(
-        Buffer.from("collectionBehavior\0"),
-      );
-      const sel_scb = libobjc.symbols.sel_registerName(
-        Buffer.from("setCollectionBehavior:\0"),
-      );
-      const cb = BigInt(
-        libobjc.symbols.objc_msgSend(webview.unsafeWindowHandle, sel_cb, 0n),
-      );
-      libobjc.symbols.objc_msgSend(
-        webview.unsafeWindowHandle,
-        sel_scb,
-        cb | 128n,
-      );
-    } catch (e) {}
+    configureMacWindowShortcutsNative(webview);
   }
 
   webview.bind("runPreview", (specJson: string) => runPreviewHelper(specJson));
@@ -2329,30 +1932,33 @@ export function generatePreviewHtml(spec: any): string {
         "file_path_bar",
         "drop_zone",
       ].includes(ctrlType);
-      if (isInputType) {
-        if (
-          !handlers.onChange &&
-          !handlers.onchange &&
-          !handlers.onClick &&
-          !handlers.onclick
-        ) {
-          handlers.onChange = `on_${c.id}_change`;
-        }
-        if (ctrlType === "listbox") {
-          if (!handlers.onClick && !handlers.onclick) {
-            handlers.onClick = handlers.onChange || `on_${c.id}_click`;
-          }
+      const safeIdentId = /^[a-zA-Z0-9_$]+$/.test(String(c.id));
+      if (safeIdentId) {
+        if (isInputType) {
           if (
-            !handlers.onDoubleClick &&
-            !handlers.ondblclick &&
-            !handlers.ondoubleclick
+            !handlers.onChange &&
+            !handlers.onchange &&
+            !handlers.onClick &&
+            !handlers.onclick
           ) {
-            handlers.onDoubleClick = `on_${c.id}_doubleclick`;
+            handlers.onChange = `on_${c.id}_change`;
           }
-        }
-      } else {
-        if (!handlers.onClick && !handlers.onclick) {
-          handlers.onClick = `on_${c.id}_click`;
+          if (ctrlType === "listbox") {
+            if (!handlers.onClick && !handlers.onclick) {
+              handlers.onClick = handlers.onChange || `on_${c.id}_click`;
+            }
+            if (
+              !handlers.onDoubleClick &&
+              !handlers.ondblclick &&
+              !handlers.ondoubleclick
+            ) {
+              handlers.onDoubleClick = `on_${c.id}_doubleclick`;
+            }
+          }
+        } else {
+          if (!handlers.onClick && !handlers.onclick) {
+            handlers.onClick = `on_${c.id}_click`;
+          }
         }
       }
     }
@@ -2513,6 +2119,12 @@ export function generatePreviewHtml(spec: any): string {
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;")
           .replace(/'/g, "&#039;");
+  const safeScriptJson = (v: unknown) =>
+    JSON.stringify(v)
+      .replace(/</g, "\\u003c")
+      .replace(/\u2028/g, "\\u2028")
+      .replace(/\u2029/g, "\\u2029");
+  const safeInlineJsStr = (v: unknown) => esc(JSON.stringify(String(v ?? "")));
 
   let controls = "";
   let hoverStyles = "";
@@ -3152,12 +2764,13 @@ export function generatePreviewHtml(spec: any): string {
                   : cells[0] || "",
             ).trim(),
           );
+          const cidJsAttr = safeInlineJsStr(c.id || "");
           const tdCheckbox = hasCheckboxes
-            ? `<td style="width:36px;padding:8px 6px;text-align:center;"><input type="checkbox" class="row-chk" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tr=this.closest('tr');if(tr){if(this.checked){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></td>`
+            ? `<td style="width:36px;padding:8px 6px;text-align:center;"><input type="checkbox" class="row-chk" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tr=this.closest('tr');if(tr){if(this.checked){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}const cid=${cidJsAttr};if(window[cid+'_syncTable'])window[cid+'_syncTable']();"></td>`
             : "";
 
-          const rowClickScript = `const tr=this;const tbody=tr.closest('tbody');const table=tr.closest('table');const rows=Array.from(tbody.querySelectorAll('tr'));const curIdx=rows.indexOf(tr);const lastIdx=parseInt(table.dataset.lastIdx!==undefined?table.dataset.lastIdx:'-1',10);const isMulti=${isMulti};if(isMulti&&(event.ctrlKey||event.metaKey)){tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}else if(isMulti&&event.shiftKey&&lastIdx>=0){const start=Math.min(lastIdx,curIdx);const end=Math.max(lastIdx,curIdx);for(let i=start;i<=end;i++){rows[i].classList.add('selected-tr');rows[i].style.background='${selBg}';const chk=rows[i].querySelector('.row-chk');if(chk)chk.checked=true;}}else{if(!isMulti){rows.forEach(r=>{r.classList.remove('selected-tr');r.style.background='';const chk=r.querySelector('.row-chk');if(chk)chk.checked=false;});tr.classList.add('selected-tr');tr.style.background='${selBg}';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=true;table.dataset.lastIdx=curIdx;}else{tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}}window.selectedRowElement=tr;window.selectedRowPid='${rowPid}';if(window.onTableRowClick)window.onTableRowClick(tr);if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();const fn=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${rowPid}');`;
-          const rowDblClickScript = `const fn=window['${c.id}_onDoubleClick']||window['on_${c.id}_doubleclick']||window['on_${c.id}_ondoubleclick'];if(fn)fn('${rowPid}');`;
+          const rowClickScript = `const tr=this;const pid=tr.getAttribute('data-pid')||'';const cid=${cidJsAttr};const tbody=tr.closest('tbody');const table=tr.closest('table');const rows=Array.from(tbody.querySelectorAll('tr'));const curIdx=rows.indexOf(tr);const lastIdx=parseInt(table.dataset.lastIdx!==undefined?table.dataset.lastIdx:'-1',10);const isMulti=${isMulti};if(isMulti&&(event.ctrlKey||event.metaKey)){tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}else if(isMulti&&event.shiftKey&&lastIdx>=0){const start=Math.min(lastIdx,curIdx);const end=Math.max(lastIdx,curIdx);for(let i=start;i<=end;i++){rows[i].classList.add('selected-tr');rows[i].style.background='${selBg}';const chk=rows[i].querySelector('.row-chk');if(chk)chk.checked=true;}}else{if(!isMulti){rows.forEach(r=>{r.classList.remove('selected-tr');r.style.background='';const chk=r.querySelector('.row-chk');if(chk)chk.checked=false;});tr.classList.add('selected-tr');tr.style.background='${selBg}';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=true;table.dataset.lastIdx=curIdx;}else{tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}}window.selectedRowElement=tr;window.selectedRowPid=pid;if(window.onTableRowClick)window.onTableRowClick(tr);if(window[cid+'_syncTable'])window[cid+'_syncTable']();const fn=window[cid+'_onClick']||window['on_'+cid+'_click'];if(fn)fn(pid);`;
+          const rowDblClickScript = `const pid=this.getAttribute('data-pid')||'';const cid=${cidJsAttr};const fn=window[cid+'_onDoubleClick']||window['on_'+cid+'_doubleclick']||window['on_'+cid+'_ondoubleclick'];if(fn)fn(pid);`;
 
           return `<tr style="border-bottom:1px solid ${border};cursor:pointer;transition:background 0.12s;" data-pid="${rowPid}" data-row-index="${rIdx}" onclick="${rowClickScript}" ondblclick="${rowDblClickScript}" onmouseover="if(!this.classList.contains('selected-tr'))this.style.background='${hoverBg}'" onmouseout="if(!this.classList.contains('selected-tr'))this.style.background=''">${tdCheckbox}${cells
             .map((cell: any, i: number) => {
@@ -3175,7 +2788,7 @@ export function generatePreviewHtml(spec: any): string {
               const isUrl =
                 strVal.startsWith("http://") || strVal.startsWith("https://");
               const cellHtml = isUrl
-                ? `<a href="${esc(strVal)}" target="_blank" rel="noopener noreferrer" style="color:${accent};text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();if(typeof window.openUrl==='function'){window.openUrl('${esc(strVal)}');}else if(typeof window.openExternal==='function'){window.openExternal('${esc(strVal)}');}return false;">${esc(strVal)}</a>`
+                ? `<a href="${esc(strVal)}" target="_blank" rel="noopener noreferrer" style="color:${accent};text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation();const u=this.getAttribute('href')||'';if(typeof window.openExternalUrl==='function'){window.openExternalUrl(u);}else if(typeof window.openUrl==='function'){window.openUrl(u);}else if(typeof window.openExternal==='function'){window.openExternal(u);}return false;">${esc(strVal)}</a>`
                 : esc(strVal);
               return `<td style="padding:8px 12px;white-space:nowrap;${alignStyle}${monoStyle}">${cellHtml}</td>`;
             })
@@ -3183,11 +2796,13 @@ export function generatePreviewHtml(spec: any): string {
         })
         .join("");
 
+      const cidScriptLit = safeScriptJson(String(c.id || ""));
       const syncScript = `<script>
 (function() {
-    window['${c.id}_syncTable']=function(){const cont=document.getElementById('${c.id}');if(!cont)return;const tbl=cont.querySelector('table');if(!tbl)return;const selectedTrs=Array.from(tbl.querySelectorAll('tbody tr.selected-tr'));const pids=selectedTrs.map(r=>r.getAttribute('data-pid')||'');const allTrs=tbl.querySelectorAll('tbody tr');const selectAllChk=tbl.querySelector('thead .table-select-all');if(selectAllChk){selectAllChk.checked=allTrs.length>0&&selectedTrs.length===allTrs.length;selectAllChk.indeterminate=selectedTrs.length>0&&selectedTrs.length<allTrs.length;}const hid=document.getElementById('${c.id}_selected');if(hid)hid.value=pids.join(',');const fnSel=window['${c.id}_onSelectionChange']||window['on_${c.id}_selection_change']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnSel)fnSel(pids);};
+    const cid=${cidScriptLit};
+    window[cid+'_syncTable']=function(){const cont=document.getElementById(cid);if(!cont)return;const tbl=cont.querySelector('table');if(!tbl)return;const selectedTrs=Array.from(tbl.querySelectorAll('tbody tr.selected-tr'));const pids=selectedTrs.map(r=>r.getAttribute('data-pid')||'');const allTrs=tbl.querySelectorAll('tbody tr');const selectAllChk=tbl.querySelector('thead .table-select-all');if(selectAllChk){selectAllChk.checked=allTrs.length>0&&selectedTrs.length===allTrs.length;selectAllChk.indeterminate=selectedTrs.length>0&&selectedTrs.length<allTrs.length;}const hid=document.getElementById(cid+'_selected');if(hid)hid.value=pids.join(',');const fnSel=window[cid+'_onSelectionChange']||window['on_'+cid+'_selection_change']||window[cid+'_onChange']||window['on_'+cid+'_change'];if(fnSel)fnSel(pids);};
 
-    window['${c.id}_sortTable']=function(colIdx, thEl){
+    window[cid+'_sortTable']=function(colIdx, thEl){
         const tbl=thEl.closest('table');
         if(!tbl)return;
         const tbody=tbl.querySelector('tbody');
@@ -3215,7 +2830,7 @@ export function generatePreviewHtml(spec: any): string {
             return isAsc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
         });
         rows.forEach(function(r){tbody.appendChild(r);});
-        const fnSort=window['${c.id}_onSort']||window['on_${c.id}_sort'];
+        const fnSort=window[cid+'_onSort']||window['on_'+cid+'_sort'];
         if(fnSort)fnSort(colIdx, isAsc?'asc':'desc');
     };
 })();
@@ -3223,11 +2838,11 @@ export function generatePreviewHtml(spec: any): string {
 
       const thHeadersHtml = headers
         .map((h: any, colIdx: number) => {
-          return `<th onclick="window['${c.id}_sortTable'](${colIdx}, this);" style="position:relative;padding:8px 12px;text-align:left;font-weight:700;color:${thColor};border-bottom:1px solid ${border};white-space:nowrap;cursor:pointer;user-select:none;"><span>${esc(h)}</span><span class="sort-icon" style="font-size:10px;opacity:0.6;margin-left:4px;"></span><span class="th-resizer" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();event.preventDefault();const th=this.parentNode;const startX=event.clientX;const startW=th.offsetWidth;function onColMove(e){const w=Math.max(40, startW + (e.clientX - startX));th.style.width=w+'px';th.style.minWidth=w+'px';}function onColUp(){window.removeEventListener('mousemove',onColMove);window.removeEventListener('mouseup',onColUp);}window.addEventListener('mousemove',onColMove);window.addEventListener('mouseup',onColUp);" style="position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;user-select:none;opacity:0.2;" onmouseover="this.style.opacity='1';this.style.background='${accent}';" onmouseout="this.style.opacity='0.2';this.style.background='transparent';"></span></th>`;
+          return `<th onclick="const cid=${safeInlineJsStr(c.id || "")};if(window[cid+'_sortTable'])window[cid+'_sortTable'](${colIdx}, this);" style="position:relative;padding:8px 12px;text-align:left;font-weight:700;color:${thColor};border-bottom:1px solid ${border};white-space:nowrap;cursor:pointer;user-select:none;"><span>${esc(h)}</span><span class="sort-icon" style="font-size:10px;opacity:0.6;margin-left:4px;"></span><span class="th-resizer" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();event.preventDefault();const th=this.parentNode;const startX=event.clientX;const startW=th.offsetWidth;function onColMove(e){const w=Math.max(40, startW + (e.clientX - startX));th.style.width=w+'px';th.style.minWidth=w+'px';}function onColUp(){window.removeEventListener('mousemove',onColMove);window.removeEventListener('mouseup',onColUp);}window.addEventListener('mousemove',onColMove);window.addEventListener('mouseup',onColUp);" style="position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;user-select:none;opacity:0.2;" onmouseover="this.style.opacity='1';this.style.background='${accent}';" onmouseout="this.style.opacity='0.2';this.style.background='transparent';"></span></th>`;
         })
         .join("");
 
-      controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${tableBg};"><input type="hidden" id="${c.id}_selected" name="${c.id}_selected" value=""><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};position:sticky;top:0;z-index:2;">${thCheckbox}${thHeadersHtml}</tr></thead><tbody>${tableRowsHtml}</tbody></table></div>\n${syncScript}\n`;
+      controls += `<div${id}${titleAttr} style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${tableBg};"><input type="hidden" id="${esc(c.id || "")}_selected" name="${esc(c.id || "")}_selected" value=""><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};position:sticky;top:0;z-index:2;">${thCheckbox}${thHeadersHtml}</tr></thead><tbody>${tableRowsHtml}</tbody></table></div>\n${syncScript}\n`;
     } else if (t === "tree_grid" || t === "tree_table") {
       const rawHeaders =
         c.columns ||
@@ -4172,11 +3787,15 @@ export function generatePreviewHtml(spec: any): string {
         c.closable || c.closeable || c.has_close_button,
       );
 
+      const tabCidLit = safeScriptJson(String(c.id || ""));
+      const customCloseLit = safeScriptJson(String(customClose || ""));
       const tabsScript = isClosable
         ? `<script>
 (function() {
-    window['${c.id}_closeTab'] = function(title) {
-        const cont = document.getElementById('${c.id}');
+    const cid = ${tabCidLit};
+    const closeHandler = ${customCloseLit};
+    window[cid + '_closeTab'] = function(title) {
+        const cont = document.getElementById(cid);
         if (!cont) return;
         const btns = Array.from(cont.querySelectorAll('.rad-tab-btn'));
         const btn = btns.find(b => b.getAttribute('data-tab') === title);
@@ -4184,10 +3803,10 @@ export function generatePreviewHtml(spec: any): string {
             btn.remove();
             const rem = cont.querySelectorAll('.rad-tab-btn');
             if (cont.getAttribute('data-value') === title && rem.length > 0) {
-                (rem[0] as any).click();
+                if (rem[0]) rem[0].click();
             }
         }
-        const fnC = window['${customClose}'] || window['${c.id}_onTabClose'] || window['on_${c.id}_tab_close'];
+        const fnC = (closeHandler && window[closeHandler]) || window[cid + '_onTabClose'] || window['on_' + cid + '_tab_close'];
         if (fnC) fnC(title);
     };
 })();
@@ -4531,35 +4150,45 @@ export function generatePreviewHtml(spec: any): string {
         })
         .join("");
 
+      const safePalId = String(c.id || "")
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/\r/g, "\\r")
+        .replace(/\n/g, "\\n")
+        .replace(/</g, "\\u003c")
+        .replace(/\u2028/g, "\\u2028")
+        .replace(/\u2029/g, "\\u2029");
+      const palSelLit = safeScriptJson(String(customSelect || ""));
       const palScript = `<script>
 (function() {
-    window['${c.id}_openPalette'] = function() {
-        const m = document.getElementById('${c.id}_backdrop') || document.getElementById('${c.id}_modal');
+    const selHandler = ${palSelLit};
+    window['${safePalId}_openPalette'] = function() {
+        const m = document.getElementById('${safePalId}_backdrop') || document.getElementById('${safePalId}_modal');
         if (!m) return;
         m.style.display = 'flex';
-        const inp = document.getElementById('${c.id}_input');
+        const inp = document.getElementById('${safePalId}_input');
         if (inp) {
             inp.value = '';
             inp.focus();
-            window['${c.id}_filterPalette']('');
+            window['${safePalId}_filterPalette']('');
         }
     };
-    window['${c.id}_closePalette'] = function() {
-        const m = document.getElementById('${c.id}_backdrop') || document.getElementById('${c.id}_modal');
+    window['${safePalId}_closePalette'] = function() {
+        const m = document.getElementById('${safePalId}_backdrop') || document.getElementById('${safePalId}_modal');
         if (m) m.style.display = 'none';
     };
-    window['${c.id}_open'] = window['${c.id}_openPalette'];
-    window['${c.id}_close'] = window['${c.id}_closePalette'];
-    window['${c.id}_triggerCommand'] = function(cmdId, cmdLabel) {
-        window['${c.id}_closePalette']();
+    window['${safePalId}_open'] = window['${safePalId}_openPalette'];
+    window['${safePalId}_close'] = window['${safePalId}_closePalette'];
+    window['${safePalId}_triggerCommand'] = function(cmdId, cmdLabel) {
+        window['${safePalId}_closePalette']();
         if (window.showInteractionToast) window.showInteractionToast('Command Palette', cmdLabel || cmdId);
-        const fn = window['${customSelect}'] || window['${c.id}_onSelect'] || window['on_${c.id}_select'];
+        const fn = (selHandler && window[selHandler]) || window['${safePalId}_onSelect'] || window['on_${safePalId}_select'];
         if (fn) fn(cmdId);
     };
-    window['${c.id}_select'] = window['${c.id}_triggerCommand'];
-    window['${c.id}_filterPalette'] = function(q) {
+    window['${safePalId}_select'] = window['${safePalId}_triggerCommand'];
+    window['${safePalId}_filterPalette'] = function(q) {
         const query = (q || '').toLowerCase().trim();
-        const m = document.getElementById('${c.id}_backdrop') || document.getElementById('${c.id}_modal');
+        const m = document.getElementById('${safePalId}_backdrop') || document.getElementById('${safePalId}_modal');
         if (!m) return;
         const items = m.querySelectorAll('.pal-item');
         let count = 0;
@@ -4573,13 +4202,13 @@ export function generatePreviewHtml(spec: any): string {
         const empty = m.querySelector('.pal-empty');
         if (empty) empty.style.display = count === 0 ? 'block' : 'none';
     };
-    window['${c.id}_filter'] = window['${c.id}_filterPalette'];
+    window['${safePalId}_filter'] = window['${safePalId}_filterPalette'];
     window.addEventListener('keydown', function(e) {
         if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K' || e.key === 'p' || e.key === 'P')) {
             e.preventDefault();
-            window['${c.id}_openPalette']();
+            window['${safePalId}_openPalette']();
         } else if (e.key === 'Escape') {
-            window['${c.id}_closePalette']();
+            window['${safePalId}_closePalette']();
         }
     });
 })();
@@ -4691,8 +4320,14 @@ export function generatePreviewHtml(spec: any): string {
       const justify = hasDesc ? "space-between" : "center";
       controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:${justify};gap:6px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 8px;box-sizing:border-box;white-space:nowrap;overflow:hidden;">${hasDesc ? `<span style="font-size:11px;font-weight:600;opacity:0.85;white-space:nowrap;">${rawDesc}</span>` : ""}<div style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">${keys.map((k: string) => `<kbd class="rad-mono" style="background:${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)"};border:1px solid ${border};border-radius:4px;padding:2px 5px;font-size:10px;font-weight:700;color:${accent};line-height:1.2;">${k}</kbd>`).join("")}</div></div>\n`;
     } else if (t === "link") {
-      const url = c.url || c.placeholder || "#";
-      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;"><a href="${url}"${ev} target="_blank" style="color:${accent};text-decoration:none;font-size:${c.font_size || 13}px;font-weight:600;display:inline-flex;align-items:center;gap:4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><span>🔗</span><span>${text || url}</span></a></div>\n`;
+      const url = String(c.url || c.href || c.placeholder || "#");
+      const escHref = (s: string) =>
+        s
+          .replace(/&/g, "&amp;")
+          .replace(/"/g, "&quot;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;"><a href="${escHref(url)}"${ev} target="_blank" style="color:${accent};text-decoration:none;font-size:${c.font_size || 13}px;font-weight:600;display:inline-flex;align-items:center;gap:4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><span>🔗</span><span>${text || escHref(url)}</span></a></div>\n`;
     } else if (t === "banner" || t === "status_banner") {
       const bStyle = c.style || c.alert_type || c.banner_style || "info";
       const bCol =
@@ -5105,14 +4740,6 @@ export function generatePreviewHtml(spec: any): string {
         text ||
         '// Bun RAD Studio v1.4\nconsole.log("Hello, World!");';
       controls += `<div${id}${titleAttr} style="${base(c)}background:#0d1117;border:1px solid #30363d;border-radius:8px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.4);"><div style="padding:6px 12px;background:#161b22;border-bottom:1px solid #30363d;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#c9d1d9;"><div style="display:flex;align-items:center;gap:6px;"><span style="color:#58a6ff;">📄</span><span style="font-weight:600;">${fileName}</span></div><span style="font-size:10px;background:#21262d;padding:2px 8px;border-radius:4px;color:#79c0ff;font-weight:bold;">${lang}</span></div><textarea spellcheck="false" ${id ? `data-ctrl-id="${c.id}"` : ""} style="flex:1;background:#0d1117;color:#79c0ff;border:none;padding:10px;font-family:'Fira Code',monospace;font-size:12px;line-height:1.5;outline:none;resize:none;margin:0;">${codeVal}</textarea></div>\n`;
-    } else if (t === "diff_view") {
-      const oldLines = (
-        c.old_text || "- function hello() {\n-   return false;\n- }"
-      ).split("\n");
-      const newLines = (
-        c.new_text || "+ function hello() {\n+   return true;\n+ }"
-      ).split("\n");
-      controls += `<div${id}${titleAttr} style="${base(c)}background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;overflow:auto;font-family:monospace;font-size:11px;line-height:1.4;"><div style="color:#f85149;margin-bottom:4px;">${oldLines.map((l: string) => `<div>${l}</div>`).join("")}</div><div style="color:#3fb950;">${newLines.map((l: string) => `<div>${l}</div>`).join("")}</div></div>\n`;
     } else if (t === "terminal_view") {
       const prompt = c.prompt_text || "$ bun run start";
       const logOut =
@@ -5680,29 +5307,40 @@ export function generatePreviewHtml(spec: any): string {
   // Process non_visual_controls array if present
   for (const nv of spec.non_visual_controls || []) {
     const nvt = nv.control_type;
-    const nvid = ` id="${nv.id}"`;
+    const rawNvId = String(nv.id || "");
+    const escNvId = esc(rawNvId);
+    const nvid = ` id="${escNvId}"`;
     const nvev = buildEvents(nv);
     if (nvt === "open_dialog") {
-      controls += `<input type="file"${nvid}${nvev} style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;if(window['${nv.id}_onSelect'])window['${nv.id}_onSelect'](p);else if(window.backendAlert)window.backendAlert('File Selected: '+p);}">\n`;
+      controls += `<input type="file"${nvid} data-nv-id="${escNvId}"${nvev} style="display:none;" onchange="if(this.files&&this.files[0]){const p=this.files[0].name;const nvid=this.getAttribute('data-nv-id')||'';if(window[nvid+'_onSelect'])window[nvid+'_onSelect'](p);else if(window.backendAlert)window.backendAlert('File Selected: '+p);}">\n`;
     } else if (nvt === "save_dialog") {
       controls += `<input type="file"${nvid}${nvev} style="display:none;">\n`;
     } else if (nvt === "timer") {
-      const interval = nv.interval || 1000;
-      const handler =
+      const parsedInterval = Number(nv.interval);
+      const interval =
+        Number.isFinite(parsedInterval) && parsedInterval > 0
+          ? Math.max(10, Math.round(parsedInterval))
+          : 1000;
+      const handler = String(
         nv.event_handlers?.onTimer ||
-        nv.event_handlers?.ontimer ||
-        `on_${nv.id}_timer`;
-      const autoStart = nv.enabled !== false;
+          nv.event_handlers?.ontimer ||
+          `on_${rawNvId}_timer`,
+      );
+      const autoStart = Boolean(nv.enabled !== false);
+      const nvIdLit = safeScriptJson(rawNvId);
+      const handlerLit = safeScriptJson(handler);
       controls += `<script>
                 (function() {
-                    window['__timer_interval_${nv.id}'] = ${interval};
-                    window['__timer_func_${nv.id}'] = function() {
-                        if (window['${handler}']) { try{ window['${handler}'](); } catch(e){ console.error(e); } }
-                        else if (window['on_${nv.id}_timer']) { try{ window['on_${nv.id}_timer'](); } catch(e){ console.error(e); } }
-                        else if (window['on_${nv.id}_tick']) { try{ window['on_${nv.id}_tick'](); } catch(e){ console.error(e); } }
+                    const nvId = ${nvIdLit};
+                    const handlerName = ${handlerLit};
+                    window['__timer_interval_' + nvId] = ${interval};
+                    window['__timer_func_' + nvId] = function() {
+                        if (window[handlerName]) { try{ window[handlerName](); } catch(e){ console.error(e); } }
+                        else if (window['on_' + nvId + '_timer']) { try{ window['on_' + nvId + '_timer'](); } catch(e){ console.error(e); } }
+                        else if (window['on_' + nvId + '_tick']) { try{ window['on_' + nvId + '_tick'](); } catch(e){ console.error(e); } }
                     };
                     if (${autoStart}) {
-                        window['__timer_id_${nv.id}'] = setInterval(window['__timer_func_${nv.id}'], ${interval});
+                        window['__timer_id_' + nvId] = setInterval(window['__timer_func_' + nvId], ${interval});
                     }
                 })();
             </script>\n`;
@@ -6035,7 +5673,16 @@ ${controls}
   };
   window.setControlText = function(id, text) {
     const el = document.getElementById(id);
-    if (el) { if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") { el.value = text; if (el.tagName === "TEXTAREA") el.scrollTop = el.scrollHeight; } else { el.textContent = text; el.innerText = text; } }
+    if (el) {
+      if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") {
+        el.value = text;
+        if (el.tagName === "TEXTAREA") el.scrollTop = el.scrollHeight;
+      } else {
+        const targetSpan = el.querySelector("span:nth-child(2)");
+        if (targetSpan) targetSpan.textContent = text;
+        else { el.textContent = text; el.innerText = text; }
+      }
+    }
   };
   window.setControlValue = function(id, val) {
     const el = document.getElementById(id);
@@ -6561,21 +6208,6 @@ ${controls}
       log(err.message + " " + err.stack);
     }
   };
-  window.setControlText = function(id, text) {
-    const el = document.getElementById(id);
-    if (el) {
-      if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") {
-        el.value = text;
-      } else {
-        const targetSpan = el.querySelector("span:nth-child(2)");
-        if (targetSpan) {
-          targetSpan.textContent = text;
-        } else {
-          el.textContent = text;
-        }
-      }
-    }
-  };
   window.setAlertBannerText = function(id, textStr) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -6674,7 +6306,7 @@ ${controls}
   };
 
   window._contextMenuOpenedAt = 0;
-  window.globalContextMenuItems = ${JSON.stringify(spec.global_context_menu_items || spec.globalContextMenuItems || [])};
+  window.globalContextMenuItems = ${safeScriptJson(spec.global_context_menu_items || spec.globalContextMenuItems || [])};
 
   window.showContextMenu = function(opts) {
     window._contextMenuOpenedAt = Date.now();
@@ -6902,7 +6534,7 @@ ${controls}
 
       // 4. Fullscreen toggle shortcuts: Cmd+F, Ctrl+F, Fn+F, F11, Cmd+Ctrl+F, Alt+Enter, bare F
       if (
-        isCmdOrCtrlF ||
+        (!isInput && isCmdOrCtrlF) ||
         (!isInput && isBareF) ||
         (isFn && isF) ||
         e.key === "F11" || e.code === "F11" ||

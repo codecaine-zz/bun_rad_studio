@@ -396,7 +396,7 @@ const formSpec = {
       id: "timer1",
       control_type: "timer",
       interval: 500,
-      enabled: true,
+      enabled: false,
       event_handlers: { onTimer: "on_timer1_tick" },
     },
   ],

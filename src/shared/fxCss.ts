@@ -36,7 +36,7 @@ const BAR = where([
   ".rad-tabs-bar",
   ".rad-menu-bar",
 ]);
-const CLASSES = where([
+const CLASSES_LIST = [
   ".fx-button",
   ".fx-input",
   ".fx-card",
@@ -51,21 +51,26 @@ const CLASSES = where([
   ".fx-skeleton",
   ".fx-icon-click",
   ".fx-sheen",
-]);
-const HOOKS = where([
-  ...FX_SEL.button,
-  ...FX_SEL.card,
-  ...FX_SEL.panel,
-  ...FX_SEL.magnet,
-  ...FX_SEL.pill,
-  ...FX_SEL.modal,
-  ".fx-input",
-  ".fx-pill-live",
-  ".fx-pulse",
-  ".fx-skeleton",
-  ".fx-icon-click",
-  ".fx-sheen",
-]);
+] as const;
+const HOOKS_LIST = [
+  ...new Set([
+    ...FX_SEL.button,
+    ...FX_SEL.card,
+    ...FX_SEL.panel,
+    ...FX_SEL.magnet,
+    ...FX_SEL.pill,
+    ...FX_SEL.modal,
+    ".fx-input",
+    ".fx-pill-live",
+    ".fx-pulse",
+    ".fx-skeleton",
+    ".fx-icon-click",
+    ".fx-sheen",
+  ]),
+];
+const REDUCED_ALL_LIST = [...new Set([...CLASSES_LIST, ...HOOKS_LIST])];
+const CLASSES = where(CLASSES_LIST);
+const HOOKS = where(HOOKS_LIST);
 const MV = ":not(.designer-control)"; // hover transforms would fight dragging on the Designer canvas
 const NO_ABS = ':not([style*="position"]):not(.designer-control)';
 // A strip (tabs, toolbar) carries data-fx itself in the Designer chrome, so its rules match the strip as well as anything inside a data-fx root.
@@ -317,11 +322,13 @@ function motion(): string {
 }
 
 function reduced(prefix: string): string {
+  const allSel = REDUCED_ALL_LIST.join(",");
+  const hookSel = HOOKS_LIST.join(",");
   return `
-  ${prefix} :where(${CLASSES.slice(7, -1)}, ${HOOKS.slice(7, -1)}, body)::before,
-  ${prefix} :where(${CLASSES.slice(7, -1)}, ${HOOKS.slice(7, -1)}, body)::after,
-  ${prefix} :where(${CLASSES.slice(7, -1)}, ${HOOKS.slice(7, -1)}) { animation: none !important; will-change: auto !important; }
-  ${prefix} :where(${HOOKS.slice(7, -1)}):not(${PILL}) { transition-property: opacity !important; }
+  ${prefix} :where(${allSel}, body)::before,
+  ${prefix} :where(${allSel}, body)::after,
+  ${prefix} :where(${allSel}) { animation: none !important; will-change: auto !important; }
+  ${prefix} :where(${hookSel}):not(${PILL}) { transition-property: opacity !important; }
   ${prefix} ${PILL}::after, ${PILL}${prefix}::after { transition-property: opacity !important; }
   ${prefix} :where(.fx-modal, .fx-sheet)[data-open] { animation: fx-fade-in var(--fx-dur-fast) linear both !important; }
   ${prefix} :where(.fx-modal, .fx-sheet)[data-closing] { animation: fx-fade-out var(--fx-dur-fast) linear both !important; }`;

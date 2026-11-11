@@ -272,7 +272,7 @@ webview.bind("on_db_nav_bar_click", (action?: string) => {
   const act = action || "Action";
   console.log(`[IPC] DB Navigator Click: ${act}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("db_status_bar", "Navigator Action: ${act}");
+        if (window.setStatusBarText) window.setStatusBarText("db_status_bar", ${JSON.stringify(`Navigator Action: ${act}`)});
     `);
 });
 
@@ -280,8 +280,8 @@ webview.bind("on_db_conn_change", (connName?: string) => {
   const conn = connName || "database";
   console.log(`[IPC] Connection Changed: ${conn}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("db_status_bar", "Connected to: ${conn}");
-        if (window.setAlertBannerText) window.setAlertBannerText("db_status_card", "Connected to ${conn}");
+        if (window.setStatusBarText) window.setStatusBarText("db_status_bar", ${JSON.stringify(`Connected to: ${conn}`)});
+        if (window.setAlertBannerText) window.setAlertBannerText("db_status_card", ${JSON.stringify(`Connected to ${conn}`)});
     `);
 });
 
@@ -289,7 +289,7 @@ webview.bind("on_db_toolbar_click", (action?: string) => {
   const act = action || "Action";
   console.log(`[IPC] DB Toolbar Action: ${act}`);
   execJS(`
-        if (window.setAlertBannerText) window.setAlertBannerText("db_status_card", "${act} completed");
+        if (window.setAlertBannerText) window.setAlertBannerText("db_status_card", ${JSON.stringify(`${act} completed`)});
     `);
 });
 
@@ -297,8 +297,8 @@ webview.bind("on_db_tabs_change", (tabName?: string) => {
   const tab = tabName || "Console";
   console.log(`[IPC] DB Tab Switch: ${tab}`);
   execJS(`
-        if (window.setTabsActive) window.setTabsActive("db_tabs", "${tab}");
-        if (window.setStatusBarText) window.setStatusBarText("db_status_bar", "View Mode: ${tab}");
+        if (window.setTabsActive) window.setTabsActive("db_tabs", ${JSON.stringify(tab)});
+        if (window.setStatusBarText) window.setStatusBarText("db_status_bar", ${JSON.stringify(`View Mode: ${tab}`)});
     `);
 });
 
@@ -307,16 +307,16 @@ webview.bind("on_schema_tree_select", (nodeName?: string) => {
   const tableName = (rawNode.replace(/^[\s📂📁📄]+/, "").split(" ")[0] ||
     "users") as keyof typeof sqlQueries;
   console.log(`[IPC] Schema Tree Selected Table: ${tableName}`);
-  if (sqlQueries[tableName]) {
-    const query = (sqlQueries[tableName] || "").replace(/'/g, "\\'");
+  if (Object.prototype.hasOwnProperty.call(sqlQueries, tableName)) {
+    const query = sqlQueries[tableName] || "";
     execJS(`
             const ed = document.getElementById("sql_code_editor");
             if (ed) {
                 const ta = ed.querySelector("textarea");
-                if (ta) ta.value = '${query}';
+                if (ta) ta.value = ${JSON.stringify(query)};
             }
-            if (window.setAlertBannerText) window.setAlertBannerText("db_status_card", "Selected Table: ${tableName}");
-            if (window.setStatusBarText) window.setStatusBarText("db_status_bar", "Querying Table: ${tableName}");
+            if (window.setAlertBannerText) window.setAlertBannerText("db_status_card", ${JSON.stringify(`Selected Table: ${String(tableName)}`)});
+            if (window.setStatusBarText) window.setStatusBarText("db_status_bar", ${JSON.stringify(`Querying Table: ${String(tableName)}`)});
         `);
   }
 });
@@ -324,7 +324,7 @@ webview.bind("on_schema_tree_select", (nodeName?: string) => {
 webview.bind("on_max_rows_change", (val?: any) => {
   console.log(`[IPC] Row Limit Changed: ${val}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("db_status_bar", "Row Fetch Limit set to ${val}");
+        if (window.setStatusBarText) window.setStatusBarText("db_status_bar", ${JSON.stringify(`Row Fetch Limit set to ${val ?? ""}`)});
     `);
 });
 
@@ -339,7 +339,7 @@ webview.bind("on_btn_run_sql_click", () => {
 webview.bind("on_table_filter_change", (val?: string) => {
   console.log(`[IPC] Table Result Filter: ${val}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("db_status_bar", "Grid Filter: ${val || ""}");
+        if (window.setStatusBarText) window.setStatusBarText("db_status_bar", ${JSON.stringify(`Grid Filter: ${val || ""}`)});
     `);
 });
 
@@ -348,9 +348,12 @@ webview.bind("on_btn_toggle_pin_click", () => {
   console.log(`[IPC] Toggling Window Pin state: ${isWindowPinned}`);
   setAlwaysOnTopNative(webview, isWindowPinned);
   const label = isWindowPinned ? "Pinned Window" : "Unpinned Window";
+  const pinMsg = isWindowPinned
+    ? "Window Pinned Always On Top"
+    : "Window Unpinned";
   execJS(`
-        if (window.setToggleButtonState) window.setToggleButtonState("btn_toggle_pin", ${isWindowPinned}, "${label}");
-        if (window.setStatusBarText) window.setStatusBarText("db_status_bar", "${isWindowPinned ? "Window Pinned Always On Top" : "Window Unpinned"}");
+        if (window.setToggleButtonState) window.setToggleButtonState("btn_toggle_pin", ${Boolean(isWindowPinned)}, ${JSON.stringify(label)});
+        if (window.setStatusBarText) window.setStatusBarText("db_status_bar", ${JSON.stringify(pinMsg)});
     `);
 });
 

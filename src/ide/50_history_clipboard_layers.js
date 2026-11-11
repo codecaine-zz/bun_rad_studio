@@ -54,15 +54,39 @@
 		function pasteCopiedControl() {
 			if (clipboardBuffer.length === 0) return;
 			saveHistoryState();
+			const usedIds = new Set(
+				[].concat(formSpec.controls || [], formSpec.non_visual_controls || []).map((c) => c && c.id)
+			);
 			let newIndices = [];
 			clipboardBuffer.forEach(item => {
-				const count = formSpec.controls.length + 1;
-				const newId = item.control_type + "_" + count;
+				let count = formSpec.controls.length + 1;
+				const baseType = item.control_type || "button";
+				let newId = baseType + "_" + count;
+				while (usedIds.has(newId)) {
+					count++;
+					newId = baseType + "_" + count;
+				}
+				usedIds.add(newId);
 				item.x += 16;
 				item.y += 16;
 				const copy = JSON.parse(JSON.stringify(item));
+				const prevId = item.id;
 				copy.id = newId;
-				copy.event_handlers = { "onClick": "on_" + newId + "_click" };
+				const prevHandlers = (copy.event_handlers && typeof copy.event_handlers === "object") ? copy.event_handlers : null;
+				if (prevHandlers && Object.keys(prevHandlers).length > 0) {
+					const remapped = {};
+					Object.keys(prevHandlers).forEach((evt) => {
+						const fn = prevHandlers[evt];
+						if (typeof fn === "string" && prevId && fn === "on_" + prevId + "_click") {
+							remapped[evt] = "on_" + newId + "_click";
+						} else {
+							remapped[evt] = fn;
+						}
+					});
+					copy.event_handlers = remapped;
+				} else {
+					copy.event_handlers = { "onClick": "on_" + newId + "_click" };
+				}
 				formSpec.controls.push(copy);
 				newIndices.push(formSpec.controls.length - 1);
 			});
@@ -84,11 +108,15 @@
 		function bringToFront() {
 			if (selectedIndices.length === 0) return;
 			saveHistoryState();
-			selectedIndices.sort((a, b) => a - b);
-			const movingCtrls = selectedIndices.map(idx => formSpec.controls[idx]);
-			selectedIndices.sort((a, b) => b - a).forEach(idx => formSpec.controls.splice(idx, 1));
-			movingCtrls.forEach(ctrl => formSpec.controls.push(ctrl));
-			selectedIndices = movingCtrls.map((_, i) => formSpec.controls.length - movingCtrls.length + i);
+			const selectedSet = new Set(selectedIndices);
+			const rest = [];
+			const moving = [];
+			formSpec.controls.forEach((ctrl, idx) => {
+				if (selectedSet.has(idx)) moving.push(ctrl);
+				else rest.push(ctrl);
+			});
+			formSpec.controls = rest.concat(moving);
+			selectedIndices = moving.map((_, i) => rest.length + i);
 			renderCanvas();
 			renderTree();
 			renderCode();
@@ -100,11 +128,15 @@
 		function sendToBack() {
 			if (selectedIndices.length === 0) return;
 			saveHistoryState();
-			selectedIndices.sort((a, b) => b - a);
-			const movingCtrls = selectedIndices.map(idx => formSpec.controls[idx]);
-			selectedIndices.forEach(idx => formSpec.controls.splice(idx, 1));
-			movingCtrls.reverse().forEach(ctrl => formSpec.controls.unshift(ctrl));
-			selectedIndices = movingCtrls.map((_, i) => i);
+			const selectedSet = new Set(selectedIndices);
+			const rest = [];
+			const moving = [];
+			formSpec.controls.forEach((ctrl, idx) => {
+				if (selectedSet.has(idx)) moving.push(ctrl);
+				else rest.push(ctrl);
+			});
+			formSpec.controls = moving.concat(rest);
+			selectedIndices = moving.map((_, i) => i);
 			renderCanvas();
 			renderTree();
 			renderCode();
@@ -116,19 +148,22 @@
 		function moveForward() {
 			if (selectedIndices.length === 0) return;
 			saveHistoryState();
-			selectedIndices.sort((a, b) => b - a);
-			let newIndices = [];
-			selectedIndices.forEach(idx => {
-				if (idx < formSpec.controls.length - 1) {
+			const sortedDesc = Array.from(new Set(selectedIndices)).sort((a, b) => b - a);
+			const occupied = new Set(sortedDesc);
+			const newIndices = [];
+			sortedDesc.forEach(idx => {
+				if (idx < formSpec.controls.length - 1 && !occupied.has(idx + 1)) {
 					const temp = formSpec.controls[idx];
 					formSpec.controls[idx] = formSpec.controls[idx + 1];
 					formSpec.controls[idx + 1] = temp;
+					occupied.delete(idx);
+					occupied.add(idx + 1);
 					newIndices.push(idx + 1);
 				} else {
 					newIndices.push(idx);
 				}
 			});
-			selectedIndices = newIndices;
+			selectedIndices = newIndices.sort((a, b) => a - b);
 			renderCanvas();
 			renderTree();
 			renderCode();
@@ -139,19 +174,22 @@
 		function moveBackward() {
 			if (selectedIndices.length === 0) return;
 			saveHistoryState();
-			selectedIndices.sort((a, b) => a - b);
-			let newIndices = [];
-			selectedIndices.forEach(idx => {
-				if (idx > 0) {
+			const sortedAsc = Array.from(new Set(selectedIndices)).sort((a, b) => a - b);
+			const occupied = new Set(sortedAsc);
+			const newIndices = [];
+			sortedAsc.forEach(idx => {
+				if (idx > 0 && !occupied.has(idx - 1)) {
 					const temp = formSpec.controls[idx];
 					formSpec.controls[idx] = formSpec.controls[idx - 1];
 					formSpec.controls[idx - 1] = temp;
+					occupied.delete(idx);
+					occupied.add(idx - 1);
 					newIndices.push(idx - 1);
 				} else {
 					newIndices.push(idx);
 				}
 			});
-			selectedIndices = newIndices;
+			selectedIndices = newIndices.sort((a, b) => a - b);
 			renderCanvas();
 			renderTree();
 			renderCode();

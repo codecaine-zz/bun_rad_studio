@@ -338,25 +338,27 @@ webview.bind("quitApp", () => {
 
 // IPC Event Handlers
 webview.bind("on_settings_toolbar_click", (action?: string) => {
-  console.log(`⚡ [IPC] Settings Toolbar Click: ${action}`);
+  const act = action || "Action";
+  console.log(`⚡ [IPC] Settings Toolbar Click: ${act}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", "🛠️ Action: ${action || "Action"}");
-        if (window.setAlertBannerText) window.setAlertBannerText("prefs_alert_banner", "${action || "Action"} Executed");
+        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", ${JSON.stringify(`🛠️ Action: ${act}`)});
+        if (window.setAlertBannerText) window.setAlertBannerText("prefs_alert_banner", ${JSON.stringify(`${act} Executed`)});
     `);
 });
 
 webview.bind("on_settings_tabs_change", (tabName?: string) => {
-  console.log(`⚡ [IPC] Settings Tab Switch: ${tabName}`);
+  const tab = tabName || "General";
+  console.log(`⚡ [IPC] Settings Tab Switch: ${tab}`);
   execJS(`
-        if (window.setTabsActive) window.setTabsActive("settings_tabs", "${tabName || "General"}");
-        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", "⚙️ Category: ${tabName || "General"} Settings");
+        if (window.setTabsActive) window.setTabsActive("settings_tabs", ${JSON.stringify(tab)});
+        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", ${JSON.stringify(`⚙️ Category: ${tab} Settings`)});
     `);
 });
 
 webview.bind("on_settings_cmd_change", (val?: string) => {
   console.log(`⚡ [IPC] Settings Search Query: ${val}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", "🔍 Filtering settings matching '${val}'");
+        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", ${JSON.stringify(`🔍 Filtering settings matching '${val ?? ""}'`)});
     `);
 });
 
@@ -377,21 +379,21 @@ webview.bind("on_pref_switch_toggle", (val?: any) => {
 webview.bind("on_pref_color_change", (hex?: string) => {
   console.log(`⚡ [IPC] Accent Color Picker Changed: ${hex}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", "🎨 Accent Theme Color: ${hex}");
+        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", ${JSON.stringify(`🎨 Accent Theme Color: ${hex ?? ""}`)});
     `);
 });
 
 webview.bind("on_pref_font_change", (size?: any) => {
   console.log(`⚡ [IPC] UI Font Size Changed: ${size}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", "🔤 UI Font Size: ${size}px");
+        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", ${JSON.stringify(`🔤 UI Font Size: ${size ?? ""}px`)});
     `);
 });
 
 webview.bind("on_pref_slider_change", (val?: any) => {
   console.log(`⚡ [IPC] Transparency Level Changed: ${val}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", "💧 Window Opacity: ${val}%");
+        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", ${JSON.stringify(`💧 Window Opacity: ${val ?? ""}%`)});
     `);
 });
 
@@ -416,9 +418,12 @@ webview.bind("on_btn_toggle_pin_click", () => {
   console.log(`⚡ [IPC] Toggling Window Pin state: ${isWindowPinned}`);
   setAlwaysOnTopNative(webview, isWindowPinned);
   const label = isWindowPinned ? "📌 Pinned Window" : "🔓 Unpinned Window";
+  const pinMsg = isWindowPinned
+    ? "📌 Window Pinned Always On Top"
+    : "🔓 Window Unpinned";
   execJS(`
-        if (window.setToggleButtonState) window.setToggleButtonState("btn_toggle_pin", ${isWindowPinned}, "${label}");
-        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", "${isWindowPinned ? "📌 Window Pinned Always On Top" : "🔓 Window Unpinned"}");
+        if (window.setToggleButtonState) window.setToggleButtonState("btn_toggle_pin", ${Boolean(isWindowPinned)}, ${JSON.stringify(label)});
+        if (window.setStatusBarText) window.setStatusBarText("settings_status_bar", ${JSON.stringify(pinMsg)});
     `);
 });
 

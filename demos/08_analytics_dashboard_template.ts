@@ -347,8 +347,8 @@ webview.bind("on_dash_toolbar_click", (itemName?: string) => {
   const item = itemName || "Action";
   console.log(`⚡ [IPC] Toolbar Action Clicked: ${item}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", "🛠️ Action: ${item} executed");
-        if (window.setAlertBannerText) window.setAlertBannerText("status_alert", "${item} Completed");
+        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", ${JSON.stringify(`🛠️ Action: ${item} executed`)});
+        if (window.setAlertBannerText) window.setAlertBannerText("status_alert", ${JSON.stringify(`${item} Completed`)});
     `);
 });
 
@@ -358,22 +358,22 @@ webview.bind("on_dash_tabs_change", (tabName?: string) => {
   currentTabIndex = tabsList.indexOf(tab);
   if (currentTabIndex === -1) currentTabIndex = 0;
   execJS(`
-        if (window.setTabsActive) window.setTabsActive("dash_tabs", "${tab}");
-        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", "📊 Dashboard View: ${tab}");
+        if (window.setTabsActive) window.setTabsActive("dash_tabs", ${JSON.stringify(tab)});
+        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", ${JSON.stringify(`📊 Dashboard View: ${tab}`)});
     `);
 });
 
 webview.bind("on_dash_cmd_change", (val?: string) => {
   console.log(`⚡ [IPC] Command Search Query: ${val}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", "🔍 Command Filter: ${val}");
+        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", ${JSON.stringify(`🔍 Command Filter: ${val ?? ""}`)});
     `);
 });
 
 webview.bind("on_log_search_change", (val?: string) => {
   console.log(`⚡ [IPC] Log Search Filter: ${val}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", "📋 Filtered logs matching '${val}'");
+        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", ${JSON.stringify(`📋 Filtered logs matching '${val ?? ""}'`)});
     `);
 });
 
@@ -382,26 +382,29 @@ webview.bind("on_btn_toggle_pin_click", () => {
   console.log(`⚡ [IPC] Toggling Window Pin state: ${isWindowPinned}`);
   setAlwaysOnTopNative(webview, isWindowPinned);
   const label = isWindowPinned ? "📌 Always On Top" : "🔓 Normal Window";
+  const pinMsg = isWindowPinned
+    ? "📌 Window Pinned Always On Top"
+    : "🔓 Window Unpinned";
   execJS(`
-        if (window.setToggleButtonState) window.setToggleButtonState("btn_toggle_pin", ${isWindowPinned}, "${label}");
-        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", "${isWindowPinned ? "📌 Window Pinned Always On Top" : "🔓 Window Unpinned"}");
+        if (window.setToggleButtonState) window.setToggleButtonState("btn_toggle_pin", ${Boolean(isWindowPinned)}, ${JSON.stringify(label)});
+        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", ${JSON.stringify(pinMsg)});
     `);
 });
 
 webview.bind("on_btn_cycle_tabs_click", () => {
   currentTabIndex = (currentTabIndex + 1) % tabsList.length;
-  const nextTab = tabsList[currentTabIndex];
+  const nextTab = tabsList[currentTabIndex] || "Overview";
   console.log(`⚡ [IPC] Cycle Tab Clicked -> Switching to ${nextTab}`);
   execJS(`
-        if (window.setTabsActive) window.setTabsActive("dash_tabs", "${nextTab}");
-        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", "🔄 Switched to ${nextTab}");
+        if (window.setTabsActive) window.setTabsActive("dash_tabs", ${JSON.stringify(nextTab)});
+        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", ${JSON.stringify(`🔄 Switched to ${nextTab}`)});
     `);
 });
 
 webview.bind("on_logs_pagination_click", (pageNum?: any) => {
   console.log(`⚡ [IPC] Log Pagination Clicked: ${pageNum}`);
   execJS(`
-        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", "📄 Audit Log Page ${pageNum} Loaded");
+        if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", ${JSON.stringify(`📄 Audit Log Page ${pageNum ?? ""} Loaded`)});
     `);
 });
 
@@ -415,7 +418,7 @@ const heartbeatTimer = setInterval(() => {
   const statusMsg = `Cluster US-East-1 | Telemetry: ${120 + (heartbeatCounter % 15)} msg/sec | Sync OK | ${timeStr}`;
   try {
     webview.eval(`
-            if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", "${statusMsg}");
+            if (window.setStatusBarText) window.setStatusBarText("dash_status_bar", ${JSON.stringify(statusMsg)});
         `);
   } catch (e) {}
 }, 3000);

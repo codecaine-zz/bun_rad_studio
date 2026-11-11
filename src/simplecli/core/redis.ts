@@ -114,19 +114,27 @@ export class InMemoryRedisClient {
   /** Gets the string value of `key`, or `null` if the key does not exist or has expired. */
   public async get(key: string): Promise<string | null> {
     const entry = this.getValidEntry(key, "string");
-    return entry ? String(entry.value) : null;
+    if (!entry) return null;
+    if (entry.value instanceof Uint8Array) {
+      return Buffer.from(entry.value).toString("utf8");
+    }
+    return String(entry.value);
   }
 
-  /** Gets the UTF-8 byte buffer of `key`, or `null` if the key does not exist. */
+  /** Gets the byte buffer of `key`, or `null` if the key does not exist. */
   public async getBuffer(key: string): Promise<Uint8Array | null> {
-    const val = await this.get(key);
-    return val !== null ? new Uint8Array(Buffer.from(val, "utf8")) : null;
+    const entry = this.getValidEntry(key, "string");
+    if (!entry) return null;
+    if (entry.value instanceof Uint8Array) {
+      return new Uint8Array(entry.value);
+    }
+    return new Uint8Array(Buffer.from(String(entry.value), "utf8"));
   }
 
-  /** Sets the string value of `key` with optional `EX`, `PX`, `NX`, `XX`, or `KEEPTTL` flags. */
+  /** Sets the string or binary value of `key` with optional `EX`, `PX`, `NX`, `XX`, or `KEEPTTL` flags. */
   public async set(
     key: string,
-    val: string,
+    val: string | Uint8Array,
     ...args: any[]
   ): Promise<"OK" | null> {
     const existing = this.getValidEntry(key);
@@ -161,10 +169,25 @@ export class InMemoryRedisClient {
     this.sweepExpiredIfNeeded();
     this.store.set(key, {
       type: "string",
-      value: String(val),
+      value: val instanceof Uint8Array ? new Uint8Array(val) : String(val),
       expiresAt,
     });
     return "OK";
+  }
+
+  /** Atomically deletes `key` only when its current string value equals `expected`. */
+  public compareAndDel(key: string, expected: string): number {
+    const entry = this.getValidEntry(key, "string");
+    if (!entry) return 0;
+    const cur =
+      entry.value instanceof Uint8Array
+        ? Buffer.from(entry.value).toString("utf8")
+        : String(entry.value);
+    if (cur === expected) {
+      this.store.delete(key);
+      return 1;
+    }
+    return 0;
   }
 
   /** Deletes one or more keys and returns the number of keys removed. */
@@ -645,6 +668,10 @@ export class InMemoryRedisClient {
 }
 
 const sharedMemoryStores = new Map<string, InMemoryRedisClient>();
+const sharedMemoryRefCounts = new Map<string, number>();
+
+const RELEASE_LOCK_LUA =
+  'if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) else return 0 end';
 
 function getSharedMemoryStore(urlKey: string = "default"): InMemoryRedisClient {
   let store = sharedMemoryStores.get(urlKey);
@@ -652,7 +679,44 @@ function getSharedMemoryStore(urlKey: string = "default"): InMemoryRedisClient {
     store = new InMemoryRedisClient();
     sharedMemoryStores.set(urlKey, store);
   }
+  sharedMemoryRefCounts.set(
+    urlKey,
+    (sharedMemoryRefCounts.get(urlKey) ?? 0) + 1,
+  );
   return store;
+}
+
+function releaseSharedMemoryStore(urlKey: string = "default"): void {
+  const next = (sharedMemoryRefCounts.get(urlKey) ?? 1) - 1;
+  if (next <= 0) {
+    sharedMemoryRefCounts.delete(urlKey);
+    sharedMemoryStores.delete(urlKey);
+  } else {
+    sharedMemoryRefCounts.set(urlKey, next);
+  }
+}
+
+function isRedisTransportError(err: unknown): boolean {
+  const e = err as any;
+  const code = String(e?.code ?? "");
+  const msg = String(e?.message ?? err ?? "").trim();
+  if (
+    /^(WRONGTYPE|ERR\b|EXECABORT|MOVED|ASK|NOSCRIPT|OOM|READONLY|NOPERM|NOAUTH|BUSYGROUP|CROSSSLOT|INVALID)/i.test(
+      msg,
+    )
+  ) {
+    return false;
+  }
+  if (
+    /^(ECONNREFUSED|ENOTFOUND|EHOSTUNREACH|ENETUNREACH|ETIMEDOUT|ECONNRESET|EPIPE|EAI_AGAIN|ERR_REDIS_CONNECTION|ERR_SOCKET)/i.test(
+      code,
+    )
+  ) {
+    return true;
+  }
+  return /connect|connection|closed|unreachable|refused|timed?\s*out|socket|ECONN|ENOTFOUND|EHOSTUNREACH/i.test(
+    msg,
+  );
 }
 
 /**
@@ -668,6 +732,8 @@ export class NamespacedRedis {
   private memoryStore: InMemoryRedisClient;
   private usingMemoryFallback: boolean = false;
   private connectionUrl: string;
+  private subscriberClients: Set<any> = new Set();
+  private closed: boolean = false;
 
   /** Creates a `NamespacedRedis` client for the specified namespace string or `NamespacedRedisOptions`. */
   constructor(options: NamespacedRedisOptions | string) {
@@ -723,7 +789,7 @@ export class NamespacedRedis {
     try {
       return await op(this.client);
     } catch (err) {
-      if (!this.fallbackToMemory) {
+      if (!this.fallbackToMemory || !isRedisTransportError(err)) {
         throw err;
       }
       try {
@@ -829,7 +895,7 @@ export class NamespacedRedis {
     );
   }
 
-  /** Sets a namespaced `key` to `value` with optional TTL seconds or `SetOptions` (`ex`, `px`, `nx`, `xx`). */
+  /** Sets a namespaced `key` to `value` with optional TTL seconds or `SetOptions` (`ex`, `px`, `nx`, `xx`, `keepTtl`). */
   public async set(
     key: string,
     value: string | number | boolean | Uint8Array,
@@ -840,34 +906,31 @@ export class NamespacedRedis {
         ? { ex: optionsOrTtlSeconds }
         : optionsOrTtlSeconds;
     const fullKey = this.prefixKey(key);
-    const valStr =
-      typeof value === "object" && !(value instanceof Uint8Array)
-        ? JSON.stringify(value)
-        : String(value);
+    const valPayload: string | Buffer =
+      value instanceof Uint8Array
+        ? Buffer.from(value)
+        : typeof value === "object"
+          ? JSON.stringify(value)
+          : String(value);
 
-    return this.execWithFallback(async (c) => {
-      if (options?.ex !== undefined && options?.nx) {
-        return (await c.set(fullKey, valStr, "EX", options.ex, "NX")) as
-          "OK" | null;
-      }
-      if (options?.px !== undefined && options?.nx) {
-        return (await c.set(fullKey, valStr, "PX", options.px, "NX")) as
-          "OK" | null;
-      }
-      if (options?.ex !== undefined) {
-        return (await c.set(fullKey, valStr, "EX", options.ex)) as "OK" | null;
-      }
-      if (options?.px !== undefined) {
-        return (await c.set(fullKey, valStr, "PX", options.px)) as "OK" | null;
-      }
-      if (options?.nx) {
-        return (await c.set(fullKey, valStr, "NX")) as "OK" | null;
-      }
-      if (options?.xx) {
-        return (await c.set(fullKey, valStr, "XX")) as "OK" | null;
-      }
-      return (await c.set(fullKey, valStr)) as "OK" | null;
-    });
+    const extraArgs: any[] = [];
+    if (options?.ex !== undefined) {
+      extraArgs.push("EX", options.ex);
+    } else if (options?.px !== undefined) {
+      extraArgs.push("PX", options.px);
+    } else if (options?.keepTtl) {
+      extraArgs.push("KEEPTTL");
+    }
+    if (options?.nx) {
+      extraArgs.push("NX");
+    } else if (options?.xx) {
+      extraArgs.push("XX");
+    }
+
+    return this.execWithFallback(
+      async (c) =>
+        (await c.set(fullKey, valPayload, ...extraArgs)) as "OK" | null,
+    );
   }
 
   /** Gets and JSON-parses the value at `key`, returning `defaultVal` (or `null`) if missing. */
@@ -1384,11 +1447,27 @@ export class NamespacedRedis {
   }
 
   /**
-   * Release an acquired distributed lock
+   * Release an acquired distributed lock atomically
    */
   public async releaseLock(lockKey: string, token: string): Promise<boolean> {
     const fullLockKey = this.prefixKey(`lock:${lockKey}`);
     return this.execWithFallback(async (c) => {
+      if (c instanceof InMemoryRedisClient) {
+        return c.compareAndDel(fullLockKey, token) === 1;
+      }
+      if (typeof c?.send === "function") {
+        const res = await c.send("EVAL", [
+          RELEASE_LOCK_LUA,
+          "1",
+          fullLockKey,
+          token,
+        ]);
+        return Number(res) === 1;
+      }
+      if (typeof c?.eval === "function") {
+        const res = await c.eval(RELEASE_LOCK_LUA, 1, fullLockKey, token);
+        return Number(res) === 1;
+      }
       const currentToken = await c.get(fullLockKey);
       if (currentToken === token) {
         await c.del(fullLockKey);
@@ -1439,25 +1518,126 @@ export class NamespacedRedis {
   }
 
   /**
-   * Subscribe to messages on a namespaced channel (supported in in-memory fallback mode)
+   * Subscribe to messages on a namespaced channel across live Redis or in-memory fallback
    */
   public subscribe(
     channel: string,
     handler: (message: string) => void,
-  ): () => void {
+  ): (() => void) & { unsubscribe: () => Promise<void> } {
     const fullChannel = this.prefixKey(`pubsub:${channel}`);
-    return this.memoryStore.subscribe(fullChannel, handler);
+    let cancelled = false;
+    let memUnsub: (() => void) | null = null;
+    let subClient: any = null;
+
+    if (this.usingMemoryFallback) {
+      memUnsub = this.memoryStore.subscribe(fullChannel, (msg) => {
+        if (!cancelled) handler(msg);
+      });
+    } else if (typeof this.client?.subscribe === "function") {
+      try {
+        subClient =
+          typeof this.client.duplicate === "function"
+            ? null
+            : new RedisClient(this.connectionUrl, {
+                connectionTimeout: 400,
+                autoReconnect: false,
+                maxRetries: 0,
+              } as any);
+      } catch {
+        subClient = null;
+      }
+
+      const attachLiveSub = async () => {
+        try {
+          if (!subClient && typeof this.client?.duplicate === "function") {
+            subClient = await this.client.duplicate();
+          }
+          const target = subClient || this.client;
+          if (subClient) {
+            this.subscriberClients.add(subClient);
+          }
+          if (cancelled) {
+            if (subClient && typeof subClient.close === "function") {
+              subClient.close();
+              this.subscriberClients.delete(subClient);
+            }
+            return;
+          }
+          await target.subscribe(fullChannel, (msg: string) => {
+            if (!cancelled) handler(String(msg));
+          });
+        } catch (err) {
+          if (subClient) {
+            try {
+              subClient.close?.();
+            } catch {}
+            this.subscriberClients.delete(subClient);
+            subClient = null;
+          }
+          if (this.fallbackToMemory && isRedisTransportError(err)) {
+            this.usingMemoryFallback = true;
+            this.client = this.memoryStore;
+            if (!cancelled && !memUnsub) {
+              memUnsub = this.memoryStore.subscribe(fullChannel, (msg) => {
+                if (!cancelled) handler(msg);
+              });
+            }
+          }
+        }
+      };
+      void attachLiveSub();
+    } else {
+      memUnsub = this.memoryStore.subscribe(fullChannel, (msg) => {
+        if (!cancelled) handler(msg);
+      });
+    }
+
+    const doUnsubscribe = async (): Promise<void> => {
+      if (cancelled) return;
+      cancelled = true;
+      if (memUnsub) {
+        memUnsub();
+        memUnsub = null;
+      }
+      if (subClient) {
+        this.subscriberClients.delete(subClient);
+        try {
+          if (typeof subClient.unsubscribe === "function") {
+            await subClient.unsubscribe(fullChannel);
+          }
+        } catch {}
+        try {
+          subClient.close?.();
+        } catch {}
+        subClient = null;
+      }
+    };
+
+    const unsubFn = (() => {
+      void doUnsubscribe();
+    }) as (() => void) & { unsubscribe: () => Promise<void> };
+    unsubFn.unsubscribe = doUnsubscribe;
+    return unsubFn;
   }
 
   /**
-   * Close connection if this instance created its own client
+   * Close connection if this instance created its own client and release shared memory references
    */
   public close(): void {
+    if (this.closed) return;
+    this.closed = true;
+    for (const sub of this.subscriberClients) {
+      try {
+        sub?.close?.();
+      } catch {}
+    }
+    this.subscriberClients.clear();
     if (this.isOwnedClient && typeof this.client?.close === "function") {
       try {
         this.client.close();
       } catch {}
     }
+    releaseSharedMemoryStore(this.connectionUrl);
   }
 }
 

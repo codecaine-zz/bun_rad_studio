@@ -11,9 +11,19 @@ export interface ColumnDef<T> {
 }
 
 // Strip ANSI codes when calculating visible width
-/** Removes ANSI SGR escape sequences from `text` so visible character width can be measured accurately. */
+/** Removes ANSI escape sequences from `text` so visible character width can be measured accurately. */
 export function stripAnsi(text: string): string {
-  return text.replace(/\x1b\[[0-9;]*m/g, "");
+  return text
+    .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "")
+    .replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, "");
+}
+
+function visibleWidth(text: string): number {
+  const stripped = stripAnsi(text);
+  if (typeof Bun !== "undefined" && typeof Bun.stringWidth === "function") {
+    return Bun.stringWidth(stripped);
+  }
+  return stripped.length;
 }
 
 // Calculate max width for each column based on headers and rows
@@ -23,10 +33,10 @@ export function calculateColumnWidths<T>(
   rows: T[],
 ): number[] {
   return columns.map((col) => {
-    let max = stripAnsi(col.header).length;
+    let max = visibleWidth(col.header);
     for (const row of rows) {
-      const val = stripAnsi(col.getValue(row));
-      if (val.length > max) max = val.length;
+      const w = visibleWidth(col.getValue(row));
+      if (w > max) max = w;
     }
     return max;
   });
@@ -38,8 +48,9 @@ export function formatCell(
   text: string,
   width: number,
   align: "left" | "right" = "left",
+  precomputedWidth?: number,
 ): string {
-  const visibleLength = stripAnsi(text).length;
+  const visibleLength = precomputedWidth ?? visibleWidth(text);
   const padding = " ".repeat(Math.max(0, width - visibleLength));
   return align === "right" ? `${padding}${text}` : `${text}${padding}`;
 }
@@ -47,14 +58,35 @@ export function formatCell(
 // Render complete table string
 /** Renders `rows` into a newline-separated, column-aligned plain-text table with a header line. */
 export function renderTable<T>(columns: ColumnDef<T>[], rows: T[]): string {
-  const widths = calculateColumnWidths(columns, rows);
+  const headerWidths = columns.map((col) => visibleWidth(col.header));
+  const widths = [...headerWidths];
+  const evaluatedRows: Array<Array<{ raw: string; width: number }>> = new Array(
+    rows.length,
+  );
+
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r]!;
+    const cells = new Array<{ raw: string; width: number }>(columns.length);
+    for (let c = 0; c < columns.length; c++) {
+      const raw = columns[c]!.getValue(row);
+      const w = visibleWidth(raw);
+      if (w > widths[c]!) widths[c] = w;
+      cells[c] = { raw, width: w };
+    }
+    evaluatedRows[r] = cells;
+  }
+
   const headerLine = columns
-    .map((col, i) => formatCell(col.header, widths[i]!, col.align))
+    .map((col, i) =>
+      formatCell(col.header, widths[i]!, col.align, headerWidths[i]!),
+    )
     .join("  ");
 
-  const dataLines = rows.map((row) =>
-    columns
-      .map((col, i) => formatCell(col.getValue(row), widths[i]!, col.align))
+  const dataLines = evaluatedRows.map((cells) =>
+    cells
+      .map((cell, i) =>
+        formatCell(cell.raw, widths[i]!, columns[i]!.align, cell.width),
+      )
       .join("  "),
   );
 

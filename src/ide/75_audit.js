@@ -7,17 +7,18 @@
 		// been imported), so every value is escaped here.
 		function collectLayoutIssues(spec) {
 			const issues = [];
-			const idMap = {};
+			const idSet = new Set();
 			const winW = spec.width || 840;
 			const winH = spec.height || 560;
 			const controls = spec.controls || [];
+			const nonPanel = [];
 
 			controls.forEach((c, idx) => {
 				const id = "<code>" + escapeHtml(c.id) + "</code>";
-				if (idMap[c.id]) {
+				if (idSet.has(c.id)) {
 					issues.push("❌ <b>Duplicate ID:</b> " + id + " is used by multiple controls.");
 				} else {
-					idMap[c.id] = true;
+					idSet.add(c.id);
 				}
 
 				if (!(c.width > 0) || !(c.height > 0)) {
@@ -34,15 +35,33 @@
 					issues.push("ℹ️ <b>Empty Caption:</b> Control " + id + " has an empty text string.");
 				}
 
-				controls.forEach((other, oIdx) => {
-					if (idx >= oIdx) return;
-					if (c.control_type === "panel" || other.control_type === "panel") return;
-					if (c.x < other.x + other.width && c.x + c.width > other.x &&
-						c.y < other.y + other.height && c.y + c.height > other.y) {
-						issues.push("⚠️ <b>Overlap Detected:</b> " + id + " overlaps with <code>" + escapeHtml(other.id) + "</code>.");
-					}
-				});
+				if (c.control_type !== "panel" && c.width > 0 && c.height > 0) {
+					nonPanel.push({ c, idx });
+				}
 			});
+
+			if (nonPanel.length > 1) {
+				nonPanel.sort((a, b) => (a.c.x - b.c.x) || (a.idx - b.idx));
+				const overlapPairs = [];
+				for (let i = 0; i < nonPanel.length; i++) {
+					const cur = nonPanel[i];
+					const rightEdge = cur.c.x + cur.c.width;
+					for (let j = i + 1; j < nonPanel.length; j++) {
+						const other = nonPanel[j];
+						if (other.c.x >= rightEdge) break;
+						if (cur.c.y < other.c.y + other.c.height && cur.c.y + cur.c.height > other.c.y) {
+							const first = cur.idx < other.idx ? cur : other;
+							const second = cur.idx < other.idx ? other : cur;
+							overlapPairs.push({ aIdx: first.idx, bIdx: second.idx, aId: first.c.id, bId: second.c.id });
+						}
+					}
+				}
+				overlapPairs.sort((p, q) => (p.aIdx - q.aIdx) || (p.bIdx - q.bIdx));
+				for (let k = 0; k < overlapPairs.length; k++) {
+					const pair = overlapPairs[k];
+					issues.push("⚠️ <b>Overlap Detected:</b> <code>" + escapeHtml(pair.aId) + "</code> overlaps with <code>" + escapeHtml(pair.bId) + "</code>.");
+				}
+			}
 			return issues;
 		}
 
@@ -71,12 +90,14 @@
 			const winW = formSpec.width || 840;
 			const winH = formSpec.height || 560;
 
-			let seen = {};
+			const seen = new Set();
 			formSpec.controls.forEach((c, idx) => {
-				if (seen[c.id]) {
-					c.id = c.id + "_fixed" + (idx + 1);
+				if (seen.has(c.id)) {
+					let nextId = c.id + "_fixed" + (idx + 1);
+					while (seen.has(nextId)) nextId += "_1";
+					c.id = nextId;
 				}
-				seen[c.id] = true;
+				seen.add(c.id);
 			});
 
 			formSpec.controls.forEach((c) => {

@@ -31,7 +31,19 @@ import {
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { homedir } from "node:os";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+
+function isUnsafeStateKey(key: string): boolean {
+  return key === "__proto__" || key === "constructor" || key === "prototype";
+}
+
+/** Strips ANSI CSI/OSC escape sequences and terminal control bytes from untrusted CLI inputs before echoing in errors. */
+function sanitizeCliToken(input: string): string {
+  return String(input ?? "")
+    .replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "")
+    .replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, "")
+    .replace(/[\x00-\x1f\x7f-\x9f]/g, "");
+}
 
 /**
  * Core command-line application builder providing flag parsing, subcommand routing,
@@ -48,12 +60,13 @@ export class SimpleCLI {
   public logger: Logger;
   public config: ConfigStore;
   public http: BackendClient;
-  private state: Record<string, string> = {};
+  private state: Record<string, string> = Object.create(null);
   private flagsDef: Map<string, FlagOption> = new Map();
   private flagsVal: Map<string, any> = new Map();
   private subcommands: Map<string, SimpleCLI> = new Map();
   private actionHandler?: CommandAction;
   private posArgs: string[] = [];
+  private subcommandDispatch: { name: string; args: string[] } | null = null;
   private benchStart: number = performance.now();
 
   /**
@@ -357,12 +370,19 @@ export class SimpleCLI {
     const parsed = this.parseArgs(args);
     if (!parsed) return false;
 
+    if (this.subcommandDispatch) {
+      const sub = this.subcommands.get(this.subcommandDispatch.name);
+      if (sub) {
+        return await sub.run(this.subcommandDispatch.args);
+      }
+    }
+
     if (this.subcommands.size > 0 && this.posArgs.length > 0) {
       const subName = this.posArgs[0];
       if (subName) {
         const sub = this.subcommands.get(subName);
         if (sub) {
-          return await sub.run(args.slice(1));
+          return await sub.run(this.posArgs.slice(1));
         }
       }
     }
@@ -379,73 +399,93 @@ export class SimpleCLI {
    * Parses an explicit array of CLI argument tokens, handling built-in `--help`, `--version`, and `--completion` flags.
    */
   public parseArgs(args: string[]): boolean {
+    this.posArgs = [];
+    this.subcommandDispatch = null;
+
     const shortToName = new Map<string, string>();
     for (const [name, opt] of this.flagsDef.entries()) {
       if (opt.short) shortToName.set(opt.short, name);
+      this.flagsVal.set(
+        name,
+        Array.isArray(opt.defaultVal) ? [...opt.defaultVal] : opt.defaultVal,
+      );
+    }
+    const seenArrayFlags = new Set<string>();
+
+    const dashIdx = args.indexOf("--");
+    const preDash = dashIdx >= 0 ? args.slice(0, dashIdx) : args;
+
+    // Locate first non-flag token in preDash to avoid stealing `--help`/`-v` meant for a subcommand
+    let firstPosIdx = -1;
+    for (let k = 0; k < preDash.length; k++) {
+      const tok = preDash[k] || "";
+      if (!tok) continue;
+      if (tok.startsWith("--")) {
+        if (!tok.includes("=")) {
+          const fname = tok.slice(2);
+          const fopt = this.flagsDef.get(fname);
+          if (fopt && fopt.kind !== "bool") k++;
+        }
+        continue;
+      }
+      if (tok.startsWith("-") && tok.length > 1) {
+        if (!tok.includes("=")) {
+          const sname = shortToName.get(tok.slice(1));
+          const fopt = sname ? this.flagsDef.get(sname) : undefined;
+          if (fopt && fopt.kind !== "bool") k++;
+        }
+        continue;
+      }
+      firstPosIdx = k;
+      break;
     }
 
-    // Check completion flag or command
+    const rootMetaScan =
+      this.subcommands.size > 0 &&
+      firstPosIdx >= 0 &&
+      this.subcommands.has(preDash[firstPosIdx] || "")
+        ? preDash.slice(0, firstPosIdx)
+        : preDash;
+
+    // Check completion flag or command (only before `--` and before subcommand)
     if (
-      args.includes("--completion") ||
-      (args[0] === "completion" && args[1])
+      rootMetaScan.includes("--completion") ||
+      (preDash[0] === "completion" &&
+        preDash[1] &&
+        !this.subcommands.has("completion"))
     ) {
       const shell =
-        ((args.includes("--completion")
-          ? args[args.indexOf("--completion") + 1]
-          : args[1]) as ShellType) || "zsh";
+        ((rootMetaScan.includes("--completion")
+          ? rootMetaScan[rootMetaScan.indexOf("--completion") + 1]
+          : preDash[1]) as ShellType) || "zsh";
       console.log(this.generateCompletions(shell));
       return false;
     }
 
     // Check help flag
     if (
-      args.includes("--help") ||
-      (!shortToName.has("h") && args.includes("-h"))
+      rootMetaScan.includes("--help") ||
+      (!shortToName.has("h") && rootMetaScan.includes("-h"))
     ) {
       this.printHelp();
       return false;
     }
+
     // Check version flag
     if (
-      args.includes("--version") ||
-      args.includes("-V") ||
-      (!shortToName.has("v") && args.includes("-v"))
+      rootMetaScan.includes("--version") ||
+      rootMetaScan.includes("-V") ||
+      (!shortToName.has("v") && rootMetaScan.includes("-v"))
     ) {
       console.log(`${this.appName} version ${this.version}`);
       return false;
     }
 
-    this.posArgs = [];
     let i = 0;
-
-    // Check subcommand routing for first positional argument if subcommands are defined
-    const firstArg = args[0];
-    if (firstArg && !firstArg.startsWith("-") && this.subcommands.size > 0) {
-      const sub = this.subcommands.get(firstArg);
-      if (sub) {
-        this.posArgs.push(firstArg);
-        return true;
-      } else {
-        const suggestion = this.suggestMatch(
-          firstArg,
-          Array.from(this.subcommands.keys()),
-        );
-        if (suggestion) {
-          console.error(
-            Ansi.red(
-              `Unknown command "${firstArg}". Did you mean "${suggestion}"?`,
-            ),
-          );
-        } else {
-          console.error(Ansi.red(`Unknown command "${firstArg}".`));
-        }
-        return false;
-      }
-    }
 
     while (i < args.length) {
       const arg = args[i];
-      if (!arg) {
+      if (arg === undefined) {
         i++;
         continue;
       }
@@ -455,61 +495,177 @@ export class SimpleCLI {
         break;
       }
 
+      if (
+        !arg.startsWith("-") &&
+        arg.length > 0 &&
+        this.subcommands.size > 0 &&
+        this.posArgs.length === 0
+      ) {
+        const sub = this.subcommands.get(arg);
+        if (sub) {
+          const rest = args.slice(i + 1);
+          this.posArgs.push(arg, ...rest);
+          this.subcommandDispatch = { name: arg, args: rest };
+          return true;
+        } else {
+          const safeCmd = sanitizeCliToken(arg);
+          const suggestion = this.suggestMatch(
+            safeCmd,
+            Array.from(this.subcommands.keys()),
+          );
+          if (suggestion) {
+            console.error(
+              Ansi.red(
+                `Unknown command "${safeCmd}". Did you mean "${suggestion}"?`,
+              ),
+            );
+          } else {
+            console.error(Ansi.red(`Unknown command "${safeCmd}".`));
+          }
+          return false;
+        }
+      }
+
       if (arg.startsWith("--")) {
         const flagNameWithVal = arg.slice(2);
         let flagName = flagNameWithVal;
         let inlineVal: string | undefined;
 
-        if (flagNameWithVal.includes("=")) {
-          const parts = flagNameWithVal.split("=");
-          flagName = parts[0] || "";
-          inlineVal = parts.slice(1).join("=");
+        const eqIdx = flagNameWithVal.indexOf("=");
+        if (eqIdx >= 0) {
+          flagName = flagNameWithVal.slice(0, eqIdx);
+          inlineVal = flagNameWithVal.slice(eqIdx + 1);
         }
 
         const opt = this.flagsDef.get(flagName);
         if (opt) {
           if (opt.kind === "bool") {
-            const val = inlineVal ? /^(true|1|yes)$/i.test(inlineVal) : true;
+            const val =
+              inlineVal !== undefined
+                ? /^(true|1|yes|on)$/i.test(inlineVal)
+                : true;
             this.flagsVal.set(flagName, val);
           } else {
-            const val = inlineVal ?? args[++i];
-            if (val !== undefined) {
-              this.setTypedFlagValue(flagName, opt.kind, val);
+            const val = inlineVal !== undefined ? inlineVal : args[++i];
+            if (val === undefined) {
+              console.error(
+                Ansi.red(
+                  `Missing value for flag "--${sanitizeCliToken(flagName)}".`,
+                ),
+              );
+              return false;
+            }
+            if (!this.setTypedFlagValue(flagName, opt, val, seenArrayFlags)) {
+              return false;
             }
           }
         } else {
+          const safeFlag = sanitizeCliToken(flagName);
           const suggestion = this.suggestMatch(
-            flagName,
+            safeFlag,
             Array.from(this.flagsDef.keys()),
           );
           if (suggestion) {
             console.error(
               Ansi.yellow(
-                `Unknown flag "--${flagName}". Did you mean "--${suggestion}"?`,
+                `Unknown flag "--${safeFlag}". Did you mean "--${suggestion}"?`,
               ),
             );
           }
           if (arg) this.posArgs.push(arg);
         }
       } else if (arg.startsWith("-") && arg.length > 1) {
-        const shortFlag = arg.slice(1);
-        const flagName = shortToName.get(shortFlag);
-        const opt = flagName ? this.flagsDef.get(flagName) : undefined;
+        const rawShort = arg.slice(1);
+        const eqIdx = rawShort.indexOf("=");
+        const shortPart = eqIdx >= 0 ? rawShort.slice(0, eqIdx) : rawShort;
+        const inlineVal = eqIdx >= 0 ? rawShort.slice(eqIdx + 1) : undefined;
 
-        if (opt && flagName) {
-          if (opt.kind === "bool") {
-            this.flagsVal.set(flagName, true);
+        const directName = shortToName.get(shortPart);
+        const directOpt = directName
+          ? this.flagsDef.get(directName)
+          : undefined;
+
+        if (directOpt && directName) {
+          if (directOpt.kind === "bool") {
+            const val =
+              inlineVal !== undefined
+                ? /^(true|1|yes|on)$/i.test(inlineVal)
+                : true;
+            this.flagsVal.set(directName, val);
           } else {
-            const val = args[++i];
-            if (val !== undefined) {
-              this.setTypedFlagValue(flagName, opt.kind, val);
+            const val = inlineVal !== undefined ? inlineVal : args[++i];
+            if (val === undefined) {
+              console.error(
+                Ansi.red(
+                  `Missing value for flag "-${sanitizeCliToken(shortPart)}".`,
+                ),
+              );
+              return false;
             }
+            if (
+              !this.setTypedFlagValue(
+                directName,
+                directOpt,
+                val,
+                seenArrayFlags,
+              )
+            ) {
+              return false;
+            }
+          }
+        } else if (shortPart.length > 1 && !/^\d/.test(shortPart)) {
+          // Support POSIX combined short flags: `-abc` (all bools, or bools + trailing value flag)
+          const chars = Array.from(shortPart);
+          let validCluster = true;
+          for (let cIdx = 0; cIdx < chars.length; cIdx++) {
+            const ch = chars[cIdx]!;
+            const mapped = shortToName.get(ch);
+            const cOpt = mapped ? this.flagsDef.get(mapped) : undefined;
+            if (!cOpt) {
+              validCluster = false;
+              break;
+            }
+            if (cIdx < chars.length - 1 && cOpt.kind !== "bool") {
+              validCluster = false;
+              break;
+            }
+          }
+          if (validCluster) {
+            for (let cIdx = 0; cIdx < chars.length; cIdx++) {
+              const ch = chars[cIdx]!;
+              const mapped = shortToName.get(ch)!;
+              const cOpt = this.flagsDef.get(mapped)!;
+              if (cOpt.kind === "bool") {
+                const val =
+                  cIdx === chars.length - 1 && inlineVal !== undefined
+                    ? /^(true|1|yes|on)$/i.test(inlineVal)
+                    : true;
+                this.flagsVal.set(mapped, val);
+              } else {
+                const val = inlineVal !== undefined ? inlineVal : args[++i];
+                if (val === undefined) {
+                  console.error(
+                    Ansi.red(
+                      `Missing value for flag "-${sanitizeCliToken(ch)}".`,
+                    ),
+                  );
+                  return false;
+                }
+                if (
+                  !this.setTypedFlagValue(mapped, cOpt, val, seenArrayFlags)
+                ) {
+                  return false;
+                }
+              }
+            }
+          } else {
+            if (arg) this.posArgs.push(arg);
           }
         } else {
           if (arg) this.posArgs.push(arg);
         }
       } else {
-        if (arg) this.posArgs.push(arg);
+        this.posArgs.push(arg);
       }
 
       i++;
@@ -518,17 +674,54 @@ export class SimpleCLI {
     return true;
   }
 
-  private setTypedFlagValue(flagName: string, kind: string, val: string): void {
-    if (kind === "int") {
-      this.flagsVal.set(flagName, parseInt(val, 10) || 0);
-    } else if (kind === "float") {
-      this.flagsVal.set(flagName, parseFloat(val) || 0.0);
-    } else if (kind === "array") {
-      const existing = this.flagsVal.get(flagName) || [];
-      this.flagsVal.set(flagName, [...existing, val]);
+  private setTypedFlagValue(
+    flagName: string,
+    opt: FlagOption,
+    val: string,
+    seenArrayFlags: Set<string>,
+  ): boolean {
+    if (opt.choices && opt.choices.length > 0 && !opt.choices.includes(val)) {
+      console.error(
+        Ansi.red(
+          `Invalid value "${sanitizeCliToken(val)}" for "--${sanitizeCliToken(flagName)}". Allowed: ${opt.choices.join(", ")}`,
+        ),
+      );
+      return false;
+    }
+    if (opt.kind === "int") {
+      const parsed = Number(val);
+      if (val.trim() === "" || !Number.isInteger(parsed)) {
+        console.error(
+          Ansi.red(
+            `Invalid integer "${sanitizeCliToken(val)}" for "--${sanitizeCliToken(flagName)}".`,
+          ),
+        );
+        return false;
+      }
+      this.flagsVal.set(flagName, parsed);
+    } else if (opt.kind === "float") {
+      const parsed = Number(val);
+      if (val.trim() === "" || !Number.isFinite(parsed)) {
+        console.error(
+          Ansi.red(
+            `Invalid number "${sanitizeCliToken(val)}" for "--${sanitizeCliToken(flagName)}".`,
+          ),
+        );
+        return false;
+      }
+      this.flagsVal.set(flagName, parsed);
+    } else if (opt.kind === "array") {
+      if (!seenArrayFlags.has(flagName)) {
+        seenArrayFlags.add(flagName);
+        this.flagsVal.set(flagName, [val]);
+      } else {
+        const existing = this.flagsVal.get(flagName) || [];
+        this.flagsVal.set(flagName, [...existing, val]);
+      }
     } else {
       this.flagsVal.set(flagName, val);
     }
+    return true;
   }
 
   /**
@@ -1498,6 +1691,7 @@ export class SimpleCLI {
    * Sets a string value in the in-memory application state store and returns `this`.
    */
   public setState(key: string, value: string): this {
+    if (isUnsafeStateKey(key)) return this;
     this.state[key] = value;
     return this;
   }
@@ -1506,7 +1700,10 @@ export class SimpleCLI {
    * Retrieves a string value from the in-memory state store, or `defaultVal` if unset.
    */
   public getState(key: string, defaultVal: string = ""): string {
-    return this.state[key] ?? defaultVal;
+    if (isUnsafeStateKey(key)) return defaultVal;
+    return Object.prototype.hasOwnProperty.call(this.state, key)
+      ? (this.state[key] ?? defaultVal)
+      : defaultVal;
   }
 
   /**
@@ -1537,7 +1734,15 @@ export class SimpleCLI {
     if (!existsSync(filePath)) return;
     try {
       const data = readFileSync(filePath, "utf8");
-      this.state = JSON.parse(data);
+      const parsed = JSON.parse(data);
+      const next: Record<string, string> = Object.create(null);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        for (const [k, v] of Object.entries(parsed)) {
+          if (isUnsafeStateKey(k)) continue;
+          next[k] = String(v ?? "");
+        }
+      }
+      this.state = next;
     } catch (err) {
       if (this.debugMode) {
         this.debug(`Failed loading state from "${filePath}":`, err);
@@ -1597,56 +1802,80 @@ export class SimpleCLI {
    * Generates a shell completion script (`zsh`, `bash`, or `fish`) for all registered commands and flags.
    */
   public generateCompletions(shell: ShellType = "zsh"): string {
+    const safeCmdName =
+      this.appName.toLowerCase().replace(/[^a-z0-9._-]/g, "_") || "cli";
+    const safeFnName = safeCmdName.replace(/[^a-z0-9_]/g, "_");
     const commands = Array.from(this.subcommands.entries()).map(([k, v]) => ({
-      name: k,
+      name: k.replace(/[^a-zA-Z0-9._:-]/g, ""),
       desc: v.description,
     }));
     const flags: string[] = [];
     for (const [name, opt] of this.flagsDef.entries()) {
-      flags.push(`--${name}`);
-      if (opt.short) flags.push(`-${opt.short}`);
+      flags.push(`--${name.replace(/[^a-zA-Z0-9._-]/g, "")}`);
+      if (opt.short) flags.push(`-${opt.short.replace(/[^a-zA-Z0-9]/g, "")}`);
     }
 
     if (shell === "bash") {
       const allOpts = [...flags, ...commands.map((c) => c.name)].join(" ");
-      return `_${this.appName.toLowerCase()}_completions() {
+      return `_${safeFnName}_completions() {
   local cur prev
   COMPREPLY=()
   cur="\${COMP_WORDS[COMP_CWORD]}"
   prev="\${COMP_WORDS[COMP_CWORD-1]}"
-  local opts="${allOpts}"
-  COMPREPLY=( $(compgen -W "\${opts}" -- \${cur}) )
+  local opts='${allOpts.replace(/'/g, "'\\''")}'
+  COMPREPLY=( $(compgen -W "\${opts}" -- "\${cur}") )
   return 0
 }
-complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCase()}`;
+complete -F _${safeFnName}_completions ${safeCmdName}`;
     }
 
     if (shell === "fish") {
-      let script = `# Fish completions for ${this.appName}\n`;
+      const escFish = (s: string) =>
+        String(s || "")
+          .replace(/\\/g, "\\\\")
+          .replace(/"/g, '\\"')
+          .replace(/\$/g, "\\$")
+          .replace(/`/g, "\\`")
+          .replace(/[\r\n]+/g, " ");
+      let script = `# Fish completions for ${safeCmdName}\n`;
       for (const [name, opt] of this.flagsDef.entries()) {
-        const shortPart = opt.short ? `-s ${opt.short} ` : "";
-        script += `complete -c ${this.appName.toLowerCase()} ${shortPart}-l ${name} -d "${opt.desc.replace(/"/g, '\\"')}"\n`;
+        const cleanName = name.replace(/[^a-zA-Z0-9._-]/g, "");
+        const cleanShort = opt.short
+          ? opt.short.replace(/[^a-zA-Z0-9]/g, "")
+          : "";
+        const shortPart = cleanShort ? `-s ${cleanShort} ` : "";
+        script += `complete -c ${safeCmdName} ${shortPart}-l ${cleanName} -d "${escFish(opt.desc)}"\n`;
       }
       for (const cmd of commands) {
-        script += `complete -c ${this.appName.toLowerCase()} -n "__fish_use_subcommand" -a "${cmd.name}" -d "${cmd.desc.replace(/"/g, '\\"')}"\n`;
+        script += `complete -c ${safeCmdName} -n "__fish_use_subcommand" -a "${cmd.name}" -d "${escFish(cmd.desc)}"\n`;
       }
       return script;
     }
 
     // zsh default
-    let script = `#compdef ${this.appName.toLowerCase()}\n\n_${this.appName.toLowerCase()}() {\n`;
+    const escZsh = (s: string) =>
+      String(s || "")
+        .replace(/'/g, "'\\''")
+        .replace(/\[/g, "\\[")
+        .replace(/\]/g, "\\]")
+        .replace(/[\r\n]+/g, " ");
+    let script = `#compdef ${safeCmdName}\n\n_${safeFnName}() {\n`;
     script += `  local -a commands\n  commands=(\n`;
     for (const cmd of commands) {
-      script += `    '${cmd.name}:${cmd.desc.replace(/'/g, "\\'")}'\n`;
+      script += `    '${cmd.name}:${escZsh(cmd.desc)}'\n`;
     }
     script += `  )\n\n  _arguments -s \\\n`;
     for (const [name, opt] of this.flagsDef.entries()) {
-      const shortPart = opt.short
-        ? ` '(-${opt.short} --${name})'{-${opt.short},--${name}}`
-        : ` '--${name}'`;
-      script += `   ${shortPart}'[${opt.desc.replace(/'/g, "\\'")}]' \\\n`;
+      const cleanName = name.replace(/[^a-zA-Z0-9._-]/g, "");
+      const cleanShort = opt.short
+        ? opt.short.replace(/[^a-zA-Z0-9]/g, "")
+        : "";
+      const shortPart = cleanShort
+        ? ` '(-${cleanShort} --${cleanName})'{-${cleanShort},--${cleanName}}`
+        : ` '--${cleanName}'`;
+      script += `   ${shortPart}'[${escZsh(opt.desc)}]' \\\n`;
     }
-    script += `    '1: :->command' \\\n    '*::arg:->args'\n}\n\n_${this.appName.toLowerCase()} "$@"\n`;
+    script += `    '1: :->command' \\\n    '*::arg:->args'\n}\n\n_${safeFnName} "$@"\n`;
     return script;
   }
 
@@ -1707,15 +1936,18 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
    */
   public formatError(err: unknown): string {
     const error = err instanceof Error ? err : new Error(String(err));
-    const title = `✖ ${error.name || "Error"}: ${error.message}`;
+    const safeName = sanitizeCliToken(error.name || "Error");
+    const safeMsg = sanitizeCliToken(error.message);
+    const title = `✖ ${safeName}: ${safeMsg}`;
     let stackClean = "";
     if (error.stack) {
       const lines = error.stack.split(/\r?\n/).slice(1);
-      const filtered = lines.map((line) => {
+      const filtered = lines.map((rawLine) => {
+        const line = sanitizeCliToken(rawLine);
         if (line.includes("node:") || line.includes("bun:")) {
-          return Ansi.dim(line);
+          return this.noColor ? line : Ansi.dim(line);
         }
-        return Ansi.yellow(line);
+        return this.noColor ? line : Ansi.yellow(line);
       });
       stackClean = "\n" + filtered.join("\n");
     }
@@ -1931,8 +2163,9 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
     routesOrHandler: Record<string, any> | ((req: Request) => any),
     port: number = 3000,
     hostname: string = "127.0.0.1",
+    options?: { allowRemote?: boolean },
   ): any {
-    return Sys.serveJson(routesOrHandler, port, hostname);
+    return Sys.serveJson(routesOrHandler, port, hostname, options);
   }
 
   /**
@@ -2092,7 +2325,28 @@ complete -F _${this.appName.toLowerCase()}_completions ${this.appName.toLowerCas
     if (target) {
       args.push("--target", target);
     }
-    const proc = spawnSync("bun", args, { stdio: "inherit" });
-    return proc.status === 0;
+    if (typeof (Bun as any)?.spawn === "function") {
+      try {
+        const proc = (Bun as any).spawn(["bun", ...args], {
+          stdin: "inherit",
+          stdout: "inherit",
+          stderr: "inherit",
+        });
+        const code = await proc.exited;
+        return code === 0;
+      } catch {
+        return false;
+      }
+    }
+    return new Promise((resolvePromise) => {
+      try {
+        const proc = spawn("bun", args, { stdio: "inherit" });
+        proc.on("close", (code) => resolvePromise(code === 0));
+        proc.on("error", () => resolvePromise(false));
+      } catch {
+        const proc = spawnSync("bun", args, { stdio: "inherit" });
+        resolvePromise(proc.status === 0);
+      }
+    });
   }
 }

@@ -8,6 +8,7 @@ import { existsSync, statSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve, join, dirname } from "node:path";
 import * as readline from "node:readline";
+import { Writable } from "node:stream";
 
 /**
  * Static utility class providing interactive terminal prompts, selection menus, fuzzy finders, and multi-field forms.
@@ -63,7 +64,33 @@ export class Prompts {
     const label = `${Ansi.cyan("?")} ${Ansi.bold(message)}: `;
 
     if (!process.stdin.isTTY) {
-      return Prompts.readline(label);
+      process.stdout.write(label);
+      const silentOut = new Writable({
+        write(_chunk, _encoding, cb) {
+          cb();
+        },
+      });
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: silentOut,
+        terminal: false,
+      });
+      return new Promise((res) => {
+        let settled = false;
+        rl.once("line", (line) => {
+          settled = true;
+          rl.close();
+          process.stdout.write("\n");
+          res(line.replace(/\r$/, ""));
+        });
+        rl.once("close", () => {
+          if (!settled) {
+            settled = true;
+            process.stdout.write("\n");
+            res("");
+          }
+        });
+      });
     }
 
     return new Promise((res) => {
@@ -75,29 +102,38 @@ export class Prompts {
       process.stdin.resume();
       process.stdin.setEncoding("utf8");
 
+      const restoreTty = () => {
+        process.stdin.setRawMode?.(isRaw ?? false);
+        process.stdin.pause();
+        process.stdin.removeListener("data", onData);
+      };
+
       const onData = (chunk: string) => {
         for (const char of chunk) {
           if (char === "\r" || char === "\n" || char === "\u0004") {
             // Enter or EOF
-            process.stdin.setRawMode?.(isRaw ?? false);
-            process.stdin.pause();
-            process.stdin.removeListener("data", onData);
+            restoreTty();
             process.stdout.write("\n");
             res(password);
             return;
           } else if (char === "\u0003") {
             // Ctrl+C
-            process.stdout.write("\n");
+            restoreTty();
+            process.stdout.write("\x1b[?25h\n");
             process.exit(130);
           } else if (char === "\b" || char === "\x7f") {
             // Backspace
             if (password.length > 0) {
               password = password.slice(0, -1);
-              process.stdout.write("\b \b");
+              if (maskChar) {
+                process.stdout.write("\b \b");
+              }
             }
           } else if (char.charCodeAt(0) >= 32) {
             password += char;
-            process.stdout.write(maskChar);
+            if (maskChar) {
+              process.stdout.write(maskChar);
+            }
           }
         }
       };
@@ -250,7 +286,10 @@ export class Prompts {
       const onData = (chunk: string) => {
         if (chunk === "\u0003") {
           // Ctrl+C
-          process.stdout.write("\n");
+          process.stdin.setRawMode?.(isRaw ?? false);
+          process.stdin.pause();
+          process.stdin.removeListener("data", onData);
+          process.stdout.write("\x1b[?25h\n");
           process.exit(130);
         } else if (chunk === "\r" || chunk === "\n") {
           // Enter
@@ -258,9 +297,7 @@ export class Prompts {
           process.stdin.pause();
           process.stdin.removeListener("data", onData);
           // clear and output final choice
-          process.stdout.write(
-            Ansi.cursorUp(choices.length + 1) + Ansi.clearLine(),
-          );
+          process.stdout.write(Ansi.cursorUp(choices.length + 1) + "\r\x1b[J");
           const chosen = choices[selectedIdx] ?? choices[0] ?? "";
           process.stdout.write(
             `${Ansi.green("✔")} ${Ansi.bold(message)}: ${Ansi.cyan(chosen)}\n`,
@@ -340,15 +377,16 @@ export class Prompts {
 
       const onData = (chunk: string) => {
         if (chunk === "\u0003") {
-          process.stdout.write("\n");
+          process.stdin.setRawMode?.(isRaw ?? false);
+          process.stdin.pause();
+          process.stdin.removeListener("data", onData);
+          process.stdout.write("\x1b[?25h\n");
           process.exit(130);
         } else if (chunk === "\r" || chunk === "\n") {
           process.stdin.setRawMode?.(isRaw ?? false);
           process.stdin.pause();
           process.stdin.removeListener("data", onData);
-          process.stdout.write(
-            Ansi.cursorUp(choices.length + 1) + Ansi.clearLine(),
-          );
+          process.stdout.write(Ansi.cursorUp(choices.length + 1) + "\r\x1b[J");
           const chosen = Array.from(selected)
             .map((i) => choices[i] ?? "")
             .filter(Boolean);
@@ -435,15 +473,16 @@ export class Prompts {
 
       const onData = (chunk: string) => {
         if (chunk === "\u0003") {
-          process.stdout.write("\n");
+          process.stdin.setRawMode?.(isRaw ?? false);
+          process.stdin.pause();
+          process.stdin.removeListener("data", onData);
+          process.stdout.write("\x1b[?25h\n");
           process.exit(130);
         } else if (chunk === "\r" || chunk === "\n") {
           process.stdin.setRawMode?.(isRaw ?? false);
           process.stdin.pause();
           process.stdin.removeListener("data", onData);
-          process.stdout.write(
-            Ansi.cursorUp(maxResults + 1) + Ansi.clearLine(),
-          );
+          process.stdout.write(Ansi.cursorUp(maxResults + 1) + "\r\x1b[J");
           const chosen =
             currentFiltered[cursorIdx] ||
             currentFiltered[0] ||
@@ -538,26 +577,38 @@ export class Prompts {
     for (const f of fields) {
       const kind = f.kind || "text";
       let val = "";
+      let attempts = 0;
 
-      if (kind === "password") {
-        val = await Prompts.promptPassword(f.label);
-      } else if (kind === "boolean") {
-        const boolVal = await Prompts.confirm(f.label, f.defaultVal === "true");
-        val = boolVal ? "true" : "false";
-      } else if (kind === "number") {
-        const numVal = await Prompts.promptNumber(
-          f.label,
-          f.defaultVal ? Number(f.defaultVal) : 0,
-        );
-        val = numVal.toString();
-      } else if (kind === "select" && f.choices && f.choices.length > 0) {
-        val = await Prompts.select(f.label, f.choices);
-      } else {
-        val = await Prompts.prompt(f.label, f.defaultVal || "");
-      }
+      while (true) {
+        attempts++;
+        if (kind === "password") {
+          val = await Prompts.promptPassword(f.label);
+        } else if (kind === "boolean") {
+          const boolVal = await Prompts.confirm(
+            f.label,
+            f.defaultVal === "true",
+          );
+          val = boolVal ? "true" : "false";
+        } else if (kind === "number") {
+          const numVal = await Prompts.promptNumber(
+            f.label,
+            f.defaultVal ? Number(f.defaultVal) : 0,
+          );
+          val = numVal.toString();
+        } else if (kind === "select" && f.choices && f.choices.length > 0) {
+          val = await Prompts.select(f.label, f.choices);
+        } else {
+          val = await Prompts.prompt(f.label, f.defaultVal || "");
+        }
 
-      if (f.required && !val) {
-        console.log(Ansi.red(`  ✖ Field "${f.label}" is required.`));
+        if (f.required && !val) {
+          console.log(Ansi.red(`  ✖ Field "${f.label}" is required.`));
+          if (!process.stdin.isTTY && attempts >= 2) {
+            break;
+          }
+          continue;
+        }
+        break;
       }
       results[f.key] = val;
     }
@@ -699,9 +750,7 @@ export class Prompts {
         process.stdin.pause();
         process.stdin.removeListener("data", onData);
         if (lastRenderedLines > 0) {
-          process.stdout.write(
-            Ansi.cursorUp(lastRenderedLines) + Ansi.clearLine(),
-          );
+          process.stdout.write(Ansi.cursorUp(lastRenderedLines) + "\r\x1b[J");
         }
       };
 

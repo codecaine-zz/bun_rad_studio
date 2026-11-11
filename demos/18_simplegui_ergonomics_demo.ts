@@ -1,3 +1,5 @@
+import { tmpdir } from "os";
+import { join } from "path";
 import { simplegui } from "../index.ts";
 import { SimpleWindow } from "../src/simplegui";
 
@@ -268,7 +270,7 @@ export function createErgonomicsShowcase(): SimpleWindow {
 
   win
     .addButton("💾 Save JSON State", (w) => {
-      const tempPath = `/tmp/simplegui_demo_settings.json`;
+      const tempPath = join(tmpdir(), "simplegui_demo_settings.json");
       w.saveValuesToFile(tempPath);
       w.info("Settings Saved", `Saved form values to JSON file:\n${tempPath}`);
       w.setStatus(`Saved state to ${tempPath}`);
@@ -278,7 +280,7 @@ export function createErgonomicsShowcase(): SimpleWindow {
 
   win
     .addButton("📂 Load JSON State", (w) => {
-      const tempPath = `/tmp/simplegui_demo_settings.json`;
+      const tempPath = join(tmpdir(), "simplegui_demo_settings.json");
       w.loadValuesFromFile(tempPath);
       w.info(
         "Settings Restored",

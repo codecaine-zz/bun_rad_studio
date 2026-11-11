@@ -13,7 +13,9 @@ import * as path from "node:path";
 import * as net from "node:net";
 import * as dns from "node:dns";
 import * as zlib from "node:zlib";
+import * as crypto from "node:crypto";
 import { spawnSync, spawn } from "node:child_process";
+import { guardLocalRequest } from "../../localGuard.ts";
 
 /** Detailed physical and virtual memory utilization metrics in bytes and percentage. */
 export interface MemoryBreakdown {
@@ -151,7 +153,7 @@ export class Sys {
 
     while (attempts < maxRetries) {
       attempts++;
-      const [out, code] = Sys.exec(command, cwd);
+      const [out, code] = await Sys.execAsync(command, cwd);
       lastOut = out;
       lastCode = code;
 
@@ -707,10 +709,9 @@ export class Sys {
   /** Returns detailed `FileMetadata` (size, permissions, timestamps, type flags) for `filePath`, or `null` if missing. */
   public static fileMetadata(filePath: string): FileMetadata | null {
     const fullPath = Sys.expandTilde(filePath);
-    if (!fs.existsSync(fullPath)) return null;
 
     try {
-      const st = fs.statSync(fullPath);
+      const st = fs.lstatSync(fullPath);
       let isReadable = false;
       let isWritable = false;
       try {
@@ -740,15 +741,19 @@ export class Sys {
 
   /** Generates a unique temporary file path in the OS temp directory with optional `prefix` and `suffix`. */
   public static tempFile(prefix: string = "tmp_", suffix: string = ""): string {
-    const rand = Math.random().toString(36).substring(2, 8);
-    const fileName = `${prefix}${Date.now()}_${rand}${suffix}`;
+    const safePrefix = String(prefix || "tmp_").replace(/[/\\]/g, "_");
+    const safeSuffix = String(suffix || "").replace(/[/\\]/g, "_");
+    const fileName = `${safePrefix}${crypto.randomUUID()}${safeSuffix}`;
     return path.join(os.tmpdir(), fileName);
   }
 
   /** Creates a new unique temporary directory in the OS temp directory and returns its path. */
   public static tempDir(prefix: string = "tmp_dir_"): string {
-    const dirPath = Sys.tempFile(prefix);
-    fs.mkdirSync(dirPath, { recursive: true });
+    const safePrefix = String(prefix || "tmp_dir_").replace(/[/\\]/g, "_");
+    const dirPath = fs.mkdtempSync(path.join(os.tmpdir(), safePrefix));
+    try {
+      fs.chmodSync(dirPath, 0o700);
+    } catch {}
     return dirPath;
   }
 
@@ -910,8 +915,28 @@ export class Sys {
         : p === "darwin"
           ? ["-c", "1", "-W", timeoutMsStr, cleanHost]
           : ["-c", "1", "-W", timeoutSec, cleanHost];
-    const res = spawnSync("ping", args, { stdio: "ignore" });
-    return res.status === 0;
+    if (typeof (Bun as any)?.spawn === "function") {
+      try {
+        const proc = (Bun as any).spawn(["ping", ...args], {
+          stdin: "ignore",
+          stdout: "ignore",
+          stderr: "ignore",
+        });
+        const code = await proc.exited;
+        return code === 0;
+      } catch {
+        return false;
+      }
+    }
+    return new Promise((resolve) => {
+      try {
+        const proc = spawn("ping", args, { stdio: "ignore" });
+        proc.on("close", (code) => resolve(code === 0));
+        proc.on("error", () => resolve(false));
+      } catch {
+        resolve(false);
+      }
+    });
   }
 
   /** Probes whether a TCP connection can be established to `host:port` within `timeoutMs`. */
@@ -1166,11 +1191,22 @@ export class Sys {
     return "";
   }
 
-  /** Opens a URL or file path in the user's default desktop browser or application. */
+  /** Opens a URL (`http:`, `https:`, or `mailto:`) in the user's default desktop browser or mail client. */
   public static openUrl(urlOrPath: string): boolean {
     const target = String(urlOrPath ?? "").trim();
-    if (!target || target.startsWith("-") || target.includes("\0"))
+    if (!target || target.startsWith("-") || /[\0\r\n]/.test(target))
       return false;
+    let parsed: URL;
+    try {
+      parsed = new URL(target);
+    } catch {
+      return false;
+    }
+    const proto = parsed.protocol.toLowerCase();
+    if (proto !== "http:" && proto !== "https:" && proto !== "mailto:") {
+      return false;
+    }
+    const safeUrl = parsed.toString();
     try {
       const p = os.platform();
       let cmd: string;
@@ -1178,13 +1214,13 @@ export class Sys {
 
       if (p === "darwin") {
         cmd = "open";
-        args = [target];
+        args = [safeUrl];
       } else if (p === "win32") {
-        cmd = "cmd";
-        args = ["/c", "start", '""', target];
+        cmd = "rundll32.exe";
+        args = ["url.dll,FileProtocolHandler", safeUrl];
       } else {
         cmd = "xdg-open";
-        args = [target];
+        args = [safeUrl];
       }
 
       const proc = spawn(cmd, args, {
@@ -1512,7 +1548,7 @@ export class Sys {
       a = (a + (buf[i] || 0)) % 65521;
       b = (b + a) % 65521;
     }
-    return (b << 16) | a;
+    return ((b << 16) | a) >>> 0;
   }
 
   /** Compresses string or binary `data` using GZIP and returns the compressed `Uint8Array`. */
@@ -1576,10 +1612,28 @@ export class Sys {
     if (typeof (Bun as any)?.semver?.satisfies === "function") {
       return (Bun as any).semver.satisfies(version, range);
     }
-    // Simple basic fallback comparison for ^ or >=
-    const cleanV = version.replace(/^v/, "");
-    const cleanR = range.replace(/^[\^~>=<]+/, "");
-    return cleanV.localeCompare(cleanR, undefined, { numeric: true }) >= 0;
+    const cleanV = version.trim().replace(/^v/, "");
+    const trimmedR = range.trim();
+    if (!trimmedR || trimmedR === "*" || trimmedR === "x") return true;
+    const m = /^(\^|~|>=|<=|>|<|=)?\s*v?(.+)$/.exec(trimmedR);
+    if (!m) return false;
+    const op = m[1] || "=";
+    const cleanR = m[2]!;
+    const cmp = cleanV.localeCompare(cleanR, undefined, { numeric: true });
+    if (op === "<") return cmp < 0;
+    if (op === "<=") return cmp <= 0;
+    if (op === ">") return cmp > 0;
+    if (op === ">=") return cmp >= 0;
+    if (op === "=") return cmp === 0;
+    const vParts = cleanV.split(".").map((n) => parseInt(n, 10) || 0);
+    const rParts = cleanR.split(".").map((n) => parseInt(n, 10) || 0);
+    if (op === "^") {
+      return cmp >= 0 && vParts[0] === rParts[0];
+    }
+    if (op === "~") {
+      return cmp >= 0 && vParts[0] === rParts[0] && vParts[1] === rParts[1];
+    }
+    return cmp === 0;
   }
 
   /** Compares two semver version strings, returning `-1`, `0`, or `1`. */
@@ -1611,7 +1665,7 @@ export class Sys {
   }
 
   // Listens on 127.0.0.1 unless `hostname` is given (for example "0.0.0.0" to publish the directory on the network).
-  /** Starts a static file HTTP server serving files from `directory` with path-traversal protection. */
+  /** Starts a static file HTTP server serving files from `directory` with path-traversal and symlink-escape protection. */
   public static serveStatic(
     directory: string,
     port: number = 3000,
@@ -1621,6 +1675,7 @@ export class Sys {
     if (!fs.existsSync(fullDir)) {
       throw new Error(`Directory "${fullDir}" does not exist.`);
     }
+    const realRoot = fs.realpathSync(fullDir);
 
     if (typeof (Bun as any)?.serve === "function") {
       return (Bun as any).serve({
@@ -1644,7 +1699,37 @@ export class Sys {
           if (target !== fullDir && !target.startsWith(fullDir + path.sep)) {
             return new Response("Forbidden", { status: 403 });
           }
-          const file = (Bun as any).file(target);
+          let lstat: fs.Stats;
+          try {
+            lstat = fs.lstatSync(target);
+          } catch {
+            return new Response("Not Found", { status: 404 });
+          }
+          let realTarget: string;
+          try {
+            realTarget = fs.realpathSync(target);
+          } catch {
+            return new Response(
+              lstat.isSymbolicLink() ? "Forbidden" : "Not Found",
+              { status: lstat.isSymbolicLink() ? 403 : 404 },
+            );
+          }
+          if (
+            realTarget !== realRoot &&
+            !realTarget.startsWith(realRoot + path.sep)
+          ) {
+            return new Response("Forbidden", { status: 403 });
+          }
+          let st: fs.Stats;
+          try {
+            st = fs.statSync(realTarget);
+          } catch {
+            return new Response("Not Found", { status: 404 });
+          }
+          if (!st.isFile()) {
+            return new Response("Not Found", { status: 404 });
+          }
+          const file = (Bun as any).file(realTarget);
           return new Response(file);
         },
       });
@@ -1661,6 +1746,7 @@ export class Sys {
     routesOrHandler: Record<string, any> | ((req: Request) => any),
     port: number = 3000,
     hostname: string = "127.0.0.1",
+    options?: { allowRemote?: boolean },
   ): any {
     const corsHeaders: Record<string, string> = {
       "Access-Control-Allow-Origin": "*",
@@ -1730,6 +1816,10 @@ export class Sys {
       port,
       hostname,
       fetch: async (req: Request) => {
+        if (!options?.allowRemote) {
+          const blocked = guardLocalRequest(req);
+          if (blocked) return blocked;
+        }
         if (req.method === "OPTIONS") {
           return new Response(null, { status: 204, headers: corsHeaders });
         }
