@@ -23,7 +23,12 @@ import {
   APPSTREAM_ID,
   appStreamMetaInfoXml,
   buildDebPackage,
+  buildRpmPackage,
   debFileName,
+  rpmArchForDownload,
+  rpmFileName,
+  rpmPostinScript,
+  rpmPreunScript,
   writeLinuxStoreManifests,
 } from "../scripts/release/linuxPackages";
 import { linuxOllamaInstallScript } from "../scripts/release/linuxSandbox";
@@ -539,19 +544,146 @@ profile codecaine-file-manager "${realpathSync(f.root)}/codecaine-file-manager" 
         ]).exitCode,
       ).toBe(0);
 
-      const pageWithDebs = downloadPage([], "", [
-        {
-          arch: "amd64",
-          label: "Ubuntu / Debian / Mint (.deb · x86-64)",
-          hint: "GUI installer",
-          file: debFileName("amd64", "1.5.3"),
-          bytes: 70_000_000,
-        },
-      ]);
+      const pageWithDebs = downloadPage(
+        [],
+        "",
+        [
+          {
+            arch: "amd64",
+            label: "Ubuntu / Debian / Mint (.deb · x86-64)",
+            hint: "GUI installer",
+            file: debFileName("amd64", "1.5.3"),
+            bytes: 70_000_000,
+          },
+        ],
+        [
+          {
+            arch: "x86_64",
+            label: "Fedora / RHEL / openSUSE (.rpm · x86-64)",
+            hint: "GUI RPM installer",
+            file: rpmFileName("x86_64", "1.5.3"),
+            bytes: 70_000_000,
+          },
+        ],
+      );
       expect(pageWithDebs).toContain(debFileName("amd64", "1.5.3"));
+      expect(pageWithDebs).toContain(rpmFileName("x86_64", "1.5.3"));
+      expect(pageWithDebs).toContain('data-id="linux-rpm-x86_64"');
       expect(appStreamMetaInfoXml("1.5.3")).toContain(
         "<mediatype>inode/directory</mediatype>",
       );
+
+      // Build and verify spec-compliant .rpm binary packages (x86_64 & aarch64)
+      expect(rpmArchForDownload("linux-x64")).toBe("x86_64");
+      expect(rpmArchForDownload("linux-arm64")).toBe("aarch64");
+      expect(rpmArchForDownload("linux-x64-baseline")).toBeNull();
+      expect(
+        Bun.spawnSync(["sh", "-n"], { stdin: Buffer.from(rpmPostinScript()) })
+          .exitCode,
+      ).toBe(0);
+      expect(
+        Bun.spawnSync(["sh", "-n"], { stdin: Buffer.from(rpmPreunScript()) })
+          .exitCode,
+      ).toBe(0);
+
+      for (const arch of ["x86_64", "aarch64"] as const) {
+        const rpmOut = join(dir, rpmFileName(arch, "1.5.3"));
+        await buildRpmPackage(stageDir, rpmOut, {
+          version: "1.5.3",
+          arch,
+        });
+        expect(existsSync(rpmOut)).toBe(true);
+        const rpmBuf = readFileSync(rpmOut);
+        // RPM Lead magic (0xedabeedb), v3.0, binary (0x0000), archNum (1=x86_64, 19=aarch64), sigtype=5
+        expect(rpmBuf[0]).toBe(0xed);
+        expect(rpmBuf[1]).toBe(0xab);
+        expect(rpmBuf[2]).toBe(0xee);
+        expect(rpmBuf[3]).toBe(0xdb);
+        expect(rpmBuf[4]).toBe(3);
+        expect(rpmBuf[5]).toBe(0);
+        expect(rpmBuf.readUInt16BE(6)).toBe(0);
+        expect(rpmBuf.readUInt16BE(8)).toBe(arch === "x86_64" ? 1 : 19);
+        expect(rpmBuf.readUInt16BE(78)).toBe(5);
+
+        // Signature Header at offset 96: magic 8e ad e8 01
+        expect(rpmBuf[96]).toBe(0x8e);
+        expect(rpmBuf[97]).toBe(0xad);
+        expect(rpmBuf[98]).toBe(0xe8);
+        expect(rpmBuf[99]).toBe(0x01);
+        const sigCount = rpmBuf.readUInt32BE(104);
+        const sigDataLen = rpmBuf.readUInt32BE(108);
+        expect(sigCount).toBeGreaterThanOrEqual(6);
+        // First signature index tag is RPMSIGTAG_HEADERSIGNATURES (62)
+        expect(rpmBuf.readUInt32BE(112)).toBe(62);
+        const sigRawLen = 16 + sigCount * 16 + sigDataLen;
+        const sigPad = (8 - (sigRawLen % 8)) % 8;
+        const mainHeaderOffset = 96 + sigRawLen + sigPad;
+
+        // Main Header at mainHeaderOffset: magic 8e ad e8 01
+        expect(rpmBuf[mainHeaderOffset]).toBe(0x8e);
+        expect(rpmBuf[mainHeaderOffset + 1]).toBe(0xad);
+        expect(rpmBuf[mainHeaderOffset + 2]).toBe(0xe8);
+        expect(rpmBuf[mainHeaderOffset + 3]).toBe(0x01);
+        // First main header index tag is RPMTAG_HEADERIMMUTABLE (63)
+        expect(rpmBuf.readUInt32BE(mainHeaderOffset + 16)).toBe(63);
+        const mainCount = rpmBuf.readUInt32BE(mainHeaderOffset + 8);
+        const mainDataLen = rpmBuf.readUInt32BE(mainHeaderOffset + 12);
+        const payloadOffset =
+          mainHeaderOffset + 16 + mainCount * 16 + mainDataLen;
+
+        // Payload is gzip-compressed SVR4 CPIO ("070701")
+        const gzPayload = rpmBuf.subarray(payloadOffset);
+        expect(gzPayload[0]).toBe(0x1f);
+        expect(gzPayload[1]).toBe(0x8b);
+        const cpioRaw = Buffer.from(Bun.gunzipSync(gzPayload));
+        expect(cpioRaw.subarray(0, 6).toString("ascii")).toBe("070701");
+        expect(cpioRaw.toString("latin1")).toContain("TRAILER!!!");
+
+        if (Bun.which("cpio")) {
+          const rpmUnpackDir = join(dir, `rpm-unpacked-${arch}`);
+          mkdirSync(rpmUnpackDir, { recursive: true });
+          const cpioProc = Bun.spawnSync(["cpio", "-idm", "--quiet"], {
+            cwd: rpmUnpackDir,
+            stdin: cpioRaw,
+          });
+          expect(cpioProc.exitCode, cpioProc.stderr.toString()).toBe(0);
+          expect(
+            readlinkSync(join(rpmUnpackDir, "usr/bin/codecaine-file-manager")),
+          ).toBe("/opt/codecaine-file-manager/codecaine-file-manager");
+          expect(
+            existsSync(
+              join(
+                rpmUnpackDir,
+                `usr/share/applications/${APPSTREAM_ID}.desktop`,
+              ),
+            ),
+          ).toBe(true);
+          expect(
+            existsSync(
+              join(
+                rpmUnpackDir,
+                `usr/share/metainfo/${APPSTREAM_ID}.metainfo.xml`,
+              ),
+            ),
+          ).toBe(true);
+          expect(
+            existsSync(
+              join(
+                rpmUnpackDir,
+                `usr/share/icons/hicolor/512x512/apps/${APPSTREAM_ID}.png`,
+              ),
+            ),
+          ).toBe(true);
+          expect(
+            existsSync(
+              join(
+                rpmUnpackDir,
+                "opt/codecaine-file-manager/codecaine-file-manager",
+              ),
+            ),
+          ).toBe(true);
+        }
+      }
     });
   },
 );

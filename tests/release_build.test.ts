@@ -29,7 +29,11 @@ import {
   iconSpecFor,
 } from "../scripts/release/icons";
 import { appArmorProfileFor } from "../scripts/release/linuxSandbox";
-import { debPostinstScript } from "../scripts/release/linuxPackages";
+import {
+  debPostinstScript,
+  rpmFileName,
+  rpmPostinScript,
+} from "../scripts/release/linuxPackages";
 import { DESIGNS, SYMBOL_NAMES } from "../scripts/release/iconDesigns";
 import { ICON_RENDERER } from "../scripts/release/iconRenderer";
 import {
@@ -510,10 +514,14 @@ describe("Linux AppArmor & .deb postinst hardening ([V-SEC-05])", () => {
     expect(profile).not.toContain("*");
   });
 
-  test("debPostinstScript does not install unconfined userns profile or predictable /tmp path", () => {
-    const postinst = debPostinstScript();
-    expect(postinst).not.toContain("/tmp/codecaine-fm-apparmor.$$");
-    expect(postinst).not.toContain("install -m 0644");
-    expect(postinst).not.toContain("userns,");
+  test("debPostinstScript and rpmPostinScript do not install unconfined userns profile or predictable /tmp path", () => {
+    for (const postinst of [debPostinstScript(), rpmPostinScript()]) {
+      expect(postinst).not.toContain("/tmp/codecaine-fm-apparmor.$$");
+      expect(postinst).not.toContain("install -m 0644");
+      expect(postinst).not.toContain("userns,");
+    }
+    const notesText = releaseNotes([], []);
+    expect(notesText).toContain(rpmFileName("x86_64"));
+    expect(notesText).toContain(rpmFileName("aarch64"));
   });
 });

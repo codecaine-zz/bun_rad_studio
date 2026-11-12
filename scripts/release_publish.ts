@@ -78,6 +78,12 @@ function collect(): Array<{ path: string; name: string; bytes: number }> {
     ),
   );
   take(
+    FM,
+    new RegExp(
+      `^codecaine-file-manager-${VERSION.replace(/\./g, "\\.")}-1\\.(?:x86_64|aarch64)\\.rpm$`,
+    ),
+  );
+  take(
     RELEASE,
     new RegExp(
       `^bun-rad-studio-v${VERSION.replace(/\./g, "\\.")}-(?!free-music-).*\\.(tar\\.gz|zip)$`,
@@ -102,7 +108,8 @@ function collect(): Array<{ path: string; name: string; bytes: number }> {
 
 const KIND = (n: string) =>
   n.startsWith("Codecaine-File-Manager") ||
-  n.startsWith("codecaine-file-manager_")
+  n.startsWith("codecaine-file-manager_") ||
+  (n.startsWith("codecaine-file-manager-") && n.endsWith(".rpm"))
     ? "fm"
     : /-free-music-/.test(n)
       ? "music"
@@ -112,6 +119,8 @@ const KIND = (n: string) =>
 const platformOf = (n: string) => {
   const deb = /_(amd64|arm64)\.deb$/.exec(n);
   if (deb) return `linux-.deb (${deb[1]})`;
+  const rpm = /\.(x86_64|aarch64)\.rpm$/.exec(n);
+  if (rpm) return `linux-.rpm (${rpm[1]})`;
   return (
     /-(macos|windows|linux)-(arm64|x64)(-baseline|-musl)?/
       .exec(n)?.[0]
@@ -171,7 +180,10 @@ export function notes(
   for (const r of [
     row("🍎 **Mac**", (n) => n.includes("-macos-")),
     row("🪟 **Windows**", (n) => n.includes("-windows-")),
-    row("🐧 **Linux**", (n) => n.includes("-linux-") || n.endsWith(".deb")),
+    row(
+      "🐧 **Linux**",
+      (n) => n.includes("-linux-") || n.endsWith(".deb") || n.endsWith(".rpm"),
+    ),
   ])
     if (r) L.push(r);
   const hasFileManagerMac = files.some(
@@ -184,7 +196,7 @@ export function notes(
     "",
     macInstructions,
     "- **Windows:** `x64` for most PCs; `arm64` for Windows 11 on ARM (baseline x64 emulation, no AVX2 required); `baseline` for processors from before 2013. Unzip the whole folder, double-click **install.cmd**, then **Codecaine File Manager.exe**. Setup checks WebView2 and the [Visual C++ 2015-2022 x64 Redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe), including on ARM, and offers to install missing prerequisites from Microsoft. No Bun or compiler is needed. If it fails, open **troubleshoot.cmd**.",
-    "- **Linux:** Double-click the `.deb` (`amd64` or `arm64`) in GNOME Software, Ubuntu App Center, KDE Discover, or GDebi for a 1-click GUI install (automatically installs `libgtk-4-1`, `libwebkitgtk-6.0-4`, desktop icon, and AppStream metadata). For the portable `.zip` (`x64` or `arm64`), run `sh install.sh` for a menu entry and executable permissions (needs GTK 4 and WebKitGTK 6.0: `sudo apt install libgtk-4-1 libwebkitgtk-6.0-4` on Ubuntu 24.04+/Debian; `sudo dnf install gtk4 webkitgtk6.0` on Fedora). Run `sh troubleshoot.sh` to see startup errors. On Ubuntu 24.04+, AppArmor is opt-in: if startup fails with a bwrap / dbus-proxy permission error, run `sh /opt/codecaine-file-manager/install.sh --apparmor` (or `sh install.sh --apparmor` in the portable `.zip`, sudo required). This grants bubblewrap sandbox namespaces only without disabling AppArmor or WebKit's sandbox. Rerun after moving a portable folder; remove with `sh install.sh --uninstall --apparmor`.",
+    "- **Linux:** Double-click the `.deb` (`amd64` or `arm64`) on Ubuntu/Debian/Mint or the `.rpm` (`x86_64` or `aarch64`) on Fedora/RHEL/openSUSE in GNOME Software, Ubuntu App Center, KDE Discover, or GDebi for a 1-click GUI install (or run `sudo apt install ./codecaine-file-manager_*.deb` / `sudo dnf install ./codecaine-file-manager-*.rpm`; automatically installs GTK 4, WebKitGTK 6.0, desktop icon, and AppStream metadata). For the portable `.zip` (`x64` or `arm64`), run `sh install.sh` for a menu entry and executable permissions (needs GTK 4 and WebKitGTK 6.0: `sudo apt install libgtk-4-1 libwebkitgtk-6.0-4` on Ubuntu 24.04+/Debian; `sudo dnf install gtk4 webkitgtk6.0` on Fedora). Run `sh troubleshoot.sh` to see startup errors. On Ubuntu 24.04+, AppArmor is opt-in: if startup fails with a bwrap / dbus-proxy permission error, run `sh /opt/codecaine-file-manager/install.sh --apparmor` (or `sh install.sh --apparmor` in the portable `.zip`, sudo required). This grants bubblewrap sandbox namespaces only without disabling AppArmor or WebKit's sandbox. Rerun after moving a portable folder; remove with `sh install.sh --uninstall --apparmor`.",
     "- **File Manager startup:** opens in its native desktop window by default on macOS, Windows, and Linux (pass `--browser` or `-b` only if you want to open in your web browser instead). Standalone Windows/Linux downloads record startup errors in `~/.bun_rad_studio/file-manager-startup.log` (Windows: `%USERPROFILE%\\.bun_rad_studio\\file-manager-startup.log`).",
     "",
   );
@@ -387,7 +399,7 @@ async function main() {
         };
         const vEsc = VERSION.replace(/\./g, "\\.");
         const validRemoteRe = new RegExp(
-          `^(?:Codecaine-File-Manager-v${vEsc}-.*\\.zip|codecaine-file-manager_${vEsc}_(?:amd64|arm64)\\.deb|bun-rad-studio-v${vEsc}-.*\\.(?:tar\\.gz|zip))$`,
+          `^(?:Codecaine-File-Manager-v${vEsc}-.*\\.zip|codecaine-file-manager_${vEsc}_(?:amd64|arm64)\\.deb|codecaine-file-manager-${vEsc}-1\\.(?:x86_64|aarch64)\\.rpm|bun-rad-studio-v${vEsc}-.*\\.(?:tar\\.gz|zip))$`,
         );
         for (const a of rel.assets ?? []) {
           if (
@@ -406,7 +418,8 @@ async function main() {
   const sortBucket = (n: string) =>
     n.startsWith("Codecaine-File-Manager-")
       ? 0
-      : n.startsWith("codecaine-file-manager_")
+      : n.startsWith("codecaine-file-manager_") ||
+          (n.startsWith("codecaine-file-manager-") && n.endsWith(".rpm"))
         ? 1
         : /-free-music-/.test(n)
           ? 3

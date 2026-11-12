@@ -108,6 +108,16 @@ export function releaseNotes(
       "1-click ARM64 GUI `.deb` installer + AppStream metadata",
     ],
     [
+      "Linux Fedora / RHEL / openSUSE GUI Installer (`x86_64` `.rpm`)",
+      `codecaine-file-manager-${VERSION}-1.x86_64.rpm`,
+      "1-click GUI `.rpm` installer (auto-installs GTK 4, WebKitGTK 6.0 & AppStream metadata)",
+    ],
+    [
+      "Linux Fedora / RHEL / openSUSE GUI Installer (`aarch64` `.rpm`)",
+      `codecaine-file-manager-${VERSION}-1.aarch64.rpm`,
+      "1-click ARM64 GUI `.rpm` installer + AppStream metadata",
+    ],
+    [
       "Linux x86-64 Portable (Ubuntu, Debian, Fedora, Arch)",
       `Codecaine-File-Manager-v${VERSION}-linux-x64.zip`,
       "`codecaine-file-manager` binary + `install-ollama.sh` + 4 DB Studios",

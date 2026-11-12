@@ -14,6 +14,7 @@ import { VERSION, xmlEscape } from "./common";
 
 export const APPSTREAM_ID = "io.github.codecaine_zz.CodecaineFileManager";
 export const DEB_PACKAGE_NAME = "codecaine-file-manager";
+export const RPM_PACKAGE_NAME = "codecaine-file-manager";
 export const DEFAULT_REPO = "codecaine-zz/bun_rad_studio";
 
 export function debFileName(
@@ -26,6 +27,20 @@ export function debFileName(
 export function debArchForDownload(id: string): "amd64" | "arm64" | null {
   if (id === "linux-x64") return "amd64";
   if (id === "linux-arm64") return "arm64";
+  return null;
+}
+
+export function rpmFileName(
+  arch: "x86_64" | "aarch64",
+  version = VERSION,
+  release = "1",
+): string {
+  return `${RPM_PACKAGE_NAME}-${version}-${release}.${arch}.rpm`;
+}
+
+export function rpmArchForDownload(id: string): "x86_64" | "aarch64" | null {
+  if (id === "linux-x64") return "x86_64";
+  if (id === "linux-arm64") return "aarch64";
   return null;
 }
 
@@ -607,6 +622,668 @@ export async function buildDebPackage(
   return outDebPath;
 }
 
+export function rpmPostinScript(): string {
+  return `#!/bin/sh
+set -e
+
+APP_BIN="/opt/codecaine-file-manager/codecaine-file-manager"
+PROFILE="/etc/apparmor.d/codecaine-file-manager"
+
+if [ -x "$APP_BIN" ]; then
+  chmod 0755 "$APP_BIN" 2>/dev/null || true
+fi
+ln -sf "$APP_BIN" /usr/bin/codecaine-file-manager
+
+# Do not silently install a system-wide unconfined userns AppArmor profile on the
+# BUN_BE_BUN-capable packaged binary during .rpm installation; clean up any legacy
+# unconfined profile left behind by an earlier package release.
+if [ -f "$PROFILE" ] && grep -q "flags=(unconfined)" "$PROFILE" 2>/dev/null; then
+  PARSER="$(command -v apparmor_parser || true)"
+  if [ -z "$PARSER" ] && [ -x /usr/sbin/apparmor_parser ]; then PARSER=/usr/sbin/apparmor_parser; fi
+  if [ -n "$PARSER" ]; then
+    "$PARSER" -R "$PROFILE" >/dev/null 2>&1 || true
+  fi
+  rm -f "$PROFILE" 2>/dev/null || true
+fi
+
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database -q /usr/share/applications >/dev/null 2>&1 || true
+fi
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor >/dev/null 2>&1 || true
+fi
+if command -v appstreamcli >/dev/null 2>&1; then
+  appstreamcli refresh-cache >/dev/null 2>&1 || true
+fi
+
+exit 0
+`;
+}
+
+export function rpmPreunScript(): string {
+  return `#!/bin/sh
+set -e
+
+PROFILE="/etc/apparmor.d/codecaine-file-manager"
+
+if [ "$1" = "0" ]; then
+  if [ -f "$PROFILE" ]; then
+    PARSER="$(command -v apparmor_parser || true)"
+    if [ -z "$PARSER" ] && [ -x /usr/sbin/apparmor_parser ]; then PARSER=/usr/sbin/apparmor_parser; fi
+    if [ -n "$PARSER" ]; then
+      "$PARSER" -R "$PROFILE" >/dev/null 2>&1 || true
+    fi
+    rm -f "$PROFILE" 2>/dev/null || true
+  fi
+fi
+
+exit 0
+`;
+}
+
+export interface CpioEntry {
+  /** Path inside cpio starting with `./`, e.g. `./opt/codecaine-file-manager/VERSION` */
+  name: string;
+  /** Full stat mode including S_IFDIR (`0o040000`), S_IFLNK (`0o120000`), or S_IFREG (`0o100000`) */
+  mode: number;
+  mtime?: number;
+  ino?: number;
+  nlink?: number;
+  data?: Uint8Array;
+}
+
+/**
+ * Serializes a deterministic SVR4 "newc" (`070701`) CPIO archive owned by root:root (`0:0`),
+ * used as the uncompressed payload inside RPM v4 packages.
+ */
+export function buildCpioNewcArchive(
+  entries: CpioEntry[],
+  defaultMtime = 1700000000,
+): Uint8Array<ArrayBuffer> {
+  const chunks: Uint8Array[] = [];
+  const pad4 = (len: number) => (4 - (len % 4)) % 4;
+  const hex8 = (v: number) =>
+    (v >>> 0).toString(16).toUpperCase().padStart(8, "0");
+
+  const writeRecord = (
+    name: string,
+    mode: number,
+    mtime: number,
+    ino: number,
+    nlink: number,
+    body: Uint8Array,
+  ) => {
+    const nameBytes = Buffer.from(name, "utf8");
+    const nameSize = nameBytes.byteLength + 1;
+    const hdrStr =
+      "070701" +
+      hex8(ino) +
+      hex8(mode) +
+      hex8(0) + // uid = 0
+      hex8(0) + // gid = 0
+      hex8(nlink) +
+      hex8(mtime) +
+      hex8(body.byteLength) +
+      hex8(0) + // devmajor
+      hex8(0) + // devminor
+      hex8(0) + // rdevmajor
+      hex8(0) + // rdevminor
+      hex8(nameSize) +
+      hex8(0); // check
+    const hdrBytes = Buffer.from(hdrStr, "ascii");
+    chunks.push(hdrBytes);
+    chunks.push(nameBytes);
+    chunks.push(new Uint8Array([0]));
+    const hPad = pad4(hdrBytes.byteLength + nameSize);
+    if (hPad > 0) chunks.push(new Uint8Array(hPad));
+    if (body.byteLength > 0) {
+      chunks.push(body);
+      const bPad = pad4(body.byteLength);
+      if (bPad > 0) chunks.push(new Uint8Array(bPad));
+    }
+  };
+
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i]!;
+    const body = e.data ?? new Uint8Array(0);
+    writeRecord(
+      e.name,
+      e.mode,
+      e.mtime ?? defaultMtime,
+      e.ino ?? i + 1,
+      e.nlink ?? ((e.mode & 0o170000) === 0o040000 ? 2 : 1),
+      body,
+    );
+  }
+  writeRecord("TRAILER!!!", 0, 0, 0, 1, new Uint8Array(0));
+
+  const total = chunks.reduce((acc, c) => acc + c.byteLength, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) {
+    out.set(c, offset);
+    offset += c.byteLength;
+  }
+  return out;
+}
+
+const RPM_TYPE_INT16 = 3;
+const RPM_TYPE_INT32 = 4;
+const RPM_TYPE_STRING = 6;
+const RPM_TYPE_BIN = 7;
+const RPM_TYPE_STRING_ARRAY = 8;
+const RPM_TYPE_I18NSTRING = 9;
+
+const RPM_REGION_SIGNATURES = 62; // 0x3e, RPMTAG_HEADERSIGNATURES
+const RPM_REGION_IMMUTABLE = 63; // 0x3f, RPMTAG_HEADERIMMUTABLE
+
+interface RpmIndexValue {
+  type: number;
+  count: number;
+  data: Uint8Array;
+}
+
+function rpmEntryInt16(values: number[]): RpmIndexValue {
+  const buf = Buffer.alloc(values.length * 2);
+  for (let i = 0; i < values.length; i++) {
+    buf.writeUInt16BE(values[i]! & 0xffff, i * 2);
+  }
+  return { type: RPM_TYPE_INT16, count: values.length, data: buf };
+}
+
+function rpmEntryInt32(values: number[]): RpmIndexValue {
+  const buf = Buffer.alloc(values.length * 4);
+  for (let i = 0; i < values.length; i++) {
+    buf.writeInt32BE(values[i]! | 0, i * 4);
+  }
+  return { type: RPM_TYPE_INT32, count: values.length, data: buf };
+}
+
+function rpmEntryUint32(values: number[]): RpmIndexValue {
+  const buf = Buffer.alloc(values.length * 4);
+  for (let i = 0; i < values.length; i++) {
+    buf.writeUInt32BE(values[i]! >>> 0, i * 4);
+  }
+  return { type: RPM_TYPE_INT32, count: values.length, data: buf };
+}
+
+function rpmEntryString(value: string): RpmIndexValue {
+  const raw = Buffer.from(value + "\0", "utf8");
+  return { type: RPM_TYPE_STRING, count: 1, data: raw };
+}
+
+function rpmEntryI18NString(value: string): RpmIndexValue {
+  const raw = Buffer.from(value + "\0", "utf8");
+  return { type: RPM_TYPE_I18NSTRING, count: 1, data: raw };
+}
+
+function rpmEntryBytes(value: Uint8Array): RpmIndexValue {
+  return { type: RPM_TYPE_BIN, count: value.byteLength, data: value };
+}
+
+function rpmEntryStringSlice(values: string[]): RpmIndexValue {
+  const raw = Buffer.from(values.join("\0") + "\0", "utf8");
+  return { type: RPM_TYPE_STRING_ARRAY, count: values.length, data: raw };
+}
+
+function buildRpmHeaderBlock(
+  regionTag: number,
+  entries: Map<number, RpmIndexValue>,
+): Uint8Array {
+  const tags = Array.from(entries.keys()).sort((a, b) => a - b);
+  const dataChunks: Uint8Array[] = [];
+  let dataLen = 0;
+  const offsets: number[] = [];
+
+  for (const tag of tags) {
+    const e = entries.get(tag)!;
+    const align =
+      e.type === RPM_TYPE_INT16 ? 2 : e.type === RPM_TYPE_INT32 ? 4 : 1;
+    const rem = dataLen % align;
+    if (rem !== 0) {
+      const pad = align - rem;
+      dataChunks.push(new Uint8Array(pad));
+      dataLen += pad;
+    }
+    offsets.push(dataLen);
+    dataChunks.push(e.data);
+    dataLen += e.data.byteLength;
+  }
+
+  // Immutable region trailer (16 bytes at end of data store pointing back with negative offset)
+  const regionOffset = dataLen;
+  const trailer = Buffer.alloc(16);
+  trailer.writeInt32BE(regionTag, 0);
+  trailer.writeInt32BE(RPM_TYPE_BIN, 4);
+  trailer.writeInt32BE(-16 * (tags.length + 1), 8);
+  trailer.writeInt32BE(16, 12);
+  dataChunks.push(trailer);
+  dataLen += 16;
+
+  const indexCount = tags.length + 1;
+  const out = Buffer.alloc(16 + indexCount * 16 + dataLen);
+  // 8-byte header magic + 4-byte index count + 4-byte data length
+  out.set([0x8e, 0xad, 0xe8, 0x01, 0x00, 0x00, 0x00, 0x00], 0);
+  out.writeInt32BE(indexCount, 8);
+  out.writeInt32BE(dataLen, 12);
+
+  let pos = 16;
+  const writeIdx = (
+    tag: number,
+    type: number,
+    offset: number,
+    count: number,
+  ) => {
+    out.writeInt32BE(tag, pos);
+    out.writeInt32BE(type, pos + 4);
+    out.writeInt32BE(offset, pos + 8);
+    out.writeInt32BE(count, pos + 12);
+    pos += 16;
+  };
+
+  // Region entry first, then sorted tag entries
+  writeIdx(regionTag, RPM_TYPE_BIN, regionOffset, 16);
+  for (let i = 0; i < tags.length; i++) {
+    const tag = tags[i]!;
+    const e = entries.get(tag)!;
+    writeIdx(tag, e.type, offsets[i]!, e.count);
+  }
+  for (const c of dataChunks) {
+    out.set(c, pos);
+    pos += c.byteLength;
+  }
+  return new Uint8Array(out.buffer, out.byteOffset, out.byteLength);
+}
+
+function buildRpmLead(
+  name: string,
+  fullVersion: string,
+  arch: "x86_64" | "aarch64",
+): Uint8Array {
+  const lead = Buffer.alloc(96, 0);
+  lead.set([0xed, 0xab, 0xee, 0xdb], 0);
+  lead[4] = 0x03; // major 3
+  lead[5] = 0x00; // minor 0
+  lead.writeUInt16BE(0, 6); // binary package (0)
+  // RPM lead archnum: 1 = x86_64/i386, 19 = aarch64
+  lead.writeUInt16BE(arch === "aarch64" ? 19 : 1, 8);
+  const pkgLabel = Buffer.from(`${name}-${fullVersion}`, "utf8").subarray(
+    0,
+    65,
+  );
+  lead.set(pkgLabel, 10);
+  lead.writeUInt16BE(1, 76); // osnum: Linux (1)
+  lead.writeUInt16BE(5, 78); // signature_type: RPMSIGTYPE_HEADERSIG (5)
+  return new Uint8Array(lead.buffer, lead.byteOffset, lead.byteLength);
+}
+
+/**
+ * Builds a complete, spec-compliant `.rpm` installer (RPM v4 header + gzip-compressed SVR4 CPIO payload)
+ * from a staged Linux File Manager directory without requiring `rpmbuild` on the build host.
+ * Installs to `/opt/codecaine-file-manager`, links `/usr/bin/codecaine-file-manager`, and registers
+ * desktop launcher, icons, and AppStream MetaInfo XML for Fedora, RHEL, Rocky, AlmaLinux, and openSUSE.
+ */
+export async function buildRpmPackage(
+  stageDir: string,
+  outRpmPath: string,
+  opts: {
+    version?: string;
+    release?: string;
+    arch: "x86_64" | "aarch64";
+    repo?: string;
+    iconPngPath?: string | null;
+  },
+): Promise<string> {
+  const version = opts.version ?? VERSION;
+  const release = opts.release ?? "1";
+  const repo = opts.repo ?? DEFAULT_REPO;
+  const defaultMtime = 1700000000;
+
+  interface StagedRpmItem {
+    absPath: string; // e.g. `/opt/codecaine-file-manager/codecaine-file-manager`
+    kind: "file" | "dir" | "symlink";
+    modePerm: number;
+    data: Uint8Array;
+    linkTarget: string;
+  }
+
+  const fileMap = new Map<string, StagedRpmItem>();
+  // Only own package-specific directories; never claim system dirs like `/usr/bin` or `/usr/share/applications`
+  const addDir = (absDirPath: string, modePerm = 0o755) => {
+    const clean = absDirPath.replace(/\/+$/, "");
+    if (!clean.startsWith("/opt/codecaine-file-manager")) return;
+    const parts = clean.split("/").filter(Boolean);
+    let cur = "";
+    for (const p of parts) {
+      cur += "/" + p;
+      if (!cur.startsWith("/opt/codecaine-file-manager")) continue;
+      if (!fileMap.has(cur)) {
+        fileMap.set(cur, {
+          absPath: cur,
+          kind: "dir",
+          modePerm,
+          data: new Uint8Array(0),
+          linkTarget: "",
+        });
+      }
+    }
+  };
+
+  const addFile = (absPath: string, bytes: Uint8Array, modePerm = 0o644) => {
+    addDir(posix.dirname(absPath));
+    fileMap.set(absPath, {
+      absPath,
+      kind: "file",
+      modePerm: modePerm & 0o7777,
+      data: bytes,
+      linkTarget: "",
+    });
+  };
+
+  addDir("/opt/codecaine-file-manager");
+
+  for (const item of collectStageFiles(stageDir)) {
+    const absPath = `/opt/codecaine-file-manager/${item.rel}`;
+    if (item.isDir) {
+      addDir(absPath, item.mode);
+    } else {
+      addFile(absPath, new Uint8Array(readFileSync(item.full)), item.mode);
+    }
+  }
+
+  // Symlink /usr/bin/codecaine-file-manager -> /opt/codecaine-file-manager/codecaine-file-manager
+  const symlinkTarget = "/opt/codecaine-file-manager/codecaine-file-manager";
+  fileMap.set("/usr/bin/codecaine-file-manager", {
+    absPath: "/usr/bin/codecaine-file-manager",
+    kind: "symlink",
+    modePerm: 0o777,
+    data: new Uint8Array(Buffer.from(symlinkTarget, "utf8")),
+    linkTarget: symlinkTarget,
+  });
+
+  // Desktop file
+  const desktopBytes = new Uint8Array(
+    Buffer.from(
+      systemDesktopEntry("/usr/bin/codecaine-file-manager %U", APPSTREAM_ID),
+      "utf8",
+    ),
+  );
+  addFile(
+    `/usr/share/applications/${APPSTREAM_ID}.desktop`,
+    desktopBytes,
+    0o644,
+  );
+
+  // AppStream MetaInfo XML
+  const metainfoBytes = new Uint8Array(
+    Buffer.from(
+      appStreamMetaInfoXml(
+        version,
+        new Date().toISOString().slice(0, 10),
+        repo,
+      ),
+      "utf8",
+    ),
+  );
+  addFile(
+    `/usr/share/metainfo/${APPSTREAM_ID}.metainfo.xml`,
+    metainfoBytes,
+    0o644,
+  );
+
+  // Icons in hicolor + pixmaps
+  const iconCandidate =
+    opts.iconPngPath && existsSync(opts.iconPngPath)
+      ? opts.iconPngPath
+      : existsSync(join(stageDir, "codecaine-file-manager.png"))
+        ? join(stageDir, "codecaine-file-manager.png")
+        : null;
+  if (iconCandidate) {
+    const iconBytes = new Uint8Array(readFileSync(iconCandidate));
+    addFile(
+      `/usr/share/icons/hicolor/512x512/apps/${APPSTREAM_ID}.png`,
+      iconBytes,
+      0o644,
+    );
+    addFile(
+      `/usr/share/icons/hicolor/512x512/apps/codecaine-file-manager.png`,
+      iconBytes,
+      0o644,
+    );
+    addFile(`/usr/share/pixmaps/codecaine-file-manager.png`, iconBytes, 0o644);
+  }
+
+  // Sort all entries lexicographically by path (required by RPM)
+  const sortedPaths = Array.from(fileMap.keys()).sort();
+  const dirLookup = new Map<string, number>();
+  const dirnames: string[] = [];
+  const getDirIndex = (dirWithSlash: string): number => {
+    const existing = dirLookup.get(dirWithSlash);
+    if (existing !== undefined) return existing;
+    const idx = dirnames.length;
+    dirnames.push(dirWithSlash);
+    dirLookup.set(dirWithSlash, idx);
+    return idx;
+  };
+
+  const dirindexes: number[] = [];
+  const basenames: string[] = [];
+  const filesizes: number[] = [];
+  const filemodes: number[] = [];
+  const filerdevs: number[] = [];
+  const filemtimes: number[] = [];
+  const filedigests: string[] = [];
+  const filelinktos: string[] = [];
+  const fileflags: number[] = [];
+  const fileusernames: string[] = [];
+  const filegroupnames: string[] = [];
+  const fileverifyflags: number[] = [];
+  const filedevices: number[] = [];
+  const fileinodes: number[] = [];
+  const filelangs: string[] = [];
+  const cpioEntries: CpioEntry[] = [];
+  let installedBytes = 0;
+
+  for (let i = 0; i < sortedPaths.length; i++) {
+    const p = sortedPaths[i]!;
+    const item = fileMap.get(p)!;
+    const slashIdx = p.lastIndexOf("/");
+    const dirPart = p.slice(0, slashIdx + 1);
+    const basePart = p.slice(slashIdx + 1);
+
+    dirindexes.push(getDirIndex(dirPart));
+    basenames.push(basePart);
+
+    let fullMode = item.modePerm & 0o7777;
+    let size = 0;
+    let digest = "";
+    let nlink = 1;
+    if (item.kind === "dir") {
+      fullMode |= 0o040000;
+      size = 4096;
+      nlink = 2;
+    } else if (item.kind === "symlink") {
+      fullMode |= 0o120000;
+      size = item.data.byteLength;
+    } else {
+      fullMode |= 0o100000;
+      size = item.data.byteLength;
+      digest = createHash("sha256").update(item.data).digest("hex");
+    }
+
+    filesizes.push(size);
+    installedBytes += size;
+    filemodes.push(fullMode);
+    filerdevs.push(1);
+    filemtimes.push(defaultMtime);
+    filedigests.push(digest);
+    filelinktos.push(item.linkTarget);
+    fileflags.push(0);
+    fileusernames.push("root");
+    filegroupnames.push("root");
+    fileverifyflags.push(-1);
+    filedevices.push(1);
+    fileinodes.push(i + 1);
+    filelangs.push("");
+
+    cpioEntries.push({
+      name: `.${p}`,
+      mode: fullMode,
+      mtime: defaultMtime,
+      ino: i + 1,
+      nlink,
+      data: item.data,
+    });
+  }
+
+  const cpioRaw = buildCpioNewcArchive(cpioEntries, defaultMtime);
+  const payloadGz = new Uint8Array(Bun.gzipSync(cpioRaw));
+  const payloadSha256 = createHash("sha256").update(payloadGz).digest("hex");
+  const fullVersion = `${version}-${release}`;
+  const isa = opts.arch === "aarch64" ? "aarch-64" : "x86-64";
+
+  // Build main Header tags
+  const hdr = new Map<number, RpmIndexValue>();
+  hdr.set(100, rpmEntryStringSlice(["C"])); // HEADERI18NTABLE
+  hdr.set(1000, rpmEntryString(RPM_PACKAGE_NAME)); // NAME
+  hdr.set(1001, rpmEntryString(version)); // VERSION
+  hdr.set(1002, rpmEntryString(release)); // RELEASE
+  hdr.set(
+    1004,
+    rpmEntryI18NString(
+      "Dual-pane file manager, code editor, and database studios for developers",
+    ),
+  ); // SUMMARY
+  hdr.set(
+    1005,
+    rpmEntryI18NString(
+      "Codecaine File Manager is a fast, private desktop file manager for developers featuring dual panes, a built-in code editor, database studios (SQLite, MySQL, PostgreSQL, Redis), a cross-platform Process & Task Manager, a System Information dashboard, an encrypted password vault, a live web server, a multi-connection download manager, and 1-click local Ollama AI integration.",
+    ),
+  ); // DESCRIPTION
+  hdr.set(1006, rpmEntryInt32([defaultMtime])); // BUILDTIME
+  hdr.set(1007, rpmEntryString("localhost")); // BUILDHOST
+  hdr.set(1009, rpmEntryInt32([installedBytes])); // SIZE
+  hdr.set(1011, rpmEntryString("Codecaine")); // VENDOR
+  hdr.set(1014, rpmEntryString("MIT")); // LICENSE
+  hdr.set(1015, rpmEntryString(`Codecaine <https://github.com/${repo}>`)); // PACKAGER
+  hdr.set(1016, rpmEntryString("Applications/File")); // GROUP
+  hdr.set(1020, rpmEntryString(`https://github.com/${repo}`)); // URL
+  hdr.set(1021, rpmEntryString("linux")); // OS
+  hdr.set(1022, rpmEntryString(opts.arch)); // ARCH
+  hdr.set(1024, rpmEntryString(rpmPostinScript())); // POSTIN
+  hdr.set(1025, rpmEntryString(rpmPreunScript())); // PREUN
+  hdr.set(1028, rpmEntryUint32(filesizes)); // FILESIZES
+  hdr.set(1030, rpmEntryInt16(filemodes)); // FILEMODES
+  hdr.set(1033, rpmEntryInt16(filerdevs)); // FILERDEVS
+  hdr.set(1034, rpmEntryInt32(filemtimes)); // FILEMTIMES
+  hdr.set(1035, rpmEntryStringSlice(filedigests)); // FILEDIGESTS
+  hdr.set(1036, rpmEntryStringSlice(filelinktos)); // FILELINKTOS
+  hdr.set(1037, rpmEntryInt32(fileflags)); // FILEFLAGS
+  hdr.set(1039, rpmEntryStringSlice(fileusernames)); // FILEUSERNAME
+  hdr.set(1040, rpmEntryStringSlice(filegroupnames)); // FILEGROUPNAME
+  hdr.set(1044, rpmEntryString(`${RPM_PACKAGE_NAME}-${fullVersion}.src.rpm`)); // SOURCERPM
+  hdr.set(1045, rpmEntryInt32(fileverifyflags)); // FILEVERIFYFLAGS
+
+  // PROVIDES: package name and arch-qualified ISA
+  const provideNames = [RPM_PACKAGE_NAME, `${RPM_PACKAGE_NAME}(${isa})`];
+  const provideVers = [fullVersion, fullVersion];
+  const provideFlags = [8, 8]; // RPMSENSE_EQUAL (1 << 3)
+  hdr.set(1047, rpmEntryStringSlice(provideNames)); // PROVIDENAME
+  hdr.set(1112, rpmEntryInt32(provideFlags)); // PROVIDEFLAGS
+  hdr.set(1113, rpmEntryStringSlice(provideVers)); // PROVIDEVERSION
+
+  // REQUIRES: shared library sonames (portable across Fedora, RHEL, Rocky, Alma, openSUSE) + rpmlib features
+  const sfx = opts.arch === "aarch64" ? "(64bit)" : "()(64bit)";
+  const rpmlibSense = (1 << 24) | 2 | 8; // RPMSENSE_RPMLIB | RPMSENSE_LESS | RPMSENSE_EQUAL
+  const requiresList: Array<{ name: string; ver: string; flags: number }> = [
+    { name: "/bin/sh", ver: "", flags: 0 },
+    {
+      name:
+        opts.arch === "aarch64"
+          ? "libc.so.6(GLIBC_2.17)(64bit)"
+          : "libc.so.6(GLIBC_2.17)(64bit)",
+      ver: "",
+      flags: 0,
+    },
+    { name: `libgtk-4.so.1${sfx}`, ver: "", flags: 0 },
+    { name: `libwebkitgtk-6.0.so.4${sfx}`, ver: "", flags: 0 },
+    {
+      name: "rpmlib(CompressedFileNames)",
+      ver: "3.0.4-1",
+      flags: rpmlibSense,
+    },
+    { name: "rpmlib(FileDigests)", ver: "4.6.0-1", flags: rpmlibSense },
+    {
+      name: "rpmlib(PayloadFilesHavePrefix)",
+      ver: "4.0-1",
+      flags: rpmlibSense,
+    },
+  ];
+  hdr.set(1048, rpmEntryInt32(requiresList.map((r) => r.flags))); // REQUIREFLAGS
+  hdr.set(1049, rpmEntryStringSlice(requiresList.map((r) => r.name))); // REQUIRENAME
+  hdr.set(1050, rpmEntryStringSlice(requiresList.map((r) => r.ver))); // REQUIREVERSION
+
+  hdr.set(1064, rpmEntryString("4.18.0")); // RPMVERSION
+  hdr.set(1086, rpmEntryString("/bin/sh")); // POSTINPROG
+  hdr.set(1087, rpmEntryString("/bin/sh")); // PREUNPROG
+  hdr.set(1095, rpmEntryInt32(filedevices)); // FILEDEVICES
+  hdr.set(1096, rpmEntryInt32(fileinodes)); // FILEINODES
+  hdr.set(1097, rpmEntryStringSlice(filelangs)); // FILELANGS
+  hdr.set(1116, rpmEntryInt32(dirindexes)); // DIRINDEXES
+  hdr.set(1117, rpmEntryStringSlice(basenames)); // BASENAMES
+  hdr.set(1118, rpmEntryStringSlice(dirnames)); // DIRNAMES
+  hdr.set(1124, rpmEntryString("cpio")); // PAYLOADFORMAT
+  hdr.set(1125, rpmEntryString("gzip")); // PAYLOADCOMPRESSOR
+  hdr.set(1126, rpmEntryString("9")); // PAYLOADFLAGS
+  hdr.set(5011, rpmEntryInt32([8])); // FILEDIGESTALGO (8 = SHA256)
+  hdr.set(5062, rpmEntryString("utf-8")); // ENCODING
+  hdr.set(5092, rpmEntryStringSlice([payloadSha256])); // PAYLOADDIGEST
+  hdr.set(5093, rpmEntryInt32([8])); // PAYLOADDIGESTALGO (8 = SHA256)
+  hdr.set(5097, rpmEntryStringSlice([payloadSha256])); // PAYLOADDIGESTALT
+
+  const headerBytes = buildRpmHeaderBlock(RPM_REGION_IMMUTABLE, hdr);
+
+  // Build Signature Header tags
+  const sig = new Map<number, RpmIndexValue>();
+  const hdrSha1 = createHash("sha1").update(headerBytes).digest("hex");
+  const hdrSha256 = createHash("sha256").update(headerBytes).digest("hex");
+  const md5Hash = createHash("md5");
+  md5Hash.update(headerBytes);
+  md5Hash.update(payloadGz);
+  const md5Bytes = new Uint8Array(md5Hash.digest());
+
+  sig.set(269, rpmEntryString(hdrSha1)); // RPMSIGTAG_SHA1
+  sig.set(273, rpmEntryString(hdrSha256)); // RPMSIGTAG_SHA256
+  sig.set(1000, rpmEntryInt32([headerBytes.byteLength + payloadGz.byteLength])); // RPMSIGTAG_SIZE
+  sig.set(1004, rpmEntryBytes(md5Bytes)); // RPMSIGTAG_MD5
+  sig.set(1007, rpmEntryInt32([cpioRaw.byteLength])); // RPMSIGTAG_PAYLOADSIZE
+
+  const sigBytes = buildRpmHeaderBlock(RPM_REGION_SIGNATURES, sig);
+  const sigPadLen = (8 - (sigBytes.byteLength % 8)) % 8;
+  const leadBytes = buildRpmLead(RPM_PACKAGE_NAME, fullVersion, opts.arch);
+
+  const totalLen =
+    leadBytes.byteLength +
+    sigBytes.byteLength +
+    sigPadLen +
+    headerBytes.byteLength +
+    payloadGz.byteLength;
+  const rpmBytes = new Uint8Array(totalLen);
+  let offset = 0;
+  rpmBytes.set(leadBytes, offset);
+  offset += leadBytes.byteLength;
+  rpmBytes.set(sigBytes, offset);
+  offset += sigBytes.byteLength;
+  offset += sigPadLen; // already zero-filled
+  rpmBytes.set(headerBytes, offset);
+  offset += headerBytes.byteLength;
+  rpmBytes.set(payloadGz, offset);
+
+  mkdirSync(dirname(outRpmPath), { recursive: true });
+  writeFileSync(outRpmPath, rpmBytes);
+  return outRpmPath;
+}
+
 /**
  * Generates the Flathub / Flatpak manifest (`io.github.codecaine_zz.CodecaineFileManager.yml`).
  * Uses `org.gnome.Platform` 47 which includes GTK 4 and WebKitGTK 6.0 out of the box.
@@ -986,8 +1663,12 @@ This directory contains ready-to-publish manifests and metadata for listing **Co
      cd codecaine-file-manager-bin && git add PKGBUILD .SRCINFO && git commit -m "Update to v${version}" && git push
      \`\`\`
 
-5. **Fedora / RHEL / openSUSE RPM & COPR (\`rpm/codecaine-file-manager.spec\`)** — *Populates GNOME Software & KDE Discover on Fedora/RHEL/openSUSE*
-   - Build locally or upload \`rpm/codecaine-file-manager.spec\` to [Fedora COPR](https://copr.fedorainfracloud.org/):
+5. **Native Fedora / RHEL / openSUSE / Rocky / AlmaLinux GUI Installer (\`.rpm\`) & COPR (\`rpm/codecaine-file-manager.spec\`)** — *Populates GNOME Software & KDE Discover on Fedora/RHEL/openSUSE*
+   - Built automatically in \`release/file-manager/\`:
+     - \`codecaine-file-manager-${version}-1.x86_64.rpm\`
+     - \`codecaine-file-manager-${version}-1.aarch64.rpm\`
+   - Users can double-click the \`.rpm\` in **GNOME Software** or **KDE Discover**, or run \`sudo dnf install ./codecaine-file-manager-${version}-1.x86_64.rpm\`.
+   - Or build from source / upload \`rpm/codecaine-file-manager.spec\` to [Fedora COPR](https://copr.fedorainfracloud.org/):
      \`\`\`sh
      rpmbuild -bb rpm/codecaine-file-manager.spec
      \`\`\`

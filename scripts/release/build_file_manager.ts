@@ -74,8 +74,11 @@ import {
   APPSTREAM_ID,
   appStreamMetaInfoXml,
   buildDebPackage,
+  buildRpmPackage,
   debArchForDownload,
   debFileName,
+  rpmArchForDownload,
+  rpmFileName,
   systemDesktopEntry,
   writeLinuxStoreManifests,
 } from "./linuxPackages";
@@ -586,11 +589,29 @@ async function buildFolder(d: Download, assets: Assets): Promise<string> {
     });
     log("📦", `${basename(debOut)}  ${mb(statSync(debOut).size)}`);
   }
+  const rpmArch = rpmArchForDownload(d.id);
+  if (rpmArch) {
+    const rpmOut = join(OUT_DIR, rpmFileName(rpmArch, VERSION));
+    await buildRpmPackage(dir, rpmOut, {
+      version: VERSION,
+      arch: rpmArch,
+      iconPngPath: assets.png512,
+    });
+    log("📦", `${basename(rpmOut)}  ${mb(statSync(rpmOut).size)}`);
+  }
   return out;
 }
 
 export interface DebDownloadRow {
   arch: "amd64" | "arm64";
+  label: string;
+  hint: string;
+  file: string;
+  bytes: number;
+}
+
+export interface RpmDownloadRow {
+  arch: "x86_64" | "aarch64";
   label: string;
   hint: string;
   file: string;
@@ -603,7 +624,7 @@ export function collectPresentDebs(outDir = OUT_DIR): DebDownloadRow[] {
       {
         arch: "amd64",
         label: "Ubuntu / Debian / Mint (.deb · x86-64)",
-        hint: "Double-click in GNOME Software, Ubuntu App Center, KDE Discover, or GDebi; auto-installs GTK 4, WebKitGTK 6.0 & AppArmor profile",
+        hint: "Double-click in GNOME Software, Ubuntu App Center, KDE Discover, or GDebi; auto-installs GTK 4 & WebKitGTK 6.0",
       },
       {
         arch: "arm64",
@@ -620,10 +641,37 @@ export function collectPresentDebs(outDir = OUT_DIR): DebDownloadRow[] {
   return out;
 }
 
+export function collectPresentRpms(outDir = OUT_DIR): RpmDownloadRow[] {
+  const specs: Array<{
+    arch: "x86_64" | "aarch64";
+    label: string;
+    hint: string;
+  }> = [
+    {
+      arch: "x86_64",
+      label: "Fedora / RHEL / openSUSE (.rpm · x86-64)",
+      hint: "Double-click in GNOME Software or KDE Discover, or run sudo dnf install; auto-installs GTK 4 & WebKitGTK 6.0",
+    },
+    {
+      arch: "aarch64",
+      label: "Fedora / RHEL / openSUSE (.rpm · ARM64)",
+      hint: "64-bit ARM .rpm installer with automatic shared-library dependencies, desktop icon & AppStream metadata",
+    },
+  ];
+  const out: RpmDownloadRow[] = [];
+  for (const s of specs) {
+    const file = rpmFileName(s.arch, VERSION);
+    const full = join(outDir, file);
+    if (existsSync(full)) out.push({ ...s, file, bytes: statSync(full).size });
+  }
+  return out;
+}
+
 export function downloadPage(
   rows: Array<{ d: Download; file: string; bytes: number }>,
   baseUrl = "",
   debs: DebDownloadRow[] = [],
+  rpms: RpmDownloadRow[] = [],
 ): string {
   const base = baseUrl && !baseUrl.endsWith("/") ? `${baseUrl}/` : baseUrl;
   const data = rows.map((r) => ({
@@ -659,7 +707,16 @@ export function downloadPage(
             )
             .join("")
         : "";
-    return `<section class="card" id="${os}"><div class="icon">${icon}</div><h2>${title}</h2><p class="note">${note}</p>${debBtns}${main.map((r) => btn(r, true)).join("")}${old.length ? `<details><summary>Older computers</summary>${old.map((r) => btn(r, false)).join("")}</details>` : ""}</section>`;
+    const rpmBtns =
+      os === "linux"
+        ? rpms
+            .map(
+              (r) =>
+                `<a class="btn" data-id="linux-rpm-${r.arch}" href="${esc(base + r.file)}" download><span class="b-top">${esc(r.label)}</span><span class="b-sub">${esc(r.hint)}</span><span class="b-size">.rpm · ${mb(r.bytes)}</span></a>`,
+            )
+            .join("")
+        : "";
+    return `<section class="card" id="${os}"><div class="icon">${icon}</div><h2>${title}</h2><p class="note">${note}</p>${debBtns}${rpmBtns}${main.map((r) => btn(r, true)).join("")}${old.length ? `<details><summary>Older computers</summary>${old.map((r) => btn(r, false)).join("")}</details>` : ""}</section>`;
   };
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -691,12 +748,12 @@ footer{margin-top:40px;color:var(--dim);font-size:14px}footer a{color:var(--acc2
 <div class="grid">
 ${card("macos", "macOS", "🍎", macAvailable ? "A double-clickable .app with its own icon. Drag it to Applications." : 'Standalone .app downloads are being built on macOS. For now, get the macOS full-suite archive from <a href="https://github.com/codecaine-zz/bun_rad_studio/releases/latest">GitHub Releases</a>.')}
 ${card("windows", "Windows", "🪟", "Unzip and double-click the .exe. Needs the WebView2 runtime (built into Windows 11).")}
-${card("linux", "Linux", "🐧", "Double-click the .deb in your GUI Software Center, or unzip the portable archive and run install.sh. Needs GTK 4 and WebKitGTK 6.0.")}
+${card("linux", "Linux", "🐧", "Double-click the .deb or .rpm in your GUI Software Center, or unzip the portable archive and run install.sh. Needs GTK 4 and WebKitGTK 6.0.")}
 </div>
 <div class="how">
 ${macAvailable ? `<div><h3>macOS: first launch</h3><ol><li>Unzip and drag the app to Applications.</li><li>The app is not Developer ID signed or notarized. Right-click Open may not bypass quarantine.</li><li>Only after trusting the source and checking the checksum, run <code>xattr -dr com.apple.quarantine "/Applications/${APP_TITLE}.app"</code> in Terminal, then open the app.</li></ol><p>Do not disable Gatekeeper system-wide.</p></div>` : `<div><h3>macOS: using the full suite</h3><p>Download a macOS full-suite archive from <a href="https://github.com/codecaine-zz/bun_rad_studio/releases/latest">GitHub Releases</a>, then start <code>bin/file-manager-studio</code> from its extracted folder. See the included <code>README.txt</code> for first-launch guidance.</p></div>`}
 <div><h3>Windows: first launch</h3><ol><li>Unzip the whole folder (keep the files together).</li><li>Double-click <b>install.cmd</b>. It checks WebView2 and the <a href="https://aka.ms/vs/17/release/vc_redist.x64.exe">Visual C++ x64 Redistributable</a> (also on ARM), and asks permission to install missing prerequisites from Microsoft.</li><li>Double-click <b>${APP_TITLE}.exe</b>. If it fails, open <b>troubleshoot.cmd</b>.</li></ol><p>No Bun or compiler needed. If SmartScreen warns you, choose <b>More info</b> then <b>Run anyway</b>. ARM requires Windows 11 x64 emulation.</p></div>
-<div><h3>Linux: first launch</h3><ol><li><b>Ubuntu / Debian / Mint (.deb):</b> Double-click the <code>.deb</code> in GNOME Software, Ubuntu App Center, KDE Discover, or run <code>sudo apt install ./codecaine-file-manager_${VERSION}_amd64.deb</code>.</li><li><b>Portable .zip:</b> <code>unzip</code> the download, install GTK 4 and WebKitGTK 6.0 (Ubuntu/Debian: <code>sudo apt install libgtk-4-1 libwebkitgtk-6.0-4</code>; Fedora: <code>sudo dnf install gtk4 webkitgtk6.0</code>), and run <code>sh install.sh</code> for a menu entry or <code>sh troubleshoot.sh</code> to see errors.</li></ol><p>Ubuntu 24.04+: AppArmor is opt-in so package installation never weakens system-wide namespace hardening. If the window crashes with a bwrap / dbus-proxy permission error, run <code>sh /opt/codecaine-file-manager/install.sh --apparmor</code> (or <code>sh install.sh --apparmor</code> in the portable <code>.zip</code>, sudo required) to grant bubblewrap sandbox namespaces only. Rerun after moving a portable folder.</p><p>Needs a graphical desktop. Not sure of your CPU? <code>uname -m</code> prints x86_64 or aarch64. No desktop? Use <code>./codecaine-file-manager --server</code>.</p></div>
+<div><h3>Linux: first launch</h3><ol><li><b>Ubuntu / Debian / Mint (.deb):</b> Double-click the <code>.deb</code> in GNOME Software, Ubuntu App Center, KDE Discover, or run <code>sudo apt install ./codecaine-file-manager_${VERSION}_amd64.deb</code>.</li><li><b>Fedora / RHEL / openSUSE (.rpm):</b> Double-click the <code>.rpm</code> in GNOME Software or KDE Discover, or run <code>sudo dnf install ./codecaine-file-manager-${VERSION}-1.x86_64.rpm</code>.</li><li><b>Portable .zip:</b> <code>unzip</code> the download, install GTK 4 and WebKitGTK 6.0 (Ubuntu/Debian: <code>sudo apt install libgtk-4-1 libwebkitgtk-6.0-4</code>; Fedora: <code>sudo dnf install gtk4 webkitgtk6.0</code>), and run <code>sh install.sh</code> for a menu entry or <code>sh troubleshoot.sh</code> to see errors.</li></ol><p>Ubuntu 24.04+: AppArmor is opt-in so package installation never weakens system-wide namespace hardening. If the window crashes with a bwrap / dbus-proxy permission error, run <code>sh /opt/codecaine-file-manager/install.sh --apparmor</code> (or <code>sh install.sh --apparmor</code> in the portable <code>.zip</code>, sudo required) to grant bubblewrap sandbox namespaces only. Rerun after moving a portable folder.</p><p>Needs a graphical desktop. Not sure of your CPU? <code>uname -m</code> prints x86_64 or aarch64. No desktop? Use <code>./codecaine-file-manager --server</code>.</p></div>
 </div>
 <footer>Check a download: <code>shasum -a 256 -c SHA256SUMS.txt --ignore-missing</code> (the file is next to the zips). Prefer to build it yourself? The source is on <a href="https://github.com/codecaine-zz/bun_rad_studio">GitHub</a>.</footer>
 </main>
@@ -778,13 +835,14 @@ async function main() {
       bytes: statSync(join(OUT_DIR, zipName(d))).size,
     }));
     const debs = collectPresentDebs(OUT_DIR);
+    const rpms = collectPresentRpms(OUT_DIR);
     writeFileSync(
       join(OUT_DIR, "index.html"),
-      downloadPage(have, baseUrl, debs),
+      downloadPage(have, baseUrl, debs, rpms),
     );
     log(
       "🌐",
-      `index.html rewritten for ${have.length} downloads + ${debs.length} .deb installer(s)${baseUrl ? ` hosted at ${baseUrl}` : ""}`,
+      `index.html rewritten for ${have.length} downloads + ${debs.length} .deb + ${rpms.length} .rpm installer(s)${baseUrl ? ` hosted at ${baseUrl}` : ""}`,
     );
     return;
   }
@@ -846,7 +904,7 @@ async function main() {
   for (const r of built) if (r) rows.push(r);
   rmSync(STAGE, { recursive: true, force: true });
 
-  // The page and checksums always describe every zip and .deb that is present, not only the ones built this time.
+  // The page and checksums always describe every zip, .deb and .rpm that is present, not only the ones built this time.
   const present = DOWNLOADS.filter((d) =>
     existsSync(join(OUT_DIR, zipName(d))),
   ).map((d) => ({
@@ -855,9 +913,10 @@ async function main() {
     bytes: statSync(join(OUT_DIR, zipName(d))).size,
   }));
   const presentDebs = collectPresentDebs(OUT_DIR);
+  const presentRpms = collectPresentRpms(OUT_DIR);
   writeFileSync(
     join(OUT_DIR, "index.html"),
-    downloadPage(present, baseUrl, presentDebs),
+    downloadPage(present, baseUrl, presentDebs, presentRpms),
   );
   const sums: string[] = [];
   const hashByFile = new Map<string, string>();
@@ -870,6 +929,11 @@ async function main() {
     const h = await sha256File(join(OUT_DIR, deb.file));
     hashByFile.set(deb.file, h);
     sums.push(`${h}  ${deb.file}`);
+  }
+  for (const rpm of presentRpms) {
+    const h = await sha256File(join(OUT_DIR, rpm.file));
+    hashByFile.set(rpm.file, h);
+    sums.push(`${h}  ${rpm.file}`);
   }
   writeFileSync(join(OUT_DIR, "SHA256SUMS.txt"), sums.join("\n") + "\n");
 
@@ -890,7 +954,7 @@ async function main() {
   );
   log(
     "🌐",
-    `${join(OUT_DIR, "index.html")} lists ${present.length} zip downloads and ${presentDebs.length} .deb installer(s)`,
+    `${join(OUT_DIR, "index.html")} lists ${present.length} zip downloads, ${presentDebs.length} .deb installer(s), and ${presentRpms.length} .rpm installer(s)`,
   );
   if (failures.length) {
     console.error(
