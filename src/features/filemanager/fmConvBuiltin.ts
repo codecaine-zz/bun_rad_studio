@@ -40,6 +40,7 @@ import {
   encodeHex,
   encodeText,
   htmlToText,
+  normalizePlainTextDocument,
   spacesToTabs,
   stripTrailingSpaces,
   stripUtf8Bom,
@@ -900,5 +901,5 @@ ${sectionsXml}
       );
     }
   }
-  return out.join("\n\n") + "\n";
+  return normalizePlainTextDocument(out.join("\n\n"));
 }

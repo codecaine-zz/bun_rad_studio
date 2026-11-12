@@ -10,6 +10,7 @@ import { existsSync, promises as fsp } from "fs";
 import * as nodePath from "path";
 import { CATALOG, CATALOG_BY_ID } from "./fmConvCatalog";
 import { formatEpubDocumentOutput, type BuiltinJob } from "./fmConvBuiltin";
+import { normalizePlainTextDocument } from "./fmConvText";
 import { probeSecondsAsync } from "./fmConvMediaMore";
 import {
   EXTRACT_LIMITS,
@@ -800,18 +801,24 @@ function stepFor(
             ),
           )
         : resolvedOriginals;
+      const isPlainTextDocConv =
+        def.id === "doc-txt" ||
+        def.id === "pdf-text" ||
+        def.id === "ocr-text" ||
+        def.id === "html-text";
+      const shouldCleanClutter =
+        (outExt === "md" || outExt === "txt") &&
+        (opts.cleanEpubClutter === true || opts.audiobookMode === true);
       const publish = async () => {
-        if (
-          !folder &&
-          (outExt === "md" || outExt === "txt") &&
-          (opts.cleanEpubClutter === true || opts.audiobookMode === true)
-        ) {
+        if (!folder && (isPlainTextDocConv || shouldCleanClutter)) {
           try {
             const rawOut = await fsp.readFile(tmpOut, "utf8");
-            const cleanedOut = stripBackMatterPromoAndDuplicateChapters(
-              rawOut,
-              title,
-            );
+            let cleanedOut = shouldCleanClutter
+              ? stripBackMatterPromoAndDuplicateChapters(rawOut, title)
+              : rawOut;
+            if (isPlainTextDocConv || outExt === "txt") {
+              cleanedOut = normalizePlainTextDocument(cleanedOut);
+            }
             if (cleanedOut !== rawOut) {
               await fsp.writeFile(tmpOut, cleanedOut, "utf8");
             }

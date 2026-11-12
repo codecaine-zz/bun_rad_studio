@@ -982,6 +982,22 @@ const NAMED: Record<string, string> = {
   trade: "™",
 };
 
+/**
+ * Normalizes a converted plain-text document by trimming leading/trailing
+ * whitespace and newlines at the top and bottom of the document and collapsing
+ * any run of 3+ consecutive newlines (more than a single blank line) to `\n\n`.
+ */
+export function normalizePlainTextDocument(text: string): string {
+  if (!text) return "";
+  return text
+    .replace(/^\ufeff/, "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/\f+/g, "\n\n")
+    .replace(/[ \t\f\v\u00a0]+$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 /** The words of a web page: tags removed, paragraphs and list items on their own lines, entities decoded. */
 export function htmlToText(html: string): string {
   let s = html
@@ -1030,11 +1046,10 @@ export function htmlToText(html: string): string {
   s = s
     .replace(/[ \t\r\f\v]+/g, " ")
     .replace(/ ?\n ?/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
     .replace(/\u0001/g, "\n")
     .replace(/\u0002/g, " ")
-    .replace(/\u0003/g, "\t")
-    .trim();
+    .replace(/\u0003/g, "\t");
+  s = normalizePlainTextDocument(s);
   if (!s) throw new ConvError("There is no text in this page.");
-  return `${s}\n`;
+  return s;
 }

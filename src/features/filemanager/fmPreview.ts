@@ -998,6 +998,11 @@ export function cleanEpubAndPandocClutter(input: string): string {
     );
   }
 
+  s = s
+    .replace(/[ \t\f\v\u00a0]+$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
   return s;
 }
 
@@ -1482,7 +1487,11 @@ export function stripBackMatterPromoAndDuplicateChapters(
           (isShortHeading && EXPLICIT_PROMO_TITLE_RE.test(p)) ||
           EXPLICIT_PROMO_BODY_RE.test(p)
         ) {
-          return `${paras.slice(0, i).join("\n\n").trim()}\n`;
+          return paras
+            .slice(0, i)
+            .join("\n\n")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim();
         }
       }
     }
@@ -1629,10 +1638,11 @@ export function stripBackMatterPromoAndDuplicateChapters(
     }
   }
 
-  return `${outParts
+  return outParts
     .join("\n\n")
+    .replace(/[ \t\f\v\u00a0]+$/gm, "")
     .replace(/\n{3,}/g, "\n\n")
-    .trim()}\n`;
+    .trim();
 }
 
 function parseHtmlToBlocks(xhtml: string, maxBlocks = 250): DocBlock[] {
@@ -4742,7 +4752,12 @@ export async function extractReadableDocumentText(
         )
         .filter(Boolean)
         .join("\n\n");
-    return [header, body].filter(Boolean).join("\n\n").trim();
+    return [header, body]
+      .filter(Boolean)
+      .join("\n\n")
+      .replace(/[ \t\f\v\u00a0]+$/gm, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
   };
 
   if (st.isDirectory()) {

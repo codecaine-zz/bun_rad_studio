@@ -33,6 +33,7 @@ import {
 } from "../src/features/filemanager/fmConvFormats";
 import { parseJson, writeJson } from "../src/features/filemanager/fmConvData";
 import {
+  formatEpubDocumentOutput,
   runBuiltin,
   type BuiltinJob,
 } from "../src/features/filemanager/fmConvBuiltin";
@@ -53,6 +54,7 @@ import {
   encodeText,
   htmlToText,
   markdownToHtml,
+  normalizePlainTextDocument,
   safeUrl,
   sniffExtension,
   spacesToTabs,
@@ -976,7 +978,55 @@ describe("the Markdown renderer", () => {
     expect(text).toContain("  keep\n  this");
     expect(text).not.toContain("alert");
     expect(text).not.toContain("p{}");
+    expect(text.startsWith("\n")).toBe(false);
+    expect(text.endsWith("\n")).toBe(false);
+    expect(text).not.toMatch(/\n{3,}/);
     expect(errorOf(() => htmlToText("<p> </p>"))).toContain("no text");
+  });
+
+  test("plain-text document conversion trims top/bottom newlines and collapses >2 newlines to double newline", () => {
+    const raw =
+      "\n\n  \nFirst paragraph.\n\n\n\nSecond paragraph.\n   \n\t\n\nThird paragraph.\f\fFourth paragraph.\n\n  \n";
+    const normalized = normalizePlainTextDocument(raw);
+    expect(normalized).toBe(
+      "First paragraph.\n\nSecond paragraph.\n\nThird paragraph.\n\nFourth paragraph.",
+    );
+    expect(normalized.startsWith("\n")).toBe(false);
+    expect(normalized.endsWith("\n")).toBe(false);
+    expect(normalized).not.toMatch(/\n{3,}/);
+
+    const html =
+      "\n\n<div><p>Alpha</p></div>\n\n<div><p></p></div>\n\n<pre>line1\n\n\n\nline2</pre>\n\n";
+    const fromHtml = htmlToText(html);
+    expect(fromHtml).toBe("Alpha\n\nline1\n\nline2");
+
+    const epubTxt = formatEpubDocumentOutput(
+      {
+        kind: "document",
+        formatLabel: "EPUB",
+        title: "  Sample Book  ",
+        meta: [],
+        blocks: [],
+        plainText: "",
+        chapters: [
+          {
+            title: "Chapter 1",
+            blocks: [
+              { type: "p", text: "\n\nFirst para.\n\n\n\nSecond para.\n\n" },
+            ],
+          },
+        ],
+      },
+      "Sample Book",
+      "txt",
+      false,
+    );
+    expect(epubTxt.startsWith("\n")).toBe(false);
+    expect(epubTxt.endsWith("\n")).toBe(false);
+    expect(epubTxt).not.toMatch(/\n{3,}/);
+    expect(epubTxt).toBe(
+      "Sample Book\n\nChapter 1\n\nFirst para.\n\nSecond para.",
+    );
   });
 });
 

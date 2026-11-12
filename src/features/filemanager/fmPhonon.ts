@@ -25,7 +25,11 @@ import {
 import { availableParallelism, cpus, homedir, tmpdir } from "os";
 import * as nodePath from "path";
 import { absolutePath, type FmContext, type FmHandler } from "./fmCore";
-import { decodeBytes, htmlToText } from "./fmConvText";
+import {
+  decodeBytes,
+  htmlToText,
+  normalizePlainTextDocument,
+} from "./fmConvText";
 import { readSpreadsheet } from "./fmConvSheet";
 import {
   extensionOf,
@@ -2507,7 +2511,7 @@ function docBlocksToPlainText(blocks: DocBlock[]): string {
       parts.push(b.text.trim());
     }
   }
-  return parts.join("\n\n");
+  return normalizePlainTextDocument(parts.join("\n\n"));
 }
 
 function richPreviewToPlainText(
@@ -3128,7 +3132,7 @@ export async function extractPlainTextFromFile(
 
   const shouldClean = cleanOpts.clean ?? true;
   const inferredTitle = title || splitName(name)[0];
-  const text = shouldClean
+  const rawCleaned = shouldClean
     ? cleanTextForSpeech(rawText, {
         ...cleanOpts,
         bookTitle: cleanOpts.bookTitle || inferredTitle,
@@ -3137,6 +3141,7 @@ export async function extractPlainTextFromFile(
         rawText.replace(/\r\n?/g, "\n").trim(),
         cleanOpts.bookTitle || inferredTitle,
       );
+  const text = normalizePlainTextDocument(rawCleaned);
   if (!text)
     throw new FmError(
       "EMPTY_TEXT",
