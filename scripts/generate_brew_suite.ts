@@ -37,7 +37,7 @@ export function readSuiteVersion(): string {
       return pkg.version.trim();
     }
   } catch {}
-  return "1.5.7";
+  return "1.5.8";
 }
 
 interface WrapperDefinition {
