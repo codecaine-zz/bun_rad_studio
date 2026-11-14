@@ -43,25 +43,38 @@ import {
   createCustomVoiceFromAudio,
   DEFAULT_PHONON_VOICES,
   ensureOllamaDaemon,
+  expandTechnicalAndNumericForSpeech,
   extractAudiobookChapters,
   extractPlainTextFromFile,
   formatAssKaraokeSubtitles,
   formatSrtSubtitles,
   formatVttSubtitles,
+  generatePodcastScriptFromDocument,
+  getEmotionProsodyModifiers,
   getPhononStatus,
   isPhononVideoFormat,
+  loadPronunciationLexicon,
   PHONON_BATCH_CHUNK_CHARS,
   PHONON_DEFAULT_CHUNK_CHARS,
+  PHONON_EMOTION_PROFILES,
   PHONON_HARD_MAX_CHUNK_CHARS,
+  PHONON_MASTER_PRESETS,
   PHONON_VIDEO_ASPECTS,
   PHONON_VIDEO_THEMES,
+  sanitizeSafeFilenameStem,
+  splitFirstClauseForFastStart,
   splitTextForPhonon,
   synthesizeAndExportAudioFile,
   synthesizePhononChunkWav,
+  verifyLlmCleanedFidelity,
   VIDEO_ASPECT_INFO,
   VIDEO_FORMAT_INFO,
   VIDEO_THEME_INFO,
   type CleanTextOptions,
+  type M4bChapterSpec,
+  type PhononEmotionProfile,
+  type PhononLexiconEntry,
+  type PhononMasterPreset,
   type PhononReadAlongTimeline,
   type PhononTextChunk,
   type PhononVideoAspect,
@@ -284,6 +297,84 @@ export function buildTtsCliApp(): SimpleCLI {
     "",
     "Display name for the cloned voice when using --clone-voice",
   );
+  app.addFlagString(
+    "master",
+    "",
+    "none",
+    "Studio audio mastering preset: none, podcast (-16 LUFS), acx (-20 dB RMS Audible), or broadcast (-23 LUFS)",
+  );
+  app.addFlagString(
+    "lexicon",
+    "",
+    "",
+    "Path to a .ttsdict.json pronunciation dictionary file",
+  );
+  app.addFlagString(
+    "pronounce",
+    "",
+    "",
+    "Inline pronunciation rule (word=spoken replacement; e.g. SQLite=sequel lite)",
+  );
+  app.addFlagBool(
+    "multi-voice",
+    "",
+    false,
+    "Auto-cast dialogue turns (**Name:** or novel quoted dialogue) to distinct voices",
+  );
+  app.addFlagString(
+    "cast",
+    "",
+    "",
+    "Path to cast.json file mapping character names to Phonon voices",
+  );
+  app.addFlagBool(
+    "continuity",
+    "",
+    false,
+    "Enable cross-chunk prosodic continuity matching inside multi-chunk paragraphs",
+  );
+  app.addFlagBool(
+    "verify",
+    "",
+    false,
+    "Run closed-loop acoustic QA on each synthesized chunk and auto-retry/split anomalies",
+  );
+  app.addFlagBool(
+    "resume",
+    "",
+    false,
+    "Enable content-addressed disk checkpointing to resume interrupted long exports",
+  );
+  app.addFlagString(
+    "checkpoint-dir",
+    "",
+    "",
+    "Explicit checkpoint directory path for --resume",
+  );
+  app.addFlagString(
+    "emotion",
+    "",
+    "neutral",
+    "Prosodic style profile: neutral, calm, excited, serious, or whisper",
+  );
+  app.addFlagBool(
+    "single-m4b",
+    "",
+    false,
+    "Also assemble a single chaptered .m4b audiobook file with [CHAPTER] markers and cover art",
+  );
+  app.addFlagString(
+    "hosts",
+    "",
+    "",
+    "Two host voices/names for 2-Host AI Podcast generation (e.g. Zoey,Russell)",
+  );
+  app.addFlagInt(
+    "turns",
+    "",
+    10,
+    "Target number of dialogue turns in podcast mode (4 to 36)",
+  );
   app.addFlagBool(
     "voices",
     "V",
@@ -366,6 +457,9 @@ export function expandAbbreviationsForSpeech(input: string): string {
   s = s.replace(/\s*≥\s*/g, " is greater than or equal to ");
   s = s.replace(/\s*≤\s*/g, " is less than or equal to ");
   s = s.replace(/(?<=\s)(?:→|->|=>)(?=\s)/g, "to");
+
+  // Technical & numeric speech normalizer (currencies/magnitudes $1.5M, semver v1.5.4, CLI flags, Roman numerals)
+  s = expandTechnicalAndNumericForSpeech(s);
 
   return s.replace(/[ \t]{2,}/g, " ");
 }
@@ -536,19 +630,30 @@ export async function resolveOllamaCleanerModel(
 export async function cleanDocumentWithOllamaLlm(
   ctx: FmContext,
   text: string,
-  opts: DocumentCleanOptions = {},
-): Promise<{ text: string; modelUsed: string | null; usedLlm: boolean }> {
+  opts: DocumentCleanOptions & { ollamaBaseUrl?: string } = {},
+): Promise<{
+  text: string;
+  modelUsed: string | null;
+  usedLlm: boolean;
+  rejectedChunks: number;
+}> {
   const preCleaned = cleanDocumentForTts(text, opts);
   if (!preCleaned) {
-    return { text: "", modelUsed: null, usedLlm: false };
+    return { text: "", modelUsed: null, usedLlm: false, rejectedChunks: 0 };
   }
 
   const model = await resolveOllamaCleanerModel(ctx, opts.cleanModel);
   if (!model) {
-    return { text: preCleaned, modelUsed: null, usedLlm: false };
+    return {
+      text: preCleaned,
+      modelUsed: null,
+      usedLlm: false,
+      rejectedChunks: 0,
+    };
   }
 
   const rawHost =
+    opts.ollamaBaseUrl?.trim() ||
     ctx.ollama?.baseUrl?.trim() ||
     process.env.OLLAMA_HOST?.trim() ||
     "http://127.0.0.1:11434";
@@ -564,6 +669,7 @@ export async function cleanDocumentWithOllamaLlm(
 
   const cleanedSections: string[] = [];
   let anySucceeded = false;
+  let rejectedChunks = 0;
 
   const systemPrompt =
     "You are an expert audiobook and text-to-speech document cleaner. " +
@@ -575,6 +681,7 @@ export async function cleanDocumentWithOllamaLlm(
 
   for (const sec of sections) {
     let polished: string | null = null;
+    let httpResponded = false;
     try {
       const res = await fetch(`${baseUrl}/api/generate`, {
         method: "POST",
@@ -589,6 +696,7 @@ export async function cleanDocumentWithOllamaLlm(
         signal: AbortSignal.timeout(25_000),
       });
       if (res.ok) {
+        httpResponded = true;
         const data = (await res.json()) as { response?: string };
         const candidate = cleanDocumentForTts(String(data?.response || ""), {
           ...opts,
@@ -598,13 +706,20 @@ export async function cleanDocumentWithOllamaLlm(
           candidate &&
           candidate.length >= Math.min(12, sec.text.length * 0.25)
         ) {
-          polished = candidate;
-          anySucceeded = true;
+          const fidelity = verifyLlmCleanedFidelity(sec.text, candidate);
+          if (fidelity.accepted) {
+            polished = candidate;
+            anySucceeded = true;
+          } else {
+            rejectedChunks++;
+          }
+        } else {
+          rejectedChunks++;
         }
       }
     } catch {}
 
-    if (!polished) {
+    if (!polished && !httpResponded) {
       // Try CLI `ollama run <model> --hidethinking` if HTTP API didn't return a response (e.g. CLI test stub)
       const ollamaExe = resolveTool(ctx, "ollama") || Bun.which("ollama");
       if (ollamaExe) {
@@ -632,8 +747,13 @@ export async function cleanDocumentWithOllamaLlm(
                 clean: true,
               });
               if (candidate) {
-                polished = candidate;
-                anySucceeded = true;
+                const fidelity = verifyLlmCleanedFidelity(sec.text, candidate);
+                if (fidelity.accepted) {
+                  polished = candidate;
+                  anySucceeded = true;
+                } else {
+                  rejectedChunks++;
+                }
               }
             }
           }
@@ -648,6 +768,7 @@ export async function cleanDocumentWithOllamaLlm(
     text: cleanedSections.join("\n\n").trim(),
     modelUsed: anySucceeded ? model : null,
     usedLlm: anySucceeded,
+    rejectedChunks,
   };
 }
 
@@ -770,9 +891,7 @@ export function resolveTargetFormats(
           ? "aiff"
           : clean === "ogg-vorbis" || clean === "vorbis"
             ? "ogg"
-            : clean === "m4b"
-              ? "m4a"
-              : clean;
+            : clean;
     if (!VALID_FORMATS_SET.has(mapped)) {
       throw new Error(
         `Unsupported export format "${raw}". Supported formats: ${(PHONON_AUDIO_FORMATS as readonly string[]).join(", ")}`,
@@ -827,9 +946,13 @@ export function resolveOutputFilePath(params: {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "") || "zoey";
   const defaultStem = inputFilePath
-    ? nodePath.basename(inputFilePath, nodePath.extname(inputFilePath))
+    ? sanitizeSafeFilenameStem(
+        nodePath.basename(inputFilePath, nodePath.extname(inputFilePath)),
+        `speech-${safeVoice}`,
+        80,
+      )
     : title
-      ? title.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").slice(0, 60)
+      ? sanitizeSafeFilenameStem(title, `speech-${safeVoice}`, 60)
       : `speech-${safeVoice}`;
 
   if (!outputFlag || !outputFlag.trim()) {
@@ -929,13 +1052,15 @@ export async function playAudioFileOnSpeaker(filePath: string): Promise<{
                 "-autoexit",
                 "-loglevel",
                 "quiet",
-                "--",
+                "-i",
                 abs,
               ]
             : [resolved, "--", abs];
         const proc = Bun.spawn(args, { stdout: "ignore", stderr: "ignore" });
         const code = await proc.exited;
-        return { played: code === 0, player: bin };
+        if (code === 0) {
+          return { played: true, player: bin };
+        }
       }
     }
   } else if (process.platform === "win32") {
@@ -961,7 +1086,7 @@ export async function playAudioFileOnSpeaker(filePath: string): Promise<{
   const ffplay = Bun.which("ffplay");
   if (ffplay) {
     const proc = Bun.spawn(
-      [ffplay, "-nodisp", "-autoexit", "-loglevel", "quiet", "--", abs],
+      [ffplay, "-nodisp", "-autoexit", "-loglevel", "quiet", "-i", abs],
       { stdout: "ignore", stderr: "ignore" },
     );
     const code = await proc.exited;
@@ -1004,13 +1129,16 @@ function printRichHelp(out: (line: string) => void): void {
     "  speak <file|text>      Clean and read a document or text aloud directly on the system speaker",
   );
   out(
-    "  audiobook <file>       Split an EPUB/PDF/Markdown/DOCX book into chapters and export a full audiobook + M3U8 playlist",
+    "  audiobook <file>       Split an EPUB/PDF/Markdown/DOCX book into chapters and export a full audiobook (.m4b / playlist)",
+  );
+  out(
+    "  podcast <file|text>    Generate a 2-host conversational AI podcast (stereo panned + transcript) from any document",
   );
   out(
     "  voices                 List all 38+ built-in Ollama Phonon voices and custom cloned voices",
   );
   out(
-    "  formats                List all 9 audio formats and 4 Read-Along video formats, aspect ratios & visual themes",
+    "  formats                List all 10 audio formats (incl. M4B) and 4 Read-Along video formats, aspect ratios & themes",
   );
   out(
     "  status                 Check Ollama, Phonon speech model, text cleaner LLM, and FFmpeg readiness",
@@ -1063,13 +1191,40 @@ function printRichHelp(out: (line: string) => void): void {
   out(
     "  -z, --chunk-size <chars>   Max characters per synthesis chunk (default: 520, max: 1200)",
   );
+  out(
+    "      --master <preset>      Studio mastering chain: none, podcast (-16 LUFS), acx (-20 dB RMS), broadcast (-23 LUFS)",
+  );
+  out(
+    "      --emotion <style>      Prosodic style profile: neutral, calm, excited, serious, whisper",
+  );
+  out(
+    "      --multi-voice          Auto-cast dialogue (**Name:** & novel quotes) to distinct voices",
+  );
+  out(
+    "      --cast <path>          Persist/load character-to-voice map (cast.json) across chapters",
+  );
+  out(
+    "      --lexicon <path>       Dual-track pronunciation dictionary (.ttsdict.json; audio respelled, subtitles intact)",
+  );
+  out(
+    '      --pronounce <w=spoken> Inline pronunciation override (repeatable; e.g. --pronounce "SQLite=sequel lite")',
+  );
+  out(
+    "      --continuity           Cross-chunk vocal energy & cadence matching inside paragraphs",
+  );
+  out(
+    "      --verify               Closed-loop acoustic QA on each chunk (auto-retry/split babble or clipping)",
+  );
+  out(
+    "      --resume               Crash-resumable content-addressed disk checkpointing",
+  );
   out("");
   out("AUDIO & READ-ALONG VIDEO EXPORT OPTIONS:");
   out(
     "  -o, --output <path>        Output file path or directory (format auto-detected from extension if -f omitted)",
   );
   out(
-    "  -f, --format <fmt[,fmt]>   Target format(s): wav, mp3, m4a, aac, flac, ogg, opus, aiff, wma, mp4, webm, mov, mkv",
+    "  -f, --format <fmt[,fmt]>   Target format(s): wav, mp3, m4a, m4b, aac, flac, ogg, opus, aiff, wma, mp4, webm, mov, mkv",
   );
   out(
     "  -a, --aspect <ratio>       Video aspect ratio for MP4/MOV/WebM/MKV: 16:9 (1080p), 9:16 (Vertical Short), 1:1 (Square)",
@@ -1101,6 +1256,15 @@ function printRichHelp(out: (line: string) => void): void {
   out(
     "  -B, --audiobook            Export multi-chapter audiobook folder with audiobook.m3u8 & chapters.json",
   );
+  out(
+    "      --single-m4b           Also assemble a single chaptered .m4b audiobook with [CHAPTER] markers & cover art",
+  );
+  out(
+    "      --hosts <HostA,HostB>  Generate a 2-Host AI Podcast using two voices (e.g. Zoey,Russell)",
+  );
+  out(
+    "      --turns <4..36>        Target number of host turns in podcast mode (default: 10)",
+  );
   out("  -j, --json                 Output structured JSON result");
   out("");
   out("EXAMPLES:");
@@ -1127,6 +1291,7 @@ const KNOWN_SUBCOMMANDS = new Set([
   "clean",
   "speak",
   "audiobook",
+  "podcast",
   "voices",
   "formats",
   "status",
@@ -1219,6 +1384,20 @@ export async function runTtsCli(
   let speakMode = subcommand === "speak";
   let playAfterExport = false;
   let audiobookMode = subcommand === "audiobook";
+  let podcastMode = subcommand === "podcast";
+  let singleM4b = false;
+  let masterPreset: PhononMasterPreset = "none";
+  let lexiconPath = "";
+  const pronounceInline: string[] = [];
+  let multiVoice = false;
+  let castFilePath = "";
+  let continuity = false;
+  let verifyChunks = false;
+  let resume = false;
+  let checkpointDirFlag = "";
+  let emotion: PhononEmotionProfile = "neutral";
+  let hostsFlag = "";
+  let podcastTurns = 10;
   let maxChapters = 80;
   let cloneVoiceSource = "";
   let cloneVoiceName = "";
@@ -1403,6 +1582,65 @@ export async function runTtsCli(
       case "--voice-name":
         cloneVoiceName = nextVal();
         break;
+      case "--master": {
+        const val = nextVal().toLowerCase() as PhononMasterPreset;
+        if (!(PHONON_MASTER_PRESETS as readonly string[]).includes(val)) {
+          throw new Error(
+            `Invalid --master "${val}". Choose from: ${PHONON_MASTER_PRESETS.join(", ")}`,
+          );
+        }
+        masterPreset = val;
+        break;
+      }
+      case "--lexicon":
+        lexiconPath = nextVal();
+        break;
+      case "--pronounce":
+        pronounceInline.push(nextVal());
+        break;
+      case "--multi-voice":
+        multiVoice = true;
+        break;
+      case "--cast":
+        castFilePath = nextVal();
+        multiVoice = true;
+        break;
+      case "--continuity":
+        continuity = true;
+        break;
+      case "--verify":
+        verifyChunks = true;
+        break;
+      case "--resume":
+        resume = true;
+        break;
+      case "--checkpoint-dir":
+        checkpointDirFlag = nextVal();
+        resume = true;
+        break;
+      case "--emotion": {
+        const val = nextVal().toLowerCase() as PhononEmotionProfile;
+        if (!(PHONON_EMOTION_PROFILES as readonly string[]).includes(val)) {
+          throw new Error(
+            `Invalid --emotion "${val}". Choose from: ${PHONON_EMOTION_PROFILES.join(", ")}`,
+          );
+        }
+        emotion = val;
+        break;
+      }
+      case "--single-m4b":
+        singleM4b = true;
+        break;
+      case "--hosts":
+        hostsFlag = nextVal();
+        podcastMode = true;
+        break;
+      case "--turns":
+        podcastTurns = Math.max(
+          4,
+          Math.min(36, Math.round(Number(nextVal()) || 10)),
+        );
+        break;
       case "-V":
       case "--voices":
         showVoices = true;
@@ -1550,7 +1788,7 @@ export async function runTtsCli(
         return 0;
       }
 
-      out("🎵  Supported Audio Export Formats (9 Formats):");
+      out("🎵  Supported Audio Export Formats (10 Formats):");
       out(
         "────────────────────────────────────────────────────────────────────────────────────",
       );
@@ -1639,7 +1877,19 @@ export async function runTtsCli(
     // ------------------------------------------------------------------------
     // Resolve Input Source (File, Positional File/Text, or Stdin)
     // ------------------------------------------------------------------------
-    if (!inputFile && !inlineText && positionals.length > 0) {
+    if (
+      inputFile === "-" ||
+      (!inputFile &&
+        !inlineText &&
+        positionals.length === 1 &&
+        positionals[0] === "-")
+    ) {
+      inlineText =
+        io.stdinText !== undefined
+          ? io.stdinText
+          : await new Response(Bun.stdin.stream()).text();
+      inputFile = "";
+    } else if (!inputFile && !inlineText && positionals.length > 0) {
       const firstPos = positionals[0]!;
       const candidatePath = nodePath.resolve(cwd, firstPos);
       if (positionals.length === 1 && existsSync(candidatePath)) {
@@ -1651,9 +1901,6 @@ export async function runTtsCli(
 
     if (!inputFile && !inlineText && io.stdinText) {
       inlineText = io.stdinText;
-    } else if (!inputFile && !inlineText && inputFile === "-") {
-      inlineText = await new Response(Bun.stdin.stream()).text();
-      inputFile = "";
     }
 
     // If launched with no arguments at all, show status overview + quick usage hint
@@ -1680,12 +1927,286 @@ export async function runTtsCli(
       ...(title ? { bookTitle: title } : {}),
     };
 
+    if (emotion !== "neutral") {
+      const emoMod = getEmotionProsodyModifiers(emotion);
+      speed = Math.max(
+        0.5,
+        Math.min(2.5, Math.round(speed * emoMod.speedMul * 100) / 100),
+      );
+      pitch = Math.max(-6, Math.min(6, pitch + emoMod.pitchDelta));
+    }
+
+    const activeLexicon: PhononLexiconEntry[] = loadPronunciationLexicon({
+      lexiconPath: lexiconPath ? nodePath.resolve(cwd, lexiconPath) : undefined,
+      inlineEntries: pronounceInline.length > 0 ? pronounceInline : undefined,
+      cwd,
+    });
+
+    const loadedCastMap: Record<string, string> = {};
+    if (castFilePath) {
+      const absCast = nodePath.resolve(cwd, castFilePath);
+      if (existsSync(absCast)) {
+        try {
+          const parsedCast = JSON.parse(readFileSync(absCast, "utf8"));
+          if (parsedCast && typeof parsedCast === "object") {
+            for (const [k, v] of Object.entries(parsedCast)) {
+              if (typeof v === "string") loadedCastMap[k] = v;
+            }
+          }
+        } catch {}
+      }
+    }
+
     // ------------------------------------------------------------------------
-    // 5. MULTI-CHAPTER AUDIOBOOK (`audiobook` / `--audiobook`)
+    // 5A. 2-HOST CONVERSATIONAL AI PODCAST (`podcast` / `--hosts`)
+    // ------------------------------------------------------------------------
+    if (podcastMode) {
+      const cleanedForPodcast = await extractAndCleanInput(ctx, {
+        filePath: resolvedInputFile,
+        text: inlineText || undefined,
+        cleanOpts,
+        maxChunkChars: chunkSize,
+      });
+
+      const hostParts = hostsFlag
+        ? hostsFlag
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+      const hostAVoice = hostParts[0] || voice || "Zoey";
+      const hostBVoice =
+        hostParts[1] ||
+        (hostAVoice.toLowerCase() === "russell" ? "Freya" : "Russell");
+      const podTitle =
+        title || cleanedForPodcast.title || "AI Deep-Dive Podcast";
+
+      const rawHost =
+        ctx.ollama?.baseUrl?.trim() ||
+        process.env.OLLAMA_HOST?.trim() ||
+        "http://127.0.0.1:11434";
+      const baseUrl = /^https?:\/\//i.test(rawHost)
+        ? rawHost.replace(/\/+$/, "")
+        : `http://${rawHost.replace(/\/+$/, "")}`;
+      const llmModel = await resolveOllamaCleanerModel(ctx, cleanModel).catch(
+        () => null,
+      );
+
+      const scriptRes = await generatePodcastScriptFromDocument({
+        sourceText: cleanedForPodcast.cleanedText,
+        title: podTitle,
+        hostA: { name: hostAVoice, voice: hostAVoice, pan: -0.22 },
+        hostB: { name: hostBVoice, voice: hostBVoice, pan: 0.22 },
+        targetTurns: podcastTurns,
+        ollamaBaseUrl: baseUrl,
+        llmModel,
+      });
+
+      const targetFormats = resolveTargetFormats(
+        formatFlag || (outputPath ? undefined : "wav"),
+        outputPath,
+      );
+      const multiPodFormat = targetFormats.length > 1;
+      const primaryFmt = targetFormats[0]!;
+      const ollamaExe = resolveTool(ctx, "ollama") || Bun.which("ollama") || "";
+      const ffmpegExe =
+        resolveTool(ctx, "ffmpeg") || Bun.which("ffmpeg") || null;
+      for (const fmt of targetFormats) {
+        const fmtInfo = ALL_MEDIA_FORMAT_INFO.find((f) => f.id === fmt);
+        if (fmtInfo?.needsFfmpeg && !ffmpegExe) {
+          err(
+            `❌ Exporting podcast to .${fmt.toUpperCase()} requires ffmpeg. Install ffmpeg or choose --format wav / aiff.`,
+          );
+          return 1;
+        }
+      }
+
+      const firstDestPath = resolveOutputFilePath({
+        outputFlag: outputPath,
+        inputFilePath: resolvedInputFile,
+        title: `${podTitle}-podcast`,
+        voice: hostAVoice,
+        format: primaryFmt,
+        multiFormat: multiPodFormat,
+        cwd,
+      });
+      const transcriptPath = saveTxtPath
+        ? nodePath.resolve(cwd, saveTxtPath)
+        : firstDestPath.replace(/\.[^.]+$/, ".podcast-transcript.txt");
+      mkdirSync(nodePath.dirname(transcriptPath), { recursive: true });
+      writeFileSync(
+        transcriptPath,
+        `${scriptRes.transcriptMarkdown}\n`,
+        "utf8",
+      );
+
+      const podcastChunks: PhononTextChunk[] = [];
+      scriptRes.turns.forEach((turn, tIdx) => {
+        const sub = splitTextForPhonon(turn.text, {
+          maxChars: chunkSize,
+          mergeShortParagraphs: true,
+        });
+        for (const sc of sub) {
+          podcastChunks.push({
+            index: podcastChunks.length,
+            paragraphIndex: tIdx,
+            text: sc.text,
+            displayText: `[${turn.speaker}] ${sc.text}`,
+            charCount: sc.charCount,
+            wordCount: sc.wordCount,
+            voiceOverride: turn.voice,
+            speakerLabel: turn.speaker,
+            stereoPan: turn.pan,
+          });
+        }
+      });
+
+      if (ollamaExe) {
+        await ensureOllamaDaemon(ctx, ollamaExe).catch(() => {});
+      }
+
+      const effectivePodMaster: PhononMasterPreset =
+        masterPreset === "none" ? "podcast" : masterPreset;
+
+      if (!jsonOutput) {
+        out(`🎙️  Generating 2-Host AI Podcast: "${podTitle}"`);
+        out(
+          `   • Hosts:          ${hostAVoice} (Left -22%) & ${hostBVoice} (Right +22%)`,
+        );
+        out(
+          `   • Script Engine:  ${scriptRes.usedLlm ? `Ollama LLM (${scriptRes.modelUsed})` : "Deterministic 2-Host Dialogue Engine"} (${scriptRes.turns.length} turns)`,
+        );
+        out(
+          `   • Format & Master:${targetFormats.map((f) => f.toUpperCase()).join(", ")} · ${effectivePodMaster}`,
+        );
+      }
+
+      const podExports: Array<{
+        format: PhononAudioFormat;
+        outputPath: string;
+        durationSec: number;
+        sizeBytes: number;
+        srtPath?: string;
+        vttPath?: string;
+      }> = [];
+      const podSubStems = new Map<
+        string,
+        { srtPath?: string; vttPath?: string }
+      >();
+
+      for (let fIdx = 0; fIdx < targetFormats.length; fIdx++) {
+        const fmt = targetFormats[fIdx]!;
+        const isVideo = isPhononVideoFormat(fmt);
+        const destPath =
+          fIdx === 0
+            ? firstDestPath
+            : resolveOutputFilePath({
+                outputFlag: outputPath,
+                inputFilePath: resolvedInputFile,
+                title: `${podTitle}-podcast`,
+                voice: hostAVoice,
+                format: fmt,
+                multiFormat: multiPodFormat,
+                cwd,
+              });
+        const stemKey = destPath.replace(/\.[^.]+$/, "");
+        const wantSubs =
+          subtitlesExplicit !== undefined ? subtitlesExplicit : isVideo;
+        const alreadyWroteSubs = podSubStems.has(stemKey);
+        const exported = await synthesizeAndExportAudioFile(ctx, {
+          ollamaExe,
+          ffmpegExe,
+          chunks: podcastChunks,
+          voice: hostAVoice,
+          format: fmt,
+          speed,
+          pitch,
+          pauseMs,
+          outputPath: destPath,
+          aspectRatio,
+          videoTheme,
+          saveSubtitles: wantSubs && !alreadyWroteSubs,
+          title: `${podTitle} — Podcast`,
+          masterPreset: effectivePodMaster,
+          lexicon: activeLexicon,
+          continuity,
+          verifyChunks,
+          checkpointDir: resume
+            ? checkpointDirFlag
+              ? nodePath.resolve(cwd, checkpointDirFlag)
+              : `${firstDestPath}.phonon-checkpoint`
+            : undefined,
+          keepCheckpoint: resume && fIdx + 1 < targetFormats.length,
+          stereoPanByChunk: !isVideo,
+          sourceFilePath: resolvedInputFile,
+          onChunkProgress: (done, total) => {
+            if (!jsonOutput && fIdx === 0) {
+              out(`   ⏳ Synthesizing host turn chunk ${done}/${total}...`);
+            }
+          },
+        });
+        if (wantSubs && !alreadyWroteSubs && exported.srtPath) {
+          podSubStems.set(stemKey, {
+            srtPath: exported.srtPath,
+            vttPath: exported.vttPath,
+          });
+        }
+        const sharedSubs = podSubStems.get(stemKey);
+        podExports.push({
+          format: fmt,
+          outputPath: exported.outputPath,
+          durationSec: exported.durationSec,
+          sizeBytes: exported.sizeBytes,
+          srtPath: exported.srtPath ?? sharedSubs?.srtPath,
+          vttPath: exported.vttPath ?? sharedSubs?.vttPath,
+        });
+      }
+
+      const primaryExport = podExports[0]!;
+      if (jsonOutput) {
+        out(
+          JSON.stringify(
+            {
+              ok: true,
+              mode: "podcast",
+              title: podTitle,
+              hosts: [hostAVoice, hostBVoice],
+              turnCount: scriptRes.turns.length,
+              usedLlm: scriptRes.usedLlm,
+              llmModelUsed: scriptRes.modelUsed,
+              format: primaryFmt,
+              formats: targetFormats,
+              masterPreset: effectivePodMaster,
+              outputPath: primaryExport.outputPath,
+              outputs: podExports,
+              transcriptPath,
+              durationSec: primaryExport.durationSec,
+              sizeBytes: primaryExport.sizeBytes,
+              srtPath: primaryExport.srtPath ?? null,
+              vttPath: primaryExport.vttPath ?? null,
+            },
+            null,
+            2,
+          ),
+        );
+      } else {
+        for (const pe of podExports) {
+          out(
+            `✅ Podcast exported: ${pe.outputPath} (${formatBytesHuman(pe.sizeBytes)}, ${formatDurationHuman(pe.durationSec)})`,
+          );
+        }
+        out(`   📝 Transcript: ${transcriptPath}`);
+      }
+      return 0;
+    }
+
+    // ------------------------------------------------------------------------
+    // 5B. MULTI-CHAPTER AUDIOBOOK (`audiobook` / `--audiobook`)
     // ------------------------------------------------------------------------
     if (audiobookMode) {
       const targetFormats = resolveTargetFormats(formatFlag, outputPath);
       const primaryFormat = targetFormats[0]!;
+      const wantSingleM4b = singleM4b || primaryFormat === "m4b";
       const fmtInfo =
         ALL_MEDIA_FORMAT_INFO.find((f) => f.id === primaryFormat) ??
         AUDIO_FORMAT_INFO[0]!;
@@ -1693,9 +2214,9 @@ export async function runTtsCli(
       const ffmpegExe =
         resolveTool(ctx, "ffmpeg") || Bun.which("ffmpeg") || null;
 
-      if (fmtInfo.needsFfmpeg && !ffmpegExe) {
+      if ((fmtInfo.needsFfmpeg || wantSingleM4b) && !ffmpegExe) {
         err(
-          `❌ Exporting audiobook as .${primaryFormat.toUpperCase()} requires ffmpeg. Install ffmpeg or use --format wav / aiff.`,
+          `❌ Exporting audiobook as .${wantSingleM4b ? "M4B" : primaryFormat.toUpperCase()} requires ffmpeg. Install ffmpeg or use --format wav / aiff.`,
         );
         return 1;
       }
@@ -1709,23 +2230,32 @@ export async function runTtsCli(
       });
 
       const bookTitle = title || extractedBook.bookTitle || "Audiobook";
-      const safeBookTitle =
-        bookTitle
-          .replace(/[<>:"/\\|?*\x00-\x1f]/g, " ")
-          .replace(/\s+/g, " ")
-          .trim()
-          .slice(0, 80) || "Audiobook";
+      const safeBookTitle = sanitizeSafeFilenameStem(
+        bookTitle.replace(/\s+/g, " ").trim(),
+        "Audiobook",
+        80,
+      );
 
-      const baseOutDir = outputPath
-        ? nodePath.resolve(cwd, outputPath)
-        : resolvedInputFile
-          ? nodePath.join(
-              nodePath.dirname(resolvedInputFile),
-              `${safeBookTitle} - Audiobook`,
-            )
-          : nodePath.join(cwd, `${safeBookTitle} - Audiobook`);
+      const outIsExplicitM4bFile =
+        Boolean(outputPath) && /\.m4b$/i.test(outputPath.trim());
+      const baseOutDir = outIsExplicitM4bFile
+        ? nodePath.dirname(nodePath.resolve(cwd, outputPath))
+        : outputPath
+          ? nodePath.resolve(cwd, outputPath)
+          : resolvedInputFile
+            ? nodePath.join(
+                nodePath.dirname(resolvedInputFile),
+                `${safeBookTitle} - Audiobook`,
+              )
+            : nodePath.join(cwd, `${safeBookTitle} - Audiobook`);
 
       await fsp.mkdir(baseOutDir, { recursive: true });
+      const sharedCkptDir =
+        resume || wantSingleM4b
+          ? checkpointDirFlag
+            ? nodePath.resolve(cwd, checkpointDirFlag)
+            : nodePath.join(baseOutDir, ".phonon-checkpoint")
+          : undefined;
 
       if (!jsonOutput) {
         out(`📚 Exporting Multi-Chapter Audiobook: "${safeBookTitle}"`);
@@ -1748,6 +2278,7 @@ export async function runTtsCli(
         durationSec: number;
         sizeBytes: number;
       }> = [];
+      const cleanedChapterTexts: string[] = [];
 
       for (const ch of extractedBook.chapters) {
         let chText = ch.text;
@@ -1762,6 +2293,9 @@ export async function runTtsCli(
             chText = llmRes.text;
           }
         }
+        cleanedChapterTexts.push(chText);
+        if (outIsExplicitM4bFile) continue;
+
         const chChunks = splitTextForPhonon(chText, {
           maxChars: chunkSize,
           mergeShortParagraphs: true,
@@ -1786,7 +2320,19 @@ export async function runTtsCli(
           videoTheme,
           saveSubtitles: Boolean(subtitlesExplicit),
           title: `${safeBookTitle} - ${ch.title}`,
+          masterPreset,
+          lexicon: activeLexicon,
+          multiVoice,
+          castMap: loadedCastMap,
+          continuity,
+          verifyChunks,
+          checkpointDir: sharedCkptDir,
+          keepCheckpoint: Boolean(sharedCkptDir),
+          sourceFilePath: resolvedInputFile,
         });
+        if (exported.castUsed) {
+          Object.assign(loadedCastMap, exported.castUsed);
+        }
         exportedChapters.push({
           number: ch.number,
           title: ch.title,
@@ -1798,12 +2344,106 @@ export async function runTtsCli(
         });
       }
 
+      let m4bPath: string | undefined;
+      let m4bDurationSec = 0;
+      if (wantSingleM4b) {
+        m4bPath = outIsExplicitM4bFile
+          ? nodePath.resolve(cwd, outputPath)
+          : nodePath.join(baseOutDir, `${safeBookTitle}.m4b`);
+        const allBookChunks: PhononTextChunk[] = [];
+        let globalParaIdx = 0;
+        extractedBook.chapters.forEach((ch, idx) => {
+          const chText = cleanedChapterTexts[idx] || ch.text;
+          const chChunks = splitTextForPhonon(chText, {
+            maxChars: chunkSize,
+            mergeShortParagraphs: true,
+          });
+          let lastP = -1;
+          for (const c of chChunks) {
+            if (c.paragraphIndex !== lastP) {
+              if (lastP !== -1) globalParaIdx++;
+              lastP = c.paragraphIndex;
+            }
+            allBookChunks.push({
+              ...c,
+              index: allBookChunks.length,
+              paragraphIndex: globalParaIdx,
+              chapterNumber: ch.number,
+              chapterTitle: ch.title,
+            });
+          }
+          globalParaIdx++;
+        });
+        if (!jsonOutput) {
+          out(
+            `   📦 Assembling Single-File Chaptered .M4B Audiobook: ${m4bPath}...`,
+          );
+        }
+        const m4bExport = await synthesizeAndExportAudioFile(ctx, {
+          ollamaExe,
+          ffmpegExe,
+          chunks: allBookChunks,
+          voice,
+          format: "m4b",
+          speed,
+          pitch,
+          pauseMs,
+          outputPath: m4bPath,
+          saveSubtitles: Boolean(subtitlesExplicit),
+          title: safeBookTitle,
+          masterPreset: masterPreset === "none" ? "acx" : masterPreset,
+          lexicon: activeLexicon,
+          multiVoice,
+          castMap: loadedCastMap,
+          continuity,
+          verifyChunks,
+          checkpointDir: sharedCkptDir,
+          keepCheckpoint: false,
+          sourceFilePath: resolvedInputFile,
+        });
+        m4bDurationSec = m4bExport.durationSec;
+        if (m4bExport.castUsed) {
+          Object.assign(loadedCastMap, m4bExport.castUsed);
+        }
+      }
+
+      const hasCastEntries = Object.keys(loadedCastMap).length > 0;
+      if (
+        hasCastEntries &&
+        (multiVoice ||
+          Boolean(castFilePath) ||
+          Object.keys(loadedCastMap).length > 1)
+      ) {
+        const castDest = castFilePath
+          ? nodePath.resolve(cwd, castFilePath)
+          : nodePath.join(baseOutDir, "cast.json");
+        mkdirSync(nodePath.dirname(castDest), { recursive: true });
+        await fsp.writeFile(
+          castDest,
+          JSON.stringify(loadedCastMap, null, 2),
+          "utf8",
+        );
+      }
+
+      const effectiveChapterRecords =
+        exportedChapters.length > 0
+          ? exportedChapters
+          : extractedBook.chapters.map((ch) => ({
+              number: ch.number,
+              title: ch.title,
+              fileName: m4bPath ? nodePath.basename(m4bPath) : ch.safeFileName,
+              outputPath: m4bPath ?? "",
+              wordCount: ch.wordCount,
+              durationSec: ch.estimatedSeconds,
+              sizeBytes: 0,
+            }));
+
       const playlistPath = nodePath.join(baseOutDir, "audiobook.m3u8");
       const manifestPath = nodePath.join(baseOutDir, "chapters.json");
       const m3uLines = [
         "#EXTM3U",
         `#PLAYLIST:${safeBookTitle} (${voice})`,
-        ...exportedChapters.flatMap((ch) => [
+        ...effectiveChapterRecords.flatMap((ch) => [
           `#EXTINF:${Math.round(ch.durationSec)},${safeBookTitle} - ${ch.title}`,
           ch.fileName,
         ]),
@@ -1811,11 +2451,14 @@ export async function runTtsCli(
       ];
       await fsp.writeFile(playlistPath, m3uLines.join("\n"), "utf8");
 
-      const totalDurationSec = exportedChapters.reduce(
-        (s, c) => s + c.durationSec,
+      const totalDurationSec =
+        exportedChapters.length > 0
+          ? exportedChapters.reduce((s, c) => s + c.durationSec, 0)
+          : m4bDurationSec;
+      const totalWords = extractedBook.chapters.reduce(
+        (s, c) => s + c.wordCount,
         0,
       );
-      const totalWords = exportedChapters.reduce((s, c) => s + c.wordCount, 0);
       const manifestData = {
         ok: true,
         bookTitle: safeBookTitle,
@@ -1825,10 +2468,12 @@ export async function runTtsCli(
         audiobookDir: baseOutDir,
         playlistPath,
         manifestPath,
-        chapterCount: exportedChapters.length,
+        ...(m4bPath ? { m4bPath } : {}),
+        ...(hasCastEntries ? { castUsed: loadedCastMap } : {}),
+        chapterCount: extractedBook.chapters.length,
         totalWords,
         totalDurationSec: Math.round(totalDurationSec * 100) / 100,
-        chapters: exportedChapters,
+        chapters: effectiveChapterRecords,
       };
       await fsp.writeFile(
         manifestPath,
@@ -1840,8 +2485,9 @@ export async function runTtsCli(
         out(JSON.stringify(manifestData, null, 2));
       } else {
         out(
-          `✅ Audiobook export complete (${exportedChapters.length} chapters, ${formatDurationHuman(totalDurationSec)})`,
+          `✅ Audiobook export complete (${extractedBook.chapters.length} chapters, ${formatDurationHuman(totalDurationSec)})`,
         );
+        if (m4bPath) out(`   • M4B Book: ${m4bPath}`);
         out(`   • Playlist: ${playlistPath}`);
         out(`   • Manifest: ${manifestPath}`);
       }
@@ -1939,13 +2585,124 @@ export async function runTtsCli(
       await ensureOllamaDaemon(ctx, ollamaExe).catch(() => {});
     }
 
-    // Pure `speak` mode without file export: synthesize & play aloud chunk-by-chunk (or full file if -o / -f also passed)
+    // Pure `speak` mode without file export: fast-start clause split (<250ms TTFA) + rolling lookahead queue
     if (speakMode && !outputPath && !formatFlag) {
+      const speakChunks: PhononTextChunk[] = [...chunks];
+      if (speakChunks.length > 0 && speakChunks[0]!.text.length > 65) {
+        const fastSplit = splitFirstClauseForFastStart(speakChunks[0]!.text);
+        if (fastSplit.length === 2) {
+          const [firstClause, restClause] = fastSplit;
+          const orig = speakChunks[0]!;
+          speakChunks.splice(
+            0,
+            1,
+            {
+              ...orig,
+              index: 0,
+              text: firstClause!,
+              charCount: firstClause!.length,
+              wordCount: firstClause!.split(/\s+/).filter(Boolean).length,
+            },
+            {
+              ...orig,
+              index: 1,
+              text: restClause!,
+              charCount: restClause!.length,
+              wordCount: restClause!.split(/\s+/).filter(Boolean).length,
+            },
+          );
+          for (let k = 0; k < speakChunks.length; k++) {
+            speakChunks[k]!.index = k;
+          }
+        }
+      }
+
       if (!jsonOutput) {
         out(
-          `🔊 Speaking with Ollama Phonon (Voice: ${voice}, Chunks: ${chunks.length}, Words: ${cleanedDoc.wordCount})`,
+          `🔊 Speaking with Ollama Phonon (Voice: ${voice}, Chunks: ${speakChunks.length}, Words: ${cleanedDoc.wordCount})`,
         );
         out(`   • Cleaning: ${cleanedDoc.cleaningMethod}`);
+      }
+
+      if (
+        process.env.TTS_CLI_NO_AUDIO !== "1" &&
+        speakChunks.length > 1 &&
+        !multiVoice
+      ) {
+        // Streaming rolling-lookahead speaker pipeline: synthesize chunk i+1 while chunk i plays!
+        const tmpBase = nodePath.join(
+          ctx.dataDir,
+          `tts_cli_live_${process.pid}_${Date.now()}`,
+        );
+        mkdirSync(tmpBase, { recursive: true });
+        let totalDurSec = 0;
+        let lastPlayRes = { played: false, player: "none" };
+        const synthSingle = async (idx: number) => {
+          const p = nodePath.join(tmpBase, `seg_${idx}.wav`);
+          const r = await synthesizeAndExportAudioFile(ctx, {
+            ollamaExe,
+            ffmpegExe,
+            chunks: [speakChunks[idx]!],
+            voice,
+            format: "wav",
+            speed,
+            pitch,
+            pauseMs: 0,
+            outputPath: p,
+            masterPreset,
+            lexicon: activeLexicon,
+            verifyChunks,
+          });
+          return r;
+        };
+        try {
+          let nextPromise: Promise<
+            Awaited<ReturnType<typeof synthSingle>>
+          > | null = synthSingle(0);
+          for (let sIdx = 0; sIdx < speakChunks.length; sIdx++) {
+            const curExport = await nextPromise!;
+            nextPromise =
+              sIdx + 1 < speakChunks.length ? synthSingle(sIdx + 1) : null;
+            totalDurSec += curExport.durationSec;
+            if (!jsonOutput) {
+              out(`   💬 "${speakChunks[sIdx]!.text}"`);
+            }
+            lastPlayRes = await playAudioFileOnSpeaker(curExport.outputPath);
+            await fsp.rm(curExport.outputPath, { force: true }).catch(() => {});
+          }
+        } finally {
+          await fsp
+            .rm(tmpBase, { recursive: true, force: true })
+            .catch(() => {});
+        }
+
+        if (jsonOutput) {
+          out(
+            JSON.stringify(
+              {
+                ok: true,
+                mode: "speak",
+                voice,
+                model,
+                cleaningMethod: cleanedDoc.cleaningMethod,
+                llmModelUsed: cleanedDoc.llmModelUsed,
+                wordCount: cleanedDoc.wordCount,
+                chunkCount: speakChunks.length,
+                durationSec: Math.round(totalDurSec * 100) / 100,
+                playedOnSpeaker: lastPlayRes.played,
+                player: lastPlayRes.player,
+                cleanedText: cleanedDoc.cleanedText,
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          out(
+            `✅ Finished speaking (${formatDurationHuman(totalDurSec)} via ${lastPlayRes.player}).`,
+          );
+        }
+        return 0;
       }
 
       const tmpPlayPath = nodePath.join(
@@ -1957,7 +2714,7 @@ export async function runTtsCli(
       const exported = await synthesizeAndExportAudioFile(ctx, {
         ollamaExe,
         ffmpegExe,
-        chunks,
+        chunks: speakChunks,
         voice,
         format: "wav",
         speed,
@@ -1965,6 +2722,12 @@ export async function runTtsCli(
         pauseMs,
         outputPath: tmpPlayPath,
         title: title || cleanedDoc.title,
+        masterPreset,
+        lexicon: activeLexicon,
+        multiVoice,
+        castMap: loadedCastMap,
+        continuity,
+        verifyChunks,
         onChunkProgress: (done, total) => {
           if (!jsonOutput) {
             out(`   🎙️  Synthesizing chunk ${done}/${total}...`);
@@ -1973,7 +2736,7 @@ export async function runTtsCli(
       });
 
       if (!jsonOutput) {
-        for (const c of chunks) {
+        for (const c of speakChunks) {
           out(`   💬 "${c.text}"`);
         }
       }
@@ -2059,6 +2822,14 @@ export async function runTtsCli(
     }> = [];
 
     let lastTimeline: PhononReadAlongTimeline | undefined;
+    let lastMasteringMetrics: unknown;
+    let lastCastUsed: Record<string, string> | undefined;
+    let lastResumedChunks = 0;
+    let lastRetriedChunks = 0;
+    const writtenSubtitleByStem = new Map<
+      string,
+      { srtPath?: string; vttPath?: string }
+    >();
 
     for (let idx = 0; idx < targetFormats.length; idx++) {
       const fmt = targetFormats[idx]!;
@@ -2073,8 +2844,14 @@ export async function runTtsCli(
         cwd,
       });
 
-      const saveSubtitlesForVideo =
-        subtitlesExplicit !== undefined ? subtitlesExplicit : isVideo;
+      const stemPath = destPath.replace(/\.[^.]+$/, "");
+      const wantAutoCompanionSubtitles =
+        !srtOutPath &&
+        !vttOutPath &&
+        (subtitlesExplicit !== undefined ? subtitlesExplicit : isVideo);
+      const alreadyWroteForStem = writtenSubtitleByStem.has(stemPath);
+      const saveSubtitlesForFormat =
+        wantAutoCompanionSubtitles && !alreadyWroteForStem;
 
       const exported = await synthesizeAndExportAudioFile(ctx, {
         ollamaExe,
@@ -2088,8 +2865,21 @@ export async function runTtsCli(
         outputPath: destPath,
         aspectRatio,
         videoTheme,
-        saveSubtitles: saveSubtitlesForVideo,
+        saveSubtitles: saveSubtitlesForFormat,
         title: title || cleanedDoc.title,
+        masterPreset,
+        lexicon: activeLexicon,
+        multiVoice,
+        castMap: loadedCastMap,
+        continuity,
+        verifyChunks,
+        checkpointDir: resume
+          ? checkpointDirFlag
+            ? nodePath.resolve(cwd, checkpointDirFlag)
+            : `${destPath}.phonon-checkpoint`
+          : undefined,
+        keepCheckpoint: resume && idx + 1 < targetFormats.length,
+        sourceFilePath: resolvedInputFile,
         onChunkProgress: (done, total) => {
           if (!jsonOutput && idx === 0) {
             out(
@@ -2105,24 +2895,26 @@ export async function runTtsCli(
       });
 
       lastTimeline = exported.timeline ?? lastTimeline;
-      let srtPath = exported.srtPath;
-      let vttPath = exported.vttPath;
+      lastMasteringMetrics = exported.masteringMetrics ?? lastMasteringMetrics;
+      if (exported.castUsed) {
+        Object.assign(loadedCastMap, exported.castUsed);
+        lastCastUsed = { ...loadedCastMap };
+      }
+      lastResumedChunks = exported.resumedChunks ?? lastResumedChunks;
+      lastRetriedChunks = exported.retriedChunks ?? lastRetriedChunks;
+      if (saveSubtitlesForFormat && (exported.srtPath || exported.vttPath)) {
+        writtenSubtitleByStem.set(stemPath, {
+          srtPath: exported.srtPath,
+          vttPath: exported.vttPath,
+        });
+      }
+      const sharedStemSubs = writtenSubtitleByStem.get(stemPath);
+      let srtPath = exported.srtPath ?? sharedStemSubs?.srtPath;
+      let vttPath = exported.vttPath ?? sharedStemSubs?.vttPath;
       let assPath: string | undefined;
 
-      // If user requested companion subtitles on an audio-only format (or explicit --srt / --vtt / --ass paths)
+      // If user requested explicit --srt / --vtt / --ass output paths
       if (exported.timeline) {
-        const stemPath = destPath.replace(/\.[^.]+$/, "");
-        if (
-          !isVideo &&
-          subtitlesExplicit === true &&
-          !srtOutPath &&
-          !vttOutPath
-        ) {
-          srtPath = `${stemPath}.srt`;
-          vttPath = `${stemPath}.vtt`;
-          writeFileSync(srtPath, formatSrtSubtitles(exported.timeline), "utf8");
-          writeFileSync(vttPath, formatVttSubtitles(exported.timeline), "utf8");
-        }
         if (srtOutPath && idx === 0) {
           srtPath = nodePath.resolve(cwd, srtOutPath);
           mkdirSync(nodePath.dirname(srtPath), { recursive: true });
@@ -2179,6 +2971,12 @@ export async function runTtsCli(
       }
     }
 
+    if (castFilePath && lastCastUsed && Object.keys(lastCastUsed).length > 0) {
+      const absCast = nodePath.resolve(cwd, castFilePath);
+      mkdirSync(nodePath.dirname(absCast), { recursive: true });
+      writeFileSync(absCast, JSON.stringify(lastCastUsed, null, 2), "utf8");
+    }
+
     if (jsonOutput) {
       const primary = exportsCompleted[0]!;
       out(
@@ -2191,6 +2989,13 @@ export async function runTtsCli(
             speed,
             pitch,
             pauseMs,
+            masterPreset,
+            ...(lastMasteringMetrics
+              ? { masteringMetrics: lastMasteringMetrics }
+              : {}),
+            ...(lastCastUsed ? { castUsed: lastCastUsed } : {}),
+            ...(resume ? { resumedChunks: lastResumedChunks } : {}),
+            ...(verifyChunks ? { retriedChunks: lastRetriedChunks } : {}),
             inputFile: resolvedInputFile ?? null,
             formatLabel: cleanedDoc.formatLabel,
             extractionMethod: cleanedDoc.extractionMethod,

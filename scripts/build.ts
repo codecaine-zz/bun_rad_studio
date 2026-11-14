@@ -24,6 +24,7 @@ import {
 } from "fs";
 import { join, resolve } from "path";
 import { webviewPlugin } from "./release/suite";
+import { buildNpmPackage } from "./build_npm_package";
 
 const ROOT = resolve(import.meta.dir, "..");
 const DIST = join(ROOT, "dist");
@@ -182,8 +183,11 @@ const mode = process.argv[2] ?? "lib";
 
 if (mode === "lib" || mode === "all") await buildLib();
 if (mode === "binary" || mode === "all") await buildBinary();
+if (mode === "npm") await buildNpmPackage();
 
-if (!["lib", "binary", "all"].includes(mode)) {
-  console.error(`Unknown build mode: "${mode}". Valid: lib | binary | all`);
+if (!["lib", "binary", "all", "npm"].includes(mode)) {
+  console.error(
+    `Unknown build mode: "${mode}". Valid: lib | binary | npm | all`,
+  );
   process.exit(1);
 }

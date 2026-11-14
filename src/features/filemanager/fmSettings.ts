@@ -215,13 +215,25 @@ export interface Settings {
   phononPitch: number;
   /** Fine-tune offset in milliseconds for follow-along text highlight synchronization (-300..300, default 0). */
   phononSyncOffsetMs: number;
+  /** Broadcast / audiobook DSP mastering preset ("none" | "podcast" | "acx" | "broadcast"). */
+  phononMasterPreset: PhononMasterPresetSetting;
 }
+
+export const PHONON_MASTER_PRESET_SETTINGS = [
+  "none",
+  "podcast",
+  "acx",
+  "broadcast",
+] as const;
+export type PhononMasterPresetSetting =
+  (typeof PHONON_MASTER_PRESET_SETTINGS)[number];
 
 /** Supported audio and read-along video export formats for Ollama Phonon speech synthesis. */
 export const PHONON_AUDIO_FORMATS = [
   "wav",
   "mp3",
   "m4a",
+  "m4b",
   "aac",
   "flac",
   "ogg",
@@ -875,6 +887,7 @@ export const DEFAULT_SETTINGS: Settings = {
   phononPauseMs: 200,
   phononPitch: 0,
   phononSyncOffsetMs: 0,
+  phononMasterPreset: "none",
 };
 
 /** Maximum number of pinned favorite folders stored in settings (`100`). */
@@ -1405,6 +1418,11 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
       typeof r.phononSyncOffsetMs === "number" && isFinite(r.phononSyncOffsetMs)
         ? Math.round(Math.min(300, Math.max(-300, r.phononSyncOffsetMs)))
         : DEFAULT_SETTINGS.phononSyncOffsetMs,
+    phononMasterPreset: oneOf(
+      r.phononMasterPreset,
+      PHONON_MASTER_PRESET_SETTINGS,
+      DEFAULT_SETTINGS.phononMasterPreset,
+    ),
   };
 }
 

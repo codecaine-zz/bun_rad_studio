@@ -21,7 +21,7 @@ import {
   renameSync,
   mkdirSync,
 } from "fs";
-import { tmpdir } from "os";
+import { homedir, tmpdir } from "os";
 import {
   parseArgs,
   shellQuote,
@@ -853,10 +853,25 @@ const KNOWN_DEMO_TITLES: Record<string, string> = {
 
 /** History lives next to the project; LAUNCHER_HISTORY_FILE overrides it (used by tests). */
 function historyFile(): string {
-  return (
-    process.env.LAUNCHER_HISTORY_FILE ||
-    resolve(process.cwd(), ".launcher_history.json")
-  );
+  if (process.env.LAUNCHER_HISTORY_FILE) {
+    return process.env.LAUNCHER_HISTORY_FILE;
+  }
+  const cwd = process.cwd();
+  if (
+    existsSync(join(cwd, "applications")) ||
+    existsSync(join(cwd, "cli_apps"))
+  ) {
+    return resolve(cwd, ".launcher_history.json");
+  }
+  const home = homedir();
+  if (home) {
+    const userDir = join(home, ".bun_rad_studio");
+    try {
+      mkdirSync(userDir, { recursive: true });
+    } catch {}
+    return join(userDir, "launcher_history.json");
+  }
+  return resolve(cwd, ".launcher_history.json");
 }
 
 export function loadHistory(): HistoryData {
@@ -1337,17 +1352,67 @@ function findMatchingScriptProcess(
 }
 
 /**
+ * Resolves the root directory of the suite across source checkouts, Homebrew installs,
+ * pre-built release archives, and global npm/Bun packages.
+ */
+export function resolveSuiteWorkspaceRoot(rootOverride?: string): string {
+  if (rootOverride && existsSync(rootOverride)) {
+    return resolve(rootOverride);
+  }
+  const cur = process.cwd();
+  if (
+    existsSync(join(cur, "applications")) ||
+    existsSync(join(cur, "cli_apps"))
+  ) {
+    return cur;
+  }
+  const candidates = [
+    process.env.CODECAINE_HOME || "",
+    process.env.CODECAINE_ROOT || "",
+    resolve(import.meta.dir, ".."),
+  ];
+  for (const c of candidates) {
+    if (!c) continue;
+    const r = resolve(c);
+    if (
+      existsSync(join(r, "applications")) ||
+      existsSync(join(r, "cli_apps")) ||
+      existsSync(join(r, "apps")) ||
+      existsSync(join(r, "cli"))
+    ) {
+      return r;
+    }
+  }
+  return cur;
+}
+
+const BUNDLED_SIDE_FILES: ReadonlySet<string> = new Set([
+  "launcher-studio.js",
+  "launcher_studio.js",
+  "rad-designer.js",
+  "postgres_designer.js",
+  "fmFindWorker.ts",
+  "fmFindWorker.js",
+  "ide.html",
+]);
+
+/**
  * Scans all project applications, CLI tools, and demos
  */
-export function scanWorkspaceApps(): DetectedApp[] {
-  const cwd = process.cwd();
+export function scanWorkspaceApps(rootOverride?: string): DetectedApp[] {
+  const cwd = resolveSuiteWorkspaceRoot(rootOverride);
   const history = loadHistory();
   const runningProcs = getRunningProcesses();
   const procIndex = buildScriptProcessIndex(runningProcs);
   const apps: DetectedApp[] = [];
 
-  // 1. Scan applications/*.ts
-  const appsDir = resolve(cwd, "applications");
+  // 1. Scan applications/*.ts (source) or apps/*.js (bundled distribution)
+  const sourceAppsDir = resolve(cwd, "applications");
+  const bundledAppsDir = resolve(cwd, "apps");
+  const isBundledApps =
+    !existsSync(sourceAppsDir) && existsSync(bundledAppsDir);
+  const appsDir = isBundledApps ? bundledAppsDir : sourceAppsDir;
+  const appsSubdir = isBundledApps ? "apps" : "applications";
   if (existsSync(appsDir)) {
     try {
       const files = readdirSync(appsDir)
@@ -1355,19 +1420,24 @@ export function scanWorkspaceApps(): DetectedApp[] {
           (f) =>
             (f.endsWith(".ts") || f.endsWith(".js")) &&
             !f.endsWith(".d.ts") &&
+            !f.endsWith(".map") &&
             !f.includes("_server.") &&
             !f.includes("_crud.") &&
             !f.includes("_engine.") &&
             !f.includes("_ops.") &&
             f !== "launcher_studio.ts" &&
-            !NON_APP_MODULES.has(f),
+            !NON_APP_MODULES.has(f) &&
+            !BUNDLED_SIDE_FILES.has(f),
         )
         .sort();
 
       for (const file of files) {
         const fullPath = join(appsDir, file);
-        const relPath = `./applications/${file}`;
-        const meta = deriveAppMetadata(relPath);
+        const relPath = `./${appsSubdir}/${file}`;
+        const metaProbe = isBundledApps
+          ? `./applications/${file.replace(/\.(ts|js)$/i, "").replace(/-/g, "_")}.js`
+          : relPath;
+        const meta = deriveAppMetadata(metaProbe);
         const id = `rad_${meta.name}`;
 
         const children = getAliveChildren(id);
@@ -1420,21 +1490,30 @@ export function scanWorkspaceApps(): DetectedApp[] {
     } catch {}
   }
 
-  // 2. Scan cli_apps/*.ts
-  const cliDir = resolve(cwd, "cli_apps");
+  // 2. Scan cli_apps/*.ts (source) or cli/*.js (bundled distribution)
+  const sourceCliDir = resolve(cwd, "cli_apps");
+  const bundledCliDir = resolve(cwd, "cli");
+  const isBundledCli = !existsSync(sourceCliDir) && existsSync(bundledCliDir);
+  const cliDir = isBundledCli ? bundledCliDir : sourceCliDir;
+  const cliSubdir = isBundledCli ? "cli" : "cli_apps";
   if (existsSync(cliDir)) {
     try {
       const files = readdirSync(cliDir)
         .filter(
           (f) =>
-            (f.endsWith(".ts") || f.endsWith(".js")) && !f.endsWith(".d.ts"),
+            (f.endsWith(".ts") || f.endsWith(".js")) &&
+            !f.endsWith(".d.ts") &&
+            !f.endsWith(".map"),
         )
         .sort();
 
       for (const file of files) {
         const fullPath = join(cliDir, file);
-        const relPath = `./cli_apps/${file}`;
-        const meta = deriveAppMetadata(relPath);
+        const relPath = `./${cliSubdir}/${file}`;
+        const metaProbe = isBundledCli
+          ? `./cli_apps/${file.replace(/\.(ts|js)$/i, "").replace(/-/g, "_")}.js`
+          : relPath;
+        const meta = deriveAppMetadata(metaProbe);
         const id = `cli_${meta.name}`;
 
         const children = getAliveChildren(id);
@@ -1487,14 +1566,16 @@ export function scanWorkspaceApps(): DetectedApp[] {
     } catch {}
   }
 
-  // 3. Scan demos/*.ts
+  // 3. Scan demos/*.ts or demos/*.js
   const demosDir = resolve(cwd, "demos");
   if (existsSync(demosDir)) {
     try {
       const files = readdirSync(demosDir)
         .filter(
           (f) =>
-            (f.endsWith(".ts") || f.endsWith(".js")) && !f.endsWith(".d.ts"),
+            (f.endsWith(".ts") || f.endsWith(".js")) &&
+            !f.endsWith(".d.ts") &&
+            !f.endsWith(".map"),
         )
         .sort();
 
@@ -1560,12 +1641,12 @@ export function scanWorkspaceApps(): DetectedApp[] {
 /**
  * Aggregates all project applications and CLI tools (Exclusively project scoped)
  */
-export function scanAllApplications(): {
+export function scanAllApplications(rootOverride?: string): {
   apps: DetectedApp[];
   kpis: LauncherKpis;
   categories: string[];
 } {
-  const all = scanWorkspaceApps();
+  const all = scanWorkspaceApps(rootOverride);
 
   const kpis: LauncherKpis = {
     total: all.length,
@@ -2048,18 +2129,38 @@ export async function launchApplication(
   }
 
   try {
+    const suiteRoot = resolveSuiteWorkspaceRoot();
     const bunExe = getBunExecutable();
-    const env = { ...process.env };
+    const env: Record<string, string | undefined> = {
+      ...process.env,
+      CODECAINE_HOME: suiteRoot,
+    };
+    if (
+      process.env.BUN_BE_BUN === "1" ||
+      existsSync(join(suiteRoot, "runtime"))
+    ) {
+      env.BUN_BE_BUN = "1";
+    }
+    const bundledLibDir = join(suiteRoot, "lib");
+    if (!env.WEBVIEW_PATH && existsSync(bundledLibDir)) {
+      const libFile =
+        process.platform === "win32"
+          ? "libwebview.dll"
+          : process.platform === "darwin"
+            ? "libwebview.dylib"
+            : `libwebview-${process.arch}.so`;
+      const candidateLib = join(bundledLibDir, libFile);
+      if (existsSync(candidateLib)) {
+        env.WEBVIEW_PATH = candidateLib;
+      }
+    }
     if (process.platform === "win32") {
-      const buildDir = resolve(
-        process.cwd(),
-        "node_modules",
-        "webview-bun",
-        "build",
-      );
+      const buildDir = existsSync(bundledLibDir)
+        ? bundledLibDir
+        : resolve(suiteRoot, "node_modules", "webview-bun", "build");
       const bunDir = resolve(bunExe, "..");
       env.PATH = `${buildDir};${bunDir};${env.PATH || ""}`;
-      ensureWebView2Loader(process.cwd());
+      ensureWebView2Loader(suiteRoot);
     }
 
     if (app.source === "rad_studio" || app.source === "rad_demo") {

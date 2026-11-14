@@ -123,11 +123,12 @@ describe("Ollama & Phonon tool registration and 38 voices catalog", () => {
     ]);
   });
 
-  test("all 9 target audio formats and 4 Read-Along Video formats are offered", () => {
+  test("all 10 target audio formats (including chaptered M4B) and 4 Read-Along Video formats are offered", () => {
     expect(AUDIO_FORMAT_INFO.map((f) => f.id)).toEqual([
       "wav",
       "mp3",
       "m4a",
+      "m4b",
       "aac",
       "flac",
       "ogg",

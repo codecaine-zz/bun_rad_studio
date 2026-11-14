@@ -236,7 +236,7 @@ Check the [User Guide](https://docs.example.com/path/to/page?query=123&foo=bar) 
     }
   });
 
-  test("resolveTargetFormats and resolveOutputFilePath support all 9 audio & 4 video formats and multi-format lists", () => {
+  test("resolveTargetFormats and resolveOutputFilePath support all 10 audio & 4 video formats and multi-format lists", () => {
     expect(resolveTargetFormats("wav,mp3,flac,mp4")).toEqual([
       "wav",
       "mp3",
@@ -244,7 +244,7 @@ Check the [User Guide](https://docs.example.com/path/to/page?query=123&foo=bar) 
       "mp4",
     ]);
     expect(resolveTargetFormats("", "lecture.webm")).toEqual(["webm"]);
-    expect(resolveTargetFormats("", "podcast.m4b")).toEqual(["m4a"]);
+    expect(resolveTargetFormats("", "podcast.m4b")).toEqual(["m4b"]);
     expect(resolveTargetFormats("", "")).toEqual(["wav"]);
     expect(() => resolveTargetFormats("invalidfmt")).toThrow(
       /Unsupported export format/,
@@ -303,6 +303,7 @@ Check the [User Guide](https://docs.example.com/path/to/page?query=123&foo=bar) 
       "wav",
       "mp3",
       "m4a",
+      "m4b",
       "aac",
       "flac",
       "ogg",

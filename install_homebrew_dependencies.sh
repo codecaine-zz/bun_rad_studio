@@ -60,18 +60,17 @@ export CI=1
 export HOMEBREW_NO_AUTO_UPDATE=1
 export HOMEBREW_NO_INSTALL_CLEANUP=1
 
-brew update
-
-BUNDLE_ARGS=("bundle")
-BUNDLE_ARGS+=("--file" "$BREWFILE")
-if [[ "$INCLUDE_OPTIONAL" -eq 1 ]]; then
-  BUNDLE_ARGS+=("--file" "$OPTIONAL_BREWFILE")
+# Install primary Brewfile dependencies (note: `brew bundle --file` is not repeatable in a single call)
+if ! (yes | brew bundle --file "$BREWFILE"); then
+  echo "Homebrew Brewfile installation failed." >&2
+  exit 1
 fi
 
-# Auto-confirm common Homebrew security prompts such as "Proceed with installation?".
-if ! yes | brew "${BUNDLE_ARGS[@]}"; then
-  echo "Homebrew installation failed." >&2
-  exit 1
+if [[ "$INCLUDE_OPTIONAL" -eq 1 ]]; then
+  if ! (yes | brew bundle --file "$OPTIONAL_BREWFILE"); then
+    echo "Optional Homebrew Brewfile installation failed." >&2
+    exit 1
+  fi
 fi
 
 echo "Homebrew installation completed successfully."

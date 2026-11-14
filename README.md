@@ -127,24 +127,44 @@ Made by [codecaine](https://www.codefreelance.net) · [YouTube](https://www.yout
 
 ## 🚀 Quick Start: Clone, Install & Launch
 
-### 🍺 Install Codecaine Utility Suite with Homebrew (macOS & Linux)
+### 📦 Install Globally via Bun or npm (macOS, Linux & Windows)
 
-Install and expose all 170+ applications and CLI tools directly on your system `$PATH`:
+Install all 200+ desktop studios and CLI utilities globally with a single command (works with both `bun` and `npm` — Node-only machines automatically receive the official `bun` runtime dependency):
 
 ```bash
-# 1. 1-Click Homebrew setup (symlinks all 140+ tools into Homebrew bin):
-./install_homebrew_suite.sh
+# Using Bun (recommended):
+bun add -g bun-rad-studio
 
-# 2. Or install via Homebrew Formula:
-brew install --build-from-source ./Formula/codecaine-utility-suite.rb
+# Or using npm / Node.js:
+npm install -g bun-rad-studio
 
-# 3. Test the master executable anywhere in your terminal:
+# Or run immediately without installing:
+bunx bun-rad-studio --help
+npx bun-rad-studio list
+```
+
+### 🍺 Install Codecaine Utility Suite with Homebrew (macOS & Linux)
+
+Install pre-built releases, the native macOS `Codecaine File Manager.app` Cask, or link a local checkout directly onto your `$PATH` (fully compatible with **Homebrew 7+**):
+
+```bash
+# 1. One-line remote Homebrew Formula install (macOS & Linux):
+curl -fsSL https://raw.githubusercontent.com/codecaine-zz/bun_rad_studio/main/install_homebrew_suite.sh | bash
+
+# 2. Native macOS "Codecaine File Manager.app" into /Applications (clears Gatekeeper quarantine):
+curl -fsSL https://raw.githubusercontent.com/codecaine-zz/bun_rad_studio/main/install_homebrew_suite.sh | bash -s -- --cask
+
+# 3. Or from a local git clone, symlink all 330+ wrappers into Homebrew bin:
+./install_homebrew_suite.sh --link
+
+# 4. Verify & run anywhere in your terminal:
 codecaine --version
+codecaine doctor
 codecaine list
 codecaine run database --db :memory: --query "SELECT 'Hello from Codecaine!' as msg"
 ```
 
-> 📘 _See the full [Homebrew Suite Guide (docs/HOMEBREW_SUITE_GUIDE.md)](docs/HOMEBREW_SUITE_GUIDE.md) for tap instructions, Linux WebKitGTK prerequisites, and complete binary reference._
+> 📘 _See the full [Homebrew & Package Manager Guide (docs/HOMEBREW_SUITE_GUIDE.md)](docs/HOMEBREW_SUITE_GUIDE.md) for Homebrew 7 tap trust setup, `bun` / `npm` global installs, Linux GTK4/WebKitGTK prerequisites, and the complete binary reference._
 
 ### 🛠️ Standard Repository Quick Start
 

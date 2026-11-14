@@ -265,6 +265,10 @@ function estimateSpokenWordWeightClient(rawWord) {
 function stripNonSpeechCharsClient(input) {
   if (!input) return "";
   return String(input)
+    .replace(
+      /\[\s*(?:voice|speaker|pause|silence|break|speed|rate|pitch|emotion|style|tone)\s*:\s*[^\]]+\]/gi,
+      " ",
+    )
     .replace(/<svg\b[\s\S]*?<\/svg>/gi, " ")
     .replace(/^\s*:{3,}(?:\s*\{[^}\n]*\})?\s*$/gm, " ")
     .replace(/\[\]\{#[^}\n]+\}/g, "")
@@ -439,6 +443,12 @@ function mountPhononStudio(root, payload) {
   let syncOffsetMs = Number(state.settings?.phononSyncOffsetMs) || 0;
   let pauseMs = Number(state.settings?.phononPauseMs ?? 200);
   let cleanText = state.settings?.phononCleanText !== false;
+  let masterPreset = state.settings?.phononMasterPreset || "none";
+  let multiVoice = false;
+  let continuity = true;
+  let verifyChunks = false;
+  let resumeCheckpoints = true;
+  let customLexiconRules = "";
   let maxChunkChars = 520;
   let rateOrPitchChangedAt = 0;
   let probedOutputLatencyMs = 72;
@@ -741,6 +751,63 @@ function mountPhononStudio(root, payload) {
     value: currentPath() || state.home || "",
     placeholder: "Output folder path",
   });
+  const masterPresetSelect = h(
+    "select",
+    {
+      id: "phonon-master-preset",
+      class: "input phonon-select",
+      onchange: (e) => {
+        masterPreset = e.target.value || "none";
+        void saveSettings({ phononMasterPreset: masterPreset });
+      },
+    },
+    h(
+      "option",
+      { value: "none", selected: masterPreset === "none" },
+      "None — Raw 24 kHz Neural PCM",
+    ),
+    h(
+      "option",
+      { value: "podcast", selected: masterPreset === "podcast" },
+      "Podcast Studio (-16.5 LUFS + De-Esser + Limiter)",
+    ),
+    h(
+      "option",
+      { value: "acx", selected: masterPreset === "acx" },
+      "Audible ACX Compliant (-20 dB RMS / -3 dB Peak / <-60 dB Floor)",
+    ),
+    h(
+      "option",
+      { value: "broadcast", selected: masterPreset === "broadcast" },
+      "Broadcast EBU R128 (-23 LUFS + High-Pass 80 Hz)",
+    ),
+  );
+  const lexiconRulesInput = h("input", {
+    id: "phonon-lexicon-input",
+    type: "text",
+    class: "input",
+    value: customLexiconRules,
+    placeholder:
+      "Dual-track pronunciation rules (e.g. SQLite=sequel lite, NVMe=N V M E — audio respelled, subtitles intact)",
+    oninput: (e) => {
+      customLexiconRules = e.target.value;
+      chunkAudioCache.clear();
+    },
+    onchange: (e) => {
+      customLexiconRules = e.target.value;
+      chunkAudioCache.clear();
+      const entriesObj = {};
+      for (const part of customLexiconRules.split(/\r?\n|,/)) {
+        const idx = part.indexOf("=");
+        if (idx > 0) {
+          const k = part.slice(0, idx).trim();
+          const v = part.slice(idx + 1).trim();
+          if (k && v) entriesObj[k] = v;
+        }
+      }
+      void call("phonon/lexicon", { entries: entriesObj }).catch(() => {});
+    },
+  });
 
   const playBtn = h(
     "button",
@@ -948,6 +1015,13 @@ function mountPhononStudio(root, payload) {
             needsFfmpeg: true,
             isVideo: false,
             desc: "High-efficiency M4A audio.",
+          },
+          {
+            id: "m4b",
+            label: "M4B Chaptered Audiobook (Cover Art + [CHAPTER] Markers)",
+            needsFfmpeg: true,
+            isVideo: false,
+            desc: "Single-file chaptered Apple Books / Audible audiobook with embedded chapters and cover art.",
           },
           {
             id: "flac",
@@ -1273,7 +1347,9 @@ function mountPhononStudio(root, payload) {
 
     // Previous chunk context line (if available)
     if (idx > 0 && chunks[idx - 1]) {
-      const prevText = chunks[idx - 1].text;
+      const prevText = stripNonSpeechCharsClient(chunks[idx - 1].text)
+        .replace(/\s+/g, " ")
+        .trim();
       const snippet =
         prevText.length > 110 ? `…${prevText.slice(-110)}` : prevText;
       teleprompterStage.append(
@@ -1328,7 +1404,9 @@ function mountPhononStudio(root, payload) {
 
     // Next chunk context preview (if available)
     if (idx + 1 < chunks.length && chunks[idx + 1]) {
-      const nextText = chunks[idx + 1].text;
+      const nextText = stripNonSpeechCharsClient(chunks[idx + 1].text)
+        .replace(/\s+/g, " ")
+        .trim();
       const snippet =
         nextText.length > 110 ? `${nextText.slice(0, 110)}…` : nextText;
       teleprompterStage.append(
@@ -1658,6 +1736,10 @@ function mountPhononStudio(root, payload) {
         syncOffsetMs = Number(status.settings.syncOffsetMs ?? syncOffsetMs);
         pauseMs = Number(status.settings.pauseMs ?? pauseMs);
         cleanText = status.settings.cleanText ?? cleanText;
+        if (status.settings.masterPreset) {
+          masterPreset = status.settings.masterPreset;
+          masterPresetSelect.value = masterPreset;
+        }
         speedSlider.value = String(speed);
         speedValueLabel.textContent = `${speed.toFixed(2).replace(/\.00$/, ".0")}×`;
         pitchSlider.value = String(pitch);
@@ -1666,6 +1748,25 @@ function mountPhononStudio(root, payload) {
         syncOffsetValueLabel.textContent = formatSyncOffsetLabel(syncOffsetMs);
         pauseSlider.value = String(pauseMs);
         pauseValueLabel.textContent = `${pauseMs} ms`;
+      }
+      if (!customLexiconRules) {
+        void call("phonon/lexicon", {})
+          .then((lexRes) => {
+            if (
+              !customLexiconRules &&
+              lexRes?.customEntries &&
+              typeof lexRes.customEntries === "object"
+            ) {
+              const pairs = Object.entries(lexRes.customEntries)
+                .filter(([k, v]) => k && typeof v === "string" && v)
+                .map(([k, v]) => `${k}=${v}`);
+              if (pairs.length > 0) {
+                customLexiconRules = pairs.join(", ");
+                lexiconRulesInput.value = customLexiconRules;
+              }
+            }
+          })
+          .catch(() => {});
       }
       updateVoiceDropdown();
       updateFormatDropdown();
@@ -1692,6 +1793,7 @@ function mountPhononStudio(root, payload) {
         syncOffsetMs,
         cleanText,
         pauseMs,
+        masterPreset,
       });
       if (res.settings) state.settings = res.settings;
       updateVoiceDropdown();
@@ -2010,7 +2112,7 @@ function mountPhononStudio(root, payload) {
   function loadSelectedFromFileManager() {
     const sel = getSelectedReadableEntries();
     if (!sel.length) {
-      const typed = filePathInput.value.trim();
+      const typed = sourcePathInput.value.trim();
       if (typed) {
         void loadFileAndExtract(typed);
         return;
@@ -2032,13 +2134,15 @@ function mountPhononStudio(root, payload) {
     const chunk = chunks[chunkIndex];
     if (!chunk) return Promise.reject(new Error("Chunk out of range"));
     const normPitch = Math.round((Number(pitchSemitones) || 0) * 10) / 10;
-    const key = `${voiceName}|${normPitch}|${chunk.text}`;
+    const lexTrim = customLexiconRules.trim();
+    const key = `${voiceName}|${normPitch}|${lexTrim}|${chunk.text}`;
     let pending = chunkAudioCache.get(key);
     if (!pending) {
       pending = call("phonon/speak", {
         text: chunk.text,
         voice: voiceName,
         pitch: normPitch,
+        lexicon: lexTrim || undefined,
       })
         .then((res) => {
           renderChunkList();
@@ -2339,6 +2443,12 @@ function mountPhononStudio(root, payload) {
         videoTheme: selectedVideoTheme,
         saveSubtitles: saveCompanionSubtitles,
         title: outNameInput.value.trim() || "Ollama Phonon Read-Along",
+        masterPreset,
+        multiVoice,
+        continuity,
+        verifyChunks,
+        resume: resumeCheckpoints,
+        lexicon: customLexiconRules.trim() || undefined,
       });
       emit("job-started", res.job);
       const kindDesc = isVid
@@ -2418,6 +2528,12 @@ function mountPhononStudio(root, payload) {
         aspectRatio: selectedAspectRatio,
         videoTheme: selectedVideoTheme,
         saveSubtitles: saveCompanionSubtitles,
+        masterPreset,
+        multiVoice,
+        continuity,
+        verifyChunks,
+        resume: resumeCheckpoints,
+        lexicon: customLexiconRules.trim() || undefined,
       });
       emit("job-started", res.job);
       nowPlayingStatus.textContent = `⏳ Converting ${sel.length} file${sel.length === 1 ? "" : "s"} to ${kindDesc} (${selectedVoice})…`;
@@ -2460,7 +2576,7 @@ function mountPhononStudio(root, payload) {
     }
   }
 
-  async function exportChapteredAudiobook() {
+  async function exportChapteredAudiobook(opts = {}) {
     const sel = getSelectedReadableEntries();
     const targetPath = sourcePath || sel[0]?.path || "";
     const raw = textArea.value.trim();
@@ -2474,15 +2590,26 @@ function mountPhononStudio(root, payload) {
     if (isPlaying || isPaused) {
       stopReading();
     }
-    const fmt = VIDEO_EXT_SET.has(selectedFormat)
-      ? "wav"
-      : selectedFormat || "wav";
+    const fmt = opts.forceFormat
+      ? opts.forceFormat
+      : VIDEO_EXT_SET.has(selectedFormat)
+        ? "wav"
+        : selectedFormat || "wav";
+    const singleM4b = Boolean(opts.singleM4b) || fmt === "m4b";
     try {
       const res = await call("phonon/audiobook", {
         path: targetPath || undefined,
         text: targetPath ? undefined : raw,
         voice: selectedVoice,
         format: fmt,
+        singleM4b,
+        masterPreset:
+          singleM4b && masterPreset === "none" ? "acx" : masterPreset,
+        multiVoice,
+        continuity,
+        verifyChunks,
+        resume: resumeCheckpoints,
+        lexicon: customLexiconRules.trim() || undefined,
         speed,
         pitch,
         pauseMs,
@@ -2491,18 +2618,20 @@ function mountPhononStudio(root, payload) {
         bookTitle: outNameInput.value.trim() || undefined,
       });
       if (res.job) emit("job-started", res.job);
-      nowPlayingStatus.textContent = `⏳ Exporting Chaptered Audiobook "${res.bookTitle}" (${res.chapterCount} chapters, voice: ${selectedVoice}) → ${res.audiobookDir}…`;
+      nowPlayingStatus.textContent = `⏳ Exporting ${singleM4b ? "Single-File .M4B + Chaptered " : "Chaptered "}Audiobook "${res.bookTitle}" (${res.chapterCount} chapters, voice: ${selectedVoice}) → ${res.audiobookDir}…`;
       toast(
-        `Started exporting ${res.chapterCount}-chapter audiobook "${res.bookTitle}" (${selectedVoice}).`,
+        `Started exporting ${res.chapterCount}-chapter ${singleM4b ? ".M4B " : ""}audiobook "${res.bookTitle}" (${selectedVoice}).`,
         { kind: "info" },
       );
       if (res.job?.id) {
         pollJobUntilDone(
           res.job.id,
           () => {
-            nowPlayingStatus.textContent = `✔ Saved ${res.chapterCount}-chapter audiobook + M3U8 playlist in: ${res.audiobookDir}`;
+            nowPlayingStatus.textContent = res.m4bPath
+              ? `✔ Saved Chaptered .M4B Audiobook (${res.chapterCount} chapters + cover art): ${res.m4bPath}`
+              : `✔ Saved ${res.chapterCount}-chapter audiobook + M3U8 playlist in: ${res.audiobookDir}`;
             toast(
-              `Saved chaptered audiobook "${res.bookTitle}" (${res.chapterCount} chapters).`,
+              `Saved ${singleM4b ? "chaptered .M4B " : ""}audiobook "${res.bookTitle}" (${res.chapterCount} chapters).`,
               { kind: "success" },
             );
             if (currentPath()) void refresh();
@@ -2525,6 +2654,105 @@ function mountPhononStudio(root, payload) {
         { kind: "error" },
       );
     }
+  }
+
+  async function generateTwoHostPodcast() {
+    const sel = getSelectedReadableEntries();
+    const targetPath = sourcePath || sel[0]?.path || "";
+    const raw = textArea.value.trim();
+    if (!targetPath && !raw) {
+      toast(
+        "Load a document or enter text first to generate a 2-Host AI Podcast.",
+        { kind: "info" },
+      );
+      return;
+    }
+    if (isPlaying || isPaused) {
+      stopReading();
+    }
+    const hostA = selectedVoice || "Zoey";
+    const hostB = hostA.toLowerCase() === "russell" ? "Freya" : "Russell";
+    const fmt = VIDEO_EXT_SET.has(selectedFormat)
+      ? selectedFormat
+      : selectedFormat === "m4b"
+        ? "m4a"
+        : selectedFormat || "mp3";
+    try {
+      nowPlayingStatus.textContent = `⏳ Scripting 2-Host AI Podcast (${hostA} & ${hostB}) from your document…`;
+      const res = await call("phonon/podcast", {
+        path: targetPath || undefined,
+        text: targetPath ? undefined : raw,
+        hostAVoice: hostA,
+        hostBVoice: hostB,
+        format: fmt,
+        speed,
+        pitch,
+        pauseMs,
+        masterPreset: masterPreset === "none" ? "podcast" : masterPreset,
+        lexicon: customLexiconRules.trim() || undefined,
+        outputDir: outDirInput.value.trim() || currentPath() || "",
+        title: outNameInput.value.trim() || undefined,
+      });
+      if (res.job) emit("job-started", res.job);
+      toast(
+        `Started 2-Host AI Podcast (${res.turnCount} turns, ${hostA} & ${hostB}).`,
+        { kind: "info" },
+      );
+      if (res.job?.id) {
+        pollJobUntilDone(
+          res.job.id,
+          () => {
+            nowPlayingStatus.textContent = `✔ Saved 2-Host Stereo AI Podcast (${res.turnCount} turns): ${res.outputPath}`;
+            toast(
+              `Saved 2-Host AI Podcast: ${baseName(res.outputPath, state.sep)}`,
+              { kind: "success" },
+            );
+            if (VIDEO_EXT_SET.has(fmt) && res.outputPath) {
+              loadExportedVideoIntoPreview(res.outputPath);
+            }
+            if (currentPath()) void refresh();
+          },
+          (runningJob) => {
+            if (runningJob.log) {
+              const lastLine = runningJob.log.trim().split(/\r?\n/).pop();
+              if (lastLine) {
+                nowPlayingStatus.textContent = `⏳ 2-Host Podcast (${hostA} & ${hostB}): ${lastLine}`;
+              }
+            }
+          },
+        );
+      }
+    } catch (err) {
+      toast(
+        err instanceof ApiError
+          ? err.message
+          : "Could not generate 2-Host AI Podcast.",
+        { kind: "error" },
+      );
+    }
+  }
+
+  function loadStageDirectionDemo() {
+    sourcePath = "";
+    sourceFormatBadge.textContent = "Multi-Voice & Stage-Direction Script";
+    outNameInput.value = "multi-voice-studio-demo";
+    multiVoice = true;
+    if (multiVoiceToggleInput) multiVoiceToggleInput.checked = true;
+    if (!customLexiconRules.trim()) {
+      customLexiconRules = "SQLite=sequel lite, NVMe=N V M E";
+      lexiconRulesInput.value = customLexiconRules;
+    }
+    textArea.value = [
+      "[voice: Zoey][emotion: excited] Welcome to the Phonon Master Voice Studio! Today we are benchmarking SQLite over NVMe storage in v1.5.4.",
+      "[pause: 450ms][voice: Russell][emotion: calm] Notice how inline stage-direction tags switch voices, adjust emotional prosody, and insert studio breath pauses automatically — while subtitles still display exact technical spelling like SQLite!",
+      '"Can we also export a single-file chaptered M4B audiobook with Audible ACX mastering?" asked Freya.',
+      '"Yes — complete with embedded chapter markers, cover art, and minus twenty decibel RMS leveling," replied Edwin.',
+    ].join("\n\n");
+    void recomputeChunksFromEditor();
+    toast(
+      "Loaded Multi-Voice & Stage-Direction script demo (enabled Multi-Voice Cast & Dual-Track Lexicon).",
+      { kind: "info" },
+    );
   }
 
   function loadLargeTextStressSample() {
@@ -3745,12 +3973,14 @@ function mountPhononStudio(root, payload) {
     ),
   );
 
-  const makeToggle = (label, checked, onChange) => {
+  let multiVoiceToggleInput = null;
+  const makeToggle = (label, checked, onChange, captureInputRef) => {
     const input = h("input", {
       type: "checkbox",
       checked,
       onchange: () => onChange(input.checked),
     });
+    if (captureInputRef) captureInputRef(input);
     return h(
       "label",
       { class: "phonon-check-pill" },
@@ -3820,6 +4050,18 @@ function mountPhononStudio(root, payload) {
           onclick: () => loadLargeTextStressSample(),
         },
         "📚 Load Large Text Sample",
+      ),
+      h(
+        "button",
+        {
+          id: "phonon-stage-demo-btn",
+          type: "button",
+          class: "btn",
+          title:
+            "Load an interactive Multi-Voice dialogue & [voice:] / [emotion:] / [pause:] Stage-Direction demo",
+          onclick: () => loadStageDirectionDemo(),
+        },
+        "🎭 Multi-Voice & Stage Demo",
       ),
     ),
     h(
@@ -4045,6 +4287,54 @@ function mountPhononStudio(root, payload) {
       ),
       h(
         "div",
+        { class: "phonon-grid-2 phonon-video-options-row" },
+        h(
+          "div",
+          { class: "phonon-field" },
+          h(
+            "label",
+            { class: "phonon-label", for: "phonon-master-preset" },
+            "🎚️ Studio Audio Mastering & Loudness Chain",
+          ),
+          masterPresetSelect,
+        ),
+        h(
+          "div",
+          { class: "phonon-field" },
+          h(
+            "label",
+            { class: "phonon-label", for: "phonon-lexicon-input" },
+            "📖 Dual-Track Pronunciation Lexicon (Audio Respelled, Subtitles Intact)",
+          ),
+          lexiconRulesInput,
+        ),
+      ),
+      h(
+        "div",
+        { class: "phonon-cleanup-bar" },
+        h("span", { class: "phonon-cleanup-title" }, "AI Studio Engine:"),
+        makeToggle(
+          "🎭 Multi-Voice Dialogue Cast",
+          multiVoice,
+          (v) => {
+            multiVoice = v;
+          },
+          (inp) => {
+            multiVoiceToggleInput = inp;
+          },
+        ),
+        makeToggle("🌊 Cross-Chunk Prosody Continuity", continuity, (v) => {
+          continuity = v;
+        }),
+        makeToggle("🛡️ Closed-Loop Acoustic QA", verifyChunks, (v) => {
+          verifyChunks = v;
+        }),
+        makeToggle("💾 Crash-Resume Checkpoints", resumeCheckpoints, (v) => {
+          resumeCheckpoints = v;
+        }),
+      ),
+      h(
+        "div",
         { class: "phonon-export-actions" },
         h(
           "button",
@@ -4081,13 +4371,41 @@ function mountPhononStudio(root, payload) {
         h(
           "button",
           {
+            id: "phonon-m4b-audiobook-btn",
+            type: "button",
+            class: "btn primary phonon-audiobook-btn",
+            title:
+              "Export a single-file chaptered .M4B audiobook (Apple Books / Audible ACX compliant) with embedded [CHAPTER] markers and cover art",
+            onclick: () =>
+              void exportChapteredAudiobook({
+                singleM4b: true,
+                forceFormat: "m4b",
+              }),
+          },
+          "📦 Export Single-File .M4B Audiobook",
+        ),
+        h(
+          "button",
+          {
+            id: "phonon-podcast-btn",
+            type: "button",
+            class: "btn primary",
+            title:
+              "Transform your document or notes into a 2-Host Conversational Stereo AI Podcast with natural dialogue turns & saved transcript",
+            onclick: () => void generateTwoHostPodcast(),
+          },
+          "🎙️ Generate 2-Host AI Podcast",
+        ),
+        h(
+          "button",
+          {
             type: "button",
             class: "btn phonon-audiobook-btn",
             title:
               "Export a multi-chapter book or document (.epub, .ibooks, .scriv, .textbundle, .md) as numbered per-chapter audio files plus an M3U8 playlist & chapters.json manifest",
             onclick: () => void exportChapteredAudiobook(),
           },
-          "📖 Export Chaptered Audiobook",
+          "📖 Export Chaptered Folder",
         ),
         h(
           "button",

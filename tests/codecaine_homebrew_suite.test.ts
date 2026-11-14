@@ -1,17 +1,22 @@
 import { describe, it, expect, beforeAll } from "bun:test";
 import { resolve, join } from "node:path";
 import { existsSync, statSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 import {
   generateAllWrappers,
   buildWrapperDefinitions,
 } from "../scripts/generate_brew_suite.ts";
+import { buildNpmPackage } from "../scripts/build_npm_package.ts";
 
 describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrappers", () => {
   const root = resolve(process.cwd());
   const binDir = join(root, "bin");
   const formulaFile = join(root, "Formula", "codecaine-utility-suite.rb");
   const aliasFormulaFile = join(root, "Formula", "codecaine.rb");
+  const caskFile = join(root, "Casks", "codecaine-file-manager.rb");
   const installerScript = join(root, "install_homebrew_suite.sh");
+  const depsInstallerScript = join(root, "install_homebrew_dependencies.sh");
   const suiteCli = join(root, "cli_apps", "codecaine_suite_cli.ts");
 
   beforeAll(() => {
@@ -21,6 +26,7 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
 
   const runSubprocess = async (
     cmd: string[],
+    cwdOverride = root,
   ): Promise<{
     stdout: string;
     stderr: string;
@@ -33,7 +39,7 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
         ? ["bash", cmd[0].replace(/\\/g, "/"), ...cmd.slice(1)]
         : cmd;
     const proc = Bun.spawn(argv, {
-      cwd: root,
+      cwd: cwdOverride,
       stdout: "pipe",
       stderr: "pipe",
     });
@@ -262,5 +268,153 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
     const res = await runSubprocess([binExecutable, "100 + 200"]);
     expect(res.exitCode).toBe(0);
     expect(res.output).toContain("Programmer Calculator CLI");
+  });
+
+  it("14. Homebrew Cask & sync_homebrew.ts --check validate cleanly", async () => {
+    expect(existsSync(caskFile)).toBe(true);
+    const pkgVersion = JSON.parse(
+      readFileSync(join(root, "package.json"), "utf8"),
+    ).version;
+    const caskContent = readFileSync(caskFile, "utf8");
+    expect(caskContent).toContain('cask "codecaine-file-manager"');
+    expect(caskContent).toContain(`version "${pkgVersion}"`);
+    expect(caskContent).toContain('app "Codecaine File Manager.app"');
+    expect(caskContent).toContain("postflight_steps");
+
+    if (process.platform !== "win32" && Bun.which("ruby")) {
+      const caskSyntax = await runSubprocess(["ruby", "-c", caskFile]);
+      expect(caskSyntax.exitCode).toBe(0);
+    }
+
+    const syncCheck = await runSubprocess([
+      process.execPath,
+      join(root, "scripts", "sync_homebrew.ts"),
+      "--check",
+    ]);
+    expect(syncCheck.exitCode).toBe(0);
+
+    const depsSyntax = await runSubprocess([
+      "bash",
+      "-n",
+      depsInstallerScript.replace(/\\/g, "/"),
+    ]);
+    expect(depsSyntax.exitCode).toBe(0);
+  });
+
+  it("15. Master codecaine CLI works outside repository CWD with exact package version and doctor command", async () => {
+    const pkgVersion = JSON.parse(
+      readFileSync(join(root, "package.json"), "utf8"),
+    ).version;
+    const outsideDir = tmpdir();
+
+    const verRes = await runSubprocess(
+      [process.execPath, suiteCli, "--version"],
+      outsideDir,
+    );
+    expect(verRes.exitCode).toBe(0);
+    expect(verRes.output).toContain(`v${pkgVersion}`);
+
+    const doctorRes = await runSubprocess(
+      [process.execPath, suiteCli, "doctor"],
+      outsideDir,
+    );
+    expect(doctorRes.exitCode).toBe(0);
+    expect(doctorRes.output).toContain(`v${pkgVersion}`);
+    expect(doctorRes.output).toContain("Detected Catalog:");
+  });
+
+  it("16. Publish-ready npm/Bun package (bun-rad-studio) builds and runs under both Bun and Node.js", async () => {
+    const npmOutDir = join(root, "dist", "npm");
+    const built = await buildNpmPackage({ outDir: npmOutDir, quiet: true });
+    const pkgVersion = JSON.parse(
+      readFileSync(join(root, "package.json"), "utf8"),
+    ).version;
+
+    expect(built.version).toBe(pkgVersion);
+    expect(built.guiCount).toBeGreaterThanOrEqual(60);
+    expect(built.cliCount).toBeGreaterThanOrEqual(70);
+    expect(built.binCount).toBeGreaterThanOrEqual(150);
+
+    const npmPkg = JSON.parse(
+      readFileSync(join(npmOutDir, "package.json"), "utf8"),
+    );
+    expect(npmPkg.name).toBe("bun-rad-studio");
+    expect(npmPkg.version).toBe(pkgVersion);
+    expect(npmPkg.dependencies.bun).toBeDefined();
+    expect(npmPkg.bin["bun-rad-studio"]).toBe("./bin/bun-rad-studio.mjs");
+    expect(npmPkg.bin["codecaine"]).toBe("./bin/codecaine.mjs");
+
+    for (const libName of [
+      "libwebview.dylib",
+      "libwebview-x64.so",
+      "libwebview-arm64.so",
+      "libwebview.dll",
+    ]) {
+      expect(existsSync(join(npmOutDir, "lib", libName))).toBe(true);
+    }
+    expect(existsSync(join(npmOutDir, "src", "ide.html"))).toBe(true);
+    expect(existsSync(join(npmOutDir, "apps", "postgres_designer.js"))).toBe(
+      true,
+    );
+    expect(existsSync(join(npmOutDir, "workers", "fmFindWorker.js"))).toBe(
+      true,
+    );
+
+    const outsideDir = tmpdir();
+    const bunShimRes = await runSubprocess(
+      [
+        process.execPath,
+        join(npmOutDir, "bin", "bun-rad-studio.mjs"),
+        "doctor",
+      ],
+      outsideDir,
+    );
+    expect(bunShimRes.exitCode).toBe(0);
+    expect(bunShimRes.output).toContain(`v${pkgVersion}`);
+    expect(bunShimRes.output).toContain("npm-global");
+
+    const dbShimRes = await runSubprocess(
+      [
+        process.execPath,
+        join(npmOutDir, "bin", "codecaine-database.mjs"),
+        "--db",
+        ":memory:",
+        "--query",
+        "SELECT 314 AS npm_pi",
+      ],
+      outsideDir,
+    );
+    expect(dbShimRes.exitCode).toBe(0);
+    expect(dbShimRes.output).toContain("314");
+
+    // Verify Node.js runtime shim delegation when node is installed on the host
+    const nodeBin = Bun.which("node");
+    if (nodeBin) {
+      const nodeRes = await runSubprocess(
+        [
+          nodeBin,
+          join(npmOutDir, "bin", "codecaine-database.mjs"),
+          "--db",
+          ":memory:",
+          "--query",
+          "SELECT 2718 AS node_e",
+        ],
+        outsideDir,
+      );
+      expect(nodeRes.exitCode).toBe(0);
+      expect(nodeRes.output).toContain("2718");
+    }
+
+    // Verify library exports resolve cleanly without opening a native window
+    const libMod: any = await import(
+      pathToFileURL(join(npmOutDir, "index.js")).href
+    );
+    const sgMod: any = await import(
+      pathToFileURL(join(npmOutDir, "simplegui.js")).href
+    );
+    expect(typeof libMod.getIdeHtml).toBe("function");
+    expect(libMod.getIdeHtml().length).toBeGreaterThan(100_000);
+    expect(typeof libMod.simplegui?.createWindow).toBe("function");
+    expect(typeof sgMod.SimpleWindow).toBe("function");
   });
 });

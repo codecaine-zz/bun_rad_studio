@@ -34,6 +34,7 @@ import {
   sha256File,
 } from "./release/common";
 import { listMacApps } from "./release/build_mac_apps";
+import { syncHomebrewFiles } from "./sync_homebrew";
 
 const RELEASE = join(ROOT, "release");
 const FM = join(RELEASE, "file-manager");
@@ -276,6 +277,7 @@ export function notes(
     "",
     "- The apps are **not signed with an Apple or Microsoft developer certificate**. Follow the macOS quarantine instructions above; Windows may show *More info → Run anyway*. They run entirely on your computer: no account, nothing is sent anywhere.",
     "- Downloads are cross-compiled. Linux ARM64 File Manager startup and its executable-specific AppArmor fix were confirmed working on Ubuntu 24.04 ARM64. Installer/launcher coverage is tested for every Linux suite desktop app across ARM64, x64 and x64-baseline, but not every app's UI has been manually tested. If something doesn't start, please open an issue and include the download name, system and startup log.",
+    `- **Package managers:** \`bun add -g bun-rad-studio\` or \`npm install -g bun-rad-studio\` (macOS, Linux & Windows), or via Homebrew on macOS/Linux: \`curl -fsSL https://raw.githubusercontent.com/${repo}/main/install_homebrew_suite.sh | bash\`.`,
     `- Prefer the source? \`git clone https://github.com/${repo}\` then \`bun install\` and \`bun run app:files\`.`,
     "",
   );
@@ -451,6 +453,7 @@ async function main() {
 
   const sumsPath = join(RELEASE, "SHA256SUMS.txt");
   writeFileSync(sumsPath, sums.join("\n") + "\n");
+  syncHomebrewFiles({ version: VERSION, sumsMap: hashByName, repo });
   const notesPath = join(RELEASE, "RELEASE_NOTES.md");
   writeFileSync(notesPath, body);
   await run(

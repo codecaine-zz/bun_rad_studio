@@ -82,6 +82,7 @@ const ADVANCED_TTS_FLAGS = new Set([
   "clean",
   "speak",
   "audiobook",
+  "podcast",
   "voices",
   "formats",
   "status",
@@ -108,6 +109,19 @@ const ADVANCED_TTS_FLAGS = new Set([
   "--status",
   "-B",
   "--audiobook",
+  "--single-m4b",
+  "--master",
+  "--lexicon",
+  "--pronounce",
+  "--multi-voice",
+  "--cast",
+  "--continuity",
+  "--verify",
+  "--resume",
+  "--checkpoint-dir",
+  "--emotion",
+  "--hosts",
+  "--turns",
   "--clone-voice",
   "--srt",
   "--vtt",
@@ -120,19 +134,80 @@ const ADVANCED_TTS_FLAGS = new Set([
   "--json",
 ]);
 
-if (import.meta.main) {
-  const rawArgs = process.argv.slice(2);
+const SAY_CLI_SUBCOMMANDS = new Set([
+  "export",
+  "clean",
+  "speak",
+  "audiobook",
+  "podcast",
+  "voices",
+  "formats",
+  "status",
+  "clone-voice",
+  "help",
+]);
+
+const SAY_CLI_EXPORT_MODE_FLAGS = new Set([
+  "-o",
+  "--output",
+  "-f",
+  "--format",
+  "--clean-only",
+  "--audiobook",
+  "--single-m4b",
+  "--podcast",
+  "--hosts",
+  "--turns",
+  "--clone-voice",
+  "--srt",
+  "--vtt",
+  "--ass",
+  "-a",
+  "--aspect",
+  "-w",
+  "--theme",
+]);
+
+/**
+ * Resolves the delegated `tts_cli` argv when `say_cli` is invoked with advanced flags or a file path.
+ * Ensures live speech flags (e.g. `--emotion`, `--pronounce`, `--lexicon`, `--pitch`, `--speed`) default
+ * to `speak` rather than `export` when no output file/format/subcommand or input file was specified.
+ */
+export function resolveSayCliDelegatedArgs(
+  rawArgs: string[],
+  cwd = process.cwd(),
+): string[] | null {
   const hasAdvancedFlag = rawArgs.some((a) => {
     const base = a.includes("=") ? a.slice(0, a.indexOf("=")) : a;
     return ADVANCED_TTS_FLAGS.has(base);
   });
-  const firstPositional = rawArgs.find((a) => !a.startsWith("-"));
-  const positionalIsFile = Boolean(
-    firstPositional && existsSync(resolve(process.cwd(), firstPositional)),
+  const firstNonFlag = rawArgs.find((a) => !a.startsWith("-"));
+  const hasExplicitSubcommand = Boolean(
+    firstNonFlag && SAY_CLI_SUBCOMMANDS.has(firstNonFlag.toLowerCase()),
   );
+  const positionalIsFile = Boolean(
+    firstNonFlag &&
+    !hasExplicitSubcommand &&
+    existsSync(resolve(cwd, firstNonFlag)),
+  );
+  if (!hasAdvancedFlag && !positionalIsFile && !hasExplicitSubcommand) {
+    return null;
+  }
+  const hasExportModeFlag = rawArgs.some((a) => {
+    const base = a.includes("=") ? a.slice(0, a.indexOf("=")) : a;
+    return SAY_CLI_EXPORT_MODE_FLAGS.has(base);
+  });
+  if (!hasExplicitSubcommand && !hasExportModeFlag && !positionalIsFile) {
+    return ["speak", ...rawArgs];
+  }
+  return rawArgs;
+}
 
-  if (hasAdvancedFlag || positionalIsFile) {
-    const code = await runTtsCli(rawArgs);
+if (import.meta.main) {
+  const rawArgs = process.argv.slice(2);
+  const delegated = resolveSayCliDelegatedArgs(rawArgs);
+  if (delegated) {
+    const code = await runTtsCli(delegated);
     process.exit(code);
   }
 

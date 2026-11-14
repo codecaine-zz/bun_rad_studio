@@ -1,56 +1,86 @@
-# ⚡ Codecaine Utility Suite — Homebrew Installation & User Guide (macOS & Linux)
+# ⚡ Codecaine Utility Suite — Homebrew, Bun & npm Installation Guide
 
-The **Codecaine Utility Suite** is a unified desktop application and command-line workstation suite engineered for **macOS** and **Linux**, powered by [Bun](https://bun.sh) and [Webview-Bun](https://github.com/codecaine-zz/bun_webview).
+The **Codecaine Utility Suite** (`bun-rad-studio`) is a unified desktop application and command-line workstation suite for **macOS**, **Linux**, and **Windows**, powered by [Bun](https://bun.sh) and [Webview-Bun](https://github.com/codecaine-zz/bun_webview).
 
-It bundles over **170+ total developer workstations, systems diagnostics, data query IDEs, and CLI utilities**:
-- **68 Desktop Studio Applications** (`applications/*.ts`)
-- **78 Terminal CLI Utilities** (`cli_apps/*.ts`)
+It bundles **215+ developer workstations, system diagnostics, database IDEs, arcade games, and CLI utilities**:
+- **108+ Desktop Studio Applications** (`applications/*.ts`)
+- **80 Terminal CLI Utilities** (`cli_apps/*.ts`)
 - **27 Interactive Feature Showcases & Demos** (`demos/*.ts`)
 
 ---
 
-## 🚀 Quick Install via Homebrew
+## 📦 Option 1: Install Globally with Bun or npm (macOS, Linux & Windows)
 
-### Option 1: 1-Click Interactive Shell Installer (Recommended)
-
-Run the installer directly from the project directory:
+The fastest cross-platform way to install the suite is via **`bun`** or **`npm`**:
 
 ```bash
-# Link all 140+ applications and CLI utilities to your Homebrew environment:
-./install_homebrew_suite.sh
+# Using Bun (recommended):
+bun add -g bun-rad-studio
 
-# Or install with all external tools (ffmpeg, jq, ripgrep, sqlite, etc.):
-./install_homebrew_suite.sh --deps
+# Using npm / Node.js (automatically installs the official `bun` runtime dependency):
+npm install -g bun-rad-studio
+
+# Zero-install one-shot execution:
+bunx bun-rad-studio --help
+npx bun-rad-studio list
 ```
 
-This generates standalone POSIX wrappers in `bin/` and symlinks them into your Homebrew binary directory (`/opt/homebrew/bin` on Apple Silicon, `/usr/local/bin` on Intel macOS, or `/home/linuxbrew/.linuxbrew/bin` on Linux).
-
----
-
-### Option 2: Install via Homebrew Formula (`Formula/codecaine-utility-suite.rb`)
-
-You can build and install the formula directly using Homebrew:
+To build or pack the npm/Bun distribution locally from a source checkout:
 
 ```bash
-# Build from the local formula file
-brew install --build-from-source ./Formula/codecaine-utility-suite.rb
-
-# Or install with the short alias:
-brew install --build-from-source ./Formula/codecaine.rb
+bun run npm:build    # Builds code-split multi-OS package into dist/npm/
+bun run npm:pack     # Builds dist/npm/ and packs dist/bun-rad-studio-<version>.tgz
 ```
 
 ---
 
-### Option 3: Add as a Homebrew Tap
+## 🍺 Option 2: Install via Homebrew (macOS & Linux — Homebrew 7+ Ready)
 
-You can tap the repository locally or remotely:
+### 2A. One-Line Remote Installer (Pre-Built Formula + Optional macOS `.app` Cask)
+
+No git clone or compilation required — configures and trusts `codecaine-zz/tap` automatically (including **Homebrew 7+** tap trust) and installs pre-built release binaries:
 
 ```bash
-# Tap the repository directly:
-brew tap codecaine-zz/bun_rad_studio https://github.com/codecaine-zz/bun_rad_studio.git
+# Install pre-built CLI + Desktop Suite Formula (macOS arm64/x64 & Linux arm64/x64):
+curl -fsSL https://raw.githubusercontent.com/codecaine-zz/bun_rad_studio/main/install_homebrew_suite.sh | bash
 
-# Install the suite:
-brew install codecaine-utility-suite
+# macOS only — install native "Codecaine File Manager.app" into /Applications (clears Gatekeeper quarantine):
+curl -fsSL https://raw.githubusercontent.com/codecaine-zz/bun_rad_studio/main/install_homebrew_suite.sh | bash -s -- --cask
+```
+
+### 2B. Manual Homebrew Tap Commands (`codecaine-zz/tap`)
+
+> **Homebrew 7+ Note:** Homebrew 7 removed direct `./Formula/*.rb` path installs and requires `brew trust` for third-party taps. Run `./install_homebrew_suite.sh --tap` (from a checkout) or tap your published tap repository and trust it first:
+
+```bash
+# Configure and trust the tap from a local checkout:
+./install_homebrew_suite.sh --tap
+
+# Or if using a remote tap repository:
+brew tap codecaine-zz/tap https://github.com/codecaine-zz/bun_rad_studio.git
+brew trust codecaine-zz/tap   # Required on Homebrew 7+
+
+# Install the pre-built suite (or short alias `codecaine`):
+brew install codecaine-zz/tap/codecaine-utility-suite
+# Alias:
+brew install codecaine-zz/tap/codecaine
+
+# macOS native app bundle in /Applications:
+brew install --cask codecaine-zz/tap/codecaine-file-manager
+
+# Build bleeding-edge --HEAD from source:
+brew install --HEAD codecaine-zz/tap/codecaine-utility-suite
+```
+
+### 2C. Link Directly from a Local Source Checkout
+
+If you cloned the repository locally for development, symlink all `codecaine-*` wrappers directly into Homebrew's `bin` directory (`/opt/homebrew/bin`, `/usr/local/bin`, or `/home/linuxbrew/.linuxbrew/bin`):
+
+```bash
+./install_homebrew_suite.sh --link
+
+# Optional: also install recommended companion CLI tools from Brewfile (jq, ripgrep, fd, ffmpeg, etc.):
+./install_homebrew_suite.sh --link --deps
 ```
 
 ---
@@ -58,44 +88,45 @@ brew install codecaine-utility-suite
 ## 💻 System Prerequisites
 
 ### macOS
-- **macOS 12+** (Apple Silicon `arm64` or Intel `x86_64`)
-- **Homebrew** (`/opt/homebrew` or `/usr/local`)
-- **Bun runtime** (`brew install bun` or auto-installed by script)
+- **macOS 12 Monterey+** (Apple Silicon `arm64` or Intel `x86_64`)
+- Uses macOS's built-in Apple WebKit framework for desktop windows (zero extra GUI packages needed)
 
 ### Linux (Ubuntu / Debian / Fedora / Arch)
-- **Homebrew on Linux** (`/home/linuxbrew/.linuxbrew`)
-- **Bun runtime** (`curl -fsSL https://bun.sh/install | bash` or `brew install bun`)
-- **GTK3 & WebKitGTK runtime** (for GUI Studio desktop windows):
+- **CLI Utilities:** Run 100% headless with zero GUI libraries required.
+- **Desktop Studio Windows:** Require **GTK 4** and **WebKitGTK 6.0**:
   ```bash
-  # Ubuntu / Debian:
-  sudo apt install -y libwebkitgtk-6.0-4 libgtk-3-0
-  # Or WebKit2GTK 4.0:
-  sudo apt install -y libwebkit2gtk-4.0-37
+  # Ubuntu 24.04+ / Debian:
+  sudo apt install -y libgtk-4-1 libwebkitgtk-6.0-4
 
   # Fedora:
-  sudo dnf install -y webkit2gtk4.0 gtk3
+  sudo dnf install -y gtk4 webkitgtk6.0
 
   # Arch Linux:
-  sudo pacman -S webkit2gtk-4.1 gtk3
+  sudo pacman -S gtk4 webkitgtk-6.0
   ```
-  *(Note: CLI utilities run completely headless without requiring any GUI or WebKit packages!)*
+
+### Windows
+- **Windows 10 / 11** (`x64` or `arm64`) via `bun add -g bun-rad-studio`, `npm install -g bun-rad-studio`, or the standalone `.zip` installer in GitHub Releases.
+- Uses Microsoft Edge WebView2 (pre-installed on Windows 11).
 
 ---
 
 ## ⚡ Master `codecaine` Command Reference
 
-When installed, the `codecaine` master executable is directly on your `$PATH`:
+Once installed via Homebrew, `bun`, or `npm`, the `codecaine` (and `bun-rad-studio`) master executable is on your `$PATH`:
 
 ```bash
-# 1. Open the Unified Launcher Studio Pro GUI (or CLI overview if headless)
-codecaine
-
-# 2. View version and system runtime info
+# 1. Version, health diagnostics & one-step upgrades
 codecaine --version
-codecaine info
+codecaine doctor              # Full health check (install method, runtime, WebView, PATH)
+codecaine upgrade             # Upgrades via Homebrew, bun, npm, or git automatically
+
+# 2. Launch Unified Workstation GUI
+codecaine gui                 # Opens Launcher Studio Pro desktop window
+codecaine-file-manager        # Opens Codecaine File Manager Studio
 
 # 3. Catalog and search tools
-codecaine list                # Table of all 170+ tools
+codecaine list                # Table of all 215+ tools
 codecaine list --cli          # Show only CLI utility tools
 codecaine list --apps         # Show only GUI Studio applications
 codecaine list --json         # Export catalog as structured JSON
@@ -115,17 +146,19 @@ codecaine demo 05_crud_todo   # Run a showcase demo
 
 # 6. Homebrew Suite Management
 codecaine brew status         # View Homebrew environment and tap status
-codecaine brew check          # Check required/recommended Homebrew tools
+codecaine brew doctor         # Run Homebrew suite diagnostics
+codecaine brew cask           # Install Codecaine File Manager.app Cask on macOS
+codecaine brew check          # Check optional companion Homebrew tools
 codecaine brew install-deps   # Auto-install external tools from Brewfile
-codecaine brew link           # Re-link binaries into Homebrew prefix
-codecaine brew unlink         # Unlink binaries from Homebrew prefix
+codecaine brew link           # Re-link local checkout binaries into Homebrew prefix
+codecaine brew unlink         # Unlink local checkout binaries from Homebrew prefix
 ```
 
 ---
 
 ## 🛠️ Direct Executables on `$PATH`
 
-In addition to `codecaine run <name>`, all tools are exposed as standalone executable commands prefixed with `codecaine-`:
+In addition to `codecaine run <name>`, tools are exposed as collision-free standalone commands prefixed with `codecaine-`:
 
 ### 🗄️ Database, Storage & Backend Workstations
 | Command | Mode | Description |
@@ -140,6 +173,7 @@ In addition to `codecaine run <name>`, all tools are exposed as standalone execu
 ### 🔍 Search, Filesystem & Process Operations
 | Command | Mode | Description |
 | :--- | :--- | :--- |
+| `codecaine-file-manager` | GUI | Featured Dual-Pane File Manager, Media Deck, Secrets Vault & Dev IDE |
 | `codecaine-fd` | CLI / GUI | Ultra-fast native recursive filesystem globbing & search |
 | `codecaine-rip` | CLI / GUI | Safe file quarantine, seance recovery & graveyard deletion |
 | `codecaine-sd` | CLI / GUI | Intuitive regex find & in-place file replacer |
@@ -182,40 +216,43 @@ In addition to `codecaine run <name>`, all tools are exposed as standalone execu
 
 ---
 
-## 🩺 Diagnostics & Health Check
+## 🩺 Diagnostics, Maintainer Sync & Uninstallation
 
-Run the built-in diagnostic tool anytime:
-
+### Diagnostics
 ```bash
-# Check installation health:
+codecaine doctor
+# Or via shell installer:
 ./install_homebrew_suite.sh --doctor
-
-# Or via master CLI:
-codecaine brew status
 ```
 
 Sample output:
 ```text
-🩺 Running Codecaine Utility Suite Diagnostics:
---------------------------------------------------------
-• Homebrew Prefix:  /opt/homebrew
-• Homebrew Bin:     /opt/homebrew/bin
-• Bun Version:      v1.4.2
-• Suite Root:       /Users/codecaine/bun_rad_studio
-• Local Wrappers:   256 executable binaries in bin/
-• PATH Check:       ✔ 'codecaine' available at /opt/homebrew/bin/codecaine
-
-Diagnostic check passed: Codecaine Utility Suite is active and ready to brew!
+🩺 Codecaine Utility Suite Health Check:
+──────────────────────────────────────────────────────────
+  • Suite Version:      v1.5.4
+  • Install Method:     homebrew-formula
+  • Install Root:       /opt/homebrew/Cellar/codecaine-utility-suite/1.5.4/libexec
+  • Bun Runtime:        ✔ v1.4.4 (darwin-arm64)
+  • Detected Catalog:   ✔ 215 tools (108 GUI Studios, 80 CLI Tools, 27 Demos)
+  • Global PATH:        ✔ /opt/homebrew/bin/codecaine
+  • Desktop WebView:    ✔ libwebview.dylib ready
+  • Homebrew Status:    ✔ /opt/homebrew
 ```
 
----
-
-## 🧹 Uninstallation
-
-To cleanly remove all Codecaine Utility Suite symlinks from your Homebrew environment:
+### Keeping Homebrew Formulae & Casks Synced on Release
+`bun run release:publish` automatically updates `Formula/codecaine-utility-suite.rb`, `Formula/codecaine.rb`, `Casks/codecaine-file-manager.rb`, and `dist/homebrew-tap/` with verified `SHA256SUMS.txt` hashes. You can also sync or verify them manually anytime:
 
 ```bash
-./install_homebrew_suite.sh --unlink
-# Or via CLI:
-codecaine brew unlink
+bun run brew:sync          # Syncs Formula/*.rb, Casks/*.rb, and dist/homebrew-tap/
+bun run brew:sync:check    # Verifies Homebrew files match current version & SHA256SUMS
+```
+
+### Uninstallation
+```bash
+# Homebrew (Formula, Cask, or local symlinks):
+./install_homebrew_suite.sh --uninstall
+
+# Global Bun / npm:
+bun remove -g bun-rad-studio
+npm uninstall -g bun-rad-studio
 ```
