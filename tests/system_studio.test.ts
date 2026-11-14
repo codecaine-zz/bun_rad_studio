@@ -9,12 +9,22 @@ import {
   createSystemStudio,
   createBrewStudio,
 } from "../applications/system_studio.ts";
-import si from "systeminformation";
+import { SYSINFO_PROBE_CATALOG } from "../src/features/filemanager/fmSysinfo.ts";
+import * as si from "systeminformation";
 
-describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", () => {
-  it("1. Method registry contains all 60 systeminformation public methods", () => {
+describe("⚡ System Information Studio Suite (All 71 systeminformation v6 APIs)", () => {
+  it("1. Method registry and File Manager probe catalog contain all 71 systeminformation v6 public methods", () => {
     const keys = Object.keys(SI_METHODS);
-    expect(keys.length).toBe(60);
+    const siExports = Object.keys(si).filter(
+      (k) => typeof (si as Record<string, unknown>)[k] === "function",
+    );
+    expect(siExports.length).toBe(71);
+    expect(keys.length).toBe(71);
+    expect(keys.sort()).toEqual([...siExports].sort());
+
+    const catalogMethods = SYSINFO_PROBE_CATALOG.map((c) => c.method);
+    expect(catalogMethods.length).toBe(71);
+    expect([...catalogMethods].sort()).toEqual([...siExports].sort());
 
     // Verify all 10 domain areas exist
     expect(SI_CATEGORIES.length).toBe(10);
@@ -27,17 +37,20 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
   });
 
   it("2. Category 1: Hardware & Baseboard methods execute successfully", async () => {
-    const [ver, sys, bios, base, chassis, uuid] = await Promise.all([
+    const [ver, sys, bios, base, chassis, uuid, pci, tb] = await Promise.all([
       executeSiMethod("version"),
       executeSiMethod("system"),
       executeSiMethod("bios"),
       executeSiMethod("baseboard"),
       executeSiMethod("chassis"),
       executeSiMethod("uuid"),
+      executeSiMethod("pci"),
+      executeSiMethod("thunderbolt"),
     ]);
 
     expect(ver.success).toBe(true);
     expect(typeof ver.data).toBe("string");
+    expect(ver.data).toBe("6.0.0-beta.23");
 
     expect(sys.success).toBe(true);
     expect(sys.data).toBeDefined();
@@ -46,12 +59,15 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
     expect(base.success).toBe(true);
     expect(chassis.success).toBe(true);
     expect(uuid.success).toBe(true);
+    expect(pci.success).toBe(true);
+    expect(tb.success).toBe(true);
   });
 
   it("3. Category 2: OS & Software Environment methods execute successfully", async () => {
-    const [osInfo, versions, shell, time] = await Promise.all([
+    const [osInfo, versions, npmRes, shell, time] = await Promise.all([
       executeSiMethod("osInfo"),
       executeSiMethod("versions", "node, git"),
+      executeSiMethod("npm"),
       executeSiMethod("shell"),
       executeSiMethod("time"),
     ]);
@@ -62,29 +78,37 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
     expect(versions.success).toBe(true);
     expect(versions.data).toBeDefined();
 
+    expect(npmRes.success).toBe(true);
+    expect(Array.isArray(npmRes.data)).toBe(true);
+
     expect(shell.success).toBe(true);
     expect(time.success).toBe(true);
     expect(time.data.uptime).toBeGreaterThanOrEqual(0);
   }, 30_000);
 
   it("4. Category 3: CPU, Load & Thermals methods execute successfully", async () => {
-    const [cpu, flags, cache, speed, temp, load, full] = await Promise.all([
-      executeSiMethod("cpu"),
-      executeSiMethod("cpuFlags"),
-      executeSiMethod("cpuCache"),
-      executeSiMethod("cpuCurrentSpeed"),
-      executeSiMethod("cpuTemperature"),
-      executeSiMethod("currentLoad"),
-      executeSiMethod("fullLoad"),
-    ]);
+    const [cpu, npu, flags, cache, speed, temp, fans, load, full] =
+      await Promise.all([
+        executeSiMethod("cpu"),
+        executeSiMethod("npu"),
+        executeSiMethod("cpuFlags"),
+        executeSiMethod("cpuCache"),
+        executeSiMethod("cpuCurrentSpeed"),
+        executeSiMethod("cpuTemperature"),
+        executeSiMethod("fans"),
+        executeSiMethod("currentLoad"),
+        executeSiMethod("fullLoad"),
+      ]);
 
     expect(cpu.success).toBe(true);
     expect(cpu.data.cores).toBeGreaterThan(0);
 
+    expect(npu.success).toBe(true);
     expect(flags.success).toBe(true);
     expect(cache.success).toBe(true);
     expect(speed.success).toBe(true);
     expect(temp.success).toBe(true);
+    expect(fans.success).toBe(true);
 
     expect(load.success).toBe(true);
     expect(typeof load.data.currentLoad).toBe("number");
@@ -93,12 +117,13 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
     expect(typeof full.data).toBe("number");
   });
 
-  it("5. Category 4 & 5: Memory, Battery & Graphics execute successfully", async () => {
-    const [mem, layout, bat, gfx] = await Promise.all([
+  it("5. Category 4 & 5: Memory, Battery, GPU & Displays execute successfully", async () => {
+    const [mem, layout, bat, gpu, displays] = await Promise.all([
       executeSiMethod("mem"),
       executeSiMethod("memLayout"),
       executeSiMethod("battery"),
-      executeSiMethod("graphics"),
+      executeSiMethod("gpu"),
+      executeSiMethod("displays"),
     ]);
 
     expect(mem.success).toBe(true);
@@ -110,8 +135,11 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
     expect(bat.success).toBe(true);
     expect(bat.data).toBeDefined();
 
-    expect(gfx.success).toBe(true);
-    expect(gfx.data.controllers).toBeDefined();
+    expect(gpu.success).toBe(true);
+    expect(Array.isArray(gpu.data)).toBe(true);
+
+    expect(displays.success).toBe(true);
+    expect(Array.isArray(displays.data)).toBe(true);
   });
 
   it("6. Category 6: Storage & Filesystems execute successfully", async () => {
@@ -158,22 +186,41 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
   }, 60000);
 
   it("8. Category 8 & 9: Processes, Services & Peripherals execute successfully", async () => {
-    const [procs, procLoad, serv, users, audio, bt, printer, usb] =
-      await Promise.all([
-        executeSiMethod("processes"),
-        executeSiMethod("processLoad", "bun"),
-        executeSiMethod("services", "*"),
-        executeSiMethod("users"),
-        executeSiMethod("audio"),
-        executeSiMethod("bluetoothDevices"),
-        executeSiMethod("printer"),
-        executeSiMethod("usb"),
-      ]);
+    const [
+      procs,
+      procLoad,
+      procFocused,
+      serv,
+      users,
+      audio,
+      bt,
+      printer,
+      usb,
+      serialPorts,
+      camera,
+      keyboard,
+      mouse,
+    ] = await Promise.all([
+      executeSiMethod("processes"),
+      executeSiMethod("processLoad", "bun"),
+      executeSiMethod("processFocused"),
+      executeSiMethod("services", "*"),
+      executeSiMethod("users"),
+      executeSiMethod("audio"),
+      executeSiMethod("bluetoothDevices"),
+      executeSiMethod("printer"),
+      executeSiMethod("usb"),
+      executeSiMethod("serialPorts"),
+      executeSiMethod("camera"),
+      executeSiMethod("keyboard"),
+      executeSiMethod("mouse"),
+    ]);
 
     expect(procs.success).toBe(true);
     expect(procs.data.all).toBeGreaterThan(0);
 
     expect(procLoad.success).toBe(true);
+    expect(procFocused.success).toBe(true);
     expect(serv.success).toBe(true);
     expect(users.success).toBe(true);
 
@@ -181,6 +228,10 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
     expect(bt.success).toBe(true);
     expect(printer.success).toBe(true);
     expect(usb.success).toBe(true);
+    expect(serialPorts.success).toBe(true);
+    expect(camera.success).toBe(true);
+    expect(keyboard.success).toBe(true);
+    expect(mouse.success).toBe(true);
   }, 60000);
 
   it("9. Category 10: Virtualization, Docker & Batch methods execute successfully", async () => {
@@ -193,8 +244,7 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
       vbox,
       staticData,
       dynamicData,
-      pStart,
-      pRel,
+      getQuery,
     ] = await Promise.all([
       executeSiMethod("dockerInfo"),
       executeSiMethod("dockerImages"),
@@ -204,8 +254,7 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
       executeSiMethod("vboxInfo"),
       executeSiMethod("getStaticData"),
       executeSiMethod("getDynamicData"),
-      executeSiMethod("powerShellStart"),
-      executeSiMethod("powerShellRelease"),
+      executeSiMethod("get", '{"cpu": "brand, cores", "mem": "total"}'),
     ]);
 
     expect(dInfo.success).toBe(true);
@@ -221,8 +270,8 @@ describe("⚡ System Information Studio Suite (All 60 systeminformation APIs)", 
     expect(dynamicData.success).toBe(true);
     expect(dynamicData.data.mem).toBeDefined();
 
-    expect(pStart.success).toBe(true);
-    expect(pRel.success).toBe(true);
+    expect(getQuery.success).toBe(true);
+    expect(getQuery.data.cpu).toBeDefined();
   }, 60000);
 
   it("10. formatDataSummary produces safe strings for all input structures", () => {

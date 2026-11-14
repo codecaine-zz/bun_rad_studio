@@ -1,14 +1,14 @@
 # 💻 System Information Studio Pro -- Complete Production User Guide
 
 ```
-Version: 2.5.0  •  Engine: systeminformation (60 APIs) via a local Bun telemetry server  •  Offline: 100%
+Version: 2.5.0  •  Engine: systeminformation (71 APIs) via a local Bun telemetry server  •  Offline: 100%
 Launchers: [Desktop GUI: bun run app:system]  •  [Terminal CLI: bun run cli:system]
 ```
 
 ---
 
 ## 🌟 Executive Overview
-**System Information Studio Pro** is a hardware and OS intelligence workstation. It exposes the entire `systeminformation` API surface (60 methods across 10 domains: hardware, OS, CPU, memory/battery, graphics, disks, network, processes, peripherals and virtualization) through a fast desktop UI with live KPI cards, visual smart cards, a raw JSON inspector and a telemetry log.
+**System Information Studio Pro** is a hardware and OS intelligence workstation. It exposes the entire `systeminformation` API surface (71 methods across 10 domains: hardware, OS, CPU/NPU, memory/battery, graphics/displays, disks, network, processes, peripherals and virtualization) through a fast desktop UI with live KPI cards, visual smart cards, a raw JSON inspector and a telemetry log.
 
 The studio runs a background telemetry server on a local loopback port, so the window never blocks while a slow query (for example a full audit) is running.
 

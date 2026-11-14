@@ -121,6 +121,7 @@ One row per detected tool. *Verification status* lists automated test files that
 | Text Editor CLI (CLI tool) | Developers | `cli_apps/text_editor_cli.ts` | - | Implemented but not verified | No automated test mentions it; launch not verified. | No guide. |
 | Tokei CLI (CLI tool) | Developers | `cli_apps/tokei_cli.ts` | [userguides/22_tokei_studio.md](../userguides/22_tokei_studio.md) | Implemented but not verified | Automated tests mention it: `tests/sys_utils_cli_apps.test.ts`. Launch not verified. | Legacy guide not checked against the code; no verified interface tour. |
 | Tr CLI (CLI tool) | Developers | `cli_apps/tr_cli.ts` | - | Implemented but not verified | Automated tests mention it: `tests/db_rad_cli_fixes.test.ts`. Launch not verified. | No guide. |
+| Tts CLI (CLI tool) | Developers | `cli_apps/tts_cli.ts` | - | Implemented but not verified | Automated tests mention it: `tests/tts_cli.test.ts`. Launch not verified. | No guide. |
 | Vault Backup Manager CLI (CLI tool) | Developers | `cli_apps/vault_backup_manager.ts` | - | Implemented but not verified | Automated tests mention it: `tests/db_rad_cli_fixes.test.ts`. Launch not verified. | No guide. |
 | Vault CLI (CLI tool) | Developers | `cli_apps/vault_cli.ts` | [userguides/43_file_manager.md](../userguides/43_file_manager.md) | Implemented but not verified | Automated tests mention it: `tests/vault_cli.test.ts`. Launch not verified. | Legacy guide not checked against the code; no verified interface tour. |
 | Watcher CLI (CLI tool) | Developers | `cli_apps/watcher_cli.ts` | [userguides/03_task_watcher_studio.md](../userguides/03_task_watcher_studio.md) | Implemented but not verified | Automated tests mention it: `tests/enterprise_cli_apps.test.ts`. Launch not verified. | Legacy guide not checked against the code; no verified interface tour. |
@@ -263,7 +264,7 @@ One row per detected tool. *Verification status* lists automated test files that
 | Implementation status | Feature rows | Application rows |
 |---|---|---|
 | Implemented and verified | 8 | 1 |
-| Implemented but not verified | 6 | 208 |
+| Implemented but not verified | 6 | 209 |
 | Partially implemented | 3 | 0 |
 | Planned | 1 | 0 |
 | Unsupported | 0 | 0 |

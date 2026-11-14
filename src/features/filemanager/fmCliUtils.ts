@@ -117,6 +117,10 @@ const KNOWN_DESCRIPTIONS: Record<string, string> = {
     "Intuitive Find & Replace CLI (sed alternative with literal & regex preview)",
   subfinder_cli: "Passive Subdomain Discovery & DNS Enumeration CLI",
   tokei_cli: "Fast Codebase Line Counter & Language Breakdown Statistics CLI",
+  tts_cli:
+    "Ollama Phonon Text-to-Speech, Document Cleaner & Multi-Format Audio/MP4 Video Exporter",
+  say_cli:
+    "Ollama Phonon & Native Text-to-Speech Synthesis, Document Cleaner & Audio/MP4 Exporter",
   vault_cli:
     "Encrypt and Decrypt Files & Folders (.radenc) with Password Protection",
   watchexec_cli: "Filesystem Watcher that Executes Commands When Files Change",
@@ -558,6 +562,42 @@ const KNOWN_EXAMPLES: Record<string, CliExampleInfo[]> = {
       description: "Explore the 44 RAD modules and recipes",
     },
   ],
+  tts_cli: [
+    {
+      label: "TTS Status",
+      args: "status",
+      description:
+        "Check Ollama, Phonon TTS model, LLM cleaner, and FFmpeg status",
+    },
+    {
+      label: "List 38+ Voices",
+      args: "voices",
+      description: "List all built-in and custom Ollama Phonon neural voices",
+    },
+    {
+      label: "Audio & MP4 Formats",
+      args: "formats",
+      description: "List all 9 audio formats and 4 Read-Along video formats",
+    },
+    {
+      label: "Clean Markdown Doc",
+      args: 'clean --text "# Quarterly Report (2026-11-13)\\n\\nSee [docs](https://example.com/a?b=1), e.g. **100%** ready."',
+      description:
+        "Clean Markdown, URLs, numeric dates, and abbreviations for natural speech",
+    },
+  ],
+  say_cli: [
+    {
+      label: "List Phonon Voices",
+      args: "--voices",
+      description: "List all 38+ Ollama Phonon neural voices",
+    },
+    {
+      label: "List Export Formats",
+      args: "--formats",
+      description: "List supported audio and Read-Along MP4 video formats",
+    },
+  ],
 };
 
 function categorizeCli(stem: string): string {
@@ -576,7 +616,9 @@ function categorizeCli(stem: string): string {
   )
     return "Data & Databases";
   if (
-    /^(audiotag|color|dot|exif|ffmpeg|imagemagick|media_studio|ocr|say)/.test(s)
+    /^(audiotag|color|dot|exif|ffmpeg|imagemagick|media_studio|ocr|say|tts)/.test(
+      s,
+    )
   )
     return "Media & Graphics";
   if (/^(calc|calculator|graph|kalker|numbat|qalc|statistics)/.test(s))
@@ -655,11 +697,11 @@ function iconForCli(stem: string, category: string): string {
     s.startsWith("speedtest")
   )
     return "📡";
+  if (s.startsWith("tts") || s.startsWith("say")) return "🎙️";
   if (
     s.startsWith("ffmpeg") ||
     s.startsWith("media") ||
     s.startsWith("audiotag") ||
-    s.startsWith("say") ||
     s.startsWith("yt_dlp")
   )
     return "🎬";

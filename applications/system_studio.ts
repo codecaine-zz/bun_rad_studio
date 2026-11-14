@@ -9,7 +9,7 @@
  */
 
 import type { Webview, SizeHint } from "webview-bun";
-import si from "systeminformation";
+import * as si from "systeminformation";
 import * as os from "os";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve, join } from "path";
@@ -34,7 +34,7 @@ import {
 } from "./system_studio_extras";
 
 // -------------------------------------------------------------------------------------------------
-// API Registry & Domain Metadata (All 60 Methods Across 10 Domain Categories)
+// API Registry & Domain Metadata (All 71 Methods Across 10 Domain Categories)
 // -------------------------------------------------------------------------------------------------
 
 export interface SiMethodMeta {
@@ -100,6 +100,19 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
     description: "OS installation UUID, hardware UUID and MAC addresses",
     execute: async () => si.uuid(),
   },
+  pci: {
+    name: "pci",
+    category: "Hardware & Baseboard",
+    description:
+      "PCI / PCIe devices, buses, slots, vendor/device IDs & kernel drivers",
+    execute: async () => si.pci(),
+  },
+  thunderbolt: {
+    name: "thunderbolt",
+    category: "Hardware & Baseboard",
+    description: "Thunderbolt / USB4 buses, ports, UUIDs & link speeds",
+    execute: async () => si.thunderbolt(),
+  },
 
   // 2. OS & Software Environment
   osInfo: {
@@ -118,6 +131,19 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
     paramPlaceholder: "Optional filter (e.g. node, git)",
     defaultParam: "",
     execute: async (param) => si.versions(param || undefined),
+  },
+  software: {
+    name: "software",
+    category: "OS & Software Environment",
+    description:
+      "Installed OS applications, versions, architectures, paths & code signatures",
+    execute: async () => si.software(),
+  },
+  npm: {
+    name: "npm",
+    category: "OS & Software Environment",
+    description: "Locally installed npm packages and versions",
+    execute: async () => si.npm(),
   },
   shell: {
     name: "shell",
@@ -139,6 +165,13 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
     description:
       "CPU manufacturer, brand, base speed, core count & socket type",
     execute: async () => si.cpu(),
+  },
+  npu: {
+    name: "npu",
+    category: "CPU, Load & Thermals",
+    description:
+      "Neural Processing Unit (NPU / AI Accelerator) vendor, model, cores & driver",
+    execute: async () => si.npu(),
   },
   cpuFlags: {
     name: "cpuFlags",
@@ -163,6 +196,12 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
     category: "CPU, Load & Thermals",
     description: "CPU package, core, and chipset temperature telemetry",
     execute: async () => si.cpuTemperature(),
+  },
+  fans: {
+    name: "fans",
+    category: "CPU, Load & Thermals",
+    description: "Cooling fan RPM speeds, PWM levels & sensor labels",
+    execute: async () => si.fans(),
   },
   currentLoad: {
     name: "currentLoad",
@@ -202,11 +241,19 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   },
 
   // 5. Graphics & Displays
-  graphics: {
-    name: "graphics",
+  gpu: {
+    name: "gpu",
     category: "Graphics & Displays",
-    description: "Graphics cards (GPUs), VRAM, and attached display monitors",
-    execute: async () => si.graphics(),
+    description:
+      "Graphics cards (GPUs), VRAM, bus, cores & Metal/DirectX capabilities",
+    execute: async () => si.gpu(),
+  },
+  displays: {
+    name: "displays",
+    category: "Graphics & Displays",
+    description:
+      "Attached display monitors, native/current resolutions, refresh rates & connections",
+    execute: async () => si.displays(),
   },
 
   // 6. Disks & Filesystems
@@ -215,7 +262,10 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
     category: "Disks & Filesystems",
     description:
       "Mounted filesystem volumes, sizes, used capacity & mount points",
-    execute: async () => si.fsSize(),
+    acceptsParam: true,
+    paramPlaceholder: "Optional drive filter (e.g. / or C:)",
+    defaultParam: "",
+    execute: async (param) => si.fsSize(param || undefined),
   },
   fsOpenFiles: {
     name: "fsOpenFiles",
@@ -281,7 +331,7 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
     acceptsParam: true,
     paramPlaceholder: "Interface name (e.g. en0, eth0)",
     defaultParam: "",
-    execute: async (param) => si.networkStats(param || undefined),
+    execute: async (param) => si.networkStats(param || "*"),
   },
   networkConnections: {
     name: "networkConnections",
@@ -306,7 +356,17 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
     acceptsParam: true,
     paramPlaceholder: "Host (default: 8.8.8.8)",
     defaultParam: "8.8.8.8",
-    execute: async (param) => si.inetLatency(param || undefined),
+    execute: async (param) => si.inetLatency(param || "8.8.8.8"),
+  },
+  inetPublicIp: {
+    name: "inetPublicIp",
+    category: "Network, Sockets & Wi-Fi",
+    description: "Public external IPv4 and IPv6 addresses with lookup latency",
+    acceptsParam: true,
+    paramPlaceholder: "Timeout in ms (default: 5000)",
+    defaultParam: "5000",
+    execute: async (param) =>
+      si.inetPublicIp(param ? Number(param) || 5000 : undefined),
   },
   wifiNetworks: {
     name: "wifiNetworks",
@@ -344,6 +404,13 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
     paramPlaceholder: "Process name (e.g. bun, node, chrome)",
     defaultParam: "bun",
     execute: async (param) => si.processLoad(param || "bun"),
+  },
+  processFocused: {
+    name: "processFocused",
+    category: "Processes & Services",
+    description:
+      "Currently focused / frontmost foreground application window process",
+    execute: async () => si.processFocused(),
   },
   services: {
     name: "services",
@@ -388,6 +455,31 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
     category: "Peripherals & Audio",
     description: "Connected USB hardware bus tree and peripheral devices",
     execute: async () => si.usb(),
+  },
+  serialPorts: {
+    name: "serialPorts",
+    category: "Peripherals & Audio",
+    description:
+      "RS-232 / USB-Serial UART ports, manufacturers & PnP device IDs",
+    execute: async () => si.serialPorts(),
+  },
+  camera: {
+    name: "camera",
+    category: "Peripherals & Audio",
+    description: "Built-in and external webcams / video capture hardware",
+    execute: async () => si.camera(),
+  },
+  keyboard: {
+    name: "keyboard",
+    category: "Peripherals & Audio",
+    description: "Connected physical and wireless keyboards",
+    execute: async () => si.keyboard(),
+  },
+  mouse: {
+    name: "mouse",
+    category: "Peripherals & Audio",
+    description: "Connected mice, trackpads & pointing devices",
+    execute: async () => si.mouse(),
   },
 
   // 10. Virtualization, Docker & Batch
@@ -559,42 +651,6 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
       });
     },
   },
-  powerShellStart: {
-    name: "powerShellStart",
-    category: "Virtualization, Docker & Batch",
-    description:
-      "Windows acceleration helper: initializes persistent background PowerShell process pool",
-    execute: async () => {
-      if (process.platform === "win32") {
-        si.powerShellStart();
-        return {
-          status:
-            "PowerShell process pool initialized for Windows acceleration",
-        };
-      }
-      return {
-        status: "Skipped (powerShellStart is optimized for Windows platforms)",
-        platform: process.platform,
-      };
-    },
-  },
-  powerShellRelease: {
-    name: "powerShellRelease",
-    category: "Virtualization, Docker & Batch",
-    description:
-      "Windows acceleration helper: terminates and cleans up PowerShell process pool",
-    execute: async () => {
-      if (process.platform === "win32") {
-        si.powerShellRelease();
-        return { status: "PowerShell process pool released and cleaned up" };
-      }
-      return {
-        status:
-          "Skipped (powerShellRelease is optimized for Windows platforms)",
-        platform: process.platform,
-      };
-    },
-  },
 };
 
 /**
@@ -719,9 +775,7 @@ export async function fetchTelemetryKpis() {
     })),
     si.networkInterfaceDefault().catch(() => "en0"),
     si.networkGatewayDefault().catch(() => "192.168.1.1"),
-    si
-      .battery()
-      .catch(() => ({ hasBattery: false, percent: 100, isCharging: false })),
+    si.battery().catch(() => [] as any[]),
   ]);
 
   const realUsedBytes = (mem as any).active
@@ -733,6 +787,15 @@ export async function fetchTelemetryKpis() {
   const totalGb = ((mem.total || 1) / (1024 * 1024 * 1024)).toFixed(1);
   const memPct = Math.round((realUsedBytes / (mem.total || 1)) * 100);
 
+  const primaryBattery = Array.isArray(battery)
+    ? battery[0] || null
+    : battery && typeof battery === "object"
+      ? (battery as any)
+      : null;
+  const hasBattery = Array.isArray(battery)
+    ? battery.length > 0
+    : Boolean((battery as any)?.hasBattery);
+
   return {
     cpuBrand: `${cpu.manufacturer || ""} ${cpu.brand || "CPU"}`.trim(),
     cpuCores: cpu.cores || os.cpus().length,
@@ -743,9 +806,9 @@ export async function fetchTelemetryKpis() {
     memPct: memPct,
     netIface: netIface || "Default",
     netGateway: netGateway || "127.0.0.1",
-    hasBattery: battery.hasBattery,
-    batteryPct: battery.percent || 100,
-    isCharging: battery.isCharging,
+    hasBattery,
+    batteryPct: primaryBattery?.percent ?? 100,
+    isCharging: Boolean(primaryBattery?.isCharging),
     osDistro: `${os.type()} ${os.release()} (${os.arch()})`,
     uptimeHours: (os.uptime() / 3600).toFixed(1),
   };
@@ -1633,7 +1696,7 @@ export function generateEnterpriseAppHtml(): string {
       <div class="brand-logo">⚡</div>
       <div class="brand-title">
         System Studio Pro
-        <span class="brand-badge">All 60 APIs</span>
+        <span class="brand-badge">All 71 APIs</span>
       </div>
       <div class="status-pill">
         <div class="status-dot"></div>
@@ -1714,7 +1777,7 @@ ${SYSTEM_STUDIO_EXTRA_QUICKBAR_HTML}
       <div class="search-box">
         <div class="search-input-wrap">
           <span class="search-icon">🔍</span>
-          <input type="text" class="search-input" id="searchApis" placeholder="Filter 60 APIs (e.g. cpu, docker, wifi)..." oninput="filterMethods(this.value)">
+          <input type="text" class="search-input" id="searchApis" placeholder="Filter 71 APIs (e.g. cpu, gpu, npu, docker, wifi)..." oninput="filterMethods(this.value)">
         </div>
 
         <!-- Sidebar Tools: Expand/Collapse & Width Controls -->
@@ -1729,17 +1792,17 @@ ${SYSTEM_STUDIO_EXTRA_QUICKBAR_HTML}
 
         <!-- Category Filter Pills -->
         <div class="cat-filter-scroll" id="catFilterBar">
-          <button class="cat-pill-btn active" onclick="filterByCategory('ALL')">All (60)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Hardware & Baseboard')">Hardware (6)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('OS & Software Environment')">OS (4)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('CPU, Load & Thermals')">CPU (7)</button>
+          <button class="cat-pill-btn active" onclick="filterByCategory('ALL')">All (71)</button>
+          <button class="cat-pill-btn" onclick="filterByCategory('Hardware & Baseboard')">Hardware (8)</button>
+          <button class="cat-pill-btn" onclick="filterByCategory('OS & Software Environment')">OS (6)</button>
+          <button class="cat-pill-btn" onclick="filterByCategory('CPU, Load & Thermals')">CPU (9)</button>
           <button class="cat-pill-btn" onclick="filterByCategory('Memory & Power / Battery')">Memory (3)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Graphics & Displays')">GPU (1)</button>
+          <button class="cat-pill-btn" onclick="filterByCategory('Graphics & Displays')">GPU (2)</button>
           <button class="cat-pill-btn" onclick="filterByCategory('Disks & Filesystems')">Storage (6)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Network, Sockets & Wi-Fi')">Network (10)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Processes & Services')">Processes (4)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Peripherals & Audio')">Peripherals (4)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Virtualization, Docker & Batch')">Virtualization (15)</button>
+          <button class="cat-pill-btn" onclick="filterByCategory('Network, Sockets & Wi-Fi')">Network (11)</button>
+          <button class="cat-pill-btn" onclick="filterByCategory('Processes & Services')">Processes (5)</button>
+          <button class="cat-pill-btn" onclick="filterByCategory('Peripherals & Audio')">Peripherals (8)</button>
+          <button class="cat-pill-btn" onclick="filterByCategory('Virtualization, Docker & Batch')">Virtualization (13)</button>
         </div>
       </div>
 
@@ -1807,7 +1870,7 @@ ${SYSTEM_STUDIO_EXTRA_JSONSEARCH_HTML}
           <div class="console-box" id="consoleBox">
             <div class="log-line">
               <span class="log-time">[${new Date().toLocaleTimeString()}]</span>
-              <span class="log-info">System Information Studio Pro initialized. All 60 methods ready.</span>
+              <span class="log-info">System Information Studio Pro initialized. All 71 methods ready.</span>
             </div>
           </div>
         </div>
@@ -1820,7 +1883,7 @@ ${SYSTEM_STUDIO_EXTRA_JSONSEARCH_HTML}
     <div class="footer-left">
       <span>Platform: <b id="footerPlatform">macOS (arm64)</b></span>
       <span>•</span>
-      <span>Total APIs: <b>60</b></span>
+      <span>Total APIs: <b>71</b></span>
       <span>•</span>
       <span>Bun Native Engine</span>
     </div>
@@ -1834,6 +1897,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
   <script>
     const ALL_METHODS = ${methodsJson};
     const ALL_CATEGORIES = ${categoriesJson};
+    const IS_SCREENSHOT_MODE = ${process.env.SCREENSHOT_MODE === "1" ? "true" : "false"};
 
     let activeMethod = "system";
     let activeResult = null;
@@ -1845,7 +1909,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
     // Direct Native HTTP Client (Bypasses WebKit FFI Locks with 100% Reliability)
     // ---------------------------------------------------------------------------------------------
     async function apiRequest(endpoint, body) {
-      if (window.location.protocol === "file:") {
+      if (IS_SCREENSHOT_MODE || window.location.protocol === "file:" || window.location.search.includes("demo=1")) {
         if (endpoint === "/api/kpis") {
           return {
             cpuCores: 12,
@@ -2224,9 +2288,17 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
       const memType = memLayout[0]?.type || "Unified RAM";
       const memMfr = memLayout[0]?.manufacturer || "Apple Silicon / Hynix";
 
-      const gpus = data.graphics?.controllers && Array.isArray(data.graphics.controllers) ? data.graphics.controllers : [];
+      const gpus = Array.isArray(data.gpu)
+        ? data.gpu
+        : data.graphics?.controllers && Array.isArray(data.graphics.controllers)
+          ? data.graphics.controllers
+          : [];
       const mainGpu = gpus[0] || {};
-      const displays = data.graphics?.displays && Array.isArray(data.graphics.displays) ? data.graphics.displays : [];
+      const displays = Array.isArray(data.displays)
+        ? data.displays
+        : data.graphics?.displays && Array.isArray(data.graphics.displays)
+          ? data.graphics.displays
+          : [];
       const mainDisp = displays.find(d => d.main) || displays[0] || {};
       const dispDesc = mainDisp.model ? \`\${mainDisp.model} (\${mainDisp.resolutionX || ''}×\${mainDisp.resolutionY || ''}\${mainDisp.currentRefreshRate ? ' @' + mainDisp.currentRefreshRate + 'Hz' : ''})\` : "Retina Display";
 
@@ -2409,11 +2481,12 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
 
       // Domain 10: Dynamic Live Telemetry (If Full System Audit - getAllData)
       if (isFullAudit) {
+        const primaryBat = Array.isArray(data.battery) ? data.battery[0] : data.battery;
         addCard("Real-Time Telemetry & Performance", "📈", [
           ["Current CPU Load", data.currentLoad?.currentLoad ? (data.currentLoad.currentLoad.toFixed(1) + "%") : "Active", "var(--cyan)"],
           ["CPU User / System", data.currentLoad ? ((data.currentLoad.currentLoadUser || 0).toFixed(1) + "% User • " + (data.currentLoad.currentLoadSystem || 0).toFixed(1) + "% Sys") : "Telemetry Active"],
           ["Memory Allocation", data.mem ? (((data.mem.used || 0) / (1024**3)).toFixed(1) + " / " + (((data.mem.total || 1) / (1024**3)).toFixed(1)) + " GB") : "Active", "var(--purple)"],
-          ["Battery Health & Status", data.battery ? ((data.battery.percent || 100) + "% (" + (data.battery.isCharging ? 'Charging' : 'AC Connected') + ")") : "AC Connected", "#fbbf24"],
+          ["Battery Health & Status", primaryBat ? ((primaryBat.percent ?? 100) + "% (" + (primaryBat.isCharging ? 'Charging' : 'AC Connected') + ")") : "AC Connected", "#fbbf24"],
           ["Active Processes", data.processes ? (data.processes.all + " Total (" + data.processes.running + " Running)") : "Monitor Active"],
         ]);
       }
@@ -2538,7 +2611,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
       // -------------------------------------------------------------------------------------------
       // Dedicated Human-Readable Hardware Audit Dashboard (getStaticData, getAllData, full audit)
       // -------------------------------------------------------------------------------------------
-      if (methodName === "getStaticData" || methodName === "getAllData" || (data && typeof data === "object" && data.system && data.cpu && data.graphics)) {
+      if (methodName === "getStaticData" || methodName === "getAllData" || (data && typeof data === "object" && data.system && data.cpu && (data.gpu || data.graphics))) {
         renderHardwareAuditDashboard(methodName, data, container);
         return;
       }
@@ -2894,7 +2967,7 @@ export function createSystemInformationStudio(
     generateHtml: () => generateEnterpriseAppHtml(),
     run: async () => {
       console.log(
-        "⚡ Launching System Information Studio Pro (All 60 APIs)...",
+        "⚡ Launching System Information Studio Pro (All 71 APIs)...",
       );
 
       // 1. Launch Isolated Background Telemetry Worker Engine

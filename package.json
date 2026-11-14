@@ -248,6 +248,10 @@
     "cli:subfinder": "bun run cli_apps/subfinder_cli.ts",
     "cli:doggo": "bun run cli_apps/doggo_cli.ts",
     "cli:rad": "bun run cli_apps/rad_cli.ts",
+    "cli:tts": "bun run cli_apps/tts_cli.ts",
+    "cli:speech": "bun run cli_apps/tts_cli.ts",
+    "cli:phonon": "bun run cli_apps/tts_cli.ts",
+    "cli:say": "bun run cli_apps/say_cli.ts",
     "screenshots": "bun run scripts/capture_app_screenshots.ts",
     "brew:install": "./install_homebrew_dependencies.sh",
     "brew:check": "brew bundle check --file ./Brewfile",
@@ -273,7 +277,7 @@
   "dependencies": {
     "prettier": "^3.9.10",
     "sql-formatter": "^15.9.0",
-    "systeminformation": "^5.33.16",
+    "systeminformation": "^6.0.0-beta.23",
     "webview-bun": "^2.4.0"
   },
   "patchedDependencies": {

@@ -1,8 +1,8 @@
 {
   "suite": "Codecaine Utility Suite",
   "version": "1.5.4",
-  "generatedAt": "2026-11-11T09:12:45.452Z",
-  "totalWrappers": 334,
+  "generatedAt": "2026-11-14T00:15:45.808Z",
+  "totalWrappers": 336,
   "commands": [
     {
       "name": "codecaine",
@@ -1187,6 +1187,22 @@
       "category": "CLI Utilities",
       "description": "Command-line terminal utility for Tr",
       "targetScript": "cli_apps/tr_cli.ts"
+    },
+    {
+      "name": "codecaine-tts",
+      "type": "cli",
+      "displayName": "Tts CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Tts",
+      "targetScript": "cli_apps/tts_cli.ts"
+    },
+    {
+      "name": "codecaine-tts-cli",
+      "type": "cli",
+      "displayName": "Tts CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Tts",
+      "targetScript": "cli_apps/tts_cli.ts"
     },
     {
       "name": "codecaine-vault-backup-manager",

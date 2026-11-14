@@ -2,7 +2,7 @@
 /**
  * System Information & Package Workstation CLI
  * Complete Cross-Platform Hardware Intelligence & Subsystem Telemetry
- * Powered by systeminformation (all 60 APIs) + Native Bun & Node Subsystems
+ * Powered by systeminformation (all 71 APIs) + Native Bun & Node Subsystems
  */
 import { SimpleCLI, sys } from "../src/index.ts";
 import * as os from "node:os";
@@ -65,7 +65,7 @@ app.addFlagBool(
   "list-apis",
   "l",
   false,
-  "List all 60 supported systeminformation APIs",
+  "List all 71 supported systeminformation APIs",
 );
 
 if (!app.parseCli()) process.exit(0);
@@ -159,7 +159,7 @@ async function main() {
       console.log(JSON.stringify(SI_METHODS, null, 2));
     } else {
       app.panel(
-        "Available SystemInformation APIs (60 Total)",
+        "Available SystemInformation APIs (71 Total)",
         "Organized across 10 domain categories",
       );
       for (const cat of SI_CATEGORIES) {
@@ -294,7 +294,7 @@ async function main() {
       "Bun Engine": `v${telemetryData.bunVersion}`,
       "Node Engine": telemetryData.nodeCompatVersion,
       "API Surface":
-        "60 systeminformation methods available (run `system-cli -l`)",
+        "71 systeminformation methods available (run `system-cli -l`)",
     });
   }
 }

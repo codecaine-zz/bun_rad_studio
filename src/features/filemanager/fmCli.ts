@@ -21,6 +21,7 @@ import { listFolder, propertiesOf, searchFolder } from "./fmList";
 import { APP_NAME, APP_VERSION } from "./fmServer";
 import { toolStatus } from "./fmToolDetect";
 import { listTrash, moveToTrash, restoreFromTrash } from "./fmTrash";
+import { runTtsCli } from "../../../cli_apps/tts_cli";
 
 type SortBy = "name" | "size" | "modified" | "type";
 
@@ -63,6 +64,10 @@ const CLI_SUBCOMMANDS = new Set([
   "doctor",
   "cli-utils",
   "cli",
+  "tts",
+  "speech",
+  "phonon",
+  "say",
 ]);
 
 /**
@@ -146,6 +151,9 @@ function printHelp(out: (line: string) => void): void {
   );
   out(
     "  cli-utils, cli [list|run]        List or execute the 76 built-in RAD CLI utilities (--category, --search, --json)",
+  );
+  out(
+    "  tts, speech, phonon [args...]    Clean documents & synthesize Ollama Phonon speech to any audio format or MP4 video",
   );
   out("  help, --help, -h                 Show this help message");
   out("  version, --version, -v           Show version information");
@@ -620,6 +628,18 @@ export async function runFileManagerCli(
           );
         }
         return 0;
+      }
+
+      case "tts":
+      case "speech":
+      case "phonon":
+      case "say": {
+        return await runTtsCli(subArgs, {
+          stdout: out,
+          stderr: err,
+          cwd,
+          contextOptions: ctxOptions,
+        });
       }
 
       default:
