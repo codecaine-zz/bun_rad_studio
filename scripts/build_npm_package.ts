@@ -24,6 +24,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
+import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { buildWrapperDefinitions } from "./generate_brew_suite.ts";
 import { listSourceApps, ROOT, VERSION } from "./release/common.ts";
@@ -510,92 +511,286 @@ try {
 `;
 }
 
+function renderIndexDts(): string {
+  return `/**
+ * Bun RAD Studio & Codecaine Utility Suite — TypeScript Declarations
+ */
+export interface WindowOptions {
+  theme?: string;
+  resizable?: boolean;
+  alwaysOnTop?: boolean;
+  frameless?: boolean;
+  center?: boolean;
+  [key: string]: unknown;
+}
+
+export declare class SimpleControlRef {
+  readonly id: string;
+  font(size?: number, color?: string, weight?: string | number): this;
+  tooltip(text: string): this;
+  enable(enabled?: boolean): this;
+  visible(show?: boolean): this;
+  [key: string]: any;
+}
+
+export declare class SimpleWindow {
+  constructor(
+    title: string,
+    width?: number,
+    height?: number,
+    options?: WindowOptions,
+  );
+  addLabel(text: string): SimpleControlRef;
+  addButton(label: string, onClick?: () => void | Promise<void>): SimpleControlRef;
+  addInput(placeholder?: string, initialValue?: string): SimpleControlRef;
+  addCheckbox(label: string, checked?: boolean): SimpleControlRef;
+  addSelect(options: string[], selected?: string): SimpleControlRef;
+  addSlider(min: number, max: number, value?: number): SimpleControlRef;
+  addProgressBar(value?: number): SimpleControlRef;
+  addTable(columns: string[], rows?: unknown[][]): SimpleControlRef;
+  setTheme(themeName: string): this;
+  run(): Promise<void> | void;
+  close(): void;
+  [key: string]: any;
+}
+
+export declare const simplegui: {
+  createWindow(
+    title: string,
+    width?: number,
+    height?: number,
+    options?: WindowOptions,
+  ): SimpleWindow;
+  newWindow(
+    title: string,
+    width?: number,
+    height?: number,
+    options?: WindowOptions,
+  ): SimpleWindow;
+  listThemes(): string[];
+  getThemes(): Record<string, unknown>;
+  [key: string]: any;
+};
+
+export declare function createWindow(
+  title: string,
+  width?: number,
+  height?: number,
+  options?: WindowOptions,
+): SimpleWindow;
+export declare function newWindow(
+  title: string,
+  width?: number,
+  height?: number,
+  options?: WindowOptions,
+): SimpleWindow;
+export declare function newSimpleWindow(
+  title: string,
+  width?: number,
+  height?: number,
+  options?: WindowOptions,
+): SimpleWindow;
+export declare function listThemes(): string[];
+export declare function getThemeNames(): string[];
+export declare function getThemes(): Record<string, unknown>;
+export declare function getIdeHtml(): string;
+export declare const sys: Record<string, any>;
+export declare const stdlib: Record<string, any>;
+export declare class SimpleCLI {
+  constructor(name?: string, description?: string, version?: string);
+  [key: string]: any;
+}
+export declare function createCLI(
+  name?: string,
+  description?: string,
+  version?: string,
+): SimpleCLI;
+`;
+}
+
+function renderSimpleGuiDts(): string {
+  return `export {
+  WindowOptions,
+  SimpleControlRef,
+  SimpleWindow,
+  simplegui,
+  createWindow,
+  newWindow,
+  newSimpleWindow,
+  listThemes,
+  getThemeNames,
+  getThemes,
+} from "./index.js";
+`;
+}
+
 function renderNpmReadme(
   version: string,
   guiCount: number,
   cliCount: number,
+  demoCount: number,
   binCount: number,
 ): string {
-  return `# Bun RAD Studio & Codecaine Utility Suite (\`bun-rad-studio\`)
+  const rawBase =
+    "https://raw.githubusercontent.com/codecaine-zz/bun_rad_studio/main";
+  const blobBase = "https://github.com/codecaine-zz/bun_rad_studio/blob/main";
 
-Cross-platform RAD desktop studio suite, visual form designer, **SimpleGUI** declarative desktop toolkit, and **${guiCount + cliCount}+ native desktop & CLI developer tools** (macOS, Linux & Windows) — v${version}.
+  return `# ⚡ Bun RAD Studio & Codecaine Utility Suite (\`bun-rad-studio\`)
 
-## Quick Install
+[![npm version](https://img.shields.io/npm/v/bun-rad-studio?color=cb3837&style=for-the-badge&logo=npm)](https://www.npmjs.com/package/bun-rad-studio)
+[![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.1-f472b6?style=for-the-badge&logo=bun)](https://bun.sh)
+[![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A518-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Platforms](https://img.shields.io/badge/OS-macOS%20%7C%20Linux%20%7C%20Windows-0ea5e9?style=for-the-badge)](https://github.com/codecaine-zz/bun_rad_studio)
+[![License: MIT](https://img.shields.io/badge/License-MIT-eab308?style=for-the-badge)](${blobBase}/LICENSE)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/codecaine81)
 
-### Using Bun (Recommended)
+A cross-platform **Rapid Application Development (RAD) Visual IDE** (inspired by classic Borland Delphi & Visual Basic 6), **SimpleGUI** declarative desktop toolkit, **Codecaine File Manager Studio**, and **${guiCount + cliCount + demoCount} native desktop & command-line developer tools** (**${binCount} CLI commands**) for **macOS**, **Linux**, and **Windows** — **v${version}**.
+
+> 📖 **Documentation:** [GitHub Repository](https://github.com/codecaine-zz/bun_rad_studio) • [Documentation Handbook](${blobBase}/docs/index.md) • [SimpleGUI Manual](${blobBase}/docs/SIMPLEGUI_API.md) • [API Reference](${blobBase}/docs/API.md) • [File Manager Guide](${blobBase}/docs/userguides/43_file_manager.md) • [Homebrew Guide](${blobBase}/docs/HOMEBREW_SUITE_GUIDE.md) • [Standalone Releases](https://github.com/codecaine-zz/bun_rad_studio/releases/latest)
+
+---
+
+## 📸 Workstation Preview
+
+| 🗂️ **Codecaine File Manager Studio** | 🔀 **Dual-Pane Commander (\`F5\` Copy / \`F6\` Move)** |
+| :---: | :---: |
+| ![Codecaine File Manager Desktop](${rawBase}/screenshots/apps/file_manager_studio_desktop.png) | ![Dual-Pane Commander](${rawBase}/screenshots/apps/file_manager_studio_dual.png) |
+| 🗄️ **Databases Hub (SQLite, Postgres, MySQL & Redis)** | 🕹️ **24 Built-in Retro Arcade, Card & Puzzle Games** |
+| ![Databases Hub](${rawBase}/screenshots/apps/file_manager_studio_databases.png) | ![Codecaine Arcade Suite](${rawBase}/screenshots/apps/file_manager_studio_games.png) |
+
+---
+
+## 🚀 Quick Install (macOS, Linux & Windows)
+
+### 1. Using Bun (Fastest — Recommended)
 \`\`\`bash
 bun add -g bun-rad-studio
 \`\`\`
 
-### Using npm / Node.js
-Works out of the box even if you only have Node.js installed (automatically pulls the official \`bun\` runtime dependency):
+### 2. Using npm / Node.js
+Works out of the box even on pure Node.js machines (automatically installs the official \`bun\` runtime dependency):
 \`\`\`bash
 npm install -g bun-rad-studio
 \`\`\`
 
-### Zero-Install One-Shot (\`bunx\` / \`npx\`)
+### 3. Zero-Install One-Shot (\`bunx\` / \`npx\`)
+Always runs the latest published release without installing globally:
 \`\`\`bash
-bunx bun-rad-studio --help
-npx bun-rad-studio list
+bunx bun-rad-studio@latest --help
+npx bun-rad-studio@latest list
 \`\`\`
 
-### Using Homebrew (macOS & Linux)
+### 4. Using Homebrew (macOS & Linux)
 \`\`\`bash
 curl -fsSL https://raw.githubusercontent.com/codecaine-zz/bun_rad_studio/main/install_homebrew_suite.sh | bash
-# Optional native macOS File Manager app in /Applications:
+# Optional native macOS File Manager .app in /Applications:
 brew install --cask codecaine-zz/tap/codecaine-file-manager
 \`\`\`
 
-## Primary Commands (${binCount} Binaries Included)
+---
 
+## 🔄 Updating & Uninstalling
+
+### Update to the Latest Release
 \`\`\`bash
-# Master CLI hub & diagnostics
-codecaine --version
-codecaine doctor
-codecaine list
-codecaine search sqlite
+# Automatic 1-command self-updater (detects Bun, npm, or Homebrew automatically):
+codecaine upgrade --yes
 
-# Launch desktop studios
-codecaine gui                     # Unified Launcher Studio Pro
-codecaine-file-manager            # Codecaine File Manager Studio
-bun-rad-studio-ide                # Visual Form Designer (Delphi/VB style)
-codecaine-sqlite-studio           # SQLite Studio Pro
-codecaine-postgres-studio         # Postgres Studio Pro
-codecaine-mysql-studio            # MySQL Studio Pro
-dr-codecaine                      # Dr. Codecaine Arcade
-
-# Run CLI utilities directly
-codecaine-database --db :memory: --query "SELECT 42 AS answer"
-codecaine-system --help
-codecaine-api --help
+# Or update directly with your package manager:
+bun update -g bun-rad-studio
+npm install -g bun-rad-studio@latest
+brew update && brew upgrade codecaine-utility-suite
 \`\`\`
 
-## Programmatic Library Usage
+### Uninstall Cleanly
+\`\`\`bash
+bun remove -g bun-rad-studio         # if installed via Bun
+npm uninstall -g bun-rad-studio      # if installed via npm
+brew uninstall codecaine-utility-suite && brew untap codecaine-zz/tap   # if installed via Homebrew
+\`\`\`
+
+---
+
+## 🧰 Highlighted Commands (${binCount} Binaries Included)
+
+Run \`codecaine list\` or \`codecaine search <keyword>\` anytime to browse all **${guiCount} Desktop Studios**, **${cliCount} CLI Utilities**, and **${demoCount} Interactive Demos**.
+
+| Category | Commands | What It Does |
+| :--- | :--- | :--- |
+| **Master Hub** | \`codecaine\`, \`bun-rad-studio\`, \`codecaine doctor\`, \`codecaine gui\` | Interactive suite hub, health check, self-upgrader & visual app launcher |
+| **RAD Visual IDE** | \`bun-rad-studio-ide\`, \`codecaine-rad-designer\` | Drag-and-drop Delphi/VB-style form designer & TypeScript code generator |
+| **File Manager** | \`codecaine-file-manager\`, \`codecaine-files\` | Dual-pane file manager, tabs, color tags, Quick Look, AmpDeck EQ, Vault & 310+ themes |
+| **Database Studios** | \`codecaine-sqlite-studio\`, \`codecaine-postgres-studio\`, \`codecaine-mysql-studio\`, \`codecaine-redis-studio\`, \`codecaine-database\` | Visual query workbenches, schema browsers, cross-engine cloning & CLI query runner |
+| **API, Net & Security** | \`codecaine-api-studio\`, \`codecaine-network-studio\`, \`codecaine-crypto-studio\`, \`codecaine-password\`, \`codecaine-ssl\` | REST/HTTP stress bench, port/DNS scanner, AES-256-GCM encryption & TLS inspector |
+| **Code & Data** | \`codecaine-code-studio\`, \`codecaine-json-studio\`, \`codecaine-regex-studio\`, \`codecaine-git-studio\`, \`codecaine-diff\` | Code editor, JSON/YAML/CSV transformers, live regex tester & Git visual studio |
+| **Media, Image & TTS** | \`codecaine-paint-studio\`, \`codecaine-media\`, \`codecaine-tts\`, \`codecaine-say\`, \`codecaine-ocr\`, \`codecaine-qr\` | Non-destructive image/paint studio, batch converter, neural/offline TTS, OCR & QR tools |
+| **System & DevOps** | \`codecaine-system-studio\`, \`codecaine-process-studio\`, \`codecaine-docker-studio\`, \`codecaine-system\`, \`codecaine-ps\` | Live CPU/RAM/GPU telemetry, process/port manager & container dashboard |
+| **Arcade & Classics** | \`dr-codecaine\`, \`codecaine-arcade\`, \`codecaine-tetris\`, \`codecaine-balatro\`, \`codecaine-pacman\`, \`codecaine-chess\` | 24 playable retro arcade, card, board & puzzle games |
+
+\`\`\`bash
+# Quick CLI examples
+codecaine --version
+codecaine doctor
+codecaine search postgres
+codecaine-database --db :memory: --query "SELECT 'Hello from Bun RAD Studio!' AS greeting"
+\`\`\`
+
+---
+
+## 💻 Programmatic TypeScript / ESM Library Usage
+
+Install locally in any Bun or TypeScript project:
 
 \`\`\`bash
 bun add bun-rad-studio
 \`\`\`
 
+### Build a Native Desktop Window in 8 Lines (\`SimpleGUI\`)
 \`\`\`ts
 import { simplegui } from "bun-rad-studio";
 
-const win = simplegui.createWindow("Hello RAD", 520, 340, {
+const win = simplegui.createWindow("⚡ Hello Bun RAD Studio", 520, 340, {
   theme: "apple_dark",
 });
-win.addLabel("⚡ Bun RAD Studio").font(20, "#38bdf8", "700");
+win.addLabel("Declarative Native Desktop GUI").font(20, "#38bdf8", "700");
 win.addButton("Click Me", () => console.log("Clicked!"));
 win.run();
 \`\`\`
 
-## Platform Notes for Desktop GUI Windows
+Subpath import is also supported:
+\`\`\`ts
+import { createWindow, listThemes } from "bun-rad-studio/simplegui";
+\`\`\`
 
-- **macOS:** Uses built-in Apple WebKit (zero external dependencies).
-- **Windows:** Uses Microsoft Edge WebView2 (pre-installed on Windows 11).
-- **Linux:** Desktop GUI windows require GTK 4 and WebKitGTK 6.0 (\`sudo apt install libgtk-4-1 libwebkitgtk-6.0-4\`). All ${cliCount} CLI tools run headless with zero GUI libraries required.
+---
 
-## License
+## 📦 Package Contents (\`?activeTab=code\`)
 
-MIT — see \`LICENSE\`.
+| Path | Description |
+| :--- | :--- |
+| \`index.js\` / \`index.d.ts\` | Root library bundle & TypeScript declarations (\`SimpleGUI\`, \`SimpleCLI\`, \`sys\`, \`stdlib\`, window helpers) |
+| \`simplegui.js\` / \`simplegui.d.ts\` | Standalone \`bun-rad-studio/simplegui\` entry bundle & TypeScript types |
+| \`apps/\` | ${guiCount} pre-bundled desktop studio applications |
+| \`cli/\` | ${cliCount} pre-bundled command-line utilities + \`codecaine\` master hub |
+| \`demos/\` | ${demoCount} interactive SimpleGUI & RAD control showcase apps |
+| \`bin/\` | ${binCount} cross-platform Node.js / Bun executable shims |
+| \`lib/\` | Native \`libwebview\` bindings for macOS (\`.dylib\`), Linux (\`x64\` & \`arm64\` \`.so\`), and Windows (\`.dll\`) |
+| \`resources/\` | UI assets, icons, themes, shaders & built-in webviews |
+| \`CHANGELOG.md\` / \`LICENSE\` | Release changelog & MIT license |
+
+---
+
+## 🖥️ Platform Notes for Desktop GUI Windows
+
+- **macOS (\`arm64\` & \`x64\`):** Uses built-in Apple WebKit — zero external dependencies required.
+- **Windows (\`x64\` & \`arm64\`):** Uses Microsoft Edge WebView2 (pre-installed on Windows 10/11).
+- **Linux (\`x64\` & \`arm64\`):** Desktop GUI windows require GTK 4 & WebKitGTK 6.0 (\`sudo apt install libgtk-4-1 libwebkitgtk-6.0-4\` on Ubuntu/Debian or \`sudo dnf install gtk4 webkitgtk6.0\` on Fedora). All **${cliCount} CLI tools** and \`--server\` web modes run headless with zero GUI packages needed.
+
+---
+
+## 📄 License
+
+Released under the [MIT License](${blobBase}/LICENSE). Created by [Codecaine](https://github.com/codecaine-zz).
 `;
 }
 
@@ -792,10 +987,35 @@ export async function buildNpmPackage(
       filter: (src) => basename(src) !== ".DS_Store",
     });
 
+    // Scrub any build-machine home/workspace paths baked into CJS __dirname or static HTML templates
+    const hostRootPosix = toPosix(ROOT);
+    const hostHomePosix = toPosix(homedir());
+    const scrubFile = (filePath: string) => {
+      if (!existsSync(filePath)) return;
+      const raw = readFileSync(filePath, "utf8");
+      if (!raw.includes(hostHomePosix) && !raw.includes(hostRootPosix)) return;
+      const cleaned = raw
+        .replaceAll(hostRootPosix, "/workspace/bun-rad-studio")
+        .replaceAll(hostHomePosix, "/home/user");
+      if (cleaned !== raw) writeFileSync(filePath, cleaned, "utf8");
+    };
+    const chunksDir = join(outDir, "_chunks");
+    if (existsSync(chunksDir)) {
+      for (const f of readdirSync(chunksDir)) {
+        if (f.endsWith(".js")) scrubFile(join(chunksDir, f));
+      }
+    }
+    scrubFile(join(outDir, "resources", "code_editor", "index.html"));
+
     if (existsSync(join(ROOT, "LICENSE"))) {
       cpSync(join(ROOT, "LICENSE"), join(outDir, "LICENSE"));
     }
+    if (existsSync(join(ROOT, "CHANGELOG.md"))) {
+      cpSync(join(ROOT, "CHANGELOG.md"), join(outDir, "CHANGELOG.md"));
+    }
     writeFileSync(join(outDir, "VERSION"), `${VERSION}\n`, "utf8");
+    writeFileSync(join(outDir, "index.d.ts"), renderIndexDts(), "utf8");
+    writeFileSync(join(outDir, "simplegui.d.ts"), renderSimpleGuiDts(), "utf8");
 
     // 6. Generate universal Node.js + Bun shims in dist/npm/bin/
     const binOutDir = join(outDir, "bin");
@@ -820,7 +1040,7 @@ export async function buildNpmPackage(
       if (process.platform !== "win32") {
         chmodSync(fullPath, 0o755);
       }
-      binMap[binName] = `./bin/${fileName}`;
+      binMap[binName] = `bin/${fileName}`;
     };
 
     // Package-named entrypoints (`npx bun-rad-studio` / `bunx bun-rad-studio`)
@@ -848,7 +1068,7 @@ export async function buildNpmPackage(
     const binCount = Object.keys(binMap).length;
     writeFileSync(
       join(outDir, "README.md"),
-      renderNpmReadme(VERSION, guiCount, cliCount, binCount),
+      renderNpmReadme(VERSION, guiCount, cliCount, demoFiles.length, binCount),
       "utf8",
     );
 
@@ -861,16 +1081,20 @@ export async function buildNpmPackage(
       version: VERSION,
       description:
         "Cross-platform RAD desktop studio suite, visual form designer, SimpleGUI toolkit, and 200+ native developer & system CLI utilities powered by Bun.",
+      author: "Codecaine (https://github.com/codecaine-zz)",
       type: "module",
       license: rootPkg.license ?? "MIT",
       preferGlobal: true,
       main: "./index.js",
+      types: "./index.d.ts",
       exports: {
         ".": {
+          types: "./index.d.ts",
           import: "./index.js",
           default: "./index.js",
         },
         "./simplegui": {
+          types: "./simplegui.d.ts",
           import: "./simplegui.js",
           default: "./simplegui.js",
         },
@@ -879,7 +1103,9 @@ export async function buildNpmPackage(
       bin: sortedBins,
       files: [
         "index.js",
+        "index.d.ts",
         "simplegui.js",
+        "simplegui.d.ts",
         "apps",
         "cli",
         "demos",
@@ -892,6 +1118,7 @@ export async function buildNpmPackage(
         "scripts",
         "VERSION",
         "README.md",
+        "CHANGELOG.md",
         "LICENSE",
       ],
       scripts: {

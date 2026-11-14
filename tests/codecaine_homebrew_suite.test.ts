@@ -341,8 +341,10 @@ describe("⚡ Codecaine Utility Suite — Homebrew Distribution & Binary Wrapper
     expect(npmPkg.name).toBe("bun-rad-studio");
     expect(npmPkg.version).toBe(pkgVersion);
     expect(npmPkg.dependencies.bun).toBeDefined();
-    expect(npmPkg.bin["bun-rad-studio"]).toBe("./bin/bun-rad-studio.mjs");
-    expect(npmPkg.bin["codecaine"]).toBe("./bin/codecaine.mjs");
+    expect(npmPkg.bin["bun-rad-studio"]).toBe("bin/bun-rad-studio.mjs");
+    expect(npmPkg.bin["codecaine"]).toBe("bin/codecaine.mjs");
+    expect(existsSync(join(npmOutDir, "index.d.ts"))).toBe(true);
+    expect(existsSync(join(npmOutDir, "simplegui.d.ts"))).toBe(true);
 
     for (const libName of [
       "libwebview.dylib",

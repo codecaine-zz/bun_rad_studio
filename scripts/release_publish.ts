@@ -35,6 +35,7 @@ import {
 } from "./release/common";
 import { listMacApps } from "./release/build_mac_apps";
 import { syncHomebrewFiles } from "./sync_homebrew";
+import { buildNpmPackage } from "./build_npm_package";
 
 const RELEASE = join(ROOT, "release");
 const FM = join(RELEASE, "file-manager");
@@ -42,7 +43,57 @@ const args = process.argv.slice(2);
 const dry = args.includes("--dry-run");
 const draft = args.includes("--draft");
 const update = args.includes("--update");
+const noNpm = args.includes("--no-npm");
 const mb = (n: number) => `${(n / 1024 / 1024).toFixed(0)} MB`;
+
+async function publishNpmReleaseIfNeeded(): Promise<void> {
+  if (draft) {
+    log("ℹ️", "Skipping npm publish because --draft was passed.");
+    return;
+  }
+  if (noNpm) {
+    log("ℹ️", "Skipping npm publish because --no-npm was passed.");
+    return;
+  }
+  try {
+    const checkRes = await fetch(
+      `https://registry.npmjs.org/bun-rad-studio/${encodeURIComponent(VERSION)}`,
+    );
+    if (checkRes.status === 200) {
+      log(
+        "ℹ️",
+        `npm package bun-rad-studio@${VERSION} is already published on npmjs.com; skipping.`,
+      );
+      return;
+    }
+  } catch {
+    // Proceed to build & publish if offline check fails
+  }
+
+  log("📦", `Building & publishing bun-rad-studio@${VERSION} to npm…`);
+  const built = await buildNpmPackage();
+  const npmProc = Bun.spawn(
+    ["bunx", "npm@latest", "publish", "--access", "public"],
+    {
+      cwd: built.outDir,
+      stdin: "inherit",
+      stdout: "inherit",
+      stderr: "inherit",
+    },
+  );
+  const npmExit = await npmProc.exited;
+  if (npmExit === 0) {
+    log(
+      "🎉",
+      `Published to npm: https://www.npmjs.com/package/bun-rad-studio/v/${VERSION}`,
+    );
+  } else {
+    log(
+      "⚠️",
+      `npm publish exited with code ${npmExit}. Run "bun run npm:publish" after authenticating with "bunx npm@latest login".`,
+    );
+  }
+}
 
 async function repoSlug(): Promise<string> {
   const url = (
@@ -454,6 +505,10 @@ async function main() {
   const sumsPath = join(RELEASE, "SHA256SUMS.txt");
   writeFileSync(sumsPath, sums.join("\n") + "\n");
   syncHomebrewFiles({ version: VERSION, sumsMap: hashByName, repo });
+  log(
+    "🍺",
+    `Synced Homebrew Formula/ & Casks/ to v${VERSION} (commit & push Formula/ Casks/ to main so brew users receive v${VERSION}).`,
+  );
   const notesPath = join(RELEASE, "RELEASE_NOTES.md");
   writeFileSync(notesPath, body);
   await run(
@@ -643,6 +698,7 @@ async function main() {
       if (!ok) throw new Error(`GitHub asset upload failed for ${item.name}.`);
     }
     log("🎉", `Updated: https://github.com/${repo}/releases/tag/${tag}`);
+    await publishNpmReleaseIfNeeded();
     return;
   }
 
@@ -740,6 +796,7 @@ async function main() {
       if (!ok) throw new Error(`gh release upload failed for ${item.name}.`);
     }
     log("🎉", `Updated: https://github.com/${repo}/releases/tag/${tag}`);
+    await publishNpmReleaseIfNeeded();
     return;
   }
   log(
@@ -771,6 +828,7 @@ async function main() {
   const code = await proc.exited;
   if (code !== 0) throw new Error(`gh release create failed (${code}).`);
   log("🎉", `Published: https://github.com/${repo}/releases/tag/${tag}`);
+  await publishNpmReleaseIfNeeded();
 }
 
 if (import.meta.main)

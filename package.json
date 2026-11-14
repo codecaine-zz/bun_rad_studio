@@ -21,6 +21,7 @@
     "release:publish": "bun run scripts/release_publish.ts",
     "npm:build": "bun run scripts/build_npm_package.ts",
     "npm:pack": "bun run scripts/build_npm_package.ts --pack",
+    "npm:publish": "bun run scripts/build_npm_package.ts && cd dist/npm && bunx npm@latest publish --access public",
     "donate": "bun run scripts/donate.ts",
     "clean": "rm -rf dist",
     "start": "bun run index.ts",
