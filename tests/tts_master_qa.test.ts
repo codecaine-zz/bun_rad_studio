@@ -250,6 +250,9 @@ process.exit(0);
       join(toolDir, "ffmpeg.cmd"),
       `@echo off\r\n"${process.execPath}" "${ffmpegJs}" %*\r\n`,
     );
+    // Extensionless shims so simulated darwin/linux FmContexts also resolve tools on Windows runners
+    writeFileSync(join(toolDir, "ollama"), readFileSync(ollamaJs, "utf8"));
+    writeFileSync(join(toolDir, "ffmpeg"), readFileSync(ffmpegJs, "utf8"));
   } else {
     const ollamaSh = join(toolDir, "ollama");
     const ffmpegSh = join(toolDir, "ffmpeg");

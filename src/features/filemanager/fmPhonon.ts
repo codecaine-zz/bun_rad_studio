@@ -3502,6 +3502,25 @@ function buildExecEnv(ctx: FmContext): Record<string, string> {
 const CMD_META_RE = /[&|<>^%\r\n\0]/;
 
 function buildSpawnArgv(exe: string, args: string[]): string[] {
+  if (process.platform === "win32" && !/\.(?:exe|cmd|bat|com)$/i.test(exe)) {
+    if (existsSync(`${exe}.exe`)) {
+      return [`${exe}.exe`, ...args];
+    }
+    if (existsSync(exe)) {
+      try {
+        const head = readFileSync(exe, "utf8").slice(0, 128);
+        const firstLine = head.split(/\r?\n/, 1)[0] ?? "";
+        if (firstLine.startsWith("#!") && /\bbun\b/i.test(firstLine)) {
+          return [process.execPath, exe, ...args];
+        }
+      } catch {}
+    }
+    if (existsSync(`${exe}.cmd`)) {
+      exe = `${exe}.cmd`;
+    } else if (existsSync(`${exe}.bat`)) {
+      exe = `${exe}.bat`;
+    }
+  }
   if (process.platform === "win32" && /\.(?:cmd|bat)$/i.test(exe)) {
     const siblingExe = exe.replace(/\.(?:cmd|bat)$/i, ".exe");
     if (existsSync(siblingExe)) {

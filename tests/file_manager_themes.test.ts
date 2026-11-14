@@ -3089,7 +3089,16 @@ describe("the theme editor in the page", () => {
         cancelable: true,
       }),
     );
-    await sleep(60);
+    for (let i = 0; i < 100; i++) {
+      if (
+        state.settings.themeFxOff === true &&
+        doc.documentElement.getAttribute("data-fx") === null &&
+        (await api.call("settings")).settings.themeFxOff === true
+      ) {
+        break;
+      }
+      await sleep(50);
+    }
     expect(state.settings.themeFxOff).toBe(true);
     expect((await api.call("settings")).settings.themeFxOff).toBe(true);
     expect(doc.documentElement.getAttribute("data-fx")).toBeNull();
@@ -3108,7 +3117,15 @@ describe("the theme editor in the page", () => {
         cancelable: true,
       }),
     );
-    await sleep(60);
+    for (let i = 0; i < 100; i++) {
+      if (
+        state.settings.themeFxOff === false &&
+        doc.documentElement.getAttribute("data-fx") === "on"
+      ) {
+        break;
+      }
+      await sleep(50);
+    }
     expect(state.settings.themeFxOff).toBe(false);
     expect(doc.documentElement.getAttribute("data-fx")).toBe("on");
 
@@ -4565,7 +4582,9 @@ describe("the theme editor in the page", () => {
     });
     w.dispatchEvent(ev9);
     expect(ev9.defaultPrevented).toBe(true);
-    await sleep(40);
+    for (let i = 0; i < 100 && !doc.documentElement.dataset.iconAnim; i++) {
+      await sleep(50);
+    }
     expect(doc.documentElement.dataset.iconAnim).toBeTruthy();
 
     // 9. Verify parseThemePack parses all items in a JSON theme pack even when individual theme entries contain embedded shareCode fields

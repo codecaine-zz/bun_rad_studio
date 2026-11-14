@@ -4,6 +4,7 @@
  * Combines fast Node/Bun `os` primitives with `systeminformation` probes and platform-aware
  * normalization across Windows (`win32`), macOS (`darwin`), and Linux (`linux`).
  */
+import "../../shared/siBunCompat";
 import * as os from "os";
 import * as si from "systeminformation";
 import {

@@ -8,6 +8,7 @@
  * Guarantees 100% non-blocking async execution, zero FFI deadlocks, and instantaneous UI updates.
  */
 
+import "../src/shared/siBunCompat.ts";
 import type { Webview, SizeHint } from "webview-bun";
 import * as si from "systeminformation";
 import * as os from "os";

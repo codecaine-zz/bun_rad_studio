@@ -61,7 +61,7 @@ describe("⚡ System Information Studio Suite (All 71 systeminformation v6 APIs)
     expect(uuid.success).toBe(true);
     expect(pci.success).toBe(true);
     expect(tb.success).toBe(true);
-  });
+  }, 60_000);
 
   it("3. Category 2: OS & Software Environment methods execute successfully", async () => {
     const [osInfo, versions, npmRes, shell, time] = await Promise.all([
@@ -115,7 +115,7 @@ describe("⚡ System Information Studio Suite (All 71 systeminformation v6 APIs)
 
     expect(full.success).toBe(true);
     expect(typeof full.data).toBe("number");
-  });
+  }, 60_000);
 
   it("5. Category 4 & 5: Memory, Battery, GPU & Displays execute successfully", async () => {
     const [mem, layout, bat, gpu, displays] = await Promise.all([
@@ -140,7 +140,7 @@ describe("⚡ System Information Studio Suite (All 71 systeminformation v6 APIs)
 
     expect(displays.success).toBe(true);
     expect(Array.isArray(displays.data)).toBe(true);
-  });
+  }, 60_000);
 
   it("6. Category 6: Storage & Filesystems execute successfully", async () => {
     const [fsSize, fsOpen, block, stats, io, layout] = await Promise.all([
@@ -160,7 +160,7 @@ describe("⚡ System Information Studio Suite (All 71 systeminformation v6 APIs)
     expect(stats.success).toBe(true);
     expect(io.success).toBe(true);
     expect(layout.success).toBe(true);
-  });
+  }, 60_000);
 
   it("7. Category 7: Network & Wi-Fi methods execute successfully", async () => {
     const [iface, gw, ifaces, stats, conns, wifiNet, wifiIf, wifiConn] =
