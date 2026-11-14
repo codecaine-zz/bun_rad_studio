@@ -97,6 +97,31 @@ export async function publishNpmPackage(
   }
 
   const built = await buildNpmPackage({ version: targetVersion });
+  if (!options.dryRun) {
+    const whoami = Bun.spawnSync(["bunx", "npm@latest", "whoami"], {
+      cwd: built.outDir,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    if (whoami.exitCode !== 0) {
+      console.log(
+        "🔑  npm session expired or not logged in — launching interactive `bunx npm@latest login`…",
+      );
+      const loginProc = Bun.spawn(["bunx", "npm@latest", "login"], {
+        cwd: built.outDir,
+        stdin: "inherit",
+        stdout: "inherit",
+        stderr: "inherit",
+      });
+      const loginCode = await loginProc.exited;
+      if (loginCode !== 0) {
+        console.error(
+          "❌  npm login did not complete. Run `bunx npm@latest login` and then `bun run npm:publish`.",
+        );
+        return loginCode;
+      }
+    }
+  }
   const npmArgs = [
     "bunx",
     "npm@latest",
