@@ -5425,7 +5425,7 @@ function spawnOsSpeakerPlayback(
   try {
     if (platform === "darwin") {
       const afplay = Bun.which("afplay") || "/usr/bin/afplay";
-      Bun.spawn([afplay, "--", wavFilePath], {
+      Bun.spawn([afplay, wavFilePath], {
         stdout: "ignore",
         stderr: "ignore",
       });
@@ -5443,7 +5443,7 @@ function spawnOsSpeakerPlayback(
                   "-autoexit",
                   "-loglevel",
                   "quiet",
-                  "--",
+                  "-i",
                   wavFilePath,
                 ]
               : [resolved, "--", wavFilePath];

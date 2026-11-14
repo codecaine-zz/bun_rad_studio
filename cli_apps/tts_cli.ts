@@ -1033,12 +1033,14 @@ export async function playAudioFileOnSpeaker(filePath: string): Promise<{
   if (process.platform === "darwin") {
     const afplay = Bun.which("afplay") || "/usr/bin/afplay";
     if (existsSync(afplay)) {
-      const proc = Bun.spawn([afplay, "--", abs], {
+      const proc = Bun.spawn([afplay, abs], {
         stdout: "ignore",
         stderr: "ignore",
       });
       const code = await proc.exited;
-      return { played: code === 0, player: "afplay" };
+      if (code === 0) {
+        return { played: true, player: "afplay" };
+      }
     }
   } else if (process.platform === "linux") {
     for (const bin of ["paplay", "pw-play", "aplay", "ffplay"]) {
