@@ -35,7 +35,7 @@ import {
 } from "./release/common";
 import { listMacApps } from "./release/build_mac_apps";
 import { syncHomebrewFiles } from "./sync_homebrew";
-import { buildNpmPackage } from "./build_npm_package";
+import { publishNpmPackage } from "./npm_publish";
 
 const RELEASE = join(ROOT, "release");
 const FM = join(RELEASE, "file-manager");
@@ -55,42 +55,11 @@ async function publishNpmReleaseIfNeeded(): Promise<void> {
     log("ℹ️", "Skipping npm publish because --no-npm was passed.");
     return;
   }
-  try {
-    const checkRes = await fetch(
-      `https://registry.npmjs.org/bun-rad-studio/${encodeURIComponent(VERSION)}`,
-    );
-    if (checkRes.status === 200) {
-      log(
-        "ℹ️",
-        `npm package bun-rad-studio@${VERSION} is already published on npmjs.com; skipping.`,
-      );
-      return;
-    }
-  } catch {
-    // Proceed to build & publish if offline check fails
-  }
-
-  log("📦", `Building & publishing bun-rad-studio@${VERSION} to npm…`);
-  const built = await buildNpmPackage();
-  const npmProc = Bun.spawn(
-    ["bunx", "npm@latest", "publish", "--access", "public"],
-    {
-      cwd: built.outDir,
-      stdin: "inherit",
-      stdout: "inherit",
-      stderr: "inherit",
-    },
-  );
-  const npmExit = await npmProc.exited;
-  if (npmExit === 0) {
-    log(
-      "🎉",
-      `Published to npm: https://www.npmjs.com/package/bun-rad-studio/v/${VERSION}`,
-    );
-  } else {
+  const npmExit = await publishNpmPackage({ releaseMode: true });
+  if (npmExit !== 0) {
     log(
       "⚠️",
-      `npm publish exited with code ${npmExit}. Run "bun run npm:publish" after authenticating with "bunx npm@latest login".`,
+      `npm publish exited with code ${npmExit}. Run "bun run npm:publish" to retry.`,
     );
   }
 }

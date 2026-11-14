@@ -31,6 +31,7 @@ import { listSourceApps, ROOT, VERSION } from "./release/common.ts";
 
 export interface BuildNpmOptions {
   outDir?: string;
+  version?: string;
   pack?: boolean;
   quiet?: boolean;
 }
@@ -835,6 +836,11 @@ export async function buildNpmPackage(
     const rootPkg = JSON.parse(
       readFileSync(join(ROOT, "package.json"), "utf8"),
     );
+    const pkgVersion =
+      options.version ??
+      process.env.NPM_PACKAGE_VERSION ??
+      rootPkg.npmVersion ??
+      VERSION;
     const sourceApps = listSourceApps();
     const demoFiles = readdirSync(join(ROOT, "demos"))
       .filter((f) => f.endsWith(".ts"))
@@ -1013,7 +1019,7 @@ export async function buildNpmPackage(
     if (existsSync(join(ROOT, "CHANGELOG.md"))) {
       cpSync(join(ROOT, "CHANGELOG.md"), join(outDir, "CHANGELOG.md"));
     }
-    writeFileSync(join(outDir, "VERSION"), `${VERSION}\n`, "utf8");
+    writeFileSync(join(outDir, "VERSION"), `${pkgVersion}\n`, "utf8");
     writeFileSync(join(outDir, "index.d.ts"), renderIndexDts(), "utf8");
     writeFileSync(join(outDir, "simplegui.d.ts"), renderSimpleGuiDts(), "utf8");
 
@@ -1022,7 +1028,7 @@ export async function buildNpmPackage(
     mkdirSync(binOutDir, { recursive: true });
     writeFileSync(
       join(binOutDir, "_runner.mjs"),
-      renderRunnerMjs(VERSION),
+      renderRunnerMjs(pkgVersion),
       "utf8",
     );
 
@@ -1068,7 +1074,13 @@ export async function buildNpmPackage(
     const binCount = Object.keys(binMap).length;
     writeFileSync(
       join(outDir, "README.md"),
-      renderNpmReadme(VERSION, guiCount, cliCount, demoFiles.length, binCount),
+      renderNpmReadme(
+        pkgVersion,
+        guiCount,
+        cliCount,
+        demoFiles.length,
+        binCount,
+      ),
       "utf8",
     );
 
@@ -1078,9 +1090,9 @@ export async function buildNpmPackage(
 
     const npmPkgJson = {
       name: "bun-rad-studio",
-      version: VERSION,
+      version: pkgVersion,
       description:
-        "Cross-platform RAD desktop studio suite, visual form designer, SimpleGUI toolkit, and 200+ native developer & system CLI utilities powered by Bun.",
+        "Cross-platform native desktop GUI framework (SimpleGUI), Delphi/VB-style RAD Visual Form Designer, Dual-Pane File Manager, SQLite/Postgres/MySQL/Redis Database Studios, API Client & 200+ CLI developer tools for Bun & Node.js (macOS, Linux, Windows).",
       author: "Codecaine (https://github.com/codecaine-zz)",
       type: "module",
       license: rootPkg.license ?? "MIT",
@@ -1133,18 +1145,101 @@ export async function buildNpmPackage(
       },
       keywords: [
         "bun",
-        "rad",
+        "bunjs",
+        "nodejs",
+        "typescript",
+        "javascript",
+        "esm",
         "gui",
         "desktop",
+        "desktop-app",
+        "native-gui",
+        "cross-platform",
         "webview",
+        "webview2",
+        "webkit",
+        "electron-alternative",
+        "tauri-alternative",
+        "macos",
+        "linux",
+        "windows",
+        "rad",
+        "rad-studio",
+        "ide",
+        "visual-ide",
+        "form-builder",
+        "form-designer",
+        "gui-builder",
+        "drag-and-drop",
+        "delphi",
+        "visual-basic",
+        "vb6",
+        "low-code",
         "simplegui",
-        "codecaine",
+        "ui-toolkit",
+        "themes",
         "file-manager",
+        "file-explorer",
+        "dual-pane",
+        "commander",
+        "total-commander",
+        "batch-rename",
+        "duplicate-finder",
+        "folder-compare",
+        "archive-manager",
+        "database",
+        "database-gui",
+        "sql-client",
+        "db-browser",
         "sqlite",
+        "sqlite-browser",
+        "postgresql",
         "postgres",
         "mysql",
+        "mariadb",
+        "redis",
+        "redis-gui",
         "cli",
+        "cli-tools",
+        "command-line",
+        "terminal",
+        "tui",
         "devtools",
+        "developer-tools",
+        "api-client",
+        "rest-client",
+        "http-client",
+        "benchmark",
+        "load-testing",
+        "json",
+        "yaml",
+        "csv",
+        "regex",
+        "diff",
+        "git-gui",
+        "docker",
+        "process-manager",
+        "task-manager",
+        "system-monitor",
+        "network-scanner",
+        "dns",
+        "ssl",
+        "security",
+        "encryption",
+        "password-manager",
+        "vault",
+        "jwt",
+        "media-player",
+        "equalizer",
+        "visualizer",
+        "audio-converter",
+        "image-editor",
+        "ocr",
+        "tts",
+        "text-to-speech",
+        "qr-code",
+        "arcade",
+        "codecaine",
       ],
       repository: {
         type: "git",
@@ -1169,7 +1264,7 @@ export async function buildNpmPackage(
       mkdirSync(packDestDir, { recursive: true });
       const expectedTarball = join(
         packDestDir,
-        `bun-rad-studio-${VERSION}.tgz`,
+        `bun-rad-studio-${pkgVersion}.tgz`,
       );
       rmSync(expectedTarball, { force: true });
 
@@ -1206,12 +1301,12 @@ export async function buildNpmPackage(
 
     log(
       "✅",
-      `Built publish-ready npm/Bun package in ${outDir} (${binCount} commands, v${VERSION})`,
+      `Built publish-ready npm/Bun package in ${outDir} (${binCount} commands, v${pkgVersion})`,
     );
 
     return {
       outDir,
-      version: VERSION,
+      version: pkgVersion,
       guiCount,
       cliCount,
       demoCount: demoFiles.length,
@@ -1229,6 +1324,9 @@ if (import.meta.main) {
   const outIdx = args.indexOf("--outdir");
   const outDir =
     outIdx >= 0 && args[outIdx + 1] ? resolve(args[outIdx + 1]!) : undefined;
+  const verIdx = args.indexOf("--version");
+  const version =
+    verIdx >= 0 && args[verIdx + 1] ? args[verIdx + 1]! : undefined;
 
-  await buildNpmPackage({ outDir, pack });
+  await buildNpmPackage({ outDir, version, pack });
 }

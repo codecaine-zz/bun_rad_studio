@@ -246,7 +246,7 @@ Every script in `package.json`, run as `bun run <name>` from the repository root
 | `bun run release:publish` | `bun run scripts/release_publish.ts` |
 | `bun run npm:build` | `bun run scripts/build_npm_package.ts` |
 | `bun run npm:pack` | `bun run scripts/build_npm_package.ts --pack` |
-| `bun run npm:publish` | `bun run scripts/build_npm_package.ts && cd dist/npm && bunx npm@latest publish --access public` |
+| `bun run npm:publish` | `bun run scripts/npm_publish.ts` |
 | `bun run donate` | `bun run scripts/donate.ts` |
 | `bun run clean` | `rm -rf dist` |
 | `bun run start` | `bun run index.ts` |
