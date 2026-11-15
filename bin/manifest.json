@@ -1,7 +1,7 @@
 {
   "suite": "Codecaine Utility Suite",
-  "version": "1.5.9",
-  "generatedAt": "2026-11-15T02:06:08.228Z",
+  "version": "1.6.0",
+  "generatedAt": "2026-11-15T20:59:27.628Z",
   "totalWrappers": 336,
   "commands": [
     {

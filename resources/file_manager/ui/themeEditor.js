@@ -7358,7 +7358,11 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
               t.hasEffects ? "✨ FX" : "⏹️ Plain",
             ),
             h("span", { class: "tpl-meta-pill" }, tierLabel),
-            h("span", { class: "tpl-meta-pill" }, t.dark ? "🌙 Dark" : "☀️ Light"),
+            h(
+              "span",
+              { class: "tpl-meta-pill" },
+              t.dark ? "🌙 Dark" : "☀️ Light",
+            ),
           ),
         );
       }),

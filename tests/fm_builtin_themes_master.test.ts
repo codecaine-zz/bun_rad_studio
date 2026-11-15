@@ -129,7 +129,9 @@ describe("Codecaine File Manager Master Built-in Themes & Palette Color Science"
         "border-strong",
       ]) {
         if (!HEX_RE.test(v[token] ?? "")) {
-          elevationIssues.push(`${summary.key}: invalid --${token}=${v[token]}`);
+          elevationIssues.push(
+            `${summary.key}: invalid --${token}=${v[token]}`,
+          );
         }
       }
 
@@ -383,12 +385,18 @@ describe("Codecaine File Manager Master Built-in Themes & Palette Color Science"
     // Verify all ccfm_* flagship entries in showcase & quick-pick frontend arrays resolve cleanly
     for (const pick of POPULAR_PLAIN_THEME_PICKS) {
       if (pick.key?.startsWith("ccfm_")) {
-        expect(getThemeColours(pick.key), `plain pick ${pick.key}`).not.toBeNull();
+        expect(
+          getThemeColours(pick.key),
+          `plain pick ${pick.key}`,
+        ).not.toBeNull();
       }
     }
     for (const tmpl of OPTION_BRACKET_SHOWCASE_TEMPLATES) {
       if (tmpl.key?.startsWith("ccfm_")) {
-        expect(getThemeColours(tmpl.key), `showcase ${tmpl.key}`).not.toBeNull();
+        expect(
+          getThemeColours(tmpl.key),
+          `showcase ${tmpl.key}`,
+        ).not.toBeNull();
       }
     }
     for (const sw of QUICK_COLOR_PALETTE_SWATCHES) {
@@ -486,9 +494,9 @@ describe("Codecaine File Manager Master Built-in Themes & Palette Color Science"
       expect(await loadSettings(ctx)).toEqual(DEFAULT_SETTINGS);
 
       // Explicit empty array [] (user unpinned all favorites) is preserved across normalization & partial updates
-      expect(sanitizeSettings({ favoriteThemes: [] }, ctx).favoriteThemes).toEqual(
-        [],
-      );
+      expect(
+        sanitizeSettings({ favoriteThemes: [] }, ctx).favoriteThemes,
+      ).toEqual([]);
       const cleared = await updateSettings(ctx, { favoriteThemes: [] });
       expect(cleared.favoriteThemes).toEqual([]);
       expect((await loadSettings(ctx)).favoriteThemes).toEqual([]);

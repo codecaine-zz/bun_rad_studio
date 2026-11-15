@@ -6170,7 +6170,8 @@ export function computeSubStudioThemeTokens(
   const bg2 = v.bg2 || mixHexOklab(bg, panel, 0.5);
   const bg3 = v.bg3 || mixHexOklab(panel, isDark ? "#ffffff" : "#000000", 0.05);
   const folderColor =
-    v["folder-color"] || mixHexOklab(accent, isDark ? "#ffffff" : "#ffffff", 0.1);
+    v["folder-color"] ||
+    mixHexOklab(accent, isDark ? "#ffffff" : "#ffffff", 0.1);
   const folderTab =
     v["folder-tab"] || mixHexOklab(accent, "#000000", isDark ? 0.22 : 0.16);
   const folderGlow = v["folder-glow"] || "rgba(56, 189, 248, 0.22)";
@@ -10033,12 +10034,21 @@ export async function applyThemePlainColorsOnly(key, opts = {}) {
  */
 export const OPTION_BRACKET_SHOWCASE_TEMPLATES = [
   { key: "ccfm_tahoe_liquid_glass_xdr", badge: "💎 Tahoe Liquid Glass 6K XDR" },
-  { key: "ccfm_xdr_oled_titanium_pro", badge: "🖤 XDR OLED Titanium Reference" },
-  { key: "ccfm_sovereign_obsidian_gold", badge: "👑 Sovereign Obsidian 24K Gold" },
+  {
+    key: "ccfm_xdr_oled_titanium_pro",
+    badge: "🖤 XDR OLED Titanium Reference",
+  },
+  {
+    key: "ccfm_sovereign_obsidian_gold",
+    badge: "👑 Sovereign Obsidian 24K Gold",
+  },
   { key: "ccfm_tokyo_cyberpunk_rain", badge: "🌃 Tokyo Cyberpunk Neon Rain" },
   { key: "ccfm_cupertino_ceramic_day", badge: "☀️ Cupertino Liquid Glass Day" },
   { key: "ccfm_solarpunk_atelier_day", badge: "🌿 Solarpunk Botanical 6K Day" },
-  { key: "ccfm_alpine_crystal_daylight", badge: "❄️ Alpine Crystal Glacier 6K" },
+  {
+    key: "ccfm_alpine_crystal_daylight",
+    badge: "❄️ Alpine Crystal Glacier 6K",
+  },
   { key: "tahoe_studio_3d", badge: "🍎 Tahoe 3D Folders & Pictures" },
   { key: "m4_pro_display_xdr", badge: "💻 M4 Max XDR Titanium" },
   { key: "mac_studio_m4_ultra", badge: "🧊 Mac Studio M4 Ultra" },

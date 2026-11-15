@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Security fixes target the latest **`v1.5.x` release (`v1.5.9`)** and the latest commit on `main`; older tags are not patched separately. Interactive day-to-day testing has primarily been carried out on **macOS**, while automated test suites and packaging/sandbox verification also cover Linux and Windows (see [Testing](docs/testing/index.md#other-platforms)).
+Security fixes target the latest **`v1.6.x` release (`v1.6.0`)** and the latest commit on `main`; older tags are not patched separately. Interactive day-to-day testing has primarily been carried out on **macOS**, while automated test suites and packaging/sandbox verification also cover Linux and Windows (see [Testing](docs/testing/index.md#other-platforms)).
 
 ## Reporting a vulnerability
 

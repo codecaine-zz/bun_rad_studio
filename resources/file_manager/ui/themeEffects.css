@@ -10428,7 +10428,6 @@ html[data-vision-mode="high_contrast_aaa"]
   }
 }
 
-
 /* ============================================================================
  * 💎 MASTER-LEVEL STUDIO GLASSMORPHISM, SPECULAR FOLDER HIGHLIGHTS & 120FPS GPU FX
  * ============================================================================ */
@@ -10482,7 +10481,8 @@ html[data-vision-mode="high_contrast_aaa"]
 }
 
 /* OLED Pure Black Backdrop Guard: crisp luminous hairline, zero murky blur wash */
-:root[data-fx][data-fx-backdrop="oled"] :is(.dialog, .menu, .selection-bar, .ql) {
+:root[data-fx][data-fx-backdrop="oled"]
+  :is(.dialog, .menu, .selection-bar, .ql) {
   background-color: #030407;
   border-color: color-mix(in oklab, var(--accent) 42%, #1e293b);
   box-shadow:
@@ -10494,8 +10494,7 @@ html[data-vision-mode="high_contrast_aaa"]
  *    Strictly excludes .selected / [aria-selected="true"] so selection contrast stays unmistakable. */
 :root[data-fx]:not([data-fx-tier="low"])
   .row.is-folder:not(.selected):not([aria-selected="true"]) {
-  box-shadow: inset 0 1px 0
-    color-mix(in oklab, #ffffff 12%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff 12%, transparent);
 }
 
 :root[data-fx]:is([data-fx-tier="high"], [data-fx-tier="ultra"])
@@ -10550,11 +10549,7 @@ html[data-vision-mode="high_contrast_aaa"]
     90deg,
     color-mix(in oklab, var(--fx-glow-color, var(--accent)) 9%, transparent) 0%,
     transparent 38%,
-    color-mix(
-        in oklab,
-        var(--fx-glow-color-2, var(--accent)) 8%,
-        transparent
-      )
+    color-mix(in oklab, var(--fx-glow-color-2, var(--accent)) 8%, transparent)
       100%
   );
 }
@@ -10569,7 +10564,11 @@ html[data-vision-mode="high_contrast_aaa"]
     box-shadow 120ms ease;
 }
 [data-editor-template-card]:hover {
-  border-color: color-mix(in oklab, var(--accent) 55%, var(--border)) !important;
+  border-color: color-mix(
+    in oklab,
+    var(--accent) 55%,
+    var(--border)
+  ) !important;
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, #ffffff 14%, transparent),
     0 6px 16px -4px rgba(0, 0, 0, 0.2);
@@ -10669,18 +10668,18 @@ html[data-zero-watt-paused="true"] :is(.dialog, .menu, .selection-bar, .ql) {
 
 @media (prefers-reduced-motion: reduce) {
   :is(
-      .tool,
-      .btn,
-      .vb-btn,
-      .side-item,
-      .crumb,
-      .theme-card,
-      .home-tile,
-      .fm-tab,
-      [data-editor-template-card],
-      #list.view-icons .row,
-      #dual-list.view-icons .row
-    ) {
+    .tool,
+    .btn,
+    .vb-btn,
+    .side-item,
+    .crumb,
+    .theme-card,
+    .home-tile,
+    .fm-tab,
+    [data-editor-template-card],
+    #list.view-icons .row,
+    #dual-list.view-icons .row
+  ) {
     transition: none !important;
     transform: none !important;
     animation: none !important;

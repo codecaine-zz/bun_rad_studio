@@ -146,15 +146,16 @@ describe("Codecaine File Manager Master Design, Chrome & Shader/FX Suite", () =>
     expect(themeEffectsCss).toContain(
       "@media (prefers-reduced-transparency: reduce)",
     );
-    expect(themeEffectsCss).toContain("@media (prefers-reduced-motion: reduce)");
+    expect(themeEffectsCss).toContain(
+      "@media (prefers-reduced-motion: reduce)",
+    );
     expect(themeEffectsCss).toContain(':root[data-fx-tier="low"]');
     expect(themeEffectsCss).toContain('html[data-zero-watt-paused="true"]');
   });
 
   test("5. Theme Menu Studio Badges, Keycap Shortcuts & Gallery Filter Actions (themeMenu.js)", async () => {
-    const menuMod = (await import(
-      "../resources/file_manager/ui/themeMenu.js"
-    )) as any;
+    const menuMod =
+      (await import("../resources/file_manager/ui/themeMenu.js")) as any;
 
     expect(typeof menuMod.formatThemeMenuBadge).toBe("function");
     expect(

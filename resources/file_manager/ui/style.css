@@ -203,7 +203,8 @@ button:disabled {
   padding: 0.42rem 0.65rem;
   background: linear-gradient(
     180deg,
-    color-mix(in oklab, var(--surface-elevated, var(--panel)) 55%, var(--panel)) 0%,
+    color-mix(in oklab, var(--surface-elevated, var(--panel)) 55%, var(--panel))
+      0%,
     var(--panel) 100%
   );
   border-bottom: 1px solid color-mix(in oklab, var(--border) 78%, transparent);
@@ -254,7 +255,11 @@ button:disabled {
 }
 .tool:hover:not(:disabled) {
   background: var(--hover);
-  border-color: color-mix(in oklab, var(--border-strong, var(--border)) 72%, transparent);
+  border-color: color-mix(
+    in oklab,
+    var(--border-strong, var(--border)) 72%,
+    transparent
+  );
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, #ffffff 14%, transparent),
     0 1px 2px rgba(0, 0, 0, 0.06);
@@ -366,7 +371,11 @@ button:disabled {
 .crumb.current {
   font-weight: 650;
   color: var(--text);
-  background: color-mix(in oklab, var(--accent-soft, var(--selected)) 58%, var(--panel));
+  background: color-mix(
+    in oklab,
+    var(--accent-soft, var(--selected)) 58%,
+    var(--panel)
+  );
   border-color: color-mix(in oklab, var(--accent) 28%, var(--border));
   box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff 12%, transparent);
 }
@@ -527,7 +536,11 @@ button.crumb-sep:focus-visible {
 }
 .side-item:hover {
   background: var(--hover);
-  border-color: color-mix(in oklab, var(--border-subtle, var(--border)) 72%, transparent);
+  border-color: color-mix(
+    in oklab,
+    var(--border-subtle, var(--border)) 72%,
+    transparent
+  );
 }
 .side-item:focus-visible {
   outline: 2px solid var(--focus-ring, var(--accent));
@@ -759,7 +772,8 @@ button.crumb-sep:focus-visible {
 }
 .view-details .row {
   min-height: 2.18rem;
-  border-bottom: 1px solid color-mix(in oklab, var(--border-subtle, var(--border)) 35%, transparent);
+  border-bottom: 1px solid
+    color-mix(in oklab, var(--border-subtle, var(--border)) 35%, transparent);
 }
 .row:hover {
   background: var(--hover);
@@ -924,7 +938,11 @@ button.crumb-sep:focus-visible {
   border: 1px solid transparent;
 }
 .view-icons .row:hover {
-  border-color: color-mix(in oklab, var(--border-strong, var(--border)) 68%, transparent);
+  border-color: color-mix(
+    in oklab,
+    var(--border-strong, var(--border)) 68%,
+    transparent
+  );
   box-shadow:
     inset 0 1px 0 color-mix(in oklab, #ffffff 14%, transparent),
     0 4px 10px -4px rgba(0, 0, 0, 0.14);
@@ -939,7 +957,8 @@ button.crumb-sep:focus-visible {
   border-color: var(--accent);
   box-shadow:
     inset 0 3px 0 0 var(--accent),
-    inset 0 0 0 1.5px color-mix(in oklab, var(--accent) 76%, var(--selected-text)),
+    inset 0 0 0 1.5px
+      color-mix(in oklab, var(--accent) 76%, var(--selected-text)),
     0 6px 14px -4px color-mix(in oklab, var(--accent) 32%, transparent);
 }
 .view-icons .c-icon {
@@ -1405,7 +1424,8 @@ body.busy .busy-indicator {
     var(--bg) 100%
   );
   color: var(--text);
-  border: 1px solid color-mix(in oklab, var(--border-strong, var(--border)) 72%, var(--border));
+  border: 1px solid
+    color-mix(in oklab, var(--border-strong, var(--border)) 72%, var(--border));
   border-radius: 0.5rem;
   padding: 0.4rem 0.9rem;
   font-weight: 520;
@@ -1476,8 +1496,13 @@ body.busy .busy-indicator {
   overflow-y: auto;
   overscroll-behavior: contain;
   pointer-events: auto;
-  background: color-mix(in oklab, var(--surface-elevated, var(--bg)) 94%, transparent);
-  border: 1px solid color-mix(in oklab, var(--border-strong, var(--border)) 78%, var(--border));
+  background: color-mix(
+    in oklab,
+    var(--surface-elevated, var(--bg)) 94%,
+    transparent
+  );
+  border: 1px solid
+    color-mix(in oklab, var(--border-strong, var(--border)) 78%, var(--border));
   border-radius: 0.72rem;
   padding: 0.34rem;
   box-shadow:
@@ -1599,7 +1624,8 @@ body.modal-open #dual-wrap {
   overscroll-behavior: contain;
   background: var(--surface-elevated, var(--bg));
   color: var(--text);
-  border: 1px solid color-mix(in oklab, var(--border-strong, var(--border)) 80%, var(--border));
+  border: 1px solid
+    color-mix(in oklab, var(--border-strong, var(--border)) 80%, var(--border));
   border-radius: 0.88rem;
   padding: 1.15rem 1.3rem;
   box-shadow:
@@ -2803,7 +2829,8 @@ body.dragging .row:not(.is-folder) {
   padding: 0.56rem;
   background: linear-gradient(
     180deg,
-    color-mix(in oklab, var(--surface-elevated, var(--panel)) 60%, var(--panel)) 0%,
+    color-mix(in oklab, var(--surface-elevated, var(--panel)) 60%, var(--panel))
+      0%,
     var(--panel) 100%
   );
   color: var(--text);
@@ -2924,13 +2951,35 @@ body.dragging .row:not(.is-folder) {
 .theme-edit-quick {
   left: 5.4rem;
 }
-.theme-card-item:hover :is(.theme-keep-fx-color-quick, .theme-plain-only-quick, .theme-share-quick, .theme-edit-quick),
-.theme-card-item:focus-within :is(.theme-keep-fx-color-quick, .theme-plain-only-quick, .theme-share-quick, .theme-edit-quick) {
+.theme-card-item:hover
+  :is(
+    .theme-keep-fx-color-quick,
+    .theme-plain-only-quick,
+    .theme-share-quick,
+    .theme-edit-quick
+  ),
+.theme-card-item:focus-within
+  :is(
+    .theme-keep-fx-color-quick,
+    .theme-plain-only-quick,
+    .theme-share-quick,
+    .theme-edit-quick
+  ) {
   opacity: 0.94;
   pointer-events: auto;
 }
-:is(.theme-keep-fx-color-quick, .theme-plain-only-quick, .theme-share-quick, .theme-edit-quick):hover,
-:is(.theme-keep-fx-color-quick, .theme-plain-only-quick, .theme-share-quick, .theme-edit-quick):focus-visible {
+:is(
+  .theme-keep-fx-color-quick,
+  .theme-plain-only-quick,
+  .theme-share-quick,
+  .theme-edit-quick
+):hover,
+:is(
+  .theme-keep-fx-color-quick,
+  .theme-plain-only-quick,
+  .theme-share-quick,
+  .theme-edit-quick
+):focus-visible {
   opacity: 1;
   border-color: var(--accent);
   transform: scale(1.08);
@@ -3064,7 +3113,8 @@ body.dragging .row:not(.is-folder) {
     var(--sw-accent, var(--accent)) 62% 82%,
     var(--sw-glow, var(--sw-accent, var(--accent))) 82% 100%
   );
-  border-top: 1px solid color-mix(in oklab, var(--sw-border, var(--border)) 72%, transparent);
+  border-top: 1px solid
+    color-mix(in oklab, var(--sw-border, var(--border)) 72%, transparent);
   pointer-events: none;
   z-index: 1;
 }
@@ -3083,13 +3133,23 @@ body.dragging .row:not(.is-folder) {
 .theme-swatch[data-sw-border="gradient"],
 .theme-swatch[data-sw-border="iridescent"],
 .theme-swatch[data-sw-border="hologram"] {
-  border-color: color-mix(in oklab, var(--sw-accent, var(--accent)) 65%, var(--sw-glow, #a855f7));
+  border-color: color-mix(
+    in oklab,
+    var(--sw-accent, var(--accent)) 65%,
+    var(--sw-glow, #a855f7)
+  );
   box-shadow:
-    inset 0 0 0 1px color-mix(in oklab, var(--sw-glow, var(--accent)) 35%, transparent),
-    0 2px 8px -2px color-mix(in oklab, var(--sw-accent, var(--accent)) 32%, transparent);
+    inset 0 0 0 1px
+      color-mix(in oklab, var(--sw-glow, var(--accent)) 35%, transparent),
+    0 2px 8px -2px
+      color-mix(in oklab, var(--sw-accent, var(--accent)) 32%, transparent);
 }
 .theme-swatch[data-sw-border="metal"] {
-  border-color: color-mix(in oklab, #e2e8f0 48%, var(--sw-border, var(--border)));
+  border-color: color-mix(
+    in oklab,
+    #e2e8f0 48%,
+    var(--sw-border, var(--border))
+  );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.35),
     inset 0 -1px 0 rgba(0, 0, 0, 0.25);
@@ -3106,12 +3166,15 @@ body.dragging .row:not(.is-folder) {
 .theme-swatch[data-sw-glow="aurora"] {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 0 0.75rem -0.05rem color-mix(in oklab, var(--sw-glow, var(--accent)) 78%, transparent);
+    0 0 0.75rem -0.05rem
+      color-mix(in oklab, var(--sw-glow, var(--accent)) 78%, transparent);
 }
 .theme-swatch[data-sw-glow="ember"] {
   box-shadow:
-    inset 0 0 0.42rem -0.1rem color-mix(in oklab, var(--sw-glow, #f97316) 65%, transparent),
-    0 0 0.65rem -0.06rem color-mix(in oklab, var(--sw-glow, #f97316) 72%, transparent);
+    inset 0 0 0.42rem -0.1rem
+      color-mix(in oklab, var(--sw-glow, #f97316) 65%, transparent),
+    0 0 0.65rem -0.06rem
+      color-mix(in oklab, var(--sw-glow, #f97316) 72%, transparent);
 }
 .theme-swatch[data-sw-glow="neon"],
 .theme-swatch[data-sw-glow="plasma"],
@@ -3134,7 +3197,12 @@ body.dragging .row:not(.is-folder) {
   height: 0.36rem;
   border-radius: 999px;
   background: var(--sw-accent, var(--accent));
-  box-shadow: 0 0 4px color-mix(in oklab, var(--sw-glow, var(--sw-accent, var(--accent))) 65%, transparent);
+  box-shadow: 0 0 4px
+    color-mix(
+      in oklab,
+      var(--sw-glow, var(--sw-accent, var(--accent))) 65%,
+      transparent
+    );
   display: inline-block;
 }
 .theme-swatch-bar {

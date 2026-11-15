@@ -60,7 +60,10 @@ export interface ShowcaseCatalogSummary {
 const OS_HERITAGE_PATTERN =
   /\b(win95|win98|winxp|win11|windows|ubuntu|adwaita|gnome|mint|pop_os|fedora|kde|breeze|mac_os|macos|apple_|aqua|sonoma|beos|haiku|amiga|nextstep|irix|cde|solaris|gameboy|c64|commodore|dos|atari|amber_crt)\b/i;
 
-function classifyThemeTier(key: string, theme: any): {
+function classifyThemeTier(
+  key: string,
+  theme: any,
+): {
   tier: ShowcaseThemeTier;
   tierLabel: string;
   fxSummary: string;
@@ -183,7 +186,10 @@ export function getShowcaseThemeCatalog(): ShowcaseCatalogSummary {
       cardBorder:
         t.card_border ||
         (t.is_dark ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)"),
-      fg: t.font_color || t.foreground_color || (t.is_dark ? "#f1f5f9" : "#0f172a"),
+      fg:
+        t.font_color ||
+        t.foreground_color ||
+        (t.is_dark ? "#f1f5f9" : "#0f172a"),
       accent: t.accent_color,
       secondary: t.secondary_accent || t.accent_color,
       fxSummary,
@@ -210,7 +216,8 @@ function buildShowcaseGalleryHtml(
 ): string {
   const activeTierInfo = classifyThemeTier(activeKey, activeTheme);
   const activeCardBg =
-    activeTheme.card_background || (activeTheme.is_dark ? "#1e293b" : "#ffffff");
+    activeTheme.card_background ||
+    (activeTheme.is_dark ? "#1e293b" : "#ffffff");
   const activeCardBorder =
     activeTheme.card_border ||
     (activeTheme.is_dark ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)");
@@ -459,7 +466,8 @@ function buildShowcaseGalleryHtml(
 }
 
 export function createThemeShowcase(
-  themeName: string = DEFAULT_FAVORITE_SIMPLEGUI_THEMES[0] || "oled_obsidian_pro",
+  themeName: string = DEFAULT_FAVORITE_SIMPLEGUI_THEMES[0] ||
+    "oled_obsidian_pro",
 ): SimpleWindow {
   const themeObj = getTheme(themeName);
   const catalog = getShowcaseThemeCatalog();
@@ -1113,10 +1121,9 @@ export function createThemeShowcase(
     .addButton("✨ Switch Random Theme", (w) => {
       const allEntries = getShowcaseThemeCatalog().entries;
       const pool = allEntries.filter((e) => e.key !== w.theme);
-      const pick =
-        (pool.length > 0
-          ? pool[Math.floor(Math.random() * pool.length)]
-          : allEntries[0]) || { key: "midnight" };
+      const pick = (pool.length > 0
+        ? pool[Math.floor(Math.random() * pool.length)]
+        : allEntries[0]) || { key: "midnight" };
       w.setTheme(pick.key, true);
       w.setValue("dd_theme_selector", pick.key);
     })

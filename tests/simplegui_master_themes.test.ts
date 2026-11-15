@@ -21,10 +21,7 @@ import {
   syntaxPalette,
 } from "../src/shared/fxThemes";
 import { fxCss } from "../src/shared/fxCss";
-import {
-  NAMED_SEMANTICS,
-  contrastRatio,
-} from "../src/shared/themeSemantic";
+import { NAMED_SEMANTICS, contrastRatio } from "../src/shared/themeSemantic";
 import {
   simplegui,
   getTheme,
@@ -157,9 +154,10 @@ describe("SimpleGUI Flagship Master Themes & Audited Catalog", () => {
 
       // Glass worst-case contrast over pure black & pure white backdrops >= 4.5:1
       const gr = glassReport({ ...t, fx: t.fx! });
-      expect(gr.worstContrast, `${key} glass worstContrast`).toBeGreaterThanOrEqual(
-        4.5,
-      );
+      expect(
+        gr.worstContrast,
+        `${key} glass worstContrast`,
+      ).toBeGreaterThanOrEqual(4.5);
       expect(t.fx!.blur).toBeGreaterThanOrEqual(0);
       expect(t.fx!.blur).toBeLessThanOrEqual(32);
       expect(t.fx!.glass).toBeGreaterThanOrEqual(0);
@@ -298,7 +296,10 @@ describe("SimpleGUI Flagship Master Themes & Audited Catalog", () => {
       "tailwind_dark",
     ]) {
       const t = SIMPLEGUI_THEMES[key]!;
-      expect(NAMED_SEMANTICS[t.name], `${t.name} NAMED_SEMANTICS`).toBeDefined();
+      expect(
+        NAMED_SEMANTICS[t.name],
+        `${t.name} NAMED_SEMANTICS`,
+      ).toBeDefined();
 
       const sem = getSemanticColors(key);
       for (const kind of ["danger", "warning", "success", "info"] as const) {
@@ -384,8 +385,12 @@ describe("SimpleGUI Flagship Master Themes & Audited Catalog", () => {
   test("fxCss() includes composite rim+inner-glow layers, prismatic edge dispersion, composite atmospheres, and accessibility guards", () => {
     const css = fxCss();
     expect(css).toContain('[data-fx-inner-glow="on"][data-fx-rim="on"]');
-    expect(css).toContain('[data-fx-border="neon"][data-fx-inner-glow="on"][data-fx-rim="on"]');
-    expect(css).toContain('[data-fx-backdrop="oled"][data-fx-inner-glow="on"][data-fx-rim="on"]');
+    expect(css).toContain(
+      '[data-fx-border="neon"][data-fx-inner-glow="on"][data-fx-rim="on"]',
+    );
+    expect(css).toContain(
+      '[data-fx-backdrop="oled"][data-fx-inner-glow="on"][data-fx-rim="on"]',
+    );
     expect(css).toContain('[data-fx-prism="on"]:not([data-fx-border="flat"])');
     expect(css).toContain('[data-fx-cursor="magnetic"]');
     for (const atm of [
@@ -398,12 +403,14 @@ describe("SimpleGUI Flagship Master Themes & Audited Catalog", () => {
       "sunbeams",
       "reticle",
     ]) {
-      expect(css).toContain(`[data-fx-atmosphere*="${atm}"]:not([data-fx-tier="low"])`);
+      expect(css).toContain(
+        `[data-fx-atmosphere*="${atm}"]:not([data-fx-tier="low"])`,
+      );
     }
-    expect(css).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain('[data-fx][data-fx-tier="low"]');
-    expect(css).toContain('@media (prefers-contrast: more)');
-    expect(css).toContain('@media (forced-colors: active)');
+    expect(css).toContain("@media (prefers-contrast: more)");
+    expect(css).toContain("@media (forced-colors: active)");
   });
 
   test("DEFAULT_FAVORITE_SIMPLEGUI_THEMES curates all 12 Master themes and surfaces ★ Featured Master Favorites in SimpleGUI selectors", () => {

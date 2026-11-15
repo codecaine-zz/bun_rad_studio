@@ -244,7 +244,11 @@ const isAchromatic = (hexStr: string): boolean => {
 
 const nudgeRgb = (hexStr: string, delta: number): string => {
   const [r, g, b] = parseColor(hexStr);
-  return hex([clampByte(r + delta), clampByte(g + delta), clampByte(b + delta)]);
+  return hex([
+    clampByte(r + delta),
+    clampByte(g + delta),
+    clampByte(b + delta),
+  ]);
 };
 
 /** Moves `color` in perceptual OKLab toward white or black until it satisfies `min` contrast on every surface. */
@@ -436,8 +440,7 @@ export function themeVars(theme: SimpleGUITheme): ThemeVars {
     }
     bg3 = over(panel, "#ffffff", 0.048);
     if (bg3 === bg2 || luminanceOf(bg3) <= luminanceOf(bg2)) {
-      const baseForBg3 =
-        luminanceOf(panel) > luminanceOf(bg2) ? panel : bg2;
+      const baseForBg3 = luminanceOf(panel) > luminanceOf(bg2) ? panel : bg2;
       bg3 = nudgeRgb(baseForBg3, 5);
     }
     surfaceElevated = over(panel, "#ffffff", 0.068);

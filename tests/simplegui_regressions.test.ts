@@ -456,7 +456,7 @@ describe("Bug 3: index.d.ts and simplegui.d.ts strict TypeScript verification", 
         : JSON.stringify(
             {
               name: "bun-rad-studio",
-              version: "1.5.9",
+              version: "1.6.0",
               type: "module",
               main: "./index.js",
               types: "./index.d.ts",

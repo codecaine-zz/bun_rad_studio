@@ -36,14 +36,15 @@ describe("SimpleGUI Studio Control Polish, Chrome & Theme Rendering", () => {
         theme: item.key,
       });
       win.addButton("Primary", () => {}).id("btnPri");
-      win
-        .addButton("Danger", () => {}, { variant: "danger" })
-        .id("btnDanger");
+      win.addButton("Danger", () => {}, { variant: "danger" }).id("btnDanger");
       win.addTextInput("Search...").id("inpSearch");
       const html = win.generateHtml();
 
       const polishCss = extractStyleById(html, "simplegui-studio-polish");
-      expect(polishCss.length, `missing polish style for ${item.key}`).toBeGreaterThan(500);
+      expect(
+        polishCss.length,
+        `missing polish style for ${item.key}`,
+      ).toBeGreaterThan(500);
       expect(polishCss).toContain("--sg-radius-md");
       expect(polishCss).toContain("--sg-hairline");
       expect(polishCss).toContain("--sg-focus-ring");
@@ -54,9 +55,13 @@ describe("SimpleGUI Studio Control Polish, Chrome & Theme Rendering", () => {
 
       // Polarity-calibrated specular rim: brighter white rim on light themes, subtler rim on dark themes
       if (item.dark) {
-        expect(polishCss).toContain("--sg-specular-top: rgba(255, 255, 255, 0.16)");
+        expect(polishCss).toContain(
+          "--sg-specular-top: rgba(255, 255, 255, 0.16)",
+        );
       } else {
-        expect(polishCss).toContain("--sg-specular-top: rgba(255, 255, 255, 0.72)");
+        expect(polishCss).toContain(
+          "--sg-specular-top: rgba(255, 255, 255, 0.72)",
+        );
       }
 
       // Linux color-scheme rule remains strictly scoped to html.rad-linux
@@ -79,12 +84,8 @@ describe("SimpleGUI Studio Control Polish, Chrome & Theme Rendering", () => {
       theme: "tokyo_night",
     });
     win.addButton("Save", () => {}).id("btnSave");
-    win
-      .addButton("Delete", () => {}, { variant: "danger" })
-      .id("btnDelete");
-    win
-      .addButton("Ghost", () => {}, { variant: "ghost" })
-      .id("btnGhost");
+    win.addButton("Delete", () => {}, { variant: "danger" }).id("btnDelete");
+    win.addButton("Ghost", () => {}, { variant: "ghost" }).id("btnGhost");
     win.addTextInput("Enter name...").id("txtName");
     win.addSlider(0, 100, 50).id("sldLevel");
     win.addSwitch("Enable", true).id("swtEnable");
@@ -102,7 +103,7 @@ describe("SimpleGUI Studio Control Polish, Chrome & Theme Rendering", () => {
 
     // Unmistakable accessibility :focus-visible ring
     expect(polishCss).toContain("button:focus-visible");
-    expect(polishCss).toContain("[role=\"tab\"]:focus-visible");
+    expect(polishCss).toContain('[role="tab"]:focus-visible');
     expect(polishCss).toContain("outline: 2px solid var(--sg-focus-ring");
 
     // Inputs, placeholders, sliders, switches & steppers
