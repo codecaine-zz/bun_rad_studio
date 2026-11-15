@@ -7216,8 +7216,14 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
       if (templateBrowserFilter === "dark" && !t.dark) return false;
       if (templateBrowserFilter === "light" && t.dark) return false;
       if (
+        templateBrowserFilter === "ultra" &&
+        t.tier !== "ultra" &&
+        t.tier !== "high"
+      )
+        return false;
+      if (
         q &&
-        !`${t.name} ${t.group || ""} ${t.atmosphere || ""} ${t.uiElementFx || ""}`
+        !`${t.name} ${t.group || ""} ${t.tier || ""} ${t.atmosphere || ""} ${t.uiElementFx || ""}`
           .toLowerCase()
           .includes(q)
       )
@@ -7229,17 +7235,35 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
       ...filtered.slice(0, 48).map((t) => {
         const isCurrent = startSelect.value === t.key;
         const p = t.preview || {};
+        const bgCol = p.background || (t.dark ? "#16191d" : "#f7f8fa");
+        const panelCol = p.card || (t.dark ? "#1e2329" : "#edeff3");
+        const textCol = p.text || (t.dark ? "#e8eaed" : "#18202b");
+        const accentCol = p.accent || "#6ea8ff";
+        const selectedCol = p.selected || panelCol;
+        const glowCol = p.glow || p.secondary || accentCol;
+        const tierKey = String(t.tier || "").toLowerCase();
+        const tierLabel =
+          tierKey === "ultra"
+            ? "🚀 Ultra"
+            : tierKey === "high"
+              ? "💎 High"
+              : tierKey === "medium"
+                ? "⚡ Med"
+                : "🪶 Feather";
         return h(
           "button",
           {
             type: "button",
             role: "listitem",
-            class: `theme-editor-template-card${isCurrent ? " is-active" : ""}`,
+            class: `theme-editor-template-card${isCurrent ? " is-active is-selected-template" : ""}`,
             "data-editor-template-card": t.key,
+            "data-template-tier": tierKey || "low",
+            "data-template-mode": t.dark ? "dark" : "light",
             "aria-pressed": String(isCurrent),
-            title: `${t.name} (${t.group || "Template"})${t.hasEffects ? " · ✨ Has FX" : " · Plain"} — Click to load template · Shift+Click (or Lock FX) to apply ONLY its colors while keeping your current effects`,
+            title: `${t.name} (${t.group || "Template"} · ${tierLabel})${t.hasEffects ? " · ✨ Has FX" : " · Plain"} — Click to load template · Shift+Click (or Lock FX) to apply ONLY its colors while keeping your current effects`,
             onclick: async (e) => {
               startSelect.value = t.key;
+              renderTemplateBrowserCards();
               try {
                 const loaded = await loadStart(t.key);
                 if (Boolean(e?.shiftKey || keepCurrentFxOnColorSwap)) {
@@ -7256,31 +7280,85 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
           },
           h(
             "span",
+            {
+              class: "tpl-swatch-window",
+              style: `background:${bgCol};color:${textCol}`,
+            },
+            h(
+              "span",
+              {
+                class: "tpl-swatch-side",
+                style: `background:${panelCol}`,
+              },
+              h("span", {
+                class: "swatch",
+                style: `display:block;width:6px;height:6px;border-radius:999px;background:${accentCol}`,
+              }),
+              h("span", {
+                style: `display:block;width:78%;height:2px;border-radius:999px;background:${textCol};opacity:0.45`,
+              }),
+            ),
+            h(
+              "span",
+              { class: "tpl-swatch-body" },
+              h(
+                "span",
+                {
+                  style: `display:inline-flex;align-items:center;gap:4px;padding:1px 5px;border-radius:4px;background:${selectedCol};box-shadow:inset 2px 0 0 ${accentCol}`,
+                },
+                h("span", {
+                  style: `width:6px;height:5px;border-radius:1px 2px 1px 1px;background:${accentCol}`,
+                }),
+                h("span", {
+                  style: `width:52%;height:2.5px;border-radius:999px;background:${textCol};opacity:0.85`,
+                }),
+              ),
+            ),
+            h("span", {
+              class: "tpl-swatch-ribbon",
+              style: `background:linear-gradient(90deg, ${bgCol} 0% 20%, ${panelCol} 20% 40%, ${selectedCol} 40% 62%, ${accentCol} 62% 82%, ${glowCol} 82% 100%)`,
+            }),
+          ),
+          h(
+            "span",
             { class: "theme-swatches" },
             h("span", {
               class: "swatch",
-              style: `background:${p.background || "#16191d"}`,
+              title: "Background",
+              style: `background:${bgCol}`,
             }),
             h("span", {
               class: "swatch",
-              style: `background:${p.card || "#1e2329"}`,
+              title: "Surface / Panel",
+              style: `background:${panelCol}`,
             }),
             h("span", {
               class: "swatch",
-              style: `background:${p.text || "#e8eaed"}`,
+              title: "Primary Text",
+              style: `background:${textCol}`,
             }),
             h("span", {
               class: "swatch",
-              style: `background:${p.accent || "#6ea8ff"}`,
+              title: "Accent",
+              style: `background:${accentCol}`,
+            }),
+            h("span", {
+              class: "swatch",
+              title: "Folder / Glow",
+              style: `background:${glowCol}`,
             }),
           ),
           h("span", { class: "theme-editor-template-card-name" }, t.name),
           h(
             "span",
-            { class: "theme-editor-template-card-meta" },
-            t.hasEffects ? "✨ FX" : "⏹️ Plain",
-            " · ",
-            t.dark ? "🌙" : "☀️",
+            { class: "theme-editor-template-card-meta tpl-badge-row" },
+            h(
+              "span",
+              { class: `tpl-meta-pill${t.hasEffects ? " is-fx" : ""}` },
+              t.hasEffects ? "✨ FX" : "⏹️ Plain",
+            ),
+            h("span", { class: "tpl-meta-pill" }, tierLabel),
+            h("span", { class: "tpl-meta-pill" }, t.dark ? "🌙 Dark" : "☀️ Light"),
           ),
         );
       }),
@@ -7338,6 +7416,7 @@ export async function openEditor({ from = "", seedKey = "" } = {}) {
       h("span", { class: "theme-pill-label" }, "🗂️ Browse Starting Templates:"),
       makeTemplateFilterBtn("all", "All"),
       makeTemplateFilterBtn("fx", "✨ FX Templates"),
+      makeTemplateFilterBtn("ultra", "🚀 Ultra / High"),
       makeTemplateFilterBtn("plain", "⏹️ Plain"),
       makeTemplateFilterBtn("dark", "🌙 Dark"),
       makeTemplateFilterBtn("light", "☀️ Light"),
