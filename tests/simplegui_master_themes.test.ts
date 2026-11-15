@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   SIMPLEGUI_THEMES,
   MASTER_THEME_KEYS,
+  DEFAULT_FAVORITE_SIMPLEGUI_THEMES,
 } from "../src/shared/simpleguiThemes";
 import {
   FX_MASTER_THEMES,
@@ -403,5 +404,85 @@ describe("SimpleGUI Flagship Master Themes & Audited Catalog", () => {
     expect(css).toContain('[data-fx][data-fx-tier="low"]');
     expect(css).toContain('@media (prefers-contrast: more)');
     expect(css).toContain('@media (forced-colors: active)');
+  });
+
+  test("DEFAULT_FAVORITE_SIMPLEGUI_THEMES curates all 12 Master themes and surfaces ★ Featured Master Favorites in SimpleGUI selectors", () => {
+    expect(DEFAULT_FAVORITE_SIMPLEGUI_THEMES).toEqual([
+      "oled_obsidian_pro",
+      "liquid_glass_noir",
+      "sovereign_gold_pro",
+      "cyberdeck_pro",
+      "solaris_aurora_pro",
+      "kyoto_matcha_studio",
+      "studio_graphite_pro",
+      "liquid_glass_studio",
+      "nordic_daylight_studio",
+      "warm_paper_editorial",
+      "kyoto_washi_daylight",
+      "alabaster_studio_light",
+    ]);
+    expect([...DEFAULT_FAVORITE_SIMPLEGUI_THEMES].sort()).toEqual(
+      MASTER_THEME_KEYS,
+    );
+
+    const win = simplegui.createWindow("Favorites Selector Check", 760, 480, {
+      theme: "oled_obsidian_pro",
+    });
+    const fullShortRef = win.addThemeSelector(
+      "dd_fav_short",
+      "Theme:",
+      false,
+      200,
+      true,
+    );
+    const fullNameRef = win.addThemeSelector(
+      "dd_fav_full",
+      "Full:",
+      false,
+      220,
+      false,
+    );
+    const popularRef = win.addThemeSelector(
+      "dd_fav_popular",
+      "Popular:",
+      true,
+      200,
+      true,
+    );
+
+    // Every flagship Master Favorite appears at the top of both full and popular selectors
+    const shortItems: string[] = fullShortRef.spec.items;
+    expect(shortItems.slice(0, 12).sort()).toEqual(MASTER_THEME_KEYS);
+    for (const favKey of DEFAULT_FAVORITE_SIMPLEGUI_THEMES) {
+      expect(shortItems).toContain(favKey);
+      expect(fullNameRef.spec.items).toContain(favKey);
+      expect(popularRef.spec.items).toContain(favKey);
+      expect(fullShortRef.spec.item_labels[favKey].startsWith("★ ")).toBe(true);
+      expect(fullNameRef.spec.item_labels[favKey].startsWith("★ ")).toBe(true);
+    }
+
+    // Non-favorite labels remain completely untouched for V-lang & classic selector parity
+    expect(fullShortRef.spec.item_labels["win95"]).toBe("Win95");
+    expect(fullShortRef.spec.item_labels["gameboy"]).toBe("Game Boy");
+
+    // Generated HTML groups ★ Featured Master Favorites cleanly in <optgroup> with zero duplicate <option> values
+    const html = win.generateHtml();
+    expect(html).toContain('<optgroup label="★ Featured Master Favorites">');
+    expect(html).toContain('<optgroup label="All Studio, OS &amp; FX Themes">');
+    expect(html).toContain(
+      '<option value="oled_obsidian_pro" selected>★ OLED Pro</option>',
+    );
+    expect(html).toContain(
+      '<option value="liquid_glass_studio">★ Liquid Glass</option>',
+    );
+
+    const shortSelectMatch = html.match(
+      /<select[^>]*id="dd_fav_short"[^>]*>([\s\S]*?)<\/select>/,
+    );
+    expect(shortSelectMatch).toBeTruthy();
+    const optVals = [
+      ...shortSelectMatch![1]!.matchAll(/<option[^>]*value="([^"]*)"/g),
+    ].map((m) => m[1]!);
+    expect(new Set(optVals).size).toBe(optVals.length);
   });
 });
