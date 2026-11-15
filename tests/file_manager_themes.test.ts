@@ -11,6 +11,7 @@ import { join } from "path";
 import { JSDOM } from "jsdom";
 import { createContext } from "../src/features/filemanager/fmCore";
 import {
+  FM_BUILTIN_MASTER_THEMES,
   getThemeColours,
   getThemeColoursForHardware,
   listThemes,
@@ -63,7 +64,12 @@ const CSS_VARS = readFileSync(
 describe("the theme table", () => {
   test("every theme of the SimpleGUI table is offered once, grouped, with a preview", () => {
     const list = listThemes();
-    const names = new Set(Object.values(SIMPLEGUI_THEMES).map((t) => t.name));
+    const names = new Set(
+      [
+        ...Object.values(SIMPLEGUI_THEMES),
+        ...Object.values(FM_BUILTIN_MASTER_THEMES),
+      ].map((t) => t.name),
+    );
     expect(list.length).toBe(names.size);
     expect(new Set(list.map((t) => t.key)).size).toBe(list.length);
     expect(list.length).toBeGreaterThanOrEqual(130);
