@@ -1,5 +1,18 @@
 import { describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createContext } from "../src/features/filemanager/fmCore";
 import {
+  DEFAULT_FAVORITE_THEMES,
+  DEFAULT_FAVORITE_THEME_IDS as SETTINGS_DEFAULT_FAVORITE_THEME_IDS,
+  DEFAULT_SETTINGS,
+  loadSettings,
+  sanitizeSettings,
+  updateSettings,
+} from "../src/features/filemanager/fmSettings";
+import {
+  DEFAULT_FAVORITE_THEME_IDS,
   FM_BUILTIN_MASTER_THEMES,
   FM_BUILTIN_MASTER_THEME_SPECS,
   getThemeColours,
@@ -25,6 +38,7 @@ import {
 import { SIMPLEGUI_THEMES } from "../src/shared/simpleguiThemes";
 import { contrastRatio, parseColor } from "../src/shared/themeSemantic";
 import {
+  DEFAULT_FAVORITE_THEMES as FE_DEFAULT_FAVORITE_THEMES,
   FM_BUILTIN_MASTER_CATALOG,
   OPTION_BRACKET_SHOWCASE_TEMPLATES,
   POPULAR_PLAIN_THEME_PICKS,
@@ -32,7 +46,12 @@ import {
   JUMPSTART_WORKSTATION_KITS,
   THEME_SHOW_CHANNELS_META,
   computeSubStudioThemeTokens,
+  favoriteKeys,
+  favoriteThemeKeys,
+  favoriteThemes,
 } from "../resources/file_manager/ui/themes.js";
+import { themeMenuItems } from "../resources/file_manager/ui/themeMenu.js";
+import { state as uiState } from "../resources/file_manager/ui/state.js";
 
 const HEX_RE = /^#[0-9a-f]{6}$/;
 
@@ -395,5 +414,138 @@ describe("Codecaine File Manager Master Built-in Themes & Palette Color Science"
     expect(subTokens["--fm-status-warn"]).toBe(sample.vars.warn);
     expect(subTokens["--fm-status-danger"]).toBe(sample.vars.danger);
     expect(subTokens["--fm-status-info"]).toBe(sample.vars.info);
+  });
+
+  test("DEFAULT_FAVORITE_THEMES curates 10 balanced Flagship Master themes across all 4 hardware tiers and Dark/Light with 1:1 parity", () => {
+    expect(DEFAULT_FAVORITE_THEMES.length).toBe(10);
+    expect(new Set(DEFAULT_FAVORITE_THEMES).size).toBe(
+      DEFAULT_FAVORITE_THEMES.length,
+    );
+    expect(DEFAULT_FAVORITE_THEME_IDS).toEqual(DEFAULT_FAVORITE_THEMES);
+    expect(SETTINGS_DEFAULT_FAVORITE_THEME_IDS).toEqual(
+      DEFAULT_FAVORITE_THEMES,
+    );
+    expect([...FE_DEFAULT_FAVORITE_THEMES]).toEqual([
+      ...DEFAULT_FAVORITE_THEMES,
+    ]);
+    expect(DEFAULT_SETTINGS.favoriteThemes).toEqual([
+      ...DEFAULT_FAVORITE_THEMES,
+    ]);
+
+    const summaries = DEFAULT_FAVORITE_THEMES.map((k) => {
+      expect(k).toMatch(/^ccfm_[a-z0-9_]+$/);
+      const full = getThemeColours(k);
+      expect(full, `default favorite ${k} must exist`).not.toBeNull();
+      return full!;
+    });
+
+    const darkFavs = summaries.filter((t) => t.dark);
+    const lightFavs = summaries.filter((t) => !t.dark);
+    expect(darkFavs.length).toBeGreaterThanOrEqual(4);
+    expect(lightFavs.length).toBeGreaterThanOrEqual(4);
+
+    // Every hardware tier (ultra, high, medium, low) has both Dark and Light representation in Default Favorites
+    for (const hwTier of ["ultra", "high", "medium", "low"] as const) {
+      const inTier = summaries.filter((t) => t.hardwareTier === hwTier);
+      expect(inTier.length, `default favorites tier ${hwTier}`).toBeGreaterThan(
+        0,
+      );
+      expect(
+        inTier.some((t) => t.dark),
+        `default favorites tier ${hwTier} dark`,
+      ).toBe(true);
+      expect(
+        inTier.some((t) => !t.dark),
+        `default favorites tier ${hwTier} light`,
+      ).toBe(true);
+    }
+
+    // Includes both GPU FX shaders and 0% GPU static themes
+    expect(summaries.some((t) => t.hasEffects)).toBe(true);
+    expect(summaries.some((t) => !t.hasEffects)).toBe(true);
+  });
+
+  test("sanitizeSettings, loadSettings, and updateSettings seed DEFAULT_FAVORITE_THEMES on fresh profiles while preserving explicit empty []", async () => {
+    const tmp = mkdtempSync(join(tmpdir(), "fm-default-favs-"));
+    try {
+      const ctx = createContext({
+        home: join(tmp, "home"),
+        dataDir: join(tmp, "data"),
+      });
+
+      // Fresh / omitted / non-array favoriteThemes seed DEFAULT_FAVORITE_THEMES
+      expect(sanitizeSettings({}, ctx).favoriteThemes).toEqual([
+        ...DEFAULT_FAVORITE_THEMES,
+      ]);
+      expect(
+        sanitizeSettings({ favoriteThemes: undefined }, ctx).favoriteThemes,
+      ).toEqual([...DEFAULT_FAVORITE_THEMES]);
+      expect(
+        sanitizeSettings({ favoriteThemes: "corrupt" }, ctx).favoriteThemes,
+      ).toEqual([...DEFAULT_FAVORITE_THEMES]);
+      expect(await loadSettings(ctx)).toEqual(DEFAULT_SETTINGS);
+
+      // Explicit empty array [] (user unpinned all favorites) is preserved across normalization & partial updates
+      expect(sanitizeSettings({ favoriteThemes: [] }, ctx).favoriteThemes).toEqual(
+        [],
+      );
+      const cleared = await updateSettings(ctx, { favoriteThemes: [] });
+      expect(cleared.favoriteThemes).toEqual([]);
+      expect((await loadSettings(ctx)).favoriteThemes).toEqual([]);
+
+      const afterUnrelatedPatch = await updateSettings(ctx, { theme: "dark" });
+      expect(afterUnrelatedPatch.theme).toBe("dark");
+      expect(afterUnrelatedPatch.favoriteThemes).toEqual([]);
+    } finally {
+      rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  test("frontend favoriteKeys, favoriteThemes, and themeMenuItems immediately surface Flagship Master Favorites while respecting explicit []", async () => {
+    const prevSettings = uiState.settings;
+    try {
+      // Before settings load (undefined favoriteThemes), fallback returns DEFAULT_FAVORITE_THEMES
+      uiState.settings = { theme: "auto", palette: "" } as any;
+      expect(favoriteKeys()).toEqual([...DEFAULT_FAVORITE_THEMES]);
+      expect(favoriteThemeKeys()).toEqual([...DEFAULT_FAVORITE_THEMES]);
+
+      const resolvedFavs = await favoriteThemes();
+      expect(resolvedFavs.map((t: any) => t.key)).toEqual([
+        ...DEFAULT_FAVORITE_THEMES,
+      ]);
+
+      const menuItems = await themeMenuItems();
+      const headers = menuItems
+        .filter((i: any) => i.header)
+        .map((i: any) => i.header);
+      expect(headers).toContain("Favorites");
+
+      const labels = menuItems.map((i: any) => i.label).filter(Boolean);
+      for (const fav of resolvedFavs) {
+        expect(labels).toContain(fav.name);
+      }
+
+      // High-tier Master themes receive the 💎 High menu badge alongside Ultra, FX, and Plain
+      const badges = menuItems.map((i: any) => i.shortcut).filter(Boolean);
+      expect(badges).toContain("🌙 Dark · 🚀 Ultra");
+      expect(badges).toContain("🌙 Dark · 💎 High");
+      expect(badges).toContain("☀️ Light · 🚀 Ultra");
+      expect(badges).toContain("☀️ Light · ⏹ Plain");
+
+      // Explicit empty array [] hides Favorites from menu non-destructively
+      uiState.settings = {
+        theme: "auto",
+        palette: "",
+        favoriteThemes: [],
+      } as any;
+      expect(favoriteKeys()).toEqual([]);
+      expect(await favoriteThemes()).toEqual([]);
+      const emptyMenuItems = await themeMenuItems();
+      expect(emptyMenuItems.some((i: any) => i.header === "Favorites")).toBe(
+        false,
+      );
+    } finally {
+      uiState.settings = prevSettings;
+    }
   });
 });

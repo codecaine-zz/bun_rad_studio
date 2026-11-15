@@ -17,7 +17,10 @@ import {
   listThemes,
   themeVars,
 } from "../src/features/filemanager/fmThemes";
-import { sanitizeSettings } from "../src/features/filemanager/fmSettings";
+import {
+  DEFAULT_FAVORITE_THEMES,
+  sanitizeSettings,
+} from "../src/features/filemanager/fmSettings";
 import { startFileManagerServer } from "../src/features/filemanager/fmServer";
 import { SIMPLEGUI_THEMES } from "../src/shared/simpleguiThemes";
 import { contrastRatio } from "../src/shared/themeSemantic";
@@ -502,7 +505,8 @@ describe("the theme gallery in the page", () => {
     const headings = [...doc.querySelectorAll(".theme-list h3")].map(
       (h: any) => h.textContent,
     );
-    expect(headings[0]).toBe("Default");
+    expect(headings[0]).toBe(`Favorites (${DEFAULT_FAVORITE_THEMES.length})`);
+    expect(headings[1]).toBe("Default");
     expect(headings.some((h: string) => h.startsWith("Futuristic"))).toBe(true);
     expect(headings.some((h: string) => h.startsWith("Windows"))).toBe(true);
     expect(card("Standard").getAttribute("aria-pressed")).toBe("true");
@@ -627,7 +631,9 @@ describe("the theme gallery in the page", () => {
     await sleep(200);
 
     // Pin Nord as a favorite
-    const nordItem = card("Nord").closest(".theme-card-item");
+    const nordItem = doc
+      .querySelector('.theme-card[data-key="nord"]')
+      .closest(".theme-card-item");
     const pinBtn = nordItem.querySelector(".theme-pin");
     expect(pinBtn.getAttribute("aria-pressed")).toBe("false");
     pinBtn.click();
@@ -636,8 +642,10 @@ describe("the theme gallery in the page", () => {
     const headingsAfterPin = [...doc.querySelectorAll(".theme-list h3")].map(
       (h: any) => h.textContent,
     );
-    expect(headingsAfterPin[0]).toBe("Favorites (1)");
-    expect(state.settings.favoriteThemes).toContain("nord");
+    expect(headingsAfterPin[0]).toBe(
+      `Favorites (${DEFAULT_FAVORITE_THEMES.length + 1})`,
+    );
+    expect(state.settings.favoriteThemes[0]).toBe("nord");
     expect((await api.call("settings")).settings.favoriteThemes).toContain(
       "nord",
     );
@@ -648,21 +656,32 @@ describe("the theme gallery in the page", () => {
       new doc.defaultView.Event("change", { bubbles: true }),
     );
     await sleep(200);
-    expect(
-      [...doc.querySelectorAll(".theme-card")].map(
-        (c: any) => c.querySelector(".theme-name")?.textContent,
-      ),
-    ).toEqual(["Nord"]);
+    const favCardNames = [...doc.querySelectorAll(".theme-card")].map(
+      (c: any) => c.querySelector(".theme-name")?.textContent,
+    );
+    expect(favCardNames.length).toBe(DEFAULT_FAVORITE_THEMES.length + 1);
+    expect(favCardNames[0]).toBe("Nord");
 
-    // Unpin Nord
-    const unpinBtn = doc.querySelector(".theme-card-item .theme-pin");
-    expect(unpinBtn.getAttribute("aria-pressed")).toBe("true");
-    unpinBtn.click();
-    await sleep(250);
+    // Unpin all favorites one-by-one down to an explicit empty list
+    while (doc.querySelector(".theme-card-item .theme-pin")) {
+      const unpinBtn = doc.querySelector(".theme-card-item .theme-pin");
+      expect(unpinBtn.getAttribute("aria-pressed")).toBe("true");
+      unpinBtn.click();
+      await sleep(60);
+    }
+    await sleep(200);
     expect(state.settings.favoriteThemes).toEqual([]);
+    expect((await api.call("settings")).settings.favoriteThemes).toEqual([]);
     expect(doc.querySelector(".theme-list").textContent).toContain(
       "No favorite themes yet",
     );
+
+    // Restore flagship Master Favorites via the empty-state quick restore button
+    const restoreBtn = doc.querySelector(".theme-restore-favorites-btn");
+    expect(restoreBtn).toBeTruthy();
+    restoreBtn.click();
+    await sleep(200);
+    expect(state.settings.favoriteThemes).toEqual([...DEFAULT_FAVORITE_THEMES]);
 
     catSelect.value = "all";
     catSelect.dispatchEvent(
