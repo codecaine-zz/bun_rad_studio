@@ -1899,7 +1899,7 @@ describe("with real Ollama & Phonon model", () => {
     } finally {
       rmSync(xplatDir, { recursive: true, force: true });
     }
-  });
+  }, 120_000);
 
   test("Linux Piper --json-input per-clause synthesis & Windows SAPI SpeakProgress prevent Russell voice speed-up and keep word sync", async () => {
     const { speakChunk } = await import("../src/features/filemanager/fmPhonon");
