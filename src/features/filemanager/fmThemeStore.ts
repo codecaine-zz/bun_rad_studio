@@ -680,10 +680,13 @@ function tryParseCssTheme(raw: string): ThemeDraft | null {
   const accent = pickHexVar("accent", "primary", "focus-ring");
   if (!background || !text || !accent) return null;
 
-  const card = pickHexVar("panel", "card", "surface-elevated");
+  const card = pickHexVar("panel", "card", "surface-elevated", "bg2");
   const border = pickHexVar("border", "border-subtle");
+  const secondary = pickHexVar("folder-color", "secondary");
   const danger = pickHexVar("danger");
-  const good = pickHexVar("good", "success");
+  const warning = pickHexVar("warn", "warning", "warn-text");
+  const good = pickHexVar("ok", "good", "success");
+  const info = pickHexVar("info", "info-text");
 
   let customCss = "";
   const customSplit = raw.split(/\/\*\s*Personal Custom CSS Overrides\s*\*\//i);
@@ -699,10 +702,13 @@ function tryParseCssTheme(raw: string): ThemeDraft | null {
       background,
       text,
       accent,
+      ...(secondary ? { secondary } : {}),
       ...(card ? { card } : {}),
       ...(border ? { border } : {}),
       ...(danger ? { danger } : {}),
+      ...(warning ? { warning } : {}),
       ...(good ? { success: good } : {}),
+      ...(info ? { info } : {}),
     },
     ...(customCss
       ? {
