@@ -3231,7 +3231,13 @@ describe("the Themes button in the ribbon", () => {
     g.localStorage = win.localStorage;
     win.localStorage.removeItem("fm_recent_themes");
     await chooseTheme(themes[3].key);
-    await sleep(400);
+    for (
+      let i = 0;
+      i < 60 && doc.documentElement.dataset.palette !== themes[3].key;
+      i++
+    ) {
+      await sleep(50);
+    }
     await open();
     expect(labels().join("|")).toContain(themes[3].name);
     expect(doc.documentElement.dataset.palette).toBe(themes[3].key);
@@ -3239,7 +3245,15 @@ describe("the Themes button in the ribbon", () => {
     await sleep(100);
     await open();
     item("Standard: follow my computer").click();
-    await sleep(400);
+    for (
+      let i = 0;
+      i < 60 &&
+      ((await stateNow()).settings.palette !== "" ||
+        doc.documentElement.dataset.palette !== undefined);
+      i++
+    ) {
+      await sleep(50);
+    }
     expect((await stateNow()).settings.palette).toBe("");
     expect(doc.documentElement.dataset.palette).toBeUndefined();
     expect(JSON.parse(win.localStorage.getItem("fm_recent_themes"))).toEqual([

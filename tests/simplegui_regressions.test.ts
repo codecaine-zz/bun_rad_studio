@@ -27,6 +27,10 @@ import {
 } from "../src/simplegui";
 import { createFdStudio } from "../applications/fd_studio";
 import { createJqStudio } from "../applications/jq_studio";
+import {
+  renderIndexDts,
+  renderSimpleGuiDts,
+} from "../scripts/build_npm_package";
 
 const ROOT = resolve(import.meta.dir, "..");
 
@@ -384,9 +388,14 @@ describe("Bug 2: Explicit window options vs persisted session/form state & fulls
 
 describe("Bug 3: index.d.ts and simplegui.d.ts strict TypeScript verification", () => {
   test("every runtime SimpleControlRef and SimpleWindow prototype method is typed without [key: string]: any", () => {
-    const dtsPaths = [
-      join(ROOT, "dist", "index.d.ts"),
-      join(ROOT, "dist", "npm", "index.d.ts"),
+    const dtsSources = [
+      renderIndexDts(),
+      ...[
+        join(ROOT, "dist", "index.d.ts"),
+        join(ROOT, "dist", "npm", "index.d.ts"),
+      ]
+        .filter((p) => existsSync(p))
+        .map((p) => readFileSync(p, "utf8")),
     ];
 
     const ctrlMethods = Object.getOwnPropertyNames(
@@ -396,8 +405,7 @@ describe("Bug 3: index.d.ts and simplegui.d.ts strict TypeScript verification", 
       SimpleWindow.prototype,
     ).filter((m) => m !== "constructor" && !m.startsWith("_"));
 
-    for (const dtsPath of dtsPaths) {
-      const dts = readFileSync(dtsPath, "utf8");
+    for (const dts of dtsSources) {
       expect(dts).not.toContain("readonly id: string;");
       expect(dts).toContain("id(idStr: string): this;");
 
@@ -418,11 +426,16 @@ describe("Bug 3: index.d.ts and simplegui.d.ts strict TypeScript verification", 
       }
     }
 
-    for (const sgDtsPath of [
-      join(ROOT, "dist", "simplegui.d.ts"),
-      join(ROOT, "dist", "npm", "simplegui.d.ts"),
-    ]) {
-      const sgDts = readFileSync(sgDtsPath, "utf8");
+    const sgSources = [
+      renderSimpleGuiDts(),
+      ...[
+        join(ROOT, "dist", "simplegui.d.ts"),
+        join(ROOT, "dist", "npm", "simplegui.d.ts"),
+      ]
+        .filter((p) => existsSync(p))
+        .map((p) => readFileSync(p, "utf8")),
+    ];
+    for (const sgDts of sgSources) {
       expect(sgDts).toMatch(
         /export type \{[\s\S]*\bWindowOptions\b[\s\S]*\} from "\.\/index\.js";/,
       );
@@ -437,13 +450,39 @@ describe("Bug 3: index.d.ts and simplegui.d.ts strict TypeScript verification", 
     try {
       const pkgDir = join(tmp, "node_modules", "bun-rad-studio");
       mkdirSync(pkgDir, { recursive: true });
-      for (const file of ["package.json", "index.d.ts", "simplegui.d.ts"]) {
-        writeFileSync(
-          join(pkgDir, file),
-          readFileSync(join(ROOT, "dist", "npm", file), "utf8"),
-          "utf8",
-        );
-      }
+      const distNpmPkg = join(ROOT, "dist", "npm", "package.json");
+      const pkgJson = existsSync(distNpmPkg)
+        ? readFileSync(distNpmPkg, "utf8")
+        : JSON.stringify(
+            {
+              name: "bun-rad-studio",
+              version: "1.5.9",
+              type: "module",
+              main: "./index.js",
+              types: "./index.d.ts",
+              exports: {
+                ".": {
+                  types: "./index.d.ts",
+                  import: "./index.js",
+                  default: "./index.js",
+                },
+                "./simplegui": {
+                  types: "./simplegui.d.ts",
+                  import: "./simplegui.js",
+                  default: "./simplegui.js",
+                },
+              },
+            },
+            null,
+            2,
+          );
+      writeFileSync(join(pkgDir, "package.json"), pkgJson, "utf8");
+      writeFileSync(join(pkgDir, "index.d.ts"), renderIndexDts(), "utf8");
+      writeFileSync(
+        join(pkgDir, "simplegui.d.ts"),
+        renderSimpleGuiDts(),
+        "utf8",
+      );
 
       const consumerTs = `
 import {
@@ -689,11 +728,17 @@ async function withIsolatedHome(
   fn: (tmpHome: string) => void | Promise<void>,
 ): Promise<void> {
   const prevHome = process.env.HOME;
+  const prevUserProfile = process.env.USERPROFILE;
+  const prevLocalAppData = process.env.LOCALAPPDATA;
+  const prevAppData = process.env.APPDATA;
   const prevXdgConfig = process.env.XDG_CONFIG_HOME;
   const prevXdgState = process.env.XDG_STATE_HOME;
   const tmpHome = mkdtempSync(join(tmpdir(), "simplegui-reg-home-"));
   const homeSpy = spyOn(os, "homedir").mockReturnValue(tmpHome);
   process.env.HOME = tmpHome;
+  process.env.USERPROFILE = tmpHome;
+  process.env.LOCALAPPDATA = join(tmpHome, "AppData", "Local");
+  process.env.APPDATA = join(tmpHome, "AppData", "Roaming");
   process.env.XDG_CONFIG_HOME = join(tmpHome, ".config");
   process.env.XDG_STATE_HOME = join(tmpHome, ".local", "state");
 
@@ -703,6 +748,12 @@ async function withIsolatedHome(
     homeSpy.mockRestore();
     if (prevHome === undefined) delete process.env.HOME;
     else process.env.HOME = prevHome;
+    if (prevUserProfile === undefined) delete process.env.USERPROFILE;
+    else process.env.USERPROFILE = prevUserProfile;
+    if (prevLocalAppData === undefined) delete process.env.LOCALAPPDATA;
+    else process.env.LOCALAPPDATA = prevLocalAppData;
+    if (prevAppData === undefined) delete process.env.APPDATA;
+    else process.env.APPDATA = prevAppData;
     if (prevXdgConfig === undefined) delete process.env.XDG_CONFIG_HOME;
     else process.env.XDG_CONFIG_HOME = prevXdgConfig;
     if (prevXdgState === undefined) delete process.env.XDG_STATE_HOME;
