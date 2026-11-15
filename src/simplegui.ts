@@ -2428,6 +2428,7 @@ export class SimpleWindow {
                     }
                     styleEl.textContent = \`
                         :root {
+                            --theme-bg: ${colors.bg};
                             --accent: ${colors.accent};
                             --accent-secondary: ${secAccent};
                             --btn-bg: ${btnBg};
@@ -2440,6 +2441,11 @@ export class SimpleWindow {
                             --input-border: ${inputBorder};
                             --editable-bg: ${isLight ? "rgba(0, 0, 0, 0.03)" : "rgba(255, 255, 255, 0.04)"};
                             --editable-border: ${isLight ? "rgba(0, 0, 0, 0.22)" : "rgba(255, 255, 255, 0.22)"};
+                            --sg-specular-top: ${isLight ? "rgba(255, 255, 255, 0.72)" : "rgba(255, 255, 255, 0.16)"};
+                            --sg-shadow-xs: ${isLight ? "0 1px 2px rgba(15, 23, 42, 0.06)" : "0 1px 2px rgba(0, 0, 0, 0.3)"};
+                            --sg-shadow-sm: ${isLight ? "0 2px 6px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.05)" : "0 2px 8px rgba(0, 0, 0, 0.36), 0 1px 2px rgba(0, 0, 0, 0.24)"};
+                            --sg-shadow-md: ${isLight ? "0 8px 22px -4px rgba(15, 23, 42, 0.11), 0 2px 6px -1px rgba(15, 23, 42, 0.06)" : "0 10px 26px -4px rgba(0, 0, 0, 0.46), 0 3px 8px -2px rgba(0, 0, 0, 0.28)"};
+                            --sg-shadow-lg: ${isLight ? "0 18px 42px -8px rgba(15, 23, 42, 0.18), 0 6px 14px -3px rgba(15, 23, 42, 0.09)" : "0 20px 48px -8px rgba(0, 0, 0, 0.62), 0 8px 18px -4px rgba(0, 0, 0, 0.36)"};
                             ${semanticVars}
                         }
                         body { background-color: ${colors.bg} !important; color: ${colors.fg} !important; }
@@ -2747,6 +2753,22 @@ export class SimpleWindow {
                     if (tDesc) {
                         tDesc.textContent = "${themeObj.description.replace(/"/g, '\\"')} • Unified single-form showcase with all 30+ RAD controls";
                         tDesc.style.color = "${mutedColor}";
+                    }
+                    if (typeof window.__sgSyncShowcaseThemeMeta === "function") {
+                        window.__sgSyncShowcaseThemeMeta(${JSON.stringify({
+                          key: this.theme,
+                          name: themeObj.name,
+                          shortName: themeObj.short_name || themeObj.name,
+                          bg: colors.bg,
+                          fg: colors.fg,
+                          accent: colors.accent,
+                          secondary: secAccent,
+                          cardBg,
+                          cardBorder,
+                          isDark: themeObj.is_dark,
+                          description: themeObj.description,
+                          fx: themeObj.fx || null,
+                        })});
                     }
                 })();
             `);
@@ -5031,15 +5053,26 @@ export class SimpleWindow {
       "matrix_phosphor",
       "amiga",
     ];
+    const baseVlangKeys = VLANG_THEME_NAMES.map((k) => {
+      if (k === "commodore64") return "c64";
+      if (k === "matrix_phosphor") return "matrix";
+      if (k === "synthwave84") return "synthwave";
+      if (k === "macintosh_system7") return "mac_classic";
+      return k;
+    });
+    const coveredThemeNames = new Set(
+      baseVlangKeys.map((k) => SIMPLEGUI_THEMES[k]?.name).filter(Boolean),
+    );
+    const extraCanonicalKeys: string[] = [];
+    for (const [k, t] of Object.entries(SIMPLEGUI_THEMES)) {
+      if (t && t.name && !coveredThemeNames.has(t.name)) {
+        coveredThemeNames.add(t.name);
+        extraCanonicalKeys.push(k);
+      }
+    }
     const rawThemeList = popularOnly
       ? popularThemes.filter((k) => SIMPLEGUI_THEMES[k])
-      : VLANG_THEME_NAMES.map((k) => {
-          if (k === "commodore64") return "c64";
-          if (k === "matrix_phosphor") return "matrix";
-          if (k === "synthwave84") return "synthwave";
-          if (k === "macintosh_system7") return "mac_classic";
-          return k;
-        });
+      : [...baseVlangKeys, ...extraCanonicalKeys];
 
     const itemLabels: Record<string, string> = {};
     for (const k of rawThemeList) {
@@ -8152,17 +8185,21 @@ export class SimpleWindow {
   /** Adds a macOS Finder-style breadcrumb path bar displaying filesystem segments. */
   public addPathControl(
     id: string,
-    segments: string[] = ["Macintosh HD", "Users", "codecaine", "Projects"],
+    segments: string[] = ["Workspace", "Studio", "Projects", "DemoApp"],
     opts: Partial<any> = {},
   ): SimpleControlRef {
+    const safeSegments =
+      Array.isArray(segments) && segments.length > 0
+        ? segments
+        : ["Workspace", "Studio", "Projects", "DemoApp"];
     return this.addVisualControl(
       "path_control",
       Math.min(420, this.width - 40),
       34,
       {
         id,
-        segments,
-        text: segments.join("/"),
+        segments: safeSegments,
+        text: safeSegments.join("/"),
         ...opts,
       },
     );
@@ -12023,6 +12060,369 @@ export class SimpleWindow {
     return this.generateHtml();
   }
 
+  private _buildStudioPolishStyle(spec: Record<string, any>): string {
+    const isLight = spec.is_dark === false;
+    const bg = String(spec.background_color || "#0f1115");
+    return `<style id="simplegui-studio-polish">
+  :root {
+    --theme-bg: ${bg};
+    --sg-radius-xs: 4px;
+    --sg-radius-sm: 6px;
+    --sg-radius-md: 8px;
+    --sg-radius-lg: 12px;
+    --sg-radius-pill: 9999px;
+    --sg-specular-top: ${isLight ? "rgba(255, 255, 255, 0.72)" : "rgba(255, 255, 255, 0.16)"};
+    --sg-specular-card: ${isLight ? "rgba(255, 255, 255, 0.65)" : "rgba(255, 255, 255, 0.06)"};
+    --sg-shadow-xs: ${isLight ? "0 1px 2px rgba(15, 23, 42, 0.06)" : "0 1px 2px rgba(0, 0, 0, 0.3)"};
+    --sg-shadow-sm: ${isLight ? "0 2px 6px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.05)" : "0 2px 8px rgba(0, 0, 0, 0.36), 0 1px 2px rgba(0, 0, 0, 0.24)"};
+    --sg-shadow-md: ${isLight ? "0 8px 22px -4px rgba(15, 23, 42, 0.11), 0 2px 6px -1px rgba(15, 23, 42, 0.06)" : "0 10px 26px -4px rgba(0, 0, 0, 0.46), 0 3px 8px -2px rgba(0, 0, 0, 0.28)"};
+    --sg-shadow-lg: ${isLight ? "0 18px 42px -8px rgba(15, 23, 42, 0.18), 0 6px 14px -3px rgba(15, 23, 42, 0.09)" : "0 20px 48px -8px rgba(0, 0, 0, 0.62), 0 8px 18px -4px rgba(0, 0, 0, 0.36)"};
+    --sg-surface-elevated: color-mix(in srgb, var(--card-bg, #18181b) 92%, var(--theme-fg, #f4f4f5) 8%);
+    --sg-surface-subtle: color-mix(in srgb, var(--card-bg, #18181b) 96%, var(--theme-fg, #f4f4f5) 4%);
+    --sg-surface-sticky: color-mix(in srgb, var(--card-bg, #18181b) 94%, var(--theme-bg, #0f1115) 6%);
+    --sg-border-hairline: color-mix(in srgb, var(--card-border, rgba(148, 163, 184, 0.24)) 84%, var(--theme-fg, #f4f4f5) 8%);
+    --sg-border-strong: color-mix(in srgb, var(--card-border, rgba(148, 163, 184, 0.28)) 62%, var(--theme-fg, #f4f4f5) 26%);
+    --sg-hairline: var(--sg-border-hairline);
+    --sg-hairline-strong: var(--sg-border-strong);
+    --sg-focus-ring: color-mix(in srgb, var(--accent, #38bdf8) 88%, var(--theme-fg, #ffffff) 12%);
+    --sg-focus-glow: color-mix(in srgb, var(--accent, #38bdf8) 24%, transparent);
+    --sg-row-zebra: color-mix(in srgb, var(--theme-fg, #94a3b8) 2.6%, transparent);
+    --sg-row-hover: color-mix(in srgb, var(--accent, #38bdf8) 9%, transparent);
+    --sg-row-selected: color-mix(in srgb, var(--accent, #38bdf8) 18%, transparent);
+    --sg-scrollbar-thumb: color-mix(in srgb, var(--theme-muted, #64748b) 44%, transparent);
+    --sg-scrollbar-thumb-hover: color-mix(in srgb, var(--accent, #38bdf8) 68%, var(--theme-muted, #64748b) 32%);
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    transition: background-color 180ms ease, color 180ms ease;
+  }
+
+  /* Buttons: subtle top specular rim, hairline border, tactile press & crisp focus ring */
+  button.rad-button,
+  button.btn-theme-accent,
+  button[data-variant],
+  button[data-custom-bg]:not(.modal-close):not([data-pag-num]) {
+    border: 1px solid color-mix(in srgb, currentColor 16%, rgba(255, 255, 255, 0.14));
+    box-shadow: inset 0 1px 0 var(--sg-specular-top), var(--sg-shadow-sm);
+    letter-spacing: -0.01em;
+    transition:
+      transform 130ms cubic-bezier(0.2, 0, 0, 1),
+      box-shadow 160ms ease,
+      filter 150ms ease,
+      background-color 150ms ease,
+      border-color 150ms ease,
+      color 150ms ease;
+  }
+  button[data-variant="secondary"] {
+    background: var(--sg-surface-elevated, var(--card-bg)) !important;
+    color: var(--theme-fg, inherit) !important;
+    border: 1px solid var(--sg-border-strong, var(--card-border)) !important;
+  }
+  button[data-variant="ghost"] {
+    background: color-mix(in srgb, var(--theme-fg, #94a3b8) 5%, transparent) !important;
+    color: var(--theme-fg, inherit) !important;
+    border: 1px solid var(--sg-border-hairline, var(--card-border)) !important;
+    box-shadow: inset 0 1px 0 var(--sg-specular-card) !important;
+  }
+  button[data-variant="ghost"]:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--accent, #38bdf8) 12%, transparent) !important;
+    border-color: color-mix(in srgb, var(--accent, #38bdf8) 45%, var(--card-border)) !important;
+  }
+  button.rad-button:hover:not(:disabled),
+  button.btn-theme-accent:hover:not(:disabled),
+  button[data-variant]:hover:not(:disabled) {
+    transform: translateY(-0.5px);
+    box-shadow:
+      inset 0 1px 0 var(--sg-specular-top),
+      var(--sg-shadow-md),
+      0 0 0 1px color-mix(in srgb, var(--accent, #38bdf8) 24%, transparent);
+  }
+  button.rad-button:active:not(:disabled),
+  button.btn-theme-accent:active:not(:disabled),
+  button[data-variant]:active:not(:disabled) {
+    transform: translateY(0.5px) scale(0.98) !important;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.22), var(--sg-shadow-xs);
+  }
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    opacity: 0.48 !important;
+    cursor: not-allowed !important;
+    filter: saturate(0.65);
+    box-shadow: none !important;
+  }
+
+  /* Unmistakable keyboard :focus-visible rings across all controls & semantic variants */
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  [role="tab"]:focus-visible,
+  [role="menuitem"]:focus-visible,
+  a:focus-visible,
+  summary:focus-visible,
+  .rad-tab-btn:focus-visible,
+  .tree-node:focus-visible,
+  .ctx-item:focus-visible,
+  .menu-dropdown-item:focus-visible,
+  .popup-item:focus-visible,
+  .pal-item:focus-visible,
+  .transfer-item:focus-visible,
+  .tag-cloud-item:focus-visible,
+  .swatch-chip:focus-visible {
+    outline: 2px solid var(--sg-focus-ring, var(--accent, #38bdf8)) !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 4px var(--sg-focus-glow), inset 0 1px 0 var(--sg-specular-top);
+  }
+  button[data-variant="danger"]:focus-visible {
+    outline-color: var(--danger, #ef4444) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger, #ef4444) 26%, transparent), inset 0 1px 0 var(--sg-specular-top);
+  }
+  button[data-variant="success"]:focus-visible {
+    outline-color: var(--success, #10b981) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--success, #10b981) 26%, transparent), inset 0 1px 0 var(--sg-specular-top);
+  }
+  button[data-variant="warning"]:focus-visible {
+    outline-color: var(--warning, #f59e0b) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--warning, #f59e0b) 28%, transparent), inset 0 1px 0 var(--sg-specular-top);
+  }
+  button[data-variant="info"]:focus-visible {
+    outline-color: var(--info, var(--accent, #38bdf8)) !important;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--info, var(--accent, #38bdf8)) 26%, transparent), inset 0 1px 0 var(--sg-specular-top);
+  }
+
+  /* Inputs, Selects, Textareas, Search & Masked wrappers */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]):not([type="file"]):not(.cmd-palette-input),
+  textarea,
+  select.simplegui-select,
+  select.simplegui-listbox {
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06), var(--sg-shadow-xs);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease, color 150ms ease;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]):not([type="file"]):not(.cmd-palette-input):hover:not(:disabled):not(:focus),
+  textarea:hover:not(:disabled):not(:focus),
+  .search-field-wrapper:hover,
+  .rad-rich-select:hover,
+  .rad-masked-input-wrapper:hover {
+    border-color: color-mix(in srgb, var(--accent, #38bdf8) 46%, var(--input-border, var(--card-border))) !important;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]):not([type="file"]):not(.cmd-palette-input):focus,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]):not([type="file"]):not(.cmd-palette-input):focus-visible,
+  textarea:focus,
+  textarea:focus-visible,
+  select.simplegui-select:focus,
+  select.simplegui-select:focus-visible,
+  select.simplegui-listbox:focus,
+  select.simplegui-listbox:focus-visible,
+  .search-field-wrapper:focus-within,
+  .rad-rich-select:focus-within,
+  .rad-masked-input-wrapper:focus-within {
+    border-color: var(--accent, #38bdf8) !important;
+    box-shadow: 0 0 0 3px var(--sg-focus-glow), inset 0 1px 1px rgba(0, 0, 0, 0.04) !important;
+    outline: 2px solid transparent !important;
+  }
+
+  /* Sliders, Switches, Checkboxes, Radios & Number Steppers */
+  input[type="range"] {
+    height: 6px;
+    border-radius: var(--sg-radius-pill);
+    background: color-mix(in srgb, var(--theme-fg, #94a3b8) 15%, var(--card-bg, transparent));
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.16);
+    transition: background-color 150ms ease;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--card-bg, #ffffff);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.34), 0 0 0 1px color-mix(in srgb, var(--accent, #38bdf8) 45%, transparent);
+    transition: transform 120ms cubic-bezier(0.2, 0, 0, 1), box-shadow 150ms ease;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.12);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 0 4px var(--sg-focus-glow);
+  }
+  input[type="range"]:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px var(--card-bg, #0f172a), 0 0 0 5px var(--sg-focus-ring, var(--accent));
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent, #38bdf8);
+    border: 2px solid var(--card-bg, #ffffff);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.34);
+  }
+  input[type="checkbox"]:focus-visible,
+  input[type="radio"]:focus-visible {
+    outline: 2px solid var(--sg-focus-ring, var(--accent, #38bdf8)) !important;
+    outline-offset: 2px !important;
+  }
+  .rad-switch-label .sw-track {
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2), 0 0 0 1px color-mix(in srgb, var(--card-border, rgba(148,163,184,0.3)) 70%, transparent);
+  }
+  .rad-switch-label .sw-thumb {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    transition: left 180ms cubic-bezier(0.2, 0, 0, 1), transform 120ms ease !important;
+  }
+  .rad-switch-label:active .sw-thumb {
+    transform: scaleX(1.08);
+  }
+  .stepper-val,
+  .slider-val,
+  .knob-val,
+  .slide-count {
+    font-variant-numeric: tabular-nums;
+  }
+  div:has(> .stepper-val) {
+    box-shadow: var(--sg-shadow-xs);
+  }
+  div:has(> .stepper-val) button:active {
+    transform: scale(0.92);
+  }
+
+  /* Cards, Panels, GroupBoxes, Badges & Progress Bars */
+  .rad-card,
+  .sg-kpi-card,
+  .rad-kpi-card,
+  fieldset {
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 8%, transparent), var(--sg-shadow-md);
+    border-color: var(--sg-border-hairline, var(--card-border));
+  }
+  .rad-badge,
+  .rad-pill-tag,
+  .token-chip,
+  .tag-cloud-item {
+    letter-spacing: 0.01em;
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 14%, transparent);
+  }
+  .rad-progress > div:last-child {
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.16);
+  }
+  .rad-progress > div:last-child > div {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.26);
+  }
+
+  /* Tabs, Segmented Controls, Menus, Ribbons, Toolbars, Tooltips & Modals */
+  .rad-tabs-bar {
+    border-bottom: 1px solid var(--sg-border-hairline, var(--card-border)) !important;
+  }
+  .rad-tab-btn {
+    border-radius: var(--sg-radius-sm) var(--sg-radius-sm) 0 0;
+    letter-spacing: -0.005em;
+  }
+  .rad-tab-btn:hover {
+    background: color-mix(in srgb, var(--accent, #38bdf8) 9%, transparent) !important;
+  }
+  .rad-menu-bar,
+  .rad-toolbar {
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 8%, transparent), var(--sg-shadow-sm) !important;
+    border-color: var(--sg-border-hairline, var(--card-border)) !important;
+  }
+  .menu-dropdown,
+  .rad-dropdown-menu,
+  .rad-popup-menu,
+  .rich-select-dropdown {
+    background-color: var(--sg-surface-elevated, var(--card-bg)) !important;
+    border: 1px solid var(--sg-border-strong, var(--card-border)) !important;
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent), var(--sg-shadow-lg) !important;
+  }
+  .menu-dropdown-item:hover,
+  .rad-dropdown-item:hover,
+  .popup-item:hover,
+  .ctx-item:hover,
+  .pal-item:hover {
+    background: color-mix(in srgb, var(--accent, #38bdf8) 15%, transparent) !important;
+  }
+  .rad-tooltip-bubble {
+    box-shadow: var(--sg-shadow-md);
+    border: 1px solid var(--sg-border-strong, var(--card-border));
+  }
+  .rad-modal {
+    box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent), var(--sg-shadow-lg);
+  }
+
+  /* Tables & Data Grids: opaque sticky headers, subtle zebra rows, crisp selection bar */
+  table thead tr {
+    background: var(--sg-surface-sticky, var(--card-bg)) !important;
+    box-shadow: 0 1px 0 var(--sg-border-hairline, var(--card-border));
+  }
+  table thead th,
+  table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    letter-spacing: 0.02em;
+    font-size: 11.5px;
+    background: var(--sg-surface-sticky, var(--card-bg));
+  }
+  table tbody tr:nth-child(even):not(.selected-tr) {
+    background-color: var(--sg-row-zebra);
+  }
+  table tbody tr:hover:not(.selected-tr) {
+    background-color: var(--sg-row-hover) !important;
+  }
+  table tbody tr.selected-tr {
+    background-color: var(--sg-row-selected) !important;
+    box-shadow: inset 3px 0 0 var(--accent, #38bdf8);
+  }
+  table td {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Theme-aware Scrollbars (legible on both crisp light paper & deep OLED dark themes) */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--sg-scrollbar-thumb, rgba(148, 163, 184, 0.38));
+    border-radius: var(--sg-radius-pill);
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--sg-scrollbar-thumb-hover, var(--accent, #38bdf8));
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--accent, #38bdf8) 28%, transparent);
+    color: var(--theme-fg, inherit);
+  }
+
+  /* Strict Reduced-Motion Support */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    button.rad-button:hover:not(:disabled),
+    button.btn-theme-accent:hover:not(:disabled),
+    button[data-variant]:hover:not(:disabled),
+    button.rad-button:active:not(:disabled),
+    button.btn-theme-accent:active:not(:disabled),
+    button[data-variant]:active:not(:disabled),
+    input[type="range"]::-webkit-slider-thumb:hover,
+    .rad-switch-label:active .sw-thumb {
+      transform: none !important;
+    }
+  }
+</style>`;
+  }
+
   /** Compiles the complete self-contained HTML/CSS/JS document used to render the window and all its controls. */
   public generateHtml(): string {
     if (this._currentGridSection) {
@@ -12062,8 +12462,9 @@ export class SimpleWindow {
       .filter((k) => k.startsWith("shortcut_"))
       .map((k) => k.slice("shortcut_".length));
 
-    // Inject SimpleGUI modal dialog & IPC scripts
+    // Inject SimpleGUI studio polish CSS, modal dialog & IPC scripts
     const scriptInject = `
+            ${this._buildStudioPolishStyle(spec)}
             ${DIALOG_CLIENT_HTML}
             ${UI_CLIENT_HTML}
             <script>
@@ -12501,22 +12902,22 @@ export class SimpleWindow {
                         }
                         .rad-card {
                             background: var(--card-bg, rgba(255,255,255,0.03)) !important;
-                            border: 1px solid var(--card-border, rgba(255,255,255,0.08)) !important;
-                            border-radius: 10px !important;
-                            padding: 12px 14px !important;
+                            border: 1px solid var(--sg-border-hairline, var(--card-border, rgba(255,255,255,0.08))) !important;
+                            border-radius: 12px !important;
+                            padding: 14px 16px !important;
                             box-sizing: border-box !important;
                             width: 100% !important;
                             display: flex !important;
                             flex-direction: column !important;
                             gap: 10px !important;
-                            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+                            box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 8%, transparent), var(--sg-shadow-md, 0 4px 16px rgba(0, 0, 0, 0.2)) !important;
                         }
                         .rad-card-header {
                             font-size: 11px !important;
                             font-weight: 700 !important;
                             color: var(--accent, #38bdf8) !important;
                             text-transform: uppercase !important;
-                            letter-spacing: 0.6px !important;
+                            letter-spacing: 0.7px !important;
                             user-select: none !important;
                         }
                         .rad-card-subtitle {
@@ -19758,6 +20159,9 @@ export function autoShortThemeName(themeNameOrKey: string): string {
   const trimmed = themeNameOrKey.trim();
   const key = trimmed.toLowerCase().replace(/[\s\-_]+/g, "_");
 
+  if (SIMPLEGUI_THEMES[trimmed]?.short_name) {
+    return SIMPLEGUI_THEMES[trimmed]!.short_name!;
+  }
   if (SIMPLEGUI_THEMES[key]?.short_name) {
     return SIMPLEGUI_THEMES[key]!.short_name!;
   }
