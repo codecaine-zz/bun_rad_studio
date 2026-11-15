@@ -24,7 +24,11 @@ import {
 } from "fs";
 import { join, resolve } from "path";
 import { webviewPlugin } from "./release/suite";
-import { buildNpmPackage } from "./build_npm_package";
+import {
+  buildNpmPackage,
+  renderIndexDts,
+  renderSimpleGuiDts,
+} from "./build_npm_package";
 
 const ROOT = resolve(import.meta.dir, "..");
 const DIST = join(ROOT, "dist");
@@ -108,15 +112,29 @@ async function buildLib() {
   copyFileSync(join(ROOT, "src", "ide.html"), join(distSrc, "ide.html"));
   log("📄", "Copied src/ide.html → dist/src/ide.html");
 
+  // --- emit TypeScript declaration files (dist/index.d.ts & dist/simplegui.d.ts) ---
+  writeFileSync(join(DIST, "index.d.ts"), renderIndexDts(), "utf8");
+  writeFileSync(join(DIST, "simplegui.d.ts"), renderSimpleGuiDts(), "utf8");
+  log("📄", "Generated dist/index.d.ts & dist/simplegui.d.ts");
+
   // --- emit a minimal dist package.json ---
   const distPkg = {
     name: PKG.name,
     version: PKG.version ?? "0.0.0",
     type: "module",
     main: "./index.js",
+    types: "./index.d.ts",
     exports: {
-      ".": { import: "./index.js", default: "./index.js" },
-      "./simplegui": { import: "./simplegui.js", default: "./simplegui.js" },
+      ".": {
+        types: "./index.d.ts",
+        import: "./index.js",
+        default: "./index.js",
+      },
+      "./simplegui": {
+        types: "./simplegui.d.ts",
+        import: "./simplegui.js",
+        default: "./simplegui.js",
+      },
     },
     peerDependencies: PKG.peerDependencies ?? {},
     dependencies: PKG.dependencies ?? {},

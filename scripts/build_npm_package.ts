@@ -26,6 +26,7 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, relative, resolve } from "node:path";
+import ts from "typescript";
 import { buildWrapperDefinitions } from "./generate_brew_suite.ts";
 import { listSourceApps, ROOT, VERSION } from "./release/common.ts";
 
@@ -512,117 +513,239 @@ try {
 `;
 }
 
-function renderIndexDts(): string {
-  return `/**
- * Bun RAD Studio & Codecaine Utility Suite — TypeScript Declarations
- */
-export interface WindowOptions {
-  theme?: string;
-  resizable?: boolean;
-  alwaysOnTop?: boolean;
-  frameless?: boolean;
-  center?: boolean;
-  [key: string]: unknown;
+let cachedDtsBundle: { indexDts: string; simpleGuiDts: string } | null = null;
+
+function getBundledDeclarations(): { indexDts: string; simpleGuiDts: string } {
+  if (cachedDtsBundle) return cachedDtsBundle;
+
+  const emitted = new Map<string, string>();
+  const compilerOptions: ts.CompilerOptions = {
+    declaration: true,
+    emitDeclarationOnly: true,
+    target: ts.ScriptTarget.ESNext,
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.Bundler,
+    skipLibCheck: true,
+  };
+  const program = ts.createProgram([join(ROOT, "index.ts")], compilerOptions);
+  program.emit(undefined, (fileName, text) => {
+    emitted.set(fileName.replace(/\\/g, "/"), text);
+  });
+
+  const moduleOrder: Array<{ suffix: string; helper: boolean }> = [
+    { suffix: "/src/shared/helpMatch.d.ts", helper: true },
+    { suffix: "/src/shared/themeSemantic.d.ts", helper: true },
+    { suffix: "/src/shared/fxThemes.d.ts", helper: true },
+    { suffix: "/src/shared/simpleguiThemes.d.ts", helper: true },
+    { suffix: "/src/simplegui_dialogs.d.ts", helper: true },
+    { suffix: "/src/simplegui_components.d.ts", helper: true },
+    { suffix: "/src/simplegui.d.ts", helper: false },
+    { suffix: "/src/simplecli/core/types.d.ts", helper: false },
+    { suffix: "/src/simplecli/core/ansi.d.ts", helper: false },
+    { suffix: "/src/simplecli/core/logger.d.ts", helper: false },
+    { suffix: "/src/simplecli/core/prompts.d.ts", helper: false },
+    { suffix: "/src/simplecli/core/pipeline.d.ts", helper: false },
+    { suffix: "/src/simplecli/core/config.d.ts", helper: false },
+    { suffix: "/src/simplecli/core/redis.d.ts", helper: false },
+    { suffix: "/src/simplecli/core/client.d.ts", helper: false },
+    { suffix: "/src/simplecli/core/SimpleCLI.d.ts", helper: false },
+    { suffix: "/src/simplecli/sys/index.d.ts", helper: false },
+    { suffix: "/src/simplecli/stdlib/index.d.ts", helper: false },
+    { suffix: "/src/simplecli/index.d.ts", helper: false },
+    { suffix: "index.d.ts", helper: false },
+  ];
+
+  const helperPublicValues = new Set([
+    "SIMPLEGUI_THEMES",
+    "FX_FALLBACK_THEMES",
+    "detectThemeHardware",
+    "getFallbackThemeKey",
+    "srgbToDisplayP3",
+    "SimpleDialogs",
+  ]);
+
+  const chunks: string[] = [
+    "/**",
+    " * Bun RAD Studio & Codecaine Utility Suite — Self-Contained TypeScript Declarations",
+    " */",
+    "export type Webview = any;",
+  ];
+
+  const sgValueExports = new Set<string>(helperPublicValues);
+  const sgTypeExports = new Set<string>();
+
+  for (const { suffix, helper } of moduleOrder) {
+    const match = [...emitted.entries()].find(([k]) =>
+      suffix === "index.d.ts"
+        ? k === "index.d.ts" ||
+          (k.endsWith("/index.d.ts") && !k.includes("/src/"))
+        : k.endsWith(suffix),
+    );
+    if (!match) {
+      throw new Error(
+        `[build_npm_package] Missing emitted declaration module for ${suffix}`,
+      );
+    }
+    const [fileName, content] = match;
+    const sf = ts.createSourceFile(
+      fileName,
+      content,
+      ts.ScriptTarget.ESNext,
+      true,
+    );
+    const isSimpleGui = suffix === "/src/simplegui.d.ts";
+
+    for (const stmt of sf.statements) {
+      if (isSimpleGui && ts.isExportDeclaration(stmt)) {
+        if (stmt.exportClause && ts.isNamedExports(stmt.exportClause)) {
+          for (const el of stmt.exportClause.elements) {
+            const exportedName = el.name.text;
+            if (stmt.isTypeOnly || el.isTypeOnly) {
+              sgTypeExports.add(exportedName);
+            } else {
+              sgValueExports.add(exportedName);
+            }
+          }
+        }
+        continue;
+      }
+
+      if (
+        ts.isImportDeclaration(stmt) ||
+        ts.isExportDeclaration(stmt) ||
+        ts.isExportAssignment(stmt)
+      ) {
+        continue;
+      }
+
+      if (
+        suffix.endsWith("fxThemes.d.ts") &&
+        ts.isFunctionDeclaration(stmt) &&
+        (stmt.name?.text === "fxCssVars" ||
+          stmt.name?.text === "resolveThemeForHardware")
+      ) {
+        continue;
+      }
+
+      let raw = content.slice(stmt.getFullStart(), stmt.getEnd());
+
+      if (helper) {
+        const isTypeDecl =
+          ts.isInterfaceDeclaration(stmt) || ts.isTypeAliasDeclaration(stmt);
+        if (isTypeDecl) {
+          const hasExport = Boolean(
+            ts.canHaveModifiers(stmt) &&
+              ts
+                .getModifiers(stmt)
+                ?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword),
+          );
+          if (!hasExport) {
+            raw = raw.replace(
+              /^(\s*(?:\/\*[\s\S]*?\*\/\s*)*)(interface|type)\s+/,
+              "$1export $2 ",
+            );
+          }
+          if (
+            suffix.endsWith("themeSemantic.d.ts") ||
+            suffix.endsWith("fxThemes.d.ts") ||
+            suffix.endsWith("simplegui_dialogs.d.ts") ||
+            suffix.endsWith("simplegui_components.d.ts")
+          ) {
+            if (stmt.name) sgTypeExports.add(stmt.name.text);
+          }
+        } else {
+          let declName = "";
+          if (
+            (ts.isFunctionDeclaration(stmt) ||
+              ts.isClassDeclaration(stmt) ||
+              ts.isEnumDeclaration(stmt)) &&
+            stmt.name
+          ) {
+            declName = stmt.name.text;
+          } else if (ts.isVariableStatement(stmt)) {
+            const first = stmt.declarationList.declarations[0];
+            if (first && ts.isIdentifier(first.name)) {
+              declName = first.name.text;
+            }
+          }
+          if (!helperPublicValues.has(declName)) {
+            raw = raw.replace(
+              /^(\s*(?:\/*\*[\s\S]*?\*\/\s*)*)export\s+/,
+              "$1",
+            );
+          }
+        }
+      } else if (isSimpleGui) {
+        const hasExport = Boolean(
+          ts.canHaveModifiers(stmt) &&
+            ts
+              .getModifiers(stmt)
+              ?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword),
+        );
+        if (hasExport) {
+          if (
+            ts.isInterfaceDeclaration(stmt) ||
+            ts.isTypeAliasDeclaration(stmt)
+          ) {
+            sgTypeExports.add(stmt.name.text);
+          } else if (
+            (ts.isClassDeclaration(stmt) ||
+              ts.isFunctionDeclaration(stmt) ||
+              ts.isEnumDeclaration(stmt)) &&
+            stmt.name
+          ) {
+            sgValueExports.add(stmt.name.text);
+          } else if (ts.isVariableStatement(stmt)) {
+            for (const d of stmt.declarationList.declarations) {
+              if (ts.isIdentifier(d.name)) sgValueExports.add(d.name.text);
+            }
+          }
+        }
+      }
+
+      raw = raw
+        .replace(/\bNodeJS\.Signals\b/g, "string")
+        .replace(
+          /randomBytes\(length:\s*number\):\s*Buffer;/g,
+          "randomBytes(length: number): Uint8Array;",
+        );
+
+      chunks.push(raw);
+    }
+  }
+
+  // Ensure types never appear in value exports
+  for (const t of sgTypeExports) {
+    sgValueExports.delete(t);
+  }
+
+  const sortedValues = [...sgValueExports].sort();
+  const sortedTypes = [...sgTypeExports].sort();
+
+  // Disable TypeScript's implicit .d.ts top-level export behavior so unexported internal helpers stay private.
+  chunks.push("export {};");
+
+  const indexDts = `${chunks.join("\n").trim()}\n`;
+  const simpleGuiDts = [
+    "/**",
+    " * Bun RAD Studio — SimpleGUI Standalone TypeScript Declarations",
+    " */",
+    `export {\n  ${sortedValues.join(",\n  ")},\n} from "./index.js";`,
+    "",
+    `export type {\n  ${sortedTypes.join(",\n  ")},\n} from "./index.js";`,
+    "",
+  ].join("\n");
+
+  cachedDtsBundle = { indexDts, simpleGuiDts };
+  return cachedDtsBundle;
 }
 
-export declare class SimpleControlRef {
-  readonly id: string;
-  font(size?: number, color?: string, weight?: string | number): this;
-  tooltip(text: string): this;
-  enable(enabled?: boolean): this;
-  visible(show?: boolean): this;
-  [key: string]: any;
+export function renderIndexDts(): string {
+  return getBundledDeclarations().indexDts;
 }
 
-export declare class SimpleWindow {
-  constructor(
-    title: string,
-    width?: number,
-    height?: number,
-    options?: WindowOptions,
-  );
-  addLabel(text: string): SimpleControlRef;
-  addButton(label: string, onClick?: () => void | Promise<void>): SimpleControlRef;
-  addInput(placeholder?: string, initialValue?: string): SimpleControlRef;
-  addCheckbox(label: string, checked?: boolean): SimpleControlRef;
-  addSelect(options: string[], selected?: string): SimpleControlRef;
-  addSlider(min: number, max: number, value?: number): SimpleControlRef;
-  addProgressBar(value?: number): SimpleControlRef;
-  addTable(columns: string[], rows?: unknown[][]): SimpleControlRef;
-  setTheme(themeName: string): this;
-  run(): Promise<void> | void;
-  close(): void;
-  [key: string]: any;
-}
-
-export declare const simplegui: {
-  createWindow(
-    title: string,
-    width?: number,
-    height?: number,
-    options?: WindowOptions,
-  ): SimpleWindow;
-  newWindow(
-    title: string,
-    width?: number,
-    height?: number,
-    options?: WindowOptions,
-  ): SimpleWindow;
-  listThemes(): string[];
-  getThemes(): Record<string, unknown>;
-  [key: string]: any;
-};
-
-export declare function createWindow(
-  title: string,
-  width?: number,
-  height?: number,
-  options?: WindowOptions,
-): SimpleWindow;
-export declare function newWindow(
-  title: string,
-  width?: number,
-  height?: number,
-  options?: WindowOptions,
-): SimpleWindow;
-export declare function newSimpleWindow(
-  title: string,
-  width?: number,
-  height?: number,
-  options?: WindowOptions,
-): SimpleWindow;
-export declare function listThemes(): string[];
-export declare function getThemeNames(): string[];
-export declare function getThemes(): Record<string, unknown>;
-export declare function getIdeHtml(): string;
-export declare const sys: Record<string, any>;
-export declare const stdlib: Record<string, any>;
-export declare class SimpleCLI {
-  constructor(name?: string, description?: string, version?: string);
-  [key: string]: any;
-}
-export declare function createCLI(
-  name?: string,
-  description?: string,
-  version?: string,
-): SimpleCLI;
-`;
-}
-
-function renderSimpleGuiDts(): string {
-  return `export {
-  WindowOptions,
-  SimpleControlRef,
-  SimpleWindow,
-  simplegui,
-  createWindow,
-  newWindow,
-  newSimpleWindow,
-  listThemes,
-  getThemeNames,
-  getThemes,
-} from "./index.js";
-`;
+export function renderSimpleGuiDts(): string {
+  return getBundledDeclarations().simpleGuiDts;
 }
 
 function renderNpmReadme(

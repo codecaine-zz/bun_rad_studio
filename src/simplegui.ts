@@ -48,9 +48,13 @@ import {
   buildSemanticPalette,
   overridesForTheme,
   semanticCssVars,
+  type SemanticKind,
   type SemanticOverrides,
   type SemanticPalette,
 } from "./shared/themeSemantic";
+/** Alias of `SemanticKind` (`"danger" | "warning" | "success" | "info"`). */
+export type SemanticRole = SemanticKind;
+export type { SemanticKind, SemanticOverrides, SemanticPalette };
 import {
   generatePreviewHtml,
   setAlwaysOnTopNative as nativeSetAlwaysOnTop,
@@ -101,12 +105,23 @@ import {
   type DialogInputOptions,
   type FileDialogOptions,
 } from "./simplegui_dialogs.ts";
+export {
+  SimpleDialogs,
+  type DialogOptions,
+  type DialogResult,
+  type DialogCallback,
+  type DialogIcon,
+  type DialogInputType,
+  type DialogInputOptions,
+  type FileDialogOptions,
+};
 import {
   UI_CLIENT_HTML,
   UI_DEFAULT_SIZES,
   renderUIComponent,
   type UIComponentType,
 } from "./simplegui_components.ts";
+export type { UIComponentType };
 import { writeClipboardSync, readClipboardSync } from "./localGuard.ts";
 
 /** Immediately terminates the current process with the specified exit status code. */
@@ -119,6 +134,15 @@ export interface SimpleWindowOptions {
   title?: string;
   width?: number;
   height?: number;
+  minWidth?: number;
+  minHeight?: number;
+  maxWidth?: number;
+  maxHeight?: number;
+  x?: number;
+  y?: number;
+  resizable?: boolean;
+  frameless?: boolean;
+  center?: boolean;
   theme?: string;
   background_color?: string;
   font_color?: string;
@@ -135,9 +159,17 @@ export interface SimpleWindowOptions {
   auto_save_state?: boolean;
   fullscreen?: boolean;
   responsive?: boolean;
+  debug?: boolean;
+  hosted?: boolean;
   /** Effects for themes that have an `fx` descriptor: "full" (default), "reduced" (looks, no motion) or "off". */
-  effects?: "full" | "reduced" | "off";
+  effects?: "full" | "reduced" | "off" | (string & {});
 }
+
+/** Alias of `SimpleWindowOptions` for consumer TypeScript declarations. */
+export type WindowOptions = SimpleWindowOptions;
+
+/** Optional per-control configuration object accepted by `SimpleWindow.add*` control builders. */
+export type ControlOptions = Partial<ControlSpec> & Record<string, any>;
 
 /** Serialized geometry, styling, and state specification for an individual UI control on a form. */
 export interface ControlSpec {
@@ -205,6 +237,7 @@ export interface FormSpec {
   semantic_overrides?: SemanticOverrides;
   padding: number;
   spacing: number;
+  fullscreen?: boolean;
   controls: ControlSpec[];
   non_visual_controls?: ControlSpec[];
   menu_bar?: any;
@@ -214,10 +247,10 @@ export interface FormSpec {
 // Some controls (kanban moves, table sorting, ...) pass extra arguments after the value.
 /** Callback signature invoked when a control or window event fires, receiving the owning `SimpleWindow`, primary value, and any extra event payload arguments. */
 export type EventCallback = (
-  win: SimpleWindow,
-  val?: any,
-  ...extra: any[]
-) => void;
+  window: SimpleWindow,
+  value?: any,
+  ...args: any[]
+) => void | Promise<void> | unknown;
 
 /** Options shared by every enterprise component: free-form config plus the usual event hooks. */
 export type UIOpts = Record<string, any> & {
@@ -239,12 +272,16 @@ export class SimpleControlRef {
     this.window = window;
   }
 
-  /** Assigns a new unique identifier to this control, migrating any stored values, list items, event handlers, and layout section references from the previous ID. */
+  /** Assigns a new unique identifier to this control, migrating any stored values, list items, event handlers, state bindings, and layout section references from the previous ID. */
   id(idStr: string): this {
     const oldId = this.spec.id;
     if (typeof (this.window as any)._unindexControl === "function") {
       (this.window as any)._unindexControl(this.spec);
     }
+    if (this.spec._inputFirstArg && !this.spec._explicitPlaceholder) {
+      this.spec.placeholder = this.spec._inputFirstArg;
+    }
+    delete this.spec._inputFirstArg;
     if (oldId && oldId !== idStr) {
       if (
         Object.prototype.hasOwnProperty.call(this.window.formValuesStore, oldId)
@@ -258,6 +295,14 @@ export class SimpleControlRef {
       ) {
         this.window.listItemsStore[idStr] = this.window.listItemsStore[oldId];
         delete this.window.listItemsStore[oldId];
+      }
+      const stateBindings = (this.window as any).controlStateBindings as
+        | Map<string, string>
+        | undefined;
+      if (stateBindings && stateBindings.has(oldId)) {
+        const boundKey = stateBindings.get(oldId)!;
+        stateBindings.delete(oldId);
+        stateBindings.set(idStr, boundKey);
       }
       if (this.window.eventHandlersMap) {
         const prefix = `${oldId}:`;
@@ -279,6 +324,11 @@ export class SimpleControlRef {
       }
       if ((this.window as any).lastControlId === oldId) {
         (this.window as any).lastControlId = idStr;
+      }
+      if (this.window && this.window.isRunning()) {
+        this.window.evalJS(
+          `(function(){const el=document.getElementById(${JSON.stringify(oldId)});if(el){el.id=${JSON.stringify(idStr)};if(el.hasAttribute("name"))el.setAttribute("name",${JSON.stringify(idStr)});}})();`,
+        );
       }
     }
     this.spec.id = idStr;
@@ -382,6 +432,12 @@ export class SimpleControlRef {
     this.spec.top = y;
     this.spec.x = x;
     this.spec.y = y;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el){el.style.left=${JSON.stringify(`${x}px`)};el.style.top=${JSON.stringify(`${y}px`)};}})();`,
+      );
+    }
     return this;
   }
 
@@ -405,6 +461,12 @@ export class SimpleControlRef {
     if (oldW && oldW !== w && this.window) {
       this.window.recalculateRowX(this.spec, oldW, w);
     }
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el)el.style.width=${JSON.stringify(`${w}px`)};})();`,
+      );
+    }
     return this;
   }
 
@@ -416,31 +478,70 @@ export class SimpleControlRef {
     if (oldH && oldH !== h && this.window) {
       this.window.recalculateHeightY(this.spec, oldH, h);
     }
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el)el.style.height=${JSON.stringify(`${h}px`)};})();`,
+      );
+    }
     return this;
   }
 
-  /** Sets the background color (CSS color or hex string) of this control. */
+  /** Returns the current unique identifier of this control. */
+  getId(): string {
+    return String(this.spec.id || "");
+  }
+
+  /** Snake_case alias of `getId`: returns the current unique identifier of this control. */
+  get_id(): string {
+    return this.getId();
+  }
+
+  /** Sets the background color (CSS color or hex string) of this control, preserving it across theme switches and updating the live DOM if running. */
   bg(color: string): this {
     this.spec.background_color = color;
+    this.spec.custom_background = true;
+    this.spec.custom_card_background = true;
+    this.spec._isThemeAccent = false;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      const safeCol = JSON.stringify(color);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el){el.style.background=${safeCol};el.style.backgroundColor=${safeCol};el.setAttribute("data-custom-bg","true");el.classList.remove("btn-theme-accent");}})();`,
+      );
+    }
     return this;
   }
 
-  /** Sets the foreground text color (CSS color or hex string) of this control. */
+  /** Sets the foreground text color (CSS color or hex string) of this control, preserving it across theme switches and updating the live DOM if running. */
   color(color: string): this {
     this.spec.font_color = color;
+    this.spec.custom_color = true;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      const safeCol = JSON.stringify(color);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el){el.style.color=${safeCol};el.setAttribute("data-custom-color","true");el.removeAttribute("data-theme-label");}})();`,
+      );
+    }
     return this;
   }
 
   /** Configures the control's font size in pixels, with optional text color and font weight, automatically expanding label dimensions when needed. */
-  font(size: number, color?: string, weight?: string): this {
+  font(size = 14, color?: string, weight?: string | number): this {
     this.spec.font_size = size;
     this.spec.fontSize = size;
-    if (color) this.spec.font_color = color;
-    if (weight) this.spec.font_weight = weight;
+    if (color) {
+      this.spec.font_color = color;
+      this.spec.custom_color = true;
+    }
+    const weightStr = weight !== undefined ? String(weight) : undefined;
+    if (weightStr) this.spec.font_weight = weightStr;
 
     const ctrlType = this.spec.control_type || this.spec.type;
     if (ctrlType === "label") {
-      const isBold = weight === "700" || weight === "800" || weight === "bold";
+      const isBold =
+        weightStr === "700" || weightStr === "800" || weightStr === "bold";
       const charW = size * (isBold ? 0.75 : 0.65);
       const textLen = (this.spec.text || "").length;
       const neededW = Math.ceil(textLen * charW + 16);
@@ -460,6 +561,14 @@ export class SimpleControlRef {
           }
         }
       }
+    }
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      const safeCol = color ? JSON.stringify(color) : "null";
+      const safeWeight = weightStr ? JSON.stringify(weightStr) : "null";
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el){el.style.fontSize=${JSON.stringify(`${size}px`)};if(${safeCol}){el.style.color=${safeCol};el.setAttribute("data-custom-color","true");el.removeAttribute("data-theme-label");}if(${safeWeight})el.style.fontWeight=${safeWeight};}})();`,
+      );
     }
     return this;
   }
@@ -498,6 +607,12 @@ export class SimpleControlRef {
   expandFill(expand: boolean = true): this {
     this.spec.expandFill = expand;
     this.spec.expand_fill = expand;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el){el.style.flex=${JSON.stringify(expand ? "1 1 auto" : "")};if(${JSON.stringify(expand)})el.style.width="100%";}})();`,
+      );
+    }
     return this;
   }
 
@@ -511,36 +626,79 @@ export class SimpleControlRef {
     this.spec.font_weight = isBold ? "700" : "400";
     this.spec.is_bold = isBold;
     this.spec.bold = isBold;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el)el.style.fontWeight=${JSON.stringify(isBold ? "700" : "400")};})();`,
+      );
+    }
     return this;
   }
 
   /** Enables or disables italic (`font-style: italic`) typography on this control. */
   italic(isItalic = true): this {
     this.spec.font_style = isItalic ? "italic" : "normal";
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el)el.style.fontStyle=${JSON.stringify(isItalic ? "italic" : "normal")};})();`,
+      );
+    }
     return this;
   }
 
-  /** Sets horizontal text alignment (`"left"`, `"center"`, or `"right"`) inside this control. */
-  align(textAlignment: "left" | "center" | "right"): this {
+  /** Sets horizontal text alignment (`"left"`, `"center"`, `"right"`, or `"justify"`) inside this control. */
+  align(
+    textAlignment: "left" | "center" | "right" | "justify" | (string & {}),
+  ): this {
     this.spec.text_align = textAlignment;
+    this.spec.alignment = textAlignment;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el)el.style.textAlign=${JSON.stringify(textAlignment)};})();`,
+      );
+    }
     return this;
   }
 
   /** Sets the hover tooltip hint text displayed for this control. */
   tooltip(hint: string): this {
     this.spec.tooltip = hint;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el)el.title=${JSON.stringify(hint)};})();`,
+      );
+    }
     return this;
   }
 
   /** Sets the placeholder hint text displayed when this input control is empty. */
   placeholder(ph: string): this {
     this.spec.placeholder = ph;
+    this.spec._explicitPlaceholder = true;
+    delete this.spec._inputFirstArg;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      const safePh = JSON.stringify(ph);
+      this.window.evalJS(
+        `(function(){const raw=document.getElementById(${safeId});if(!raw)return;const inp=(raw.tagName==="INPUT"||raw.tagName==="TEXTAREA")?raw:raw.querySelector("input, textarea");if(inp)inp.placeholder=${safePh};})();`,
+      );
+    }
     return this;
   }
 
-  /** Sets the visual opacity percentage (`0` to `100` or `0.0` to `1.0`) of this control. */
+  /** Sets the visual opacity (`0` to `100` or `0.0` to `1.0`) of this control. */
   opacity(percent: number): this {
     this.spec.opacity = percent;
+    if (this.window && this.window.isRunning()) {
+      const cssOpacity = percent > 1 ? percent / 100 : percent;
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el)el.style.opacity=${JSON.stringify(String(cssOpacity))};})();`,
+      );
+    }
     return this;
   }
 
@@ -652,6 +810,13 @@ export class SimpleControlRef {
     if (onSelect) {
       this.window.bindControlEvent(this.spec.id, "context_select", onSelect);
     }
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      const safeAttr = JSON.stringify(itemsArr.join("|"));
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el){el.setAttribute("data-context-menu",${safeAttr});el.setAttribute("data-ctrl-id",${safeId});}})();`,
+      );
+    }
     return this;
   }
   /** Snake_case alias of `contextMenu`: attaches a custom right-click context menu (array of labels or comma-separated string) and optional selection handler to this control. */
@@ -734,6 +899,25 @@ export class SimpleControlRef {
     return this;
   }
 
+  /** Sets the raw inner HTML content of this control in both the form store and live DOM. */
+  setHtml(htmlContent: string): this {
+    this.window.setHtml(this.spec.id, htmlContent);
+    return this;
+  }
+
+  /** Snake_case alias of `setHtml`: sets the raw inner HTML content of this control. */
+  set_html(htmlContent: string): this {
+    return this.setHtml(htmlContent);
+  }
+
+  /** Gets the control's HTML/text content when called with no arguments, or sets raw HTML and returns `this` for chaining. */
+  html(): string;
+  html(htmlContent: string): this;
+  html(htmlContent?: string): string | this {
+    if (htmlContent === undefined) return this.getText();
+    return this.setHtml(htmlContent);
+  }
+
   /** Makes this control visible (`visible(true)`). */
   show(): this {
     return this.visible(true);
@@ -741,6 +925,24 @@ export class SimpleControlRef {
   /** Hides this control (`visible(false)`). */
   hide(): this {
     return this.visible(false);
+  }
+  /** Returns `true` if this control is currently visible. */
+  isVisible(): boolean {
+    return this.window.getControlVisible(this.spec.id);
+  }
+  /** Snake_case alias of `isVisible`: returns `true` if this control is currently visible. */
+  is_visible(): boolean {
+    return this.isVisible();
+  }
+  /** Toggles this control's visibility and returns the new visibility boolean. */
+  toggleVisible(): boolean {
+    const next = !this.isVisible();
+    this.visible(next);
+    return next;
+  }
+  /** Snake_case alias of `toggleVisible`: toggles this control's visibility and returns the new visibility boolean. */
+  toggle_visible(): boolean {
+    return this.toggleVisible();
   }
   /** Opens this modal dialog control in the live window. */
   openModal(): this {
@@ -760,9 +962,9 @@ export class SimpleControlRef {
   close_modal(): this {
     return this.closeModal();
   }
-  /** Enables user interaction on this control (`enabled(true)`). */
-  enable(): this {
-    return this.enabled(true);
+  /** Enables user interaction on this control (`enabled(flag)`). */
+  enable(flag = true): this {
+    return this.enabled(flag);
   }
   /** Disables user interaction on this control (`enabled(false)`). */
   disable(): this {
@@ -772,9 +974,34 @@ export class SimpleControlRef {
   disabled(flag = true): this {
     return this.enabled(!flag);
   }
+  /** Returns `true` if this control is currently enabled. */
+  isEnabled(): boolean {
+    return this.window.getControlEnabled(this.spec.id);
+  }
+  /** Snake_case alias of `isEnabled`: returns `true` if this control is currently enabled. */
+  is_enabled(): boolean {
+    return this.isEnabled();
+  }
+  /** Toggles this control's enabled state and returns the new enabled boolean. */
+  toggleEnabled(): boolean {
+    const next = !this.isEnabled();
+    this.enabled(next);
+    return next;
+  }
+  /** Snake_case alias of `toggleEnabled`: toggles this control's enabled state and returns the new enabled boolean. */
+  toggle_enabled(): boolean {
+    return this.toggleEnabled();
+  }
   /** Marks this input control as read-only or editable. */
   readOnly(flag = true): this {
     this.spec.readonly = flag;
+    this.spec.read_only = flag;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const raw=document.getElementById(${safeId});if(!raw)return;const inp=(raw.tagName==="INPUT"||raw.tagName==="TEXTAREA")?raw:raw.querySelector("input, textarea");if(inp)inp.readOnly=${JSON.stringify(flag)};})();`,
+      );
+    }
     return this;
   }
   /** Moves keyboard focus to this control in the live window. */
@@ -796,9 +1023,37 @@ export class SimpleControlRef {
   increment(delta = 1): number {
     return this.window.increment(this.spec.id, delta);
   }
+  /** Returns `true` if this checkbox, switch, or toggle control is currently checked. */
+  isChecked(): boolean {
+    return this.window.getChecked(this.spec.id);
+  }
+  /** Snake_case alias of `isChecked`: returns `true` if this checkbox, switch, or toggle control is currently checked. */
+  is_checked(): boolean {
+    return this.isChecked();
+  }
+  /** Sets the boolean checked state of this checkbox, switch, or toggle control. */
+  setChecked(flag = true): this {
+    this.window.setChecked(this.spec.id, flag);
+    return this;
+  }
+  /** Snake_case alias of `setChecked`: sets the boolean checked state of this checkbox, switch, or toggle control. */
+  set_checked(flag = true): this {
+    return this.setChecked(flag);
+  }
+  /** Gets the control's checked boolean state when called with no arguments, or sets it and returns `this` for chaining. */
+  checked(): boolean;
+  checked(flag: boolean): this;
+  checked(flag?: boolean): boolean | this {
+    if (flag === undefined) return this.isChecked();
+    return this.setChecked(flag);
+  }
   /** Toggles this boolean/checkbox/switch control's checked state and returns the new boolean state. */
   toggleChecked(): boolean {
     return this.window.toggleChecked(this.spec.id);
+  }
+  /** Clears this control's value/text to an empty string (`setValue("")`). */
+  clear(): this {
+    return this.setValue("");
   }
   /** Appends a string to the end of this control's existing text content. */
   appendText(text: string): this {
@@ -812,11 +1067,15 @@ export class SimpleControlRef {
   }
 
   /** Gets the control's current value when called with no arguments, or sets its value and returns `this` for chaining. */
+  value(): any;
+  value(val: any): this;
   value(val?: any): any | this {
     if (val === undefined) return this.getValue();
     return this.setValue(val);
   }
   /** Gets the control's current text when called with no arguments, or sets its text and returns `this` for chaining. */
+  text(): string;
+  text(txt: string): this;
   text(txt?: string): string | this {
     if (txt === undefined) return this.getText();
     return this.setText(txt);
@@ -829,16 +1088,128 @@ export class SimpleControlRef {
   /** Sets the minimum allowed numeric value (`min_value`) for this slider, stepper, or progress control. */
   min(val: number): this {
     this.spec.min_value = val;
+    this.spec.min = val;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const raw=document.getElementById(${safeId});if(!raw)return;const inp=raw.tagName==="INPUT"?raw:raw.querySelector("input");if(inp)inp.min=${JSON.stringify(String(val))};})();`,
+      );
+    }
     return this;
   }
   /** Sets the maximum allowed numeric value (`max_value`) for this slider, stepper, or progress control. */
   max(val: number): this {
     this.spec.max_value = val;
+    this.spec.max = val;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const raw=document.getElementById(${safeId});if(!raw)return;const inp=raw.tagName==="INPUT"?raw:raw.querySelector("input");if(inp)inp.max=${JSON.stringify(String(val))};})();`,
+      );
+    }
     return this;
   }
   /** Sets the numeric increment step interval for this slider or stepper control. */
   step(val: number): this {
     this.spec.step = val;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const raw=document.getElementById(${safeId});if(!raw)return;const inp=raw.tagName==="INPUT"?raw:raw.querySelector("input");if(inp)inp.step=${JSON.stringify(String(val))};})();`,
+      );
+    }
+    return this;
+  }
+
+  /** Sets the corner border radius (in pixels) of this control. */
+  borderRadius(px: number): this {
+    this.spec.border_radius = px;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el)el.style.borderRadius=${JSON.stringify(`${px}px`)};})();`,
+      );
+    }
+    return this;
+  }
+  /** Alias of `borderRadius`: sets the corner border radius (in pixels) of this control. */
+  radius(px: number): this {
+    return this.borderRadius(px);
+  }
+  /** Snake_case alias of `borderRadius`: sets the corner border radius (in pixels) of this control. */
+  border_radius(px: number): this {
+    return this.borderRadius(px);
+  }
+
+  /** Configures the border width, color, and style of this control. */
+  border(
+    width: number,
+    color?: string,
+    style: "solid" | "dashed" | "dotted" | "double" | "none" = "solid",
+  ): this {
+    this.spec.border_width = width;
+    if (color) this.spec.border_color = color;
+    this.spec.border_style = style;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      const safeStyle = JSON.stringify(
+        `${width}px ${style}${color ? ` ${color}` : ""}`,
+      );
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el)el.style.border=${safeStyle};})();`,
+      );
+    }
+    return this;
+  }
+
+  /** Sets the CSS cursor style (such as `"pointer"`, `"default"`, `"text"`, or `"not-allowed"`) on this control. */
+  cursor(cursorType: string): this {
+    this.spec.cursor = cursorType;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(el)el.style.cursor=${JSON.stringify(cursorType)};})();`,
+      );
+    }
+    return this;
+  }
+
+  /** Configures hover background and optional hover foreground colors for this control. */
+  hover(bgColor?: string, textColor?: string): this {
+    if (bgColor !== undefined) this.spec.hover_color = bgColor;
+    if (textColor !== undefined) this.spec.hover_text_color = textColor;
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      const safeBg = bgColor !== undefined ? JSON.stringify(bgColor) : "null";
+      const safeFg =
+        textColor !== undefined ? JSON.stringify(textColor) : "null";
+      this.window.evalJS(
+        `(function(){const id=${safeId};const el=document.getElementById(id);if(!el)return;let st=document.getElementById("sg-hover-"+id);if(!st){st=document.createElement("style");st.id="sg-hover-"+id;document.head.appendChild(st);}const rules=[];if(${safeBg})rules.push("background:"+(${safeBg})+" !important;background-color:"+(${safeBg})+" !important;");if(${safeFg})rules.push("color:"+(${safeFg})+" !important;");st.textContent="#"+CSS.escape(id)+":hover{"+rules.join("")+"}";})();`,
+      );
+    }
+    return this;
+  }
+
+  /** Applies arbitrary inline CSS style properties (camelCase or kebab-case) to this control. */
+  style(styles: Record<string, string | number>): this {
+    if (!styles || typeof styles !== "object") return this;
+    this.spec.custom_styles = { ...(this.spec.custom_styles || {}), ...styles };
+    if (styles.backgroundColor || styles["background-color"] || styles.background) {
+      const bgVal = String(
+        styles.backgroundColor ?? styles["background-color"] ?? styles.background,
+      );
+      this.bg(bgVal);
+    }
+    if (styles.color) {
+      this.color(String(styles.color));
+    }
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      const safeStyles = JSON.stringify(styles);
+      this.window.evalJS(
+        `(function(){const el=document.getElementById(${safeId});if(!el)return;const st=${safeStyles};for(const k of Object.keys(st)){const v=String(st[k]);if(k.indexOf("-")>=0)el.style.setProperty(k,v);else el.style[k]=v;}})();`,
+      );
+    }
     return this;
   }
 
@@ -847,6 +1218,9 @@ export class SimpleControlRef {
     this.spec.multiple = enable;
     this.spec.multi_select = enable;
     this.spec.selection_mode = enable ? "multiple" : "single";
+    if (this.window && this.window.isRunning()) {
+      this.window.setListMultiSelect(this.spec.id, enable);
+    }
     return this;
   }
   /** Snake_case alias of `multiSelect`: enables or disables multiple-item selection mode on this list or table control. */
@@ -900,8 +1274,13 @@ export class SimpleControlRef {
 
   /** Expands all nodes in this tree view, tree grid, or accordion control in the live window. */
   expandAll(): this {
+    this.spec.expanded = true;
     const fnKey = JSON.stringify(`${this.spec.id}_expandAll`);
-    if (this.window && typeof this.window.evalJS === "function") {
+    if (
+      this.window &&
+      this.window.isRunning() &&
+      typeof this.window.evalJS === "function"
+    ) {
       this.window.evalJS(
         `if(typeof window[${fnKey}]==='function')window[${fnKey}]();`,
       );
@@ -910,8 +1289,13 @@ export class SimpleControlRef {
   }
   /** Collapses all nodes in this tree view, tree grid, or accordion control in the live window. */
   collapseAll(): this {
+    this.spec.expanded = false;
     const fnKey = JSON.stringify(`${this.spec.id}_collapseAll`);
-    if (this.window && typeof this.window.evalJS === "function") {
+    if (
+      this.window &&
+      this.window.isRunning() &&
+      typeof this.window.evalJS === "function"
+    ) {
       this.window.evalJS(
         `if(typeof window[${fnKey}]==='function')window[${fnKey}]();`,
       );
@@ -1257,12 +1641,16 @@ export const load_state_from_file = loadStateFromFile;
 /** Persists the user's preferred global SimpleGUI theme name to `~/.config/simplegui/theme.txt`. */
 export function saveTheme(themeName: string): boolean {
   try {
-    const themeDir = path.join(
-      os.homedir() || process.env.HOME || process.env.USERPROFILE || "/Users",
-      ".config",
-      "simplegui",
-    );
-    const themeFile = path.join(themeDir, "theme.txt");
+    const configBase = process.env.XDG_CONFIG_HOME
+      ? process.env.XDG_CONFIG_HOME
+      : path.join(
+          process.env.HOME ||
+            process.env.USERPROFILE ||
+            os.homedir() ||
+            "/Users",
+          ".config",
+        );
+    const themeFile = path.join(configBase, "simplegui", "theme.txt");
     writeFileAtomic(themeFile, themeName.trim());
     return true;
   } catch (e) {
@@ -1275,12 +1663,16 @@ export const save_theme = saveTheme;
 /** Reads the user's globally saved SimpleGUI theme name from `~/.config/simplegui/theme.txt`, or returns `""` if none is saved. */
 export function getSavedTheme(): string {
   try {
-    const themeFile = path.join(
-      os.homedir() || process.env.HOME || process.env.USERPROFILE || "/Users",
-      ".config",
-      "simplegui",
-      "theme.txt",
-    );
+    const configBase = process.env.XDG_CONFIG_HOME
+      ? process.env.XDG_CONFIG_HOME
+      : path.join(
+          process.env.HOME ||
+            process.env.USERPROFILE ||
+            os.homedir() ||
+            "/Users",
+          ".config",
+        );
+    const themeFile = path.join(configBase, "simplegui", "theme.txt");
     if (fs.existsSync(themeFile)) {
       const content = fs.readFileSync(themeFile, "utf-8").trim();
       if (content.length > 0) return content;
@@ -1306,10 +1698,15 @@ export function shouldPersistControl(ctrl: any): boolean {
   const kind = String(
     ctrl.kind || ctrl.control_type || ctrl.type || "",
   ).toLowerCase();
+  const explicitType = String(ctrl.type || "").toLowerCase();
   if (
     ctrl.masked === true ||
     ctrl.sensitive === true ||
     ctrl.is_password === true ||
+    explicitType === "password" ||
+    explicitType === "form_password" ||
+    kind === "password" ||
+    kind === "form_password" ||
     String(ctrl.input_type || ctrl.inputType || "").toLowerCase() === "password"
   ) {
     return false;
@@ -1543,6 +1940,31 @@ export class SimpleWindow {
   private _sectionRowCounter = 0;
   public responsiveLayout = true;
 
+  private _minWidth = 0;
+  private _minHeight = 0;
+  private _maxWidth = 0;
+  private _maxHeight = 0;
+  private _winX = 100;
+  private _winY = 100;
+  private _resizable = true;
+  private _minimizable = true;
+  private _maximizable = true;
+  private _closable = true;
+  private _movable = true;
+  private _hasShadow = true;
+  private _movableByWindowBackground = true;
+  private _titlebarVisible = true;
+  private _titleVisible = true;
+  private _subtitle = "";
+  private _opacity = 1.0;
+  private _cursor = "default";
+  private _debugMode = false;
+  private _cornerRadius = 12;
+  private _windowLevel = "normal";
+  private _ignoresMouseEvents = false;
+  private _hasAspectRatio = false;
+  private _flexModeStack: Array<"row" | "column"> = [];
+
   /** Internal helper that updates all references to a control ID across active and committed layout sections when a control is renamed via `.id()`. */
   public _renameControlInLayoutSections(oldId: string, newId: string): void {
     const renameInList = (list: string[]) => {
@@ -1583,16 +2005,80 @@ export class SimpleWindow {
     }
   }
 
-  /** Creates a new `SimpleWindow` instance with the given window title, pixel dimensions, and optional theme/layout configuration. */
+  /** Tracks which window options were explicitly specified by the caller so session/form restoration never overwrites them. */
+  public _explicitWindowOptions: {
+    width: boolean;
+    height: boolean;
+    theme: boolean;
+    fullscreen: boolean;
+  } = {
+    width: false,
+    height: false,
+    theme: false,
+    fullscreen: false,
+  };
+
+  /** Creates a new `SimpleWindow` instance with optional window title, pixel dimensions, and theme/layout configuration. */
+  constructor();
+  constructor(options: SimpleWindowOptions);
+  constructor(title: string, options?: SimpleWindowOptions);
   constructor(
-    title = "SimpleGUI Application",
-    width = 800,
-    height = 600,
-    options: SimpleWindowOptions = {},
+    title?: string,
+    width?: number,
+    height?: number,
+    options?: SimpleWindowOptions,
+  );
+  constructor(
+    titleOrOptions?: string | SimpleWindowOptions,
+    widthOrOptions?: number | SimpleWindowOptions,
+    heightArg?: number,
+    optionsArg?: SimpleWindowOptions,
   ) {
-    this.title = options.title || title;
-    this.width = options.width || width;
-    this.height = options.height || height;
+    let rawTitle: string | undefined;
+    let rawWidth: number | undefined;
+    let rawHeight: number | undefined;
+    let options: SimpleWindowOptions = {};
+
+    if (typeof titleOrOptions === "object" && titleOrOptions !== null) {
+      options = titleOrOptions;
+    } else {
+      rawTitle = titleOrOptions;
+      if (typeof widthOrOptions === "object" && widthOrOptions !== null) {
+        options = widthOrOptions;
+      } else {
+        rawWidth = widthOrOptions;
+        rawHeight = heightArg;
+        if (optionsArg && typeof optionsArg === "object") {
+          options = optionsArg;
+        }
+      }
+    }
+
+    const explicitWidth =
+      typeof rawWidth === "number" || typeof options.width === "number";
+    const explicitHeight =
+      typeof rawHeight === "number" || typeof options.height === "number";
+    const explicitTheme =
+      (typeof options.theme === "string" && options.theme.length > 0) ||
+      typeof options.background_color === "string" ||
+      typeof options.font_color === "string";
+    const explicitFullscreen = options.fullscreen !== undefined;
+
+    this._explicitWindowOptions = {
+      width: explicitWidth,
+      height: explicitHeight,
+      theme: explicitTheme,
+      fullscreen: explicitFullscreen,
+    };
+
+    this.title =
+      rawTitle !== undefined
+        ? rawTitle
+        : (options.title ?? "SimpleGUI Application");
+    this.width =
+      typeof rawWidth === "number" ? rawWidth : (options.width ?? 800);
+    this.height =
+      typeof rawHeight === "number" ? rawHeight : (options.height ?? 600);
     this.padding = options.padding !== undefined ? options.padding : 20;
     this.spacing = options.spacing !== undefined ? options.spacing : 12;
     this.appId = options.appId || options.app_id || "";
@@ -1603,14 +2089,63 @@ export class SimpleWindow {
       options.autoSaveState ??
       options.auto_save_state ??
       true;
-    this.fullscreen = options.fullscreen ?? true;
+    this.fullscreen = explicitFullscreen
+      ? Boolean(options.fullscreen)
+      : !(explicitWidth || explicitHeight);
     this.responsiveLayout = options.responsive ?? true;
+
+    const anyOpts = options as Record<string, any>;
+    if (typeof anyOpts.minWidth === "number") this._minWidth = anyOpts.minWidth;
+    if (typeof anyOpts.minHeight === "number")
+      this._minHeight = anyOpts.minHeight;
+    if (typeof anyOpts.maxWidth === "number") this._maxWidth = anyOpts.maxWidth;
+    if (typeof anyOpts.maxHeight === "number")
+      this._maxHeight = anyOpts.maxHeight;
+    if (typeof anyOpts.x === "number") this._winX = anyOpts.x;
+    if (typeof anyOpts.y === "number") this._winY = anyOpts.y;
+    if (typeof anyOpts.resizable === "boolean")
+      this._resizable = anyOpts.resizable;
+    if (typeof anyOpts.minimizable === "boolean")
+      this._minimizable = anyOpts.minimizable;
+    if (typeof anyOpts.maximizable === "boolean")
+      this._maximizable = anyOpts.maximizable;
+    if (typeof anyOpts.closable === "boolean")
+      this._closable = anyOpts.closable;
+    if (typeof anyOpts.movable === "boolean") this._movable = anyOpts.movable;
+    if (typeof anyOpts.hasShadow === "boolean")
+      this._hasShadow = anyOpts.hasShadow;
+    if (typeof anyOpts.movableByWindowBackground === "boolean") {
+      this._movableByWindowBackground = anyOpts.movableByWindowBackground;
+    }
+    if (typeof anyOpts.titlebarVisible === "boolean") {
+      this._titlebarVisible = anyOpts.titlebarVisible;
+    }
+    if (typeof anyOpts.titleVisible === "boolean") {
+      this._titleVisible = anyOpts.titleVisible;
+    }
+    if (typeof anyOpts.subtitle === "string") this._subtitle = anyOpts.subtitle;
+    if (typeof anyOpts.opacity === "number") this._opacity = anyOpts.opacity;
+    if (typeof anyOpts.cursor === "string") this._cursor = anyOpts.cursor;
+    if (typeof anyOpts.debugMode === "boolean")
+      this._debugMode = anyOpts.debugMode;
+    if (typeof anyOpts.cornerRadius === "number")
+      this._cornerRadius = anyOpts.cornerRadius;
+    if (typeof anyOpts.windowLevel === "string")
+      this._windowLevel = anyOpts.windowLevel;
+    if (typeof anyOpts.ignoresMouseEvents === "boolean") {
+      this._ignoresMouseEvents = anyOpts.ignoresMouseEvents;
+    }
 
     const savedGlobalTheme = getSavedTheme();
     const preferredTheme =
       options.theme || (savedGlobalTheme ? savedGlobalTheme : "midnight");
     this.theme = preferredTheme;
-    if (options.effects) this.effects = options.effects;
+    if (options.effects) {
+      const fx = options.effects;
+      if (fx === "full" || fx === "reduced" || fx === "off") {
+        this.effects = fx as "full" | "reduced" | "off";
+      }
+    }
     this.alwaysOnTop = options.alwaysOnTop || false;
 
     const resolvedTheme = this.resolveThemeColors(
@@ -1702,6 +2237,14 @@ export class SimpleWindow {
 
   /** Applies a registered SimpleGUI theme by name or key, updating window/control palettes in place (including live DOM CSS variables when running) and optionally persisting the selection. */
   public setTheme(themeName: string, persist = true): this {
+    if (!this.isWindowRunning) {
+      this._explicitWindowOptions.theme = true;
+    }
+    return this._applyTheme(themeName, persist);
+  }
+
+  /** Internal theme applier used by session/form-state restoration without marking `theme` as explicitly caller-pinned. */
+  public _applyTheme(themeName: string, persist = true): this {
     const previousThemeName = this.theme;
     this.theme = themeName;
     const colors = this.resolveThemeColors(themeName);
@@ -1723,23 +2266,26 @@ export class SimpleWindow {
 
     for (const ctrl of this.controls) {
       const type = ctrl.control_type || ctrl.type;
-      if (type === "button" && !ctrl.custom_background) {
-        ctrl.background_color = btnBg;
-        if (!ctrl.custom_color) {
-          ctrl.font_color = btnFg;
+      if (type === "button") {
+        if (!ctrl.custom_background) {
+          ctrl.background_color = btnBg;
+          if (!ctrl.custom_color) {
+            ctrl.font_color = btnFg;
+          }
         }
-      } else if (type === "split_button" && !ctrl.custom_background) {
-        ctrl.background_color = btnBg;
-      } else if (
-        (type === "groupbox" || type === "card") &&
-        !ctrl.custom_card_background
-      ) {
-        ctrl.background_color =
-          themeObj.card_background ||
-          (themeObj.is_dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)");
-        ctrl.border_color =
-          themeObj.card_border ||
-          (themeObj.is_dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.12)");
+      } else if (type === "split_button") {
+        if (!ctrl.custom_background) {
+          ctrl.background_color = btnBg;
+        }
+      } else if (type === "groupbox" || type === "card") {
+        if (!ctrl.custom_card_background && !ctrl.custom_background) {
+          ctrl.background_color =
+            themeObj.card_background ||
+            (themeObj.is_dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)");
+          ctrl.border_color =
+            themeObj.card_border ||
+            (themeObj.is_dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.12)");
+        }
       } else if (!ctrl.custom_color) {
         if (ctrl.is_caption || ctrl.is_card_subtitle) {
           ctrl.font_color = mutedColor;
@@ -1833,11 +2379,11 @@ export class SimpleWindow {
                         
                         /* Themed Labels, Text, Checks, Editable Labels and Tables */
                         .rad-label:not([data-custom-color]):not([data-caption="true"]),
-                        [data-theme-label="true"],
+                        [data-theme-label="true"]:not([data-custom-color]),
                         label:not([data-custom-color]),
-                        .rad-checkbox-label,
-                        .rad-radio-label,
-                        .rad-switch-label,
+                        .rad-checkbox-label:not([data-custom-color]),
+                        .rad-radio-label:not([data-custom-color]),
+                        .rad-switch-label:not([data-custom-color]),
                         .rad-slider-title,
                         .rad-editable-label-container,
                         .label-display,
@@ -1902,11 +2448,13 @@ export class SimpleWindow {
                         html.rad-windows, html.rad-windows *, html.rad-windows *::before, html.rad-windows *::after,
                         html.rad-macos, html.rad-macos *, html.rad-macos *::before, html.rad-macos *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 
-                        input:not([type="checkbox"]):not([type="radio"]), textarea, select {
+                        input:not([type="checkbox"]):not([type="radio"]):not([data-custom-bg]), textarea:not([data-custom-bg]), select:not([data-custom-bg]) {
                             background-color: ${inputBg} !important;
-                            color: ${colors.fg} !important;
                             border-color: ${inputBorder} !important;
                             color-scheme: ${isLight ? "light" : "dark"} !important;
+                        }
+                        input:not([type="checkbox"]):not([type="radio"]):not([data-custom-color]), textarea:not([data-custom-color]), select:not([data-custom-color]) {
+                            color: ${colors.fg} !important;
                         }
                         input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus, select:focus {
                             border-color: ${colors.accent} !important;
@@ -1915,9 +2463,8 @@ export class SimpleWindow {
                         input[type=range]::-webkit-slider-thumb {
                             background: ${colors.accent} !important;
                         }
-                        select:not([size]), .simplegui-select {
+                        select:not([size]):not([data-custom-bg]), .simplegui-select:not([data-custom-bg]) {
                             background-color: ${inputBg} !important;
-                            color: ${colors.fg} !important;
                             border-color: ${inputBorder} !important;
                             color-scheme: ${isLight ? "light" : "dark"} !important;
                             background-image: url('data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'12\\' height=\\'12\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'${encodeURIComponent(colors.accent)}\\' stroke-width=\\'2.5\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpolyline points=\\'6 9 12 15 18 9\\'%3E%3C/polyline%3E%3C/svg%3E') !important;
@@ -1927,18 +2474,23 @@ export class SimpleWindow {
                             padding-right: 30px !important;
                             cursor: pointer !important;
                         }
+                        select:not([size]):not([data-custom-color]), .simplegui-select:not([data-custom-color]) {
+                            color: ${colors.fg} !important;
+                        }
                         select:not([size]):hover, .simplegui-select:hover { border-color: ${colors.accent} !important; }
                         select:not([size]):focus, .simplegui-select:focus { border-color: ${colors.accent} !important; outline-color: ${colors.accent} !important; }
                         select option {
                             background-color: ${cardBg} !important;
                             color: ${colors.fg} !important;
                         }
-                        select[size], select[multiple], .simplegui-listbox {
+                        select[size]:not([data-custom-bg]), select[multiple]:not([data-custom-bg]), .simplegui-listbox:not([data-custom-bg]) {
                             background-color: ${inputBg} !important;
-                            color: ${colors.fg} !important;
                             border-color: ${inputBorder} !important;
                             color-scheme: ${isLight ? "light" : "dark"} !important;
                             accent-color: ${colors.accent} !important;
+                        }
+                        select[size]:not([data-custom-color]), select[multiple]:not([data-custom-color]), .simplegui-listbox:not([data-custom-color]) {
+                            color: ${colors.fg} !important;
                         }
                         select[size]:hover, select[multiple]:hover, .simplegui-listbox:hover { border-color: ${colors.accent} !important; }
                         select[size] option, select[multiple] option, .simplegui-listbox option {
@@ -1954,10 +2506,13 @@ export class SimpleWindow {
                         }
                         input::placeholder, textarea::placeholder { color: var(--theme-muted) !important; opacity: 0.85 !important; }
                         :focus-visible { outline-color: ${colors.accent} !important; }
-                        button.btn-theme-accent,
+                        button.btn-theme-accent:not([data-custom-bg]),
                         button:not([data-custom-bg]):not([data-no-theme]):not(#simplegui-dialog-cancel):not(.modal-close):not([data-pag-num]) {
                             background: ${btnBg} !important;
                             background-color: ${btnBg} !important;
+                        }
+                        button.btn-theme-accent:not([data-custom-bg]):not([data-custom-color]),
+                        button:not([data-custom-bg]):not([data-custom-color]):not([data-no-theme]):not(#simplegui-dialog-cancel):not(.modal-close):not([data-pag-num]) {
                             color: ${btnFg} !important;
                         }
                         button.btn-theme-accent:hover,
@@ -2000,9 +2555,9 @@ export class SimpleWindow {
                     document.querySelectorAll('button:not([data-custom-bg]):not([data-no-theme]):not(#simplegui-dialog-cancel):not(.modal-close):not([data-pag-num])').forEach(function(b) {
                         b.style.background = '${btnBg}';
                         b.style.backgroundColor = '${btnBg}';
-                        b.style.color = '${btnFg}';
+                        if (!b.hasAttribute('data-custom-color')) b.style.color = '${btnFg}';
                     });
-                    document.querySelectorAll('.rad-label:not([data-custom-color]):not([data-caption="true"]), [data-theme-label="true"], label:not([data-custom-color])').forEach(function(l) {
+                    document.querySelectorAll('.rad-label:not([data-custom-color]):not([data-caption="true"]), [data-theme-label="true"]:not([data-custom-color]), label:not([data-custom-color])').forEach(function(l) {
                         l.style.color = '${colors.fg}';
                     });
                     document.querySelectorAll('.rad-caption, .rad-card-subtitle, [data-caption="true"], .rad-muted-text').forEach(function(c) {
@@ -2051,8 +2606,10 @@ export class SimpleWindow {
                         var map = {};
                         pairs.forEach(function(p) { var k = norm(p[0]); if (k && !(k in map)) map[k] = p[1]; });
                         document.querySelectorAll('[style]').forEach(function(el) {
-                            var bg = el.style.backgroundColor;
-                            if (bg && map[norm(bg)]) el.style.backgroundColor = map[norm(bg)];
+                            if (!el.hasAttribute('data-custom-bg')) {
+                                var bg = el.style.backgroundColor;
+                                if (bg && map[norm(bg)]) el.style.backgroundColor = map[norm(bg)];
+                            }
                             var bc = el.style.borderColor;
                             if (bc && map[norm(bc)]) el.style.borderColor = map[norm(bc)];
                         });
@@ -2078,6 +2635,7 @@ export class SimpleWindow {
                         var updates = [];
                         document.querySelectorAll('[style]').forEach(function(el) {
                             if (!el.style.color || el.tagName === 'SCRIPT' || el.tagName === 'STYLE') return;
+                            if (el.hasAttribute('data-custom-color') || el.hasAttribute('data-custom-bg')) return;
                             var isField = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT';
                             var hasText = isField || el.textContent.trim().length > 0;
                             if (!hasText) return;
@@ -2207,10 +2765,18 @@ export class SimpleWindow {
   /** Enables or disables native fullscreen mode for the window. */
   public setFullscreen(fullscreen = true): this {
     this.fullscreen = fullscreen;
+    if (!this.isWindowRunning) {
+      this._explicitWindowOptions.fullscreen = true;
+    }
     if (this.webview) {
       setFullscreenNative(this.webview, fullscreen);
     }
     return this;
+  }
+
+  /** Snake_case alias of `setFullscreen`: enables or disables native fullscreen mode for the window. */
+  public set_fullscreen(fullscreen = true): this {
+    return this.setFullscreen(fullscreen);
   }
 
   /** Returns `true` if the window is currently in fullscreen mode. */
@@ -2221,12 +2787,26 @@ export class SimpleWindow {
     return this.fullscreen;
   }
 
+  /** Snake_case alias of `isFullscreen`: returns `true` if the window is currently in fullscreen mode. */
+  public is_fullscreen(): boolean {
+    return this.isFullscreen();
+  }
+
   /** Toggles the window between fullscreen and windowed mode. */
   public toggleFullscreen(): this {
+    this.fullscreen = !this.fullscreen;
+    if (!this.isWindowRunning) {
+      this._explicitWindowOptions.fullscreen = true;
+    }
     if (this.webview) {
       toggleFullscreenNative(this.webview);
     }
     return this;
+  }
+
+  /** Snake_case alias of `toggleFullscreen`: toggles the window between fullscreen and windowed mode. */
+  public toggle_fullscreen(): this {
+    return this.toggleFullscreen();
   }
 
   /** Returns `true` while the window's native webview or browser-hosted session is actively running. */
@@ -2545,11 +3125,11 @@ export class SimpleWindow {
     justify = "start",
     align = "center",
   ): this {
+    this._flexModeStack.push(direction);
     if (direction === "row") {
       return this.beginRow();
-    } else {
-      return this;
     }
+    return this;
   }
   /** Snake_case alias of `beginFlex`: begins a flex layout container along the specified `direction` (`"row"` or `"column"`). */
   public begin_flex(
@@ -2562,6 +3142,13 @@ export class SimpleWindow {
 
   /** Closes the active flex layout container. */
   public endFlex(): this {
+    if (this._flexModeStack.length > 0) {
+      const popped = this._flexModeStack.pop();
+      if (popped === "row") {
+        return this.endRow();
+      }
+      return this;
+    }
     if (
       this.layoutStack.length > 0 &&
       this.layoutStack[this.layoutStack.length - 1]?.type === "row"
@@ -2851,10 +3438,55 @@ export class SimpleWindow {
       ...opts,
     };
 
+    delete spec.onClick;
+    delete spec.onChange;
+    delete spec.onSelect;
+    delete spec.onConfirm;
+    delete spec.onEnter;
+    delete spec.onHover;
+    delete spec.onHoverExit;
+    delete spec.onDoubleClick;
+    delete spec.onContextMenu;
+    delete spec.onRightClick;
+
     this.lastControlId = id;
     this.allocateControlPosition(spec, width, height);
     this.controls.push(spec);
     this._indexControl(spec);
+
+    if (typeof opts.onClick === "function") {
+      this.bindControlEvent(id, "onClick", opts.onClick);
+    }
+    if (typeof opts.onChange === "function") {
+      this.bindControlEvent(id, "onChange", opts.onChange);
+    }
+    if (typeof opts.onSelect === "function") {
+      this.bindControlEvent(id, "onSelect", opts.onSelect);
+      this.bindControlEvent(id, "onClick", opts.onSelect);
+      this.bindControlEvent(id, "onChange", opts.onSelect);
+    }
+    if (typeof opts.onConfirm === "function") {
+      this.bindControlEvent(id, "onConfirm", opts.onConfirm);
+      this.bindControlEvent(id, "onClick", opts.onConfirm);
+    }
+    if (typeof opts.onEnter === "function") {
+      this.bindControlEvent(id, "onEnter", opts.onEnter);
+    }
+    if (typeof opts.onHover === "function") {
+      this.bindControlEvent(id, "onHover", opts.onHover);
+    }
+    if (typeof opts.onHoverExit === "function") {
+      this.bindControlEvent(id, "onHoverExit", opts.onHoverExit);
+    }
+    if (typeof opts.onDoubleClick === "function") {
+      this.bindControlEvent(id, "onDoubleClick", opts.onDoubleClick);
+    }
+    if (typeof opts.onContextMenu === "function") {
+      this.bindControlEvent(id, "onContextMenu", opts.onContextMenu);
+    }
+    if (typeof opts.onRightClick === "function") {
+      this.bindControlEvent(id, "onContextMenu", opts.onRightClick);
+    }
 
     // Store initial value in formValuesStore if provided
     if (opts.value !== undefined) {
@@ -2886,20 +3518,50 @@ export class SimpleWindow {
   // --- Control Builder Methods ---
   /** Adds a text label control to the current layout container and returns a fluent `SimpleControlRef`. */
   public addLabel(
+    text: string,
+    onClick?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addLabel(text: string, options: ControlOptions): SimpleControlRef;
+  public addLabel(
+    id: string,
+    text: string,
+    onClick?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addLabel(
+    id: string,
+    text: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addLabel(
     idOrText: string,
-    textOrOpts?: string | Partial<any>,
-    opts: Partial<any> = {},
+    textOrOnClickOrOpts?: string | EventCallback | Partial<any>,
+    onClickOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
   ): SimpleControlRef {
     let text = idOrText;
     let explicitId: string | undefined;
-    let finalOpts: Partial<any> = opts;
+    let onClick: EventCallback | undefined;
+    let finalOpts: Partial<any> = optsArg;
 
-    if (typeof textOrOpts === "string") {
+    if (typeof textOrOnClickOrOpts === "string") {
       explicitId = idOrText;
-      text = textOrOpts;
-    } else if (textOrOpts && typeof textOrOpts === "object") {
-      finalOpts = textOrOpts;
+      text = textOrOnClickOrOpts;
+      if (typeof onClickOrOpts === "function") {
+        onClick = onClickOrOpts as EventCallback;
+      } else if (onClickOrOpts && typeof onClickOrOpts === "object") {
+        finalOpts = onClickOrOpts;
+      }
+    } else if (typeof textOrOnClickOrOpts === "function") {
+      onClick = textOrOnClickOrOpts as EventCallback;
+      if (onClickOrOpts && typeof onClickOrOpts === "object") {
+        finalOpts = onClickOrOpts;
+      }
+    } else if (textOrOnClickOrOpts && typeof textOrOnClickOrOpts === "object") {
+      finalOpts = textOrOnClickOrOpts;
     }
+    text = String(text ?? "");
 
     const inRow =
       this.layoutStack.length > 0 &&
@@ -2925,13 +3587,32 @@ export class SimpleWindow {
 
     const ctrlOpts: Record<string, any> = { text, caption: text, ...finalOpts };
     if (explicitId) ctrlOpts.id = explicitId;
-    return this.addVisualControl("label", defaultW, 24, ctrlOpts);
+    const ref = this.addVisualControl("label", defaultW, 24, ctrlOpts);
+    if (onClick) ref.onClick(onClick);
+    return ref;
   }
 
   /** Adds a clickable push button control with optional explicit ID, click handler, and style options. */
   public addButton(
+    label: string,
+    onClick?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addButton(label: string, options: ControlOptions): SimpleControlRef;
+  public addButton(
+    id: string,
+    label: string,
+    onClick?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addButton(
+    id: string,
+    label: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addButton(
     idOrText: string,
-    textOrOnClick?: string | EventCallback,
+    textOrOnClick?: string | EventCallback | ControlOptions,
     onClickOrOpts?: EventCallback | Partial<any>,
     optsArg: Partial<any> = {},
   ): SimpleControlRef {
@@ -2991,19 +3672,76 @@ export class SimpleWindow {
 
   /** Snake_case alias of `addButton`: adds a clickable push button control with optional explicit ID, click handler, and style options. */
   public add_button(
+    label: string,
+    onClick?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_button(label: string, options: ControlOptions): SimpleControlRef;
+  public add_button(
+    id: string,
+    label: string,
+    onClick?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_button(
+    id: string,
+    label: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_button(
     idOrText: string,
-    textOrOnClick?: string | EventCallback,
+    textOrOnClick?: string | EventCallback | ControlOptions,
     onClickOrOpts?: EventCallback | Partial<any>,
     optsArg: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addButton(idOrText, textOrOnClick, onClickOrOpts, optsArg);
+    return this.addButton(
+      idOrText,
+      textOrOnClick as any,
+      onClickOrOpts as any,
+      optsArg,
+    );
   }
 
   /** Adds a single-line text input control with placeholder, optional initial value, and change callback. */
   public addTextInput(
+    placeholder?: string,
+    initialValue?: string,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addTextInput(
+    placeholder: string,
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addTextInput(
+    placeholder: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addTextInput(
+    placeholder: string,
+    initialValue: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addTextInput(
+    id: string,
+    initialValue: string,
+    placeholder: string,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addTextInput(
+    id: string,
+    initialValue: string,
+    placeholder: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addTextInput(
     placeholder = "",
     arg2: string | EventCallback | Partial<any> = "",
     arg3: string | EventCallback | Partial<any> = {},
+    arg4?: EventCallback | Partial<any>,
+    arg5: Partial<any> = {},
   ): SimpleControlRef {
     let initialValue = "";
     let onChange: EventCallback | undefined;
@@ -3012,28 +3750,36 @@ export class SimpleWindow {
     let explicitId: string | undefined;
 
     if (typeof arg2 === "string" && typeof arg3 === "string") {
-      // Overload: (id, initialValue, placeholder)
+      // Overload: (id, initialValue, placeholder, onChange?, opts?)
       explicitId = placeholder;
       initialValue = arg2;
       finalPlaceholder = arg3;
+      if (typeof arg4 === "function") {
+        onChange = arg4 as EventCallback;
+        if (arg5 && typeof arg5 === "object") opts = { ...arg5 };
+      } else if (arg4 && typeof arg4 === "object") {
+        opts = { ...arg4 };
+      }
     } else if (typeof arg2 === "function") {
       onChange = arg2 as EventCallback;
-      if (typeof arg3 === "object") opts = arg3;
+      if (arg3 && typeof arg3 === "object") opts = { ...arg3 };
     } else if (typeof arg2 === "string") {
       initialValue = arg2;
       if (typeof arg3 === "function") {
         onChange = arg3 as EventCallback;
-      } else if (typeof arg3 === "object") {
-        opts = arg3;
+        if (arg4 && typeof arg4 === "object") opts = { ...arg4 };
+      } else if (arg3 && typeof arg3 === "object") {
+        opts = { ...arg3 };
       }
     } else if (typeof arg2 === "object" && arg2 !== null) {
-      opts = arg2;
+      opts = { ...arg2 };
     }
 
     if (explicitId) opts.id = explicitId;
     const ref = this.addVisualControl("input", 280, 36, {
       placeholder: finalPlaceholder,
       value: initialValue,
+      text: initialValue,
       ...opts,
     });
     if (initialValue) this.formValuesStore[ref.spec.id] = initialValue;
@@ -3042,56 +3788,246 @@ export class SimpleWindow {
   }
   /** Snake_case alias of `addTextInput`: adds a single-line text input control with placeholder, optional initial value, and change callback. */
   public add_text_input(
+    placeholder?: string,
+    initialValue?: string,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_text_input(
+    placeholder: string,
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_text_input(
+    placeholder: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_text_input(
+    placeholder: string,
+    initialValue: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_text_input(
+    id: string,
+    initialValue: string,
+    placeholder: string,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_text_input(
+    id: string,
+    initialValue: string,
+    placeholder: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_text_input(
     placeholder = "",
     arg2: string | EventCallback | Partial<any> = "",
-    arg3: EventCallback | Partial<any> = {},
+    arg3: string | EventCallback | Partial<any> = {},
+    arg4?: EventCallback | Partial<any>,
+    arg5: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addTextInput(placeholder, arg2, arg3);
+    return (this.addTextInput as any)(placeholder, arg2, arg3, arg4, arg5);
   }
   /** Alias of `addTextInput`: adds a single-line text input control with placeholder, optional initial value, and change callback. */
+  public addTextField(
+    placeholder?: string,
+    initialValue?: string,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addTextField(
+    placeholder: string,
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addTextField(
+    placeholder: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addTextField(
+    placeholder: string,
+    initialValue: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addTextField(
+    id: string,
+    initialValue: string,
+    placeholder: string,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addTextField(
+    id: string,
+    initialValue: string,
+    placeholder: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
   public addTextField(
     placeholder = "",
     arg2: string | EventCallback | Partial<any> = "",
     arg3: string | EventCallback | Partial<any> = {},
+    arg4?: EventCallback | Partial<any>,
+    arg5: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addTextInput(placeholder, arg2, arg3);
+    return (this.addTextInput as any)(placeholder, arg2, arg3, arg4, arg5);
   }
   /** Snake_case alias of `addTextInput`: adds a single-line text input control with placeholder, optional initial value, and change callback. */
+  public add_text_field(
+    placeholder?: string,
+    initialValue?: string,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_text_field(
+    placeholder: string,
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_text_field(
+    placeholder: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_text_field(
+    placeholder: string,
+    initialValue: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_text_field(
+    id: string,
+    initialValue: string,
+    placeholder: string,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_text_field(
+    id: string,
+    initialValue: string,
+    placeholder: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
   public add_text_field(
     placeholder = "",
     arg2: string | EventCallback | Partial<any> = "",
     arg3: string | EventCallback | Partial<any> = {},
+    arg4?: EventCallback | Partial<any>,
+    arg5: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addTextInput(placeholder, arg2, arg3);
+    return (this.addTextInput as any)(placeholder, arg2, arg3, arg4, arg5);
   }
 
-  /** Adds a masked password input field with placeholder text and custom options. */
+  /** Adds a masked password input field with optional explicit ID, placeholder text, change callback, and custom options. */
   public addPasswordInput(
-    placeholder = "••••••••",
-    opts: Partial<any> = {},
+    idOrPlaceholder = "••••••••",
+    placeholderOrOnChangeOrOpts?: string | EventCallback | Partial<any>,
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addVisualControl("password", 280, 36, { placeholder, ...opts });
+    let explicitId: string | undefined;
+    let placeholder = idOrPlaceholder;
+    let onChange: EventCallback | undefined;
+    let opts: Partial<any> = {};
+
+    if (typeof placeholderOrOnChangeOrOpts === "string") {
+      explicitId = idOrPlaceholder;
+      placeholder = placeholderOrOnChangeOrOpts;
+      if (typeof onChangeOrOpts === "function") {
+        onChange = onChangeOrOpts as EventCallback;
+        opts = { ...optsArg };
+      } else if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+        opts = { ...onChangeOrOpts };
+      }
+    } else if (typeof placeholderOrOnChangeOrOpts === "function") {
+      onChange = placeholderOrOnChangeOrOpts as EventCallback;
+      if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+        opts = { ...onChangeOrOpts };
+      }
+    } else if (
+      placeholderOrOnChangeOrOpts &&
+      typeof placeholderOrOnChangeOrOpts === "object"
+    ) {
+      opts = { ...placeholderOrOnChangeOrOpts };
+    }
+
+    if (explicitId) opts.id = explicitId;
+    const ref = this.addVisualControl("password", 280, 36, {
+      placeholder,
+      ...(explicitId ? {} : { _inputFirstArg: placeholder }),
+      ...opts,
+    });
+    if (onChange) ref.onChange(onChange);
+    return ref;
+  }
+  /** Snake_case alias of `addPasswordInput`: adds a masked password input field. */
+  public add_password_input(
+    idOrPlaceholder = "••••••••",
+    placeholderOrOnChangeOrOpts?: string | EventCallback | Partial<any>,
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
+  ): SimpleControlRef {
+    return this.addPasswordInput(
+      idOrPlaceholder,
+      placeholderOrOnChangeOrOpts,
+      onChangeOrOpts,
+      optsArg,
+    );
   }
 
-  /** Adds a multi-line text area control with optional ID, placeholder, and initial text content. */
+  /** Adds a multi-line text area control with optional ID, placeholder, initial text content, and change callback. */
   public addTextArea(
     idOrPlaceholder = "",
-    initialValueOrPlaceholder = "",
-    optsOrPlaceholder: string | Partial<any> = {},
+    initialValueOrPlaceholderOrOnChange:
+      | string
+      | EventCallback
+      | Partial<any> = "",
+    optsOrPlaceholderOrOnChange: string | EventCallback | Partial<any> = {},
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
   ): SimpleControlRef {
     let id: string | undefined;
     let placeholder = idOrPlaceholder;
-    let initialValue = initialValueOrPlaceholder;
+    let initialValue = "";
+    let onChange: EventCallback | undefined;
     let opts: Partial<any> = {};
 
-    if (typeof optsOrPlaceholder === "string") {
-      // Overload: (id, initialValue, placeholder)
-      id = idOrPlaceholder;
-      initialValue = initialValueOrPlaceholder;
-      placeholder = optsOrPlaceholder;
-    } else if (typeof optsOrPlaceholder === "object") {
-      opts = optsOrPlaceholder;
-      if (opts.id) id = opts.id;
+    if (typeof initialValueOrPlaceholderOrOnChange === "function") {
+      onChange = initialValueOrPlaceholderOrOnChange as EventCallback;
+      if (
+        optsOrPlaceholderOrOnChange &&
+        typeof optsOrPlaceholderOrOnChange === "object"
+      ) {
+        opts = { ...optsOrPlaceholderOrOnChange };
+      }
+    } else if (
+      initialValueOrPlaceholderOrOnChange &&
+      typeof initialValueOrPlaceholderOrOnChange === "object"
+    ) {
+      opts = { ...initialValueOrPlaceholderOrOnChange };
+    } else if (typeof initialValueOrPlaceholderOrOnChange === "string") {
+      initialValue = initialValueOrPlaceholderOrOnChange;
+      if (typeof optsOrPlaceholderOrOnChange === "string") {
+        // Overload: (id, initialValue, placeholder, onChange?, opts?)
+        id = idOrPlaceholder;
+        initialValue = initialValueOrPlaceholderOrOnChange;
+        placeholder = optsOrPlaceholderOrOnChange;
+        if (typeof onChangeOrOpts === "function") {
+          onChange = onChangeOrOpts as EventCallback;
+          opts = { ...optsArg };
+        } else if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts };
+        }
+      } else if (typeof optsOrPlaceholderOrOnChange === "function") {
+        onChange = optsOrPlaceholderOrOnChange as EventCallback;
+        if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts };
+        }
+      } else if (
+        optsOrPlaceholderOrOnChange &&
+        typeof optsOrPlaceholderOrOnChange === "object"
+      ) {
+        opts = { ...optsOrPlaceholderOrOnChange };
+        if (opts.id) id = opts.id;
+      }
     }
 
     if (id) opts.id = id;
@@ -3103,36 +4039,119 @@ export class SimpleWindow {
     });
     if (id) ref.spec.id = id;
     if (initialValue) this.formValuesStore[ref.spec.id] = initialValue;
+    if (onChange) ref.onChange(onChange);
     return ref;
   }
 
   /** Adds a boolean checkbox control with label text, initial checked state, and optional change handler. */
   public addCheckbox(
-    idOrLabel: string,
-    labelOrChecked: string | boolean = false,
-    checkedOrOnChange: boolean | EventCallback = false,
+    label: string,
+    checked?: boolean,
     onChange?: EventCallback,
-    opts: Partial<any> = {},
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addCheckbox(
+    label: string,
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addCheckbox(
+    label: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addCheckbox(
+    label: string,
+    checked: boolean,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addCheckbox(
+    id: string,
+    label: string,
+    checked?: boolean,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addCheckbox(
+    id: string,
+    label: string,
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addCheckbox(
+    id: string,
+    label: string,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addCheckbox(
+    id: string,
+    label: string,
+    checked: boolean,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addCheckbox(
+    idOrLabel: string,
+    labelOrCheckedOrOnChange:
+      | string
+      | boolean
+      | EventCallback
+      | Partial<any> = false,
+    checkedOrOnChangeOrOpts: boolean | EventCallback | Partial<any> = false,
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
   ): SimpleControlRef {
     let explicitId: string | undefined;
     let label = idOrLabel;
     let checked = false;
     let changeHandler: EventCallback | undefined;
+    let opts: Partial<any> = { ...optsArg };
 
-    if (typeof labelOrChecked === "string") {
+    if (typeof labelOrCheckedOrOnChange === "string") {
       explicitId = idOrLabel;
-      label = labelOrChecked;
-      if (typeof checkedOrOnChange === "boolean") {
-        checked = checkedOrOnChange;
-        changeHandler = onChange;
-      } else if (typeof checkedOrOnChange === "function") {
-        changeHandler = checkedOrOnChange;
+      label = labelOrCheckedOrOnChange;
+      if (typeof checkedOrOnChangeOrOpts === "boolean") {
+        checked = checkedOrOnChangeOrOpts;
+        if (typeof onChangeOrOpts === "function") {
+          changeHandler = onChangeOrOpts as EventCallback;
+        } else if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts, ...opts };
+        }
+      } else if (typeof checkedOrOnChangeOrOpts === "function") {
+        changeHandler = checkedOrOnChangeOrOpts as EventCallback;
+        if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts, ...opts };
+        }
+      } else if (
+        checkedOrOnChangeOrOpts &&
+        typeof checkedOrOnChangeOrOpts === "object"
+      ) {
+        opts = { ...checkedOrOnChangeOrOpts, ...opts };
       }
-    } else if (typeof labelOrChecked === "boolean") {
-      checked = labelOrChecked;
-      if (typeof checkedOrOnChange === "function") {
-        changeHandler = checkedOrOnChange;
+    } else if (typeof labelOrCheckedOrOnChange === "boolean") {
+      checked = labelOrCheckedOrOnChange;
+      if (typeof checkedOrOnChangeOrOpts === "function") {
+        changeHandler = checkedOrOnChangeOrOpts as EventCallback;
+        if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts, ...opts };
+        }
+      } else if (
+        checkedOrOnChangeOrOpts &&
+        typeof checkedOrOnChangeOrOpts === "object"
+      ) {
+        opts = { ...checkedOrOnChangeOrOpts, ...opts };
       }
+    } else if (typeof labelOrCheckedOrOnChange === "function") {
+      changeHandler = labelOrCheckedOrOnChange as EventCallback;
+      if (
+        checkedOrOnChangeOrOpts &&
+        typeof checkedOrOnChangeOrOpts === "object"
+      ) {
+        opts = { ...checkedOrOnChangeOrOpts, ...opts };
+      }
+    } else if (
+      labelOrCheckedOrOnChange &&
+      typeof labelOrCheckedOrOnChange === "object"
+    ) {
+      opts = { ...labelOrCheckedOrOnChange, ...opts };
     }
 
     const ctrlOpts: Record<string, any> = {
@@ -3155,13 +4174,74 @@ export class SimpleWindow {
     return ref;
   }
 
-  /** Adds a sliding boolean toggle switch control with label, initial state, and optional change callback. */
+  /** Adds a sliding boolean toggle switch control with optional explicit ID, label, initial state, and optional change callback. */
   public addSwitch(
-    label: string,
-    checked = false,
-    onChange?: EventCallback,
-    opts: Partial<any> = {},
+    idOrLabel: string,
+    labelOrCheckedOrOnChange:
+      | string
+      | boolean
+      | EventCallback
+      | Partial<any> = false,
+    checkedOrOnChangeOrOpts?: boolean | EventCallback | Partial<any>,
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
   ): SimpleControlRef {
+    let explicitId: string | undefined;
+    let label = idOrLabel;
+    let checked = false;
+    let onChange: EventCallback | undefined;
+    let opts: Partial<any> = { ...optsArg };
+
+    if (typeof labelOrCheckedOrOnChange === "string") {
+      explicitId = idOrLabel;
+      label = labelOrCheckedOrOnChange;
+      if (typeof checkedOrOnChangeOrOpts === "boolean") {
+        checked = checkedOrOnChangeOrOpts;
+        if (typeof onChangeOrOpts === "function") {
+          onChange = onChangeOrOpts as EventCallback;
+        } else if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts, ...opts };
+        }
+      } else if (typeof checkedOrOnChangeOrOpts === "function") {
+        onChange = checkedOrOnChangeOrOpts as EventCallback;
+        if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts, ...opts };
+        }
+      } else if (
+        checkedOrOnChangeOrOpts &&
+        typeof checkedOrOnChangeOrOpts === "object"
+      ) {
+        opts = { ...checkedOrOnChangeOrOpts, ...opts };
+      }
+    } else if (typeof labelOrCheckedOrOnChange === "boolean") {
+      checked = labelOrCheckedOrOnChange;
+      if (typeof checkedOrOnChangeOrOpts === "function") {
+        onChange = checkedOrOnChangeOrOpts as EventCallback;
+        if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts, ...opts };
+        }
+      } else if (
+        checkedOrOnChangeOrOpts &&
+        typeof checkedOrOnChangeOrOpts === "object"
+      ) {
+        opts = { ...checkedOrOnChangeOrOpts, ...opts };
+      }
+    } else if (typeof labelOrCheckedOrOnChange === "function") {
+      onChange = labelOrCheckedOrOnChange as EventCallback;
+      if (
+        checkedOrOnChangeOrOpts &&
+        typeof checkedOrOnChangeOrOpts === "object"
+      ) {
+        opts = { ...checkedOrOnChangeOrOpts, ...opts };
+      }
+    } else if (
+      labelOrCheckedOrOnChange &&
+      typeof labelOrCheckedOrOnChange === "object"
+    ) {
+      opts = { ...labelOrCheckedOrOnChange, ...opts };
+    }
+
+    if (explicitId) opts.id = explicitId;
     const ref = this.addVisualControl("switch", 260, 26, {
       text: label,
       caption: label,
@@ -3174,14 +4254,125 @@ export class SimpleWindow {
     return ref;
   }
 
-  /** Adds a horizontal numeric range slider control bounded by `[min, max]` with initial value and change handler. */
+  /** Adds a horizontal numeric range slider control bounded by `[min, max]` with optional explicit ID, initial value, and change handler. */
   public addSlider(
-    min = 0,
-    max = 100,
-    value = 50,
+    min?: number,
+    max?: number,
+    value?: number,
     onChange?: EventCallback,
-    opts: Partial<any> = {},
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addSlider(
+    min: number,
+    max: number,
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addSlider(
+    min: number,
+    max: number,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addSlider(
+    min: number,
+    max: number,
+    value: number,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addSlider(
+    id: string,
+    min: number,
+    max: number,
+    value?: number,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addSlider(
+    id: string,
+    min: number,
+    max: number,
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addSlider(
+    id: string,
+    min: number,
+    max: number,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addSlider(
+    id: string,
+    min: number,
+    max: number,
+    value: number,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addSlider(
+    idOrMin: string | number = 0,
+    minOrMax: number = 100,
+    maxOrValue: number | EventCallback | Partial<any> = 50,
+    valueOrOnChange?: number | EventCallback | Partial<any>,
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
   ): SimpleControlRef {
+    let explicitId: string | undefined;
+    let min = 0;
+    let max = 100;
+    let value = 50;
+    let onChange: EventCallback | undefined;
+    let opts: Partial<any> = { ...optsArg };
+
+    if (typeof idOrMin === "string") {
+      explicitId = idOrMin;
+      min = typeof minOrMax === "number" ? minOrMax : 0;
+      max = typeof maxOrValue === "number" ? maxOrValue : 100;
+      if (typeof valueOrOnChange === "number") {
+        value = valueOrOnChange;
+        if (typeof onChangeOrOpts === "function") {
+          onChange = onChangeOrOpts as EventCallback;
+        } else if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts, ...opts };
+        }
+      } else {
+        value = min;
+        if (typeof valueOrOnChange === "function") {
+          onChange = valueOrOnChange as EventCallback;
+          if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+            opts = { ...onChangeOrOpts, ...opts };
+          }
+        } else if (valueOrOnChange && typeof valueOrOnChange === "object") {
+          opts = { ...valueOrOnChange, ...opts };
+        }
+      }
+    } else {
+      min = idOrMin;
+      max = minOrMax;
+      if (typeof maxOrValue === "number") {
+        value = maxOrValue;
+        if (typeof valueOrOnChange === "function") {
+          onChange = valueOrOnChange as EventCallback;
+          if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+            opts = { ...onChangeOrOpts, ...opts };
+          }
+        } else if (valueOrOnChange && typeof valueOrOnChange === "object") {
+          opts = { ...valueOrOnChange, ...opts };
+        } else if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts, ...opts };
+        }
+      } else {
+        value = min;
+        if (typeof maxOrValue === "function") {
+          onChange = maxOrValue as EventCallback;
+          if (valueOrOnChange && typeof valueOrOnChange === "object") {
+            opts = { ...valueOrOnChange, ...opts };
+          }
+        } else if (maxOrValue && typeof maxOrValue === "object") {
+          opts = { ...maxOrValue, ...opts };
+        }
+      }
+    }
+
+    if (explicitId) opts.id = explicitId;
     const ref = this.addVisualControl("slider", 280, 24, {
       min_value: min,
       max_value: max,
@@ -3193,14 +4384,125 @@ export class SimpleWindow {
     return ref;
   }
 
-  /** Adds a numeric stepper input with increment/decrement buttons bounded by `[min, max]`. */
+  /** Adds a numeric stepper input with increment/decrement buttons bounded by `[min, max]` and optional explicit ID. */
   public addStepper(
-    min = 0,
-    max = 100,
-    value = 1,
+    min?: number,
+    max?: number,
+    value?: number,
     onChange?: EventCallback,
-    opts: Partial<any> = {},
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addStepper(
+    min: number,
+    max: number,
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addStepper(
+    min: number,
+    max: number,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addStepper(
+    min: number,
+    max: number,
+    value: number,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addStepper(
+    id: string,
+    min: number,
+    max: number,
+    value?: number,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addStepper(
+    id: string,
+    min: number,
+    max: number,
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addStepper(
+    id: string,
+    min: number,
+    max: number,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addStepper(
+    id: string,
+    min: number,
+    max: number,
+    value: number,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addStepper(
+    idOrMin: string | number = 0,
+    minOrMax: number = 100,
+    maxOrValue: number | EventCallback | Partial<any> = 1,
+    valueOrOnChange?: number | EventCallback | Partial<any>,
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
   ): SimpleControlRef {
+    let explicitId: string | undefined;
+    let min = 0;
+    let max = 100;
+    let value = 1;
+    let onChange: EventCallback | undefined;
+    let opts: Partial<any> = { ...optsArg };
+
+    if (typeof idOrMin === "string") {
+      explicitId = idOrMin;
+      min = typeof minOrMax === "number" ? minOrMax : 0;
+      max = typeof maxOrValue === "number" ? maxOrValue : 100;
+      if (typeof valueOrOnChange === "number") {
+        value = valueOrOnChange;
+        if (typeof onChangeOrOpts === "function") {
+          onChange = onChangeOrOpts as EventCallback;
+        } else if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts, ...opts };
+        }
+      } else {
+        value = min;
+        if (typeof valueOrOnChange === "function") {
+          onChange = valueOrOnChange as EventCallback;
+          if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+            opts = { ...onChangeOrOpts, ...opts };
+          }
+        } else if (valueOrOnChange && typeof valueOrOnChange === "object") {
+          opts = { ...valueOrOnChange, ...opts };
+        }
+      }
+    } else {
+      min = idOrMin;
+      max = minOrMax;
+      if (typeof maxOrValue === "number") {
+        value = maxOrValue;
+        if (typeof valueOrOnChange === "function") {
+          onChange = valueOrOnChange as EventCallback;
+          if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+            opts = { ...onChangeOrOpts, ...opts };
+          }
+        } else if (valueOrOnChange && typeof valueOrOnChange === "object") {
+          opts = { ...valueOrOnChange, ...opts };
+        } else if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts, ...opts };
+        }
+      } else {
+        value = min;
+        if (typeof maxOrValue === "function") {
+          onChange = maxOrValue as EventCallback;
+          if (valueOrOnChange && typeof valueOrOnChange === "object") {
+            opts = { ...valueOrOnChange, ...opts };
+          }
+        } else if (maxOrValue && typeof maxOrValue === "object") {
+          opts = { ...maxOrValue, ...opts };
+        }
+      }
+    }
+
+    if (explicitId) opts.id = explicitId;
     const ref = this.addVisualControl("number_stepper", 140, 36, {
       min_value: min,
       max_value: max,
@@ -3212,24 +4514,125 @@ export class SimpleWindow {
     return ref;
   }
 
-  /** Adds a horizontal progress bar indicator showing `value` relative to `max`. */
+  /** Adds a horizontal progress bar indicator showing `value` relative to `max`, with optional explicit ID. */
   public addProgressBar(
-    value = 50,
-    max = 100,
-    opts: Partial<any> = {},
+    value?: number,
+    max?: number,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addProgressBar(
+    value: number,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addProgressBar(
+    id: string,
+    value?: number,
+    max?: number,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addProgressBar(
+    id: string,
+    value: number,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addProgressBar(
+    idOrValue: string | number = 50,
+    valueOrMax: number | Partial<any> = 100,
+    maxOrOpts: number | Partial<any> = {},
+    optsArg: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addVisualControl("progress_bar", 280, 20, {
-      value,
+    if (typeof idOrValue === "string") {
+      const value = typeof valueOrMax === "number" ? valueOrMax : 50;
+      const max = typeof maxOrOpts === "number" ? maxOrOpts : 100;
+      const opts =
+        maxOrOpts && typeof maxOrOpts === "object"
+          ? maxOrOpts
+          : valueOrMax && typeof valueOrMax === "object"
+            ? valueOrMax
+            : optsArg;
+      const ref = this.addVisualControl("progress_bar", 280, 20, {
+        id: idOrValue,
+        value,
+        max_value: max,
+        ...opts,
+      });
+      this.formValuesStore[ref.spec.id] = value;
+      return ref;
+    }
+    const max = typeof valueOrMax === "number" ? valueOrMax : 100;
+    const opts =
+      valueOrMax && typeof valueOrMax === "object"
+        ? valueOrMax
+        : maxOrOpts && typeof maxOrOpts === "object"
+          ? maxOrOpts
+          : optsArg;
+    const ref = this.addVisualControl("progress_bar", 280, 20, {
+      value: idOrValue,
       max_value: max,
       ...opts,
     });
+    this.formValuesStore[ref.spec.id] = idOrValue;
+    return ref;
   }
 
   /** Adds a single-select dropdown (`<select>`) control populated with `items`, optional initial selection, and change handler. */
   public addDropdown(
+    items: string[],
+    selected?: string | number,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addDropdown(
+    items: string[],
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addDropdown(
+    items: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addDropdown(
+    items: string[],
+    selected: string | number | undefined,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addDropdown(
+    id: string,
+    items: string[],
+    selected?: string | number,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addDropdown(
+    id: string,
+    items: string[],
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addDropdown(
+    id: string,
+    items: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addDropdown(
+    id: string,
+    items: string[],
+    selected: string | number | undefined,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addDropdown(
     idOrItems: string | string[],
-    itemsOrSelected?: string[] | string | number | EventCallback,
-    selectedOrOnChange?: string | number | EventCallback,
+    itemsOrSelected?:
+      | string[]
+      | string
+      | number
+      | EventCallback
+      | Record<string, any>,
+    selectedOrOnChange?:
+      | string
+      | number
+      | EventCallback
+      | Record<string, any>,
     onChangeOrOpts?: EventCallback | Record<string, any>,
     optsArg: Record<string, any> = {},
   ): SimpleControlRef {
@@ -3243,8 +4646,14 @@ export class SimpleWindow {
       explicitId = idOrItems;
       items = itemsOrSelected;
       if (typeof selectedOrOnChange === "function") {
-        onChange = selectedOrOnChange;
-        if (typeof onChangeOrOpts === "object") opts = onChangeOrOpts;
+        onChange = selectedOrOnChange as EventCallback;
+        if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null)
+          opts = onChangeOrOpts;
+      } else if (
+        typeof selectedOrOnChange === "object" &&
+        selectedOrOnChange !== null
+      ) {
+        opts = selectedOrOnChange;
       } else {
         selected = selectedOrOnChange;
         if (typeof onChangeOrOpts === "function") {
@@ -3263,13 +4672,22 @@ export class SimpleWindow {
       items = idOrItems;
       if (typeof itemsOrSelected === "function") {
         onChange = itemsOrSelected as EventCallback;
-        if (typeof selectedOrOnChange === "object")
+        if (
+          typeof selectedOrOnChange === "object" &&
+          selectedOrOnChange !== null
+        )
           opts = selectedOrOnChange as Record<string, any>;
+      } else if (
+        typeof itemsOrSelected === "object" &&
+        itemsOrSelected !== null
+      ) {
+        opts = itemsOrSelected as Record<string, any>;
       } else {
-        selected = itemsOrSelected as string | number;
+        selected = itemsOrSelected as string | number | undefined;
         if (typeof selectedOrOnChange === "function") {
           onChange = selectedOrOnChange as EventCallback;
-          if (typeof onChangeOrOpts === "object") opts = onChangeOrOpts;
+          if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null)
+            opts = onChangeOrOpts;
         } else if (
           typeof selectedOrOnChange === "object" &&
           selectedOrOnChange !== null
@@ -3298,6 +4716,216 @@ export class SimpleWindow {
     this.listItemsStore[ref.spec.id] = [...items];
     if (onChange) ref.onChange(onChange);
     return ref;
+  }
+
+  /** Snake_case alias of `addDropdown`: adds a single-select dropdown (`<select>`) control. */
+  public add_dropdown(
+    items: string[],
+    selected?: string | number,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_dropdown(
+    items: string[],
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_dropdown(
+    items: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_dropdown(
+    items: string[],
+    selected: string | number | undefined,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_dropdown(
+    id: string,
+    items: string[],
+    selected?: string | number,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_dropdown(
+    id: string,
+    items: string[],
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_dropdown(
+    id: string,
+    items: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_dropdown(
+    id: string,
+    items: string[],
+    selected: string | number | undefined,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_dropdown(
+    idOrItems: string | string[],
+    itemsOrSelected?:
+      | string[]
+      | string
+      | number
+      | EventCallback
+      | Record<string, any>,
+    selectedOrOnChange?:
+      | string
+      | number
+      | EventCallback
+      | Record<string, any>,
+    onChangeOrOpts?: EventCallback | Record<string, any>,
+    optsArg: Record<string, any> = {},
+  ): SimpleControlRef {
+    return (this.addDropdown as any)(
+      idOrItems,
+      itemsOrSelected,
+      selectedOrOnChange,
+      onChangeOrOpts,
+      optsArg,
+    );
+  }
+
+  /** Alias of `addDropdown`: adds a single-select `<select>` dropdown control populated with `items`. */
+  public addSelect(
+    items: string[],
+    selected?: string | number,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addSelect(
+    items: string[],
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addSelect(
+    items: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addSelect(
+    items: string[],
+    selected: string | number | undefined,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addSelect(
+    id: string,
+    items: string[],
+    selected?: string | number,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addSelect(
+    id: string,
+    items: string[],
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addSelect(
+    id: string,
+    items: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addSelect(
+    id: string,
+    items: string[],
+    selected: string | number | undefined,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addSelect(
+    idOrItems: string | string[],
+    itemsOrSelected?:
+      | string[]
+      | string
+      | number
+      | EventCallback
+      | Record<string, any>,
+    selectedOrOnChange?:
+      | string
+      | number
+      | EventCallback
+      | Record<string, any>,
+    onChangeOrOpts?: EventCallback | Record<string, any>,
+    optsArg: Record<string, any> = {},
+  ): SimpleControlRef {
+    return (this.addDropdown as any)(
+      idOrItems,
+      itemsOrSelected,
+      selectedOrOnChange,
+      onChangeOrOpts,
+      optsArg,
+    );
+  }
+
+  /** Snake_case alias of `addSelect`: adds a single-select `<select>` dropdown control populated with `items`. */
+  public add_select(
+    items: string[],
+    selected?: string | number,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_select(
+    items: string[],
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_select(
+    items: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_select(
+    items: string[],
+    selected: string | number | undefined,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_select(
+    id: string,
+    items: string[],
+    selected?: string | number,
+    onChange?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_select(
+    id: string,
+    items: string[],
+    onChange: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_select(
+    id: string,
+    items: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_select(
+    id: string,
+    items: string[],
+    selected: string | number | undefined,
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_select(
+    idOrItems: string | string[],
+    itemsOrSelected?:
+      | string[]
+      | string
+      | number
+      | EventCallback
+      | Record<string, any>,
+    selectedOrOnChange?:
+      | string
+      | number
+      | EventCallback
+      | Record<string, any>,
+    onChangeOrOpts?: EventCallback | Record<string, any>,
+    optsArg: Record<string, any> = {},
+  ): SimpleControlRef {
+    return (this.addDropdown as any)(
+      idOrItems,
+      itemsOrSelected,
+      selectedOrOnChange,
+      onChangeOrOpts,
+      optsArg,
+    );
   }
 
   /** Adds an interactive theme-switcher dropdown pre-populated with SimpleGUI themes that automatically re-themes the window on selection. */
@@ -3693,17 +5321,76 @@ export class SimpleWindow {
 
   /** Adds a horizontal pill-style segmented button bar where one segment is active at a time. */
   public addSegmentedControl(
-    items: string[],
-    selectedIndex = 0,
-    onChange?: EventCallback,
-    opts: Partial<any> = {},
+    idOrItems: string | string[],
+    itemsOrSelected: string[] | number | string | EventCallback = 0,
+    selectedOrOnChange?: number | string | EventCallback | Partial<any>,
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
   ): SimpleControlRef {
+    let explicitId: string | undefined;
+    let items: string[] = [];
+    let selected: number | string = 0;
+    let onChange: EventCallback | undefined;
+    let opts: Partial<any> = { ...optsArg };
+
+    if (typeof idOrItems === "string" && Array.isArray(itemsOrSelected)) {
+      explicitId = idOrItems;
+      items = itemsOrSelected;
+      if (typeof selectedOrOnChange === "function") {
+        onChange = selectedOrOnChange as EventCallback;
+        if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts, ...opts };
+        }
+      } else if (
+        typeof selectedOrOnChange === "number" ||
+        typeof selectedOrOnChange === "string"
+      ) {
+        selected = selectedOrOnChange;
+        if (typeof onChangeOrOpts === "function") {
+          onChange = onChangeOrOpts as EventCallback;
+        } else if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+          opts = { ...onChangeOrOpts, ...opts };
+        }
+      } else if (selectedOrOnChange && typeof selectedOrOnChange === "object") {
+        opts = { ...selectedOrOnChange, ...opts };
+      }
+    } else if (Array.isArray(idOrItems)) {
+      items = idOrItems;
+      if (typeof itemsOrSelected === "function") {
+        onChange = itemsOrSelected as EventCallback;
+        if (selectedOrOnChange && typeof selectedOrOnChange === "object") {
+          opts = { ...selectedOrOnChange, ...opts };
+        }
+      } else if (
+        typeof itemsOrSelected === "number" ||
+        typeof itemsOrSelected === "string"
+      ) {
+        selected = itemsOrSelected;
+        if (typeof selectedOrOnChange === "function") {
+          onChange = selectedOrOnChange as EventCallback;
+          if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+            opts = { ...onChangeOrOpts, ...opts };
+          }
+        } else if (
+          selectedOrOnChange &&
+          typeof selectedOrOnChange === "object"
+        ) {
+          opts = { ...selectedOrOnChange, ...opts };
+        }
+      }
+    }
+
     const text = items.join(", ");
-    const initialVal = items[selectedIndex] || "";
+    const initialVal =
+      typeof selected === "number"
+        ? items[selected] || ""
+        : selected || items[0] || "";
+    if (explicitId) opts.id = explicitId;
     const ref = this.addVisualControl("segmented_control", 280, 36, {
       text,
       caption: text,
       value: initialVal,
+      items: [...items],
       ...opts,
     });
     this.formValuesStore[ref.spec.id] = initialVal;
@@ -3711,19 +5398,76 @@ export class SimpleWindow {
     if (onChange) ref.onChange(onChange);
     return ref;
   }
+  /** Snake_case alias of `addSegmentedControl`: adds a horizontal pill-style segmented button bar. */
+  public add_segmented_control(
+    idOrItems: string | string[],
+    itemsOrSelected: string[] | number | string | EventCallback = 0,
+    selectedOrOnChange?: number | string | EventCallback | Partial<any>,
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
+  ): SimpleControlRef {
+    return this.addSegmentedControl(
+      idOrItems,
+      itemsOrSelected,
+      selectedOrOnChange,
+      onChangeOrOpts,
+      optsArg,
+    );
+  }
 
   /** Adds a search input field with a magnifier icon, clear action, and change handler. */
   public addSearchInput(
-    placeholder = "Search...",
-    onChange?: EventCallback,
-    opts: Partial<any> = {},
+    idOrPlaceholder = "Search...",
+    placeholderOrOnChangeOrOpts?: string | EventCallback | Partial<any>,
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
   ): SimpleControlRef {
+    let explicitId: string | undefined;
+    let placeholder = idOrPlaceholder;
+    let onChange: EventCallback | undefined;
+    let opts: Partial<any> = { ...optsArg };
+
+    if (typeof placeholderOrOnChangeOrOpts === "string") {
+      explicitId = idOrPlaceholder;
+      placeholder = placeholderOrOnChangeOrOpts;
+      if (typeof onChangeOrOpts === "function") {
+        onChange = onChangeOrOpts as EventCallback;
+      } else if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+        opts = { ...onChangeOrOpts, ...opts };
+      }
+    } else if (typeof placeholderOrOnChangeOrOpts === "function") {
+      onChange = placeholderOrOnChangeOrOpts as EventCallback;
+      if (onChangeOrOpts && typeof onChangeOrOpts === "object") {
+        opts = { ...onChangeOrOpts, ...opts };
+      }
+    } else if (
+      placeholderOrOnChangeOrOpts &&
+      typeof placeholderOrOnChangeOrOpts === "object"
+    ) {
+      opts = { ...placeholderOrOnChangeOrOpts, ...opts };
+    }
+
+    if (explicitId) opts.id = explicitId;
     const ref = this.addVisualControl("search", 260, 36, {
       placeholder,
       ...opts,
     });
     if (onChange) ref.onChange(onChange);
     return ref;
+  }
+  /** Snake_case alias of `addSearchInput`: adds a search input field with change handler. */
+  public add_search_input(
+    idOrPlaceholder = "Search...",
+    placeholderOrOnChangeOrOpts?: string | EventCallback | Partial<any>,
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
+  ): SimpleControlRef {
+    return this.addSearchInput(
+      idOrPlaceholder,
+      placeholderOrOnChangeOrOpts,
+      onChangeOrOpts,
+      optsArg,
+    );
   }
 
   /** Adds an interactive color picker well initialized to the specified hex color. */
@@ -3771,24 +5515,108 @@ export class SimpleWindow {
     return ref;
   }
 
-  /** Adds a semantic status badge pill (`"info"`, `"success"`, `"warning"`, or `"error"`). */
+  /** Adds a semantic status badge pill (`"info"`, `"success"`, `"warning"`, or `"error"`), with optional leading `id`. */
   public addBadge(
-    text: string,
-    type: "info" | "success" | "warning" | "error" = "info",
-    opts: Partial<any> = {},
+    idOrText: string,
+    typeOrText:
+      | "info"
+      | "success"
+      | "warning"
+      | "error"
+      | "danger"
+      | string
+      | Partial<any> = "info",
+    typeOrOpts:
+      | "info"
+      | "success"
+      | "warning"
+      | "error"
+      | "danger"
+      | Partial<any> = {},
+    optsArg: Partial<any> = {},
   ): SimpleControlRef {
+    const badgeRoles = new Set(["info", "success", "warning", "error", "danger"]);
+    let explicitId: string | undefined;
+    let text = idOrText;
+    let badgeType = "info";
+    let opts: Partial<any> = { ...optsArg };
+
+    if (typeof typeOrText === "string") {
+      if (badgeRoles.has(typeOrText)) {
+        badgeType = typeOrText === "danger" ? "error" : typeOrText;
+        if (typeOrOpts && typeof typeOrOpts === "object") {
+          opts = { ...typeOrOpts, ...opts };
+        }
+      } else {
+        explicitId = idOrText;
+        text = typeOrText;
+        if (typeof typeOrOpts === "string") {
+          badgeType = typeOrOpts === "danger" ? "error" : typeOrOpts;
+        } else if (typeOrOpts && typeof typeOrOpts === "object") {
+          opts = { ...typeOrOpts, ...opts };
+        }
+      }
+    } else if (typeOrText && typeof typeOrText === "object") {
+      opts = { ...typeOrText, ...opts };
+    }
+
+    if (explicitId) opts.id = explicitId;
     return this.addVisualControl("status_badge", 120, 26, {
       text,
       caption: text,
-      alert_type: type,
+      alert_type: badgeType,
       ...opts,
     });
   }
 
   /** Adds an interactive data table control with column headers, 2D row array, and row selection callback. */
   public addTable(
+    columns: string[],
+    rows?: any[][],
+    onSelect?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addTable(
+    columns: string[],
+    onSelect: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addTable(
+    columns: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addTable(
+    columns: string[],
+    rows: any[][],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addTable(
+    id: string,
+    columns: string[],
+    rows?: any[][],
+    onSelect?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addTable(
+    id: string,
+    columns: string[],
+    onSelect: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addTable(
+    id: string,
+    columns: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addTable(
+    id: string,
+    columns: string[],
+    rows: any[][],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addTable(
     idOrHeaders: string | string[],
-    headersOrRows?: string[] | any[][],
+    headersOrRows?: string[] | any[][] | EventCallback | Partial<any>,
     rowsOrOnSelect?: any[][] | EventCallback | Partial<any>,
     onSelect?: EventCallback | Partial<any>,
     opts: Partial<any> = {},
@@ -3827,6 +5655,12 @@ export class SimpleWindow {
           clickHandler = rowsOrOnSelect as EventCallback;
         else if (typeof rowsOrOnSelect === "object" && rowsOrOnSelect !== null)
           finalOpts = { ...rowsOrOnSelect, ...finalOpts };
+      } else if (typeof headersOrRows === "function") {
+        clickHandler = headersOrRows as EventCallback;
+        if (typeof rowsOrOnSelect === "object" && rowsOrOnSelect !== null)
+          finalOpts = { ...rowsOrOnSelect, ...finalOpts };
+      } else if (headersOrRows && typeof headersOrRows === "object") {
+        finalOpts = { ...headersOrRows, ...finalOpts };
       }
     }
 
@@ -3867,13 +5701,57 @@ export class SimpleWindow {
 
   /** Alias of `addTable`: adds an interactive data table control with column headers, 2D row array, and row selection callback. */
   public addDataTable(
+    columns: string[],
+    rows?: any[][],
+    onSelect?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addDataTable(
+    columns: string[],
+    onSelect: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addDataTable(
+    columns: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addDataTable(
+    columns: string[],
+    rows: any[][],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addDataTable(
+    id: string,
+    columns: string[],
+    rows?: any[][],
+    onSelect?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addDataTable(
+    id: string,
+    columns: string[],
+    onSelect: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public addDataTable(
+    id: string,
+    columns: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addDataTable(
+    id: string,
+    columns: string[],
+    rows: any[][],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public addDataTable(
     idOrHeaders: string | string[],
-    headersOrRows?: string[] | any[][],
+    headersOrRows?: string[] | any[][] | EventCallback | Partial<any>,
     rowsOrOnSelect?: any[][] | EventCallback | Partial<any>,
     onSelect?: EventCallback | Partial<any>,
     opts: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addTable(
+    return (this.addTable as any)(
       idOrHeaders,
       headersOrRows,
       rowsOrOnSelect,
@@ -3883,13 +5761,57 @@ export class SimpleWindow {
   }
   /** Snake_case alias of `addTable`: adds an interactive data table control with column headers, 2D row array, and row selection callback. */
   public add_data_table(
+    columns: string[],
+    rows?: any[][],
+    onSelect?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_data_table(
+    columns: string[],
+    onSelect: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_data_table(
+    columns: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_data_table(
+    columns: string[],
+    rows: any[][],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_data_table(
+    id: string,
+    columns: string[],
+    rows?: any[][],
+    onSelect?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_data_table(
+    id: string,
+    columns: string[],
+    onSelect: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_data_table(
+    id: string,
+    columns: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_data_table(
+    id: string,
+    columns: string[],
+    rows: any[][],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_data_table(
     idOrHeaders: string | string[],
-    headersOrRows?: string[] | any[][],
+    headersOrRows?: string[] | any[][] | EventCallback | Partial<any>,
     rowsOrOnSelect?: any[][] | EventCallback | Partial<any>,
     onSelect?: EventCallback | Partial<any>,
     opts: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addTable(
+    return (this.addTable as any)(
       idOrHeaders,
       headersOrRows,
       rowsOrOnSelect,
@@ -3899,13 +5821,57 @@ export class SimpleWindow {
   }
   /** Snake_case alias of `addTable`: adds an interactive data table control with column headers, 2D row array, and row selection callback. */
   public add_table(
+    columns: string[],
+    rows?: any[][],
+    onSelect?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_table(
+    columns: string[],
+    onSelect: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_table(
+    columns: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_table(
+    columns: string[],
+    rows: any[][],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_table(
+    id: string,
+    columns: string[],
+    rows?: any[][],
+    onSelect?: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_table(
+    id: string,
+    columns: string[],
+    onSelect: EventCallback,
+    options?: ControlOptions,
+  ): SimpleControlRef;
+  public add_table(
+    id: string,
+    columns: string[],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_table(
+    id: string,
+    columns: string[],
+    rows: any[][],
+    options: ControlOptions,
+  ): SimpleControlRef;
+  public add_table(
     idOrHeaders: string | string[],
-    headersOrRows?: string[] | any[][],
+    headersOrRows?: string[] | any[][] | EventCallback | Partial<any>,
     rowsOrOnSelect?: any[][] | EventCallback | Partial<any>,
     onSelect?: EventCallback | Partial<any>,
     opts: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addTable(
+    return (this.addTable as any)(
       idOrHeaders,
       headersOrRows,
       rowsOrOnSelect,
@@ -4055,13 +6021,18 @@ export class SimpleWindow {
     onSelect?: EventCallback,
     opts: Partial<any> = {},
   ): SimpleControlRef {
-    const text = nodes.join(", ");
+    const safeNodes = Array.isArray(nodes) ? [...nodes] : [];
+    const text = safeNodes.join(", ");
     const ref = this.addVisualControl("tree_view", 240, 160, {
       text,
       caption: text,
+      nodes: safeNodes,
       ...opts,
     });
-    if (onSelect) ref.onClick(onSelect);
+    if (onSelect) {
+      ref.onClick(onSelect);
+      ref.onChange(onSelect);
+    }
     return ref;
   }
 
@@ -4953,26 +6924,86 @@ export class SimpleWindow {
   public addFloatingToolbar(
     tools: Array<{ icon?: string; label?: string; actionId?: string } | string>,
     onSelect?: EventCallback,
-    opts: Partial<any> = {},
+    opts?: Partial<any>,
+  ): SimpleControlRef;
+  public addFloatingToolbar(
+    id: string,
+    tools: Array<{ icon?: string; label?: string; actionId?: string } | string>,
+    onSelect?: EventCallback,
+    opts?: Partial<any>,
+  ): SimpleControlRef;
+  public addFloatingToolbar(
+    idOrTools:
+      | string
+      | Array<{ icon?: string; label?: string; actionId?: string } | string>,
+    toolsOrOnSelect?:
+      | Array<{ icon?: string; label?: string; actionId?: string } | string>
+      | EventCallback
+      | Partial<any>,
+    onSelectOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
   ): SimpleControlRef {
+    let explicitId: string | undefined;
+    let resolvedTools: Array<
+      { icon?: string; label?: string; actionId?: string } | string
+    > = [];
+    let resolvedOnSelect: EventCallback | undefined;
+    let resolvedOpts: Partial<any> = {};
+
+    if (typeof idOrTools === "string") {
+      explicitId = idOrTools;
+      if (Array.isArray(toolsOrOnSelect)) resolvedTools = toolsOrOnSelect;
+      if (typeof onSelectOrOpts === "function")
+        resolvedOnSelect = onSelectOrOpts as EventCallback;
+      else if (onSelectOrOpts && typeof onSelectOrOpts === "object")
+        resolvedOpts = onSelectOrOpts;
+      if (optsArg && typeof optsArg === "object")
+        resolvedOpts = { ...resolvedOpts, ...optsArg };
+    } else {
+      if (Array.isArray(idOrTools)) resolvedTools = idOrTools;
+      if (typeof toolsOrOnSelect === "function")
+        resolvedOnSelect = toolsOrOnSelect as EventCallback;
+      else if (
+        toolsOrOnSelect &&
+        typeof toolsOrOnSelect === "object" &&
+        !Array.isArray(toolsOrOnSelect)
+      )
+        resolvedOpts = toolsOrOnSelect;
+      if (onSelectOrOpts && typeof onSelectOrOpts === "object")
+        resolvedOpts = { ...resolvedOpts, ...(onSelectOrOpts as Partial<any>) };
+    }
+
     return this.addVisualControl(
       "floating_toolbar",
       Math.min(380, this.width - 40),
       46,
       {
-        items: tools,
-        onClick: onSelect,
-        ...opts,
+        ...(explicitId ? { id: explicitId } : {}),
+        items: resolvedTools,
+        tools: resolvedTools,
+        onSelect: resolvedOnSelect,
+        ...resolvedOpts,
       },
     );
   }
   /** Snake_case alias of `addFloatingToolbar`: adds a floating elevated toolbar strip of icon/label tool actions. */
   public add_floating_toolbar(
-    tools: Array<{ icon?: string; label?: string; actionId?: string } | string>,
-    onSelect?: EventCallback,
-    opts: Partial<any> = {},
+    idOrTools:
+      | string
+      | Array<{ icon?: string; label?: string; actionId?: string } | string>,
+    toolsOrOnSelect?:
+      | Array<{ icon?: string; label?: string; actionId?: string } | string>
+      | EventCallback
+      | Partial<any>,
+    onSelectOrOpts?: EventCallback | Partial<any>,
+    optsArg: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addFloatingToolbar(tools, onSelect, opts);
+    return (this.addFloatingToolbar as any)(
+      idOrTools,
+      toolsOrOnSelect,
+      onSelectOrOpts,
+      optsArg,
+    );
   }
 
   // 4. Selection & Pickers
@@ -7858,13 +9889,16 @@ export class SimpleWindow {
 
     if (
       typeof idOrPlaceholder === "string" &&
-      typeof placeholderOrVal === "string"
+      typeof placeholderOrVal === "string" &&
+      (typeof valOrOnChange === "string" ||
+        (/^[a-zA-Z_$][a-zA-Z0-9_$-]*$/.test(idOrPlaceholder) &&
+          typeof valOrOnChange !== "function" &&
+          placeholderOrVal !== "" &&
+          !placeholderOrVal.includes("@")))
     ) {
       explicitId = idOrPlaceholder;
       placeholder = placeholderOrVal;
       if (typeof valOrOnChange === "string") val = valOrOnChange;
-      else if (typeof valOrOnChange === "function")
-        onChange = valOrOnChange as EventCallback;
       if (typeof onChangeOrOpts === "function")
         onChange = onChangeOrOpts as EventCallback;
       else if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null)
@@ -7873,14 +9907,22 @@ export class SimpleWindow {
         opts = { ...opts, ...optsArg };
     } else {
       placeholder = idOrPlaceholder;
-      if (typeof placeholderOrVal === "string") val = placeholderOrVal;
-      else if (typeof placeholderOrVal === "function")
+      if (typeof placeholderOrVal === "string") {
+        val = placeholderOrVal;
+        if (typeof valOrOnChange === "function")
+          onChange = valOrOnChange as EventCallback;
+        else if (typeof valOrOnChange === "object" && valOrOnChange !== null)
+          opts = valOrOnChange as Partial<any>;
+        if (typeof onChangeOrOpts === "object" && onChangeOrOpts !== null)
+          opts = { ...opts, ...onChangeOrOpts };
+      } else if (typeof placeholderOrVal === "function") {
         onChange = placeholderOrVal as EventCallback;
-      else if (
+      } else if (
         typeof placeholderOrVal === "object" &&
         placeholderOrVal !== null
-      )
+      ) {
         opts = placeholderOrVal;
+      }
     }
 
     const id = explicitId || opts.id || this.generateUniqueId("anim_input");
@@ -7990,7 +10032,14 @@ export class SimpleWindow {
     let language = "typescript";
     let opts: Partial<any> = {};
 
-    if (typeof idOrCode === "string" && typeof codeOrLang === "string") {
+    if (
+      typeof idOrCode === "string" &&
+      typeof codeOrLang === "string" &&
+      (typeof langOrOpts === "string" ||
+        !/[\s;(){}=<>'"`]|^(const|let|var|function|import|export|class|def|fn|pub|SELECT|FROM)\b/.test(
+          idOrCode,
+        ))
+    ) {
       explicitId = idOrCode;
       code = codeOrLang;
       if (typeof langOrOpts === "string") language = langOrOpts;
@@ -8000,9 +10049,13 @@ export class SimpleWindow {
         opts = { ...opts, ...optsArg };
     } else {
       code = idOrCode;
-      if (typeof codeOrLang === "string") language = codeOrLang;
-      else if (typeof codeOrLang === "object" && codeOrLang !== null)
+      if (typeof codeOrLang === "string") {
+        language = codeOrLang;
+        if (typeof langOrOpts === "object" && langOrOpts !== null)
+          opts = langOrOpts;
+      } else if (typeof codeOrLang === "object" && codeOrLang !== null) {
         opts = codeOrLang;
+      }
     }
 
     const id = explicitId || opts.id || this.generateUniqueId("code_snippet");
@@ -8252,16 +10305,26 @@ export class SimpleWindow {
 
   /** Opens a modal dialog overlay by its control ID in the live window. */
   public openModal(modalId: string): this {
-    this.evalJS(
-      `if(window.openModal)window.openModal('${modalId}');else{const el=document.getElementById('${modalId}');if(el)el.style.display='flex';}`,
-    );
+    const ctrl = this.findControl(modalId);
+    if (ctrl) ctrl.is_open = true;
+    if (this.isWindowRunning) {
+      const safeId = JSON.stringify(modalId);
+      this.evalJS(
+        `if(window.openModal)window.openModal(${safeId});else{const el=document.getElementById(${safeId});if(el)el.style.display='flex';}`,
+      );
+    }
     return this;
   }
   /** Closes an open modal dialog overlay by its control ID in the live window. */
   public closeModal(modalId: string): this {
-    this.evalJS(
-      `if(window.closeModal)window.closeModal('${modalId}');else{const el=document.getElementById('${modalId}');if(el)el.style.display='none';}`,
-    );
+    const ctrl = this.findControl(modalId);
+    if (ctrl) ctrl.is_open = false;
+    if (this.isWindowRunning) {
+      const safeId = JSON.stringify(modalId);
+      this.evalJS(
+        `if(window.closeModal)window.closeModal(${safeId});else{const el=document.getElementById(${safeId});if(el)el.style.display='none';}`,
+      );
+    }
     return this;
   }
 
@@ -8364,6 +10427,146 @@ export class SimpleWindow {
     this.evalJS(code);
   }
 
+  private static readonly _BOOLEAN_CONTROL_TYPES = new Set([
+    "checkbox",
+    "form_checkbox",
+    "radio",
+    "form_radio",
+    "switch",
+    "form_switch",
+    "pill_toggle",
+  ]);
+
+  private static readonly _VALUE_DISTINCT_FROM_TEXT_TYPES = new Set([
+    "select",
+    "dropdown",
+    "form_dropdown",
+    "listbox",
+    "segmented_control",
+    "radio_group",
+    "pull_down",
+    "combo_box",
+    "rich_select",
+    "theme_menu",
+    "mode_control",
+    "icon_segments",
+    "tabs",
+    "slider",
+    "form_slider",
+    "vertical_slider",
+    "range_slider",
+    "knob",
+    "number",
+    "form_number",
+    "stepper",
+    "number_stepper",
+    "form_stepper",
+    "progress",
+    "progress_bar",
+    "form_progress",
+    "circular_progress",
+    "level_indicator",
+    "metric_meter",
+    "rating",
+    "rating_stars",
+    "kpi_card",
+    "metric_card",
+    "stat_card",
+    "score_card",
+    "stat_chart",
+    "metric_comparison",
+    "date",
+    "date_picker",
+    "form_date",
+    "date_range_picker",
+    "date_time_picker",
+    "time_picker",
+    "form_time",
+    "calendar_view",
+    "color",
+    "color_picker",
+    "color_well",
+    "form_color",
+    "color_swatch",
+    "color_grid",
+    "table",
+    "data_table",
+    "table_view",
+    "form_table",
+    "tree_grid",
+    "tree_table",
+    "db_grid",
+    "transfer_list",
+    "kanban_board",
+    "form_field",
+    "form_password",
+    "form_textarea",
+  ]);
+
+  /** Synchronizes a control specification's `value`, `text`, `caption`, and `checked` fields with a stored value. */
+  public _syncControlSpecValue(
+    ctrl: any,
+    val: any,
+    fromExplicitSet = false,
+  ): void {
+    if (!ctrl || typeof ctrl !== "object") return;
+    const type = String(ctrl.control_type || ctrl.type || "");
+    if (SimpleWindow._BOOLEAN_CONTROL_TYPES.has(type)) {
+      ctrl.value = val;
+      ctrl.checked = Boolean(val);
+      return;
+    }
+    if (type === "toggle_button") {
+      ctrl.value = val;
+      if (typeof val === "boolean") {
+        ctrl.checked = val;
+      } else {
+        const s = String(val ?? "");
+        ctrl.text = s;
+        ctrl.caption = s;
+        ctrl._rawHtml = false;
+        ctrl._plainText = true;
+      }
+      return;
+    }
+    if (SimpleWindow._VALUE_DISTINCT_FROM_TEXT_TYPES.has(type)) {
+      ctrl.value = val;
+      return;
+    }
+    if (
+      type === "raw_html" ||
+      type === "html_view" ||
+      type === "browser_view"
+    ) {
+      const s = String(val ?? "");
+      ctrl.value = val;
+      ctrl.text = s;
+      ctrl.caption = s;
+      ctrl._rawHtml = true;
+      ctrl._plainText = false;
+      return;
+    }
+    const prevText = ctrl.text;
+    const strVal = String(val ?? "");
+    ctrl.value = val;
+    ctrl.text = strVal;
+    if (ctrl.caption === undefined || ctrl.caption === prevText) {
+      ctrl.caption = strVal;
+    }
+    if (
+      (type === "groupbox" || type === "group_box" || type === "card") &&
+      (ctrl.title === undefined || ctrl.title === prevText)
+    ) {
+      ctrl.title = strVal;
+    }
+    if (fromExplicitSet) {
+      ctrl._rawHtml = false;
+      ctrl._plainText = true;
+    } else if (!ctrl._rawHtml && prevText !== strVal) {
+      ctrl._plainText = true;
+    }
+  }
+
   /** Retrieves the current value of the control identified by `id`. */
   public getValue(id: string): any {
     if (this.formValuesStore[id] !== undefined) {
@@ -8376,9 +10579,13 @@ export class SimpleWindow {
     return undefined;
   }
 
-  /** Updates the value of the control identified by `id`, syncing two-way state bindings and updating the live DOM. */
+  /** Updates the value of the control identified by `id`, syncing two-way state bindings, control spec fields, and the live DOM. */
   public setValue(id: string, val: any): this {
     this.formValuesStore[id] = val;
+    const ctrl = this.findControl(id);
+    if (ctrl) {
+      this._syncControlSpecValue(ctrl, val, true);
+    }
     const stateKey = this.controlStateBindings.get(id);
     if (stateKey) {
       const strVal = String(val ?? "");
@@ -8393,8 +10600,31 @@ export class SimpleWindow {
                 (function() {
                     const rawEl = document.getElementById(${safeId});
                     if (!rawEl) return;
-                    if (rawEl.classList.contains("simplegui-html-view") || rawEl.dataset.type === "html_view" || rawEl.getAttribute("data-control-type") === "html_view") {
+                    if ((rawEl.classList && rawEl.classList.contains("simplegui-html-view")) || (rawEl.dataset && rawEl.dataset.type === "html_view") || (rawEl.getAttribute && rawEl.getAttribute("data-control-type") === "html_view")) {
                         rawEl.innerHTML = String(${escaped});
+                        return;
+                    }
+                    if (rawEl.tagName === "BUTTON") {
+                        const incoming = ${escaped};
+                        if (rawEl.dataset && rawEl.dataset.checked !== undefined && typeof incoming === "boolean") {
+                            rawEl.dataset.checked = incoming ? "true" : "false";
+                            return;
+                        }
+                        const capEl = rawEl.querySelector(".rad-btn-caption");
+                        if (capEl) {
+                            capEl.textContent = String(incoming);
+                            return;
+                        }
+                        const childSpans = rawEl.querySelectorAll("span");
+                        if (childSpans.length >= 2) {
+                            if (rawEl.style && rawEl.style.position === "relative") {
+                                childSpans[0].textContent = String(incoming);
+                            } else {
+                                childSpans[childSpans.length - 1].textContent = String(incoming);
+                            }
+                        } else {
+                            rawEl.textContent = String(incoming);
+                        }
                         return;
                     }
                     const el = (rawEl.tagName === "INPUT" || rawEl.tagName === "SELECT" || rawEl.tagName === "TEXTAREA")
@@ -8404,25 +10634,43 @@ export class SimpleWindow {
                     if (el.type === "checkbox" || el.type === "radio") {
                         el.checked = Boolean(${escaped});
                     } else if (el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA") {
-                        el.value = ${escaped};
+                        el.value = String(${escaped});
                         if (el.tagName === "TEXTAREA") el.scrollTop = el.scrollHeight;
+                        if (el.type === "range" && rawEl !== el) {
+                            const sliderVal = rawEl.querySelector(".slider-val");
+                            if (sliderVal) sliderVal.textContent = String(${escaped});
+                        }
+                        if (el.type === "color" && rawEl !== el) {
+                            const hexSpan = rawEl.querySelector(".color-hex");
+                            if (hexSpan) hexSpan.textContent = String(${escaped}).toUpperCase();
+                        }
+                        if (el.classList && el.classList.contains("rad-editable-input") && el.previousElementSibling) {
+                            const lblTxt = el.previousElementSibling.querySelector(".label-text");
+                            if (lblTxt) lblTxt.textContent = String(${escaped});
+                        }
                     } else {
                         const swThumb = rawEl.querySelector(".sw-thumb");
                         const swTrack = rawEl.querySelector(".sw-track");
                         const span = rawEl.querySelector("span");
                         const innerBar = rawEl.querySelector("div > div");
+                        const innerButtons = rawEl.querySelectorAll("button");
 
                         if (swThumb && swTrack) {
                             const on = Boolean(${escaped});
                             swThumb.style.left = on ? "22px" : "2px";
                             swTrack.style.background = on ? "var(--accent, #0284c7)" : "rgba(255,255,255,0.15)";
-                        } else if (span && rawEl.querySelectorAll("button").length >= 2) {
+                        } else if (span && innerButtons.length >= 2) {
                             span.textContent = String(${escaped});
+                        } else if (!span && innerButtons.length === 2) {
+                            innerButtons[0].textContent = String(${escaped});
                         } else if (innerBar && rawEl.classList.contains("rad-progress")) {
                             innerBar.style.width = String(${escaped}) + "%";
+                        } else if (rawEl.tagName === "FIELDSET") {
+                            const lg = rawEl.querySelector("legend");
+                            if (lg) lg.textContent = String(${escaped});
                         } else if (rawEl.classList.contains("simplegui-html-view") || rawEl.dataset.type === "html_view" || rawEl.getAttribute("data-control-type") === "html_view") {
                             rawEl.innerHTML = String(${escaped});
-                        } else if (rawEl.value !== undefined) {
+                        } else if (rawEl.value !== undefined && rawEl.tagName !== "BUTTON" && rawEl.tagName !== "LI" && rawEl.tagName !== "OPTION") {
                             rawEl.value = ${escaped};
                         } else if (rawEl.querySelector("table, svg")) {
                             // Guard against overwriting table or SVG chart containers with textContent
@@ -8439,23 +10687,47 @@ export class SimpleWindow {
 
   /** Sets the raw inner HTML content of a control in both the form store and live DOM. */
   public setHtml(id: string, htmlContent: string): this {
-    this.formValuesStore[id] = htmlContent;
     const ctrl = this.findControl(id);
+    const type = ctrl ? String(ctrl.control_type || ctrl.type || "") : "";
+    const isBool = Boolean(ctrl && SimpleWindow._BOOLEAN_CONTROL_TYPES.has(type));
+    if (!isBool) {
+      this.formValuesStore[id] = htmlContent;
+    }
     if (ctrl) {
       ctrl.text = htmlContent;
       ctrl.caption = htmlContent;
+      if (!isBool) {
+        ctrl.value = htmlContent;
+      }
+      ctrl._rawHtml = true;
+      ctrl._plainText = false;
     }
     if (this.isWindowRunning) {
       const escaped = JSON.stringify(htmlContent);
       const safeId = JSON.stringify(id);
-      this.evalJS(`
-                (function() {
-                    const el = document.getElementById(${safeId});
-                    if (el) {
-                        el.innerHTML = ${escaped};
-                    }
-                })();
-            `);
+      if (isBool) {
+        this.evalJS(`
+          (function() {
+            const rawEl = document.getElementById(${safeId});
+            if (!rawEl) return;
+            const span = rawEl.querySelector("span");
+            if (span) {
+              span.innerHTML = ${escaped};
+            } else if (rawEl.tagName !== "INPUT") {
+              rawEl.innerHTML = ${escaped};
+            }
+          })();
+        `);
+      } else {
+        this.evalJS(`
+          (function() {
+            const el = document.getElementById(${safeId});
+            if (el) {
+              el.innerHTML = ${escaped};
+            }
+          })();
+        `);
+      }
     }
     return this;
   }
@@ -8464,14 +10736,57 @@ export class SimpleWindow {
     return this.setHtml(id, htmlContent);
   }
 
-  /** Returns the current string text value of the control identified by `id`. */
+  /** Returns the current string text content or value of the control identified by `id`. */
   public getText(id: string): string {
-    return String(this.formValuesStore[id] || "");
+    const ctrl = this.findControl(id);
+    const type = ctrl ? String(ctrl.control_type || ctrl.type || "") : "";
+    if (ctrl && SimpleWindow._BOOLEAN_CONTROL_TYPES.has(type)) {
+      return String(ctrl.text ?? ctrl.caption ?? "");
+    }
+    if (this.formValuesStore[id] !== undefined) {
+      return String(this.formValuesStore[id] ?? "");
+    }
+    if (ctrl) {
+      return String(ctrl.text ?? ctrl.caption ?? ctrl.value ?? "");
+    }
+    return "";
   }
 
-  /** Updates the string text value of the control identified by `id` in the form store and live DOM. */
+  /** Updates the visible plain-text label or text value of the control identified by `id` in both the form store and live DOM. */
   public setText(id: string, text: string): this {
-    return this.setValue(id, text);
+    const strText = String(text ?? "");
+    const ctrl = this.findControl(id);
+    const type = ctrl ? String(ctrl.control_type || ctrl.type || "") : "";
+    if (ctrl && SimpleWindow._BOOLEAN_CONTROL_TYPES.has(type)) {
+      ctrl.text = strText;
+      ctrl.caption = strText;
+      ctrl._rawHtml = false;
+      ctrl._plainText = true;
+      if (this.isWindowRunning) {
+        const safeId = JSON.stringify(id);
+        const safeText = JSON.stringify(strText);
+        this.evalJS(`
+          (function() {
+            const rawEl = document.getElementById(${safeId});
+            if (!rawEl) return;
+            const span = rawEl.querySelector("span");
+            if (span) {
+              span.textContent = ${safeText};
+              return;
+            }
+            const inp = rawEl.querySelector("input");
+            if (inp) {
+              while (inp.nextSibling) rawEl.removeChild(inp.nextSibling);
+              rawEl.appendChild(document.createTextNode(${safeText}));
+            } else {
+              rawEl.textContent = ${safeText};
+            }
+          })();
+        `);
+      }
+      return this;
+    }
+    return this.setValue(id, strText);
   }
 
   /** Returns a shallow copy of all control ID-to-value entries in the form store, or only the subset of `ids` when specified. */
@@ -9148,8 +11463,84 @@ export class SimpleWindow {
       for (const item of items) {
         if (!item) continue;
         const specItem = { ...item };
-        if (specItem.id && this.formValuesStore[specItem.id] !== undefined) {
-          specItem.value = this.formValuesStore[specItem.id];
+        const cid = specItem.id;
+        if (cid && this.listItemsStore[cid] !== undefined) {
+          specItem.items = [...this.listItemsStore[cid]];
+        }
+        if (cid && this.formValuesStore[cid] !== undefined) {
+          this._syncControlSpecValue(
+            specItem,
+            this.formValuesStore[cid],
+            false,
+          );
+        }
+        const ctype = String(
+          specItem.control_type || specItem.type || "",
+        ).toLowerCase();
+        if (
+          ctype !== "raw_html" &&
+          ctype !== "html_view" &&
+          ctype !== "browser_view" &&
+          !specItem._rawHtml
+        ) {
+          specItem._plainText = true;
+        }
+        if (cid && /^[a-zA-Z0-9_$]+$/.test(String(cid))) {
+          const evMap: Record<string, string> = {
+            ...(specItem.event_handlers || {}),
+          };
+          if (
+            this.eventHandlersMap.has(`${cid}:onclick`) &&
+            !evMap.onClick &&
+            !evMap.onclick
+          ) {
+            evMap.onClick = `on_${cid}_click`;
+          }
+          if (
+            this.eventHandlersMap.has(`${cid}:onchange`) &&
+            !evMap.onChange &&
+            !evMap.onchange
+          ) {
+            evMap.onChange = `on_${cid}_change`;
+          }
+          if (
+            this.eventHandlersMap.has(`${cid}:onhover`) &&
+            !evMap.onHover &&
+            !evMap.onhover
+          ) {
+            evMap.onHover = `on_${cid}_hover`;
+          }
+          if (
+            this.eventHandlersMap.has(`${cid}:onhoverexit`) &&
+            !evMap.onHoverExit &&
+            !evMap.onhoverexit
+          ) {
+            evMap.onHoverExit = `on_${cid}_hoverexit`;
+          }
+          if (
+            (this.eventHandlersMap.has(`${cid}:ondoubleclick`) ||
+              this.eventHandlersMap.has(`${cid}:ondblclick`)) &&
+            !evMap.onDoubleClick &&
+            !evMap.ondoubleclick &&
+            !evMap.ondblclick
+          ) {
+            evMap.onDoubleClick = `on_${cid}_doubleclick`;
+          }
+          if (
+            (this.eventHandlersMap.has(`${cid}:ontab_close`) ||
+              this.eventHandlersMap.has(`${cid}:ontabclose`)) &&
+            !evMap.onTabClose
+          ) {
+            evMap.onTabClose = `on_${cid}_tab_close`;
+          }
+          if (
+            (this.eventHandlersMap.has(`${cid}:oncard_move`) ||
+              this.eventHandlersMap.has(`${cid}:oncardmove`)) &&
+            !evMap.onCardMove
+          ) {
+            evMap.onCardMove = `on_${cid}_card_move`;
+          }
+          specItem.event_handlers = evMap;
         }
         specControls.push(specItem);
         if (item.children && Array.isArray(item.children)) {
@@ -9180,6 +11571,7 @@ export class SimpleWindow {
       ...(themeObj?.fx ? { fx: themeObj.fx, fx_mode: this.effects } : {}),
       padding: this.padding,
       spacing: this.spacing,
+      fullscreen: this.fullscreen,
       controls: specControls,
       non_visual_controls: this.nonVisualControls,
       menu_bar: (this as any)._menuBarSpec,
@@ -9638,7 +12030,7 @@ export class SimpleWindow {
                 }, { capture: true });
             })();
             </script>
-            ${this.customScripts.length > 0 ? this.customScripts.map((s) => `<script>\n${s}\n</script>`).join("\n") : ""}
+            ${this.customScripts.length > 0 ? this.customScripts.map((s) => `<script>\n${String(s).replace(/<\/(script)/gi, "<\\/$1")}\n</script>`).join("\n") : ""}
         `;
 
     const hasCustomResponsive = this.customScripts.some(
@@ -10464,6 +12856,142 @@ export class SimpleWindow {
     return id;
   }
 
+  /** Returns a chainable `SimpleControlRef` handle for `id`, or `null` if no matching control exists. */
+  public getControl(id: string): SimpleControlRef | null {
+    const ctrl = this.findControl(id);
+    return ctrl ? new SimpleControlRef(ctrl, this) : null;
+  }
+
+  /** Snake_case alias of `getControl`: returns a chainable `SimpleControlRef` handle for `id`, or `null` if not found. */
+  public get_control(id: string): SimpleControlRef | null {
+    return this.getControl(id);
+  }
+
+  /** Returns a chainable `SimpleControlRef` handle for `id`, throwing a descriptive error if the control does not exist. */
+  public control(id: string): SimpleControlRef {
+    const ctrl = this.findControl(id);
+    if (!ctrl) {
+      throw new Error(
+        `[SimpleGUI] Control '${id}' not found on window '${this.title}'`,
+      );
+    }
+    return new SimpleControlRef(ctrl, this);
+  }
+
+  /** Alias of `control`: returns a chainable `SimpleControlRef` handle for `id`, throwing if not found. */
+  public ref(id: string): SimpleControlRef {
+    return this.control(id);
+  }
+
+  /** Returns a shallow snapshot of all form/input control values (including controls with default/empty initial values) plus any explicit `formValuesStore` entries, or only the subset in `ids`. */
+  public getValues(ids?: string[]): Record<string, any> {
+    if (Array.isArray(ids)) {
+      return this.getFormValues(ids);
+    }
+    const out: Record<string, any> = {};
+    const valueTypes = new Set([
+      "input",
+      "password",
+      "textarea",
+      "search",
+      "checkbox",
+      "switch",
+      "radio",
+      "dropdown",
+      "combobox",
+      "listbox",
+      "multilistbox",
+      "slider",
+      "number_stepper",
+      "colorpicker",
+      "datepicker",
+      "segmented_control",
+      "form_field",
+      "form_password",
+      "form_textarea",
+      "form_select",
+      "form_switch",
+      "search_field",
+      "token_field",
+      "masked_input",
+      "pin_code",
+      "inline_editable_label",
+      "rating",
+      "knob",
+      "file_dropzone",
+    ]);
+    const collect = (list: any[]) => {
+      for (const c of list) {
+        if (!c) continue;
+        const ctype = String(c.control_type || c.type || "").toLowerCase();
+        if (c.id && valueTypes.has(ctype)) {
+          out[c.id] = this.getValue(c.id);
+        }
+        if (Array.isArray(c.children)) collect(c.children);
+      }
+    };
+    collect(this.controls);
+    for (const [k, v] of Object.entries(this.formValuesStore)) {
+      out[k] = v;
+    }
+    return out;
+  }
+
+  /** Snake_case alias of `getValues`: returns a shallow snapshot of all form/input control values. */
+  public get_values(ids?: string[]): Record<string, any> {
+    return this.getValues(ids);
+  }
+
+  /** Alias of `getValues`: returns a shallow snapshot of all form/input control values. */
+  public getAllValues(): Record<string, any> {
+    return this.getValues();
+  }
+
+  /** Gets all control values as a plain object when called with no arguments, or batch-updates multiple control values when passed an object. */
+  public values(): Record<string, any>;
+  public values(vals: Record<string, any>): this;
+  public values(vals?: Record<string, any>): Record<string, any> | this {
+    if (vals === undefined) {
+      return this.getValues();
+    }
+    return this.setValues(vals);
+  }
+
+  /** Batch-updates multiple controls from a `{ [controlId]: value }` map. */
+  public setValues(vals: Record<string, any>): this {
+    if (vals && typeof vals === "object") {
+      for (const [k, v] of Object.entries(vals)) {
+        this.setValue(k, v);
+      }
+    }
+    return this;
+  }
+
+  /** Snake_case alias of `setValues`: batch-updates multiple controls from a `{ [controlId]: value }` map. */
+  public set_values(vals: Record<string, any>): this {
+    return this.setValues(vals);
+  }
+
+  /** Alias of `setText`: updates the visible label/caption text of the control identified by `id`. */
+  public setCaption(id: string, text: string): this {
+    return this.setText(id, text);
+  }
+
+  /** Snake_case alias of `setCaption`: updates the visible label/caption text of the control identified by `id`. */
+  public set_caption(id: string, text: string): this {
+    return this.setText(id, text);
+  }
+
+  /** Alias of `getText`: returns the current caption/text string of the control identified by `id`. */
+  public getCaption(id: string): string {
+    return this.getText(id);
+  }
+
+  /** Snake_case alias of `getCaption`: returns the current caption/text string of the control identified by `id`. */
+  public get_caption(id: string): string {
+    return this.getText(id);
+  }
+
   /** Returns the window's current title string. */
   public getTitle(): string {
     return this.title;
@@ -10471,7 +12999,8 @@ export class SimpleWindow {
 
   /** Enables or disables debug logging for this window. */
   public setDebugMode(enabled: boolean): this {
-    if (enabled)
+    this._debugMode = Boolean(enabled);
+    if (this._debugMode)
       console.log(
         `[SimpleGUI Debug] Debug mode enabled on window '${this.title}'`,
       );
@@ -10480,57 +13009,65 @@ export class SimpleWindow {
 
   /** Returns `true` when debug mode is enabled on this window. */
   public getDebugMode(): boolean {
-    return true;
+    return this._debugMode;
   }
 
   /** Enables or disables responsive CSS flex/grid wrapping for window layout sections. */
   public setResponsiveLayout(enabled: boolean): this {
+    this.responsiveLayout = Boolean(enabled);
     return this;
   }
 
   /** Returns `true` if responsive layout mode is active. */
   public getResponsiveLayout(): boolean {
-    return true;
+    return this.responsiveLayout;
   }
 
   /** Sets the minimum allowed window width and height in pixels. */
   public setMinSize(width: number, height: number): this {
+    this._minWidth = Number(width) || 0;
+    this._minHeight = Number(height) || 0;
     return this;
   }
 
   /** Sets the maximum allowed window width and height in pixels. */
   public setMaxSize(width: number, height: number): this {
+    this._maxWidth = Number(width) || 0;
+    this._maxHeight = Number(height) || 0;
     return this;
   }
 
   /** Configures whether the user can resize the window frame. */
   public setResizable(enabled: boolean): this {
+    this._resizable = Boolean(enabled);
     return this;
   }
 
   /** Returns `true` if the window is user-resizable. */
   public getResizable(): boolean {
-    return true;
+    return this._resizable;
   }
 
   /** Configures whether the window can be minimized to the dock/taskbar. */
   public setMinimizable(enabled: boolean): this {
+    this._minimizable = Boolean(enabled);
     return this;
   }
 
   /** Returns `true` if the window can be minimized. */
   public getMinimizable(): boolean {
-    return true;
+    return this._minimizable;
   }
 
   /** Configures whether the window can be maximized/zoomed. */
   public setMaximizable(enabled: boolean): this {
+    this._maximizable = Boolean(enabled);
     return this;
   }
 
   /** Returns `true` if the window can be maximized. */
   public getMaximizable(): boolean {
-    return true;
+    return this._maximizable;
   }
 
   /** Centers the native window on the active display screen. */
@@ -10570,6 +13107,10 @@ export class SimpleWindow {
   public setSize(width: number, height: number): this {
     this.width = width;
     this.height = height;
+    if (!this.isWindowRunning) {
+      this._explicitWindowOptions.width = true;
+      this._explicitWindowOptions.height = true;
+    }
     if (this.webview) {
       this.webview.size = { width, height, hint: SIZE_HINT_NONE };
     }
@@ -10593,57 +13134,63 @@ export class SimpleWindow {
 
   /** Sets the screen `(x, y)` position coordinates of the window. */
   public setPosition(x: number, y: number): this {
+    this._winX = Number(x) || 0;
+    this._winY = Number(y) || 0;
     return this;
   }
 
   /** Returns the window's `[x, y]` screen position coordinates. */
   public getPosition(): [number, number] {
-    return [100, 100];
+    return [this._winX, this._winY];
   }
 
   /** Returns the horizontal `x` screen coordinate of the window. */
   public getX(): number {
-    return 100;
+    return this._winX;
   }
   /** Returns the vertical `y` screen coordinate of the window. */
   public getY(): number {
-    return 100;
+    return this._winY;
   }
 
   /** Sets the overall visual opacity (`0.0` to `1.0`) of the window body. */
   public setOpacity(opacity: number): this {
+    const num = Math.max(0, Math.min(1, Number(opacity)));
+    this._opacity = Number.isFinite(num) ? num : 1.0;
     if (this.isWindowRunning) {
-      this.evalJS(`document.body.style.opacity = "${opacity}";`);
+      this.evalJS(`document.body.style.opacity = ${JSON.stringify(String(this._opacity))};`);
     }
     return this;
   }
 
   /** Returns the current window opacity (`0.0` to `1.0`). */
   public getOpacity(): number {
-    return 1.0;
+    return this._opacity;
   }
 
   /** Shows or hides the window titlebar. */
   public setTitlebarVisible(visible: boolean): this {
+    this._titlebarVisible = Boolean(visible);
     return this;
   }
 
   /** Returns `true` when the window titlebar is visible. */
   public isTitlebarVisible(): boolean {
-    return true;
+    return this._titlebarVisible;
   }
 
   /** Sets the CSS mouse cursor style (`"pointer"`, `"wait"`, `"crosshair"`, etc.) for the entire window body. */
   public setCursor(cursorName: string): this {
+    this._cursor = String(cursorName || "default");
     if (this.isWindowRunning) {
-      this.evalJS(`document.body.style.cursor = "${cursorName}";`);
+      this.evalJS(`document.body.style.cursor = ${JSON.stringify(this._cursor)};`);
     }
     return this;
   }
 
   /** Returns the active CSS cursor name for the window. */
   public getCursor(): string {
-    return "default";
+    return this._cursor;
   }
 
   /** Resets the window mouse cursor back to `"default"`. */
@@ -10653,11 +13200,15 @@ export class SimpleWindow {
 
   /** Sets the CSS mouse cursor style for a specific control element by ID. */
   public setControlCursor(controlId: string, cursorName: string): this {
+    const ctrl = this.findControl(controlId);
+    if (ctrl) ctrl.cursor = cursorName;
     if (this.isWindowRunning) {
       this.evalJS(`
-                const el = document.getElementById("${controlId}");
-                if (el) el.style.cursor = "${cursorName}";
-            `);
+        (function() {
+          const el = document.getElementById(${JSON.stringify(controlId)});
+          if (el) el.style.cursor = ${JSON.stringify(cursorName)};
+        })();
+      `);
     }
     return this;
   }
@@ -10674,29 +13225,32 @@ export class SimpleWindow {
 
   /** Configures whether the window's native close button is enabled. */
   public setClosable(enabled: boolean): this {
+    this._closable = Boolean(enabled);
     return this;
   }
   /** Returns `true` if the window can be closed by the user. */
   public getClosable(): boolean {
-    return true;
+    return this._closable;
   }
 
   /** Enables or disables the native OS drop shadow around the window frame. */
   public setHasShadow(enabled: boolean): this {
+    this._hasShadow = Boolean(enabled);
     return this;
   }
   /** Returns `true` if the window renders a native drop shadow. */
   public getHasShadow(): boolean {
-    return true;
+    return this._hasShadow;
   }
 
   /** Configures whether dragging anywhere on the window background moves the native window. */
   public setMovableByWindowBackground(enabled: boolean): this {
+    this._movableByWindowBackground = Boolean(enabled);
     return this;
   }
   /** Returns `true` if the window can be dragged by its background. */
   public getMovableByWindowBackground(): boolean {
-    return true;
+    return this._movableByWindowBackground;
   }
 
   /** Returns `true` when the window is currently open and visible on screen. */
@@ -10705,41 +13259,45 @@ export class SimpleWindow {
   }
   /** Configures whether the title text is displayed in the native window titlebar. */
   public setTitleVisible(visible: boolean): this {
+    this._titleVisible = Boolean(visible);
     return this;
   }
   /** Returns `true` if the window title text is visible in the titlebar. */
   public isTitleVisible(): boolean {
-    return true;
+    return this._titleVisible;
   }
   /** Sets a secondary subtitle string in the window titlebar. */
   public setSubtitle(subtitle: string): this {
+    this._subtitle = String(subtitle ?? "");
     return this;
   }
   /** Returns the window's current subtitle string. */
   public getSubtitle(): string {
-    return "";
+    return this._subtitle;
   }
   /** Configures whether the window can be repositioned on screen by the user. */
   public setMovable(enabled: boolean): this {
+    this._movable = Boolean(enabled);
     return this;
   }
   /** Returns `true` if the window is movable. */
   public getMovable(): boolean {
-    return true;
+    return this._movable;
   }
 
   /** Snaps the window to a named screen edge or corner (`"left"`, `"right"`, `"top"`, `"bottom"`). */
   public snapToEdge(edge: string): this {
-    return this;
+    return this.setPositionPreset(edge);
   }
   /** Sets the window's bounding rectangle `(x, y, width, height)` in pixels. */
   public setBounds(x: number, y: number, w: number, h: number): this {
+    this.setPosition(x, y);
     return this.setSize(w, h);
   }
 
   /** Returns the window's `[x, y, width, height]` screen bounding rectangle. */
   public getBounds(): [number, number, number, number] {
-    return [100, 100, this.width, this.height];
+    return [this._winX, this._winY, this.width, this.height];
   }
 
   /** Locks the window to a fixed `width` × `height` pixel size. */
@@ -10987,17 +13545,34 @@ export class SimpleWindow {
     return ref;
   }
 
-  /** Adds a themed section heading with a bold accent-colored title and optional muted subtitle. */
-  public addHeading(title: string, subtitle?: string): this {
+  /** Adds a themed section heading with a bold accent-colored title and optional muted subtitle or heading level (`1`–`6`). */
+  public addHeading(title: string, subtitleOrLevel?: string | number): this {
     const theme = getTheme(this.theme);
     const muted = theme.is_dark ? "#94a3b8" : "#334155";
     const headingColor =
       this.accentColor || (theme.is_dark ? "#38bdf8" : "#0066cc");
+    const levelSizes: Record<number, number> = {
+      1: 22,
+      2: 18,
+      3: 16,
+      4: 14,
+      5: 13,
+      6: 12,
+    };
+    const fontSize =
+      typeof subtitleOrLevel === "number"
+        ? (levelSizes[Math.min(6, Math.max(1, Math.round(subtitleOrLevel)))] ??
+          18)
+        : 18;
+    const subtitle =
+      typeof subtitleOrLevel === "string" ? subtitleOrLevel : undefined;
     const isInRow =
       this.layoutStack[this.layoutStack.length - 1]?.type === "row";
     if (isInRow) {
       const compactW = Math.max(160, Math.ceil(title.length * 9.5) + 12);
-      this.addLabel(title).font(18, headingColor, "700").width(compactW);
+      this.addLabel(title)
+        .font(fontSize, headingColor, "700")
+        .width(compactW);
       if (subtitle) {
         const sub = this.addLabel(subtitle).font(12, muted, "500");
         sub.spec.is_caption = true;
@@ -11005,7 +13580,7 @@ export class SimpleWindow {
       return this;
     }
     const fullW = this.getAvailableWidth();
-    this.addLabel(title).font(18, headingColor, "700").width(fullW);
+    this.addLabel(title).font(fontSize, headingColor, "700").width(fullW);
     if (subtitle) {
       const sub = this.addLabel(subtitle).font(12, muted, "500").width(fullW);
       sub.spec.is_caption = true;
@@ -11013,17 +13588,17 @@ export class SimpleWindow {
     this.addDivider();
     return this;
   }
-  /** Snake_case alias of `addHeading`: adds a themed section heading with a bold accent-colored title and optional muted subtitle. */
-  public add_heading(title: string, subtitle?: string): this {
-    return this.addHeading(title, subtitle);
+  /** Snake_case alias of `addHeading`: adds a themed section heading with a bold accent-colored title and optional muted subtitle or heading level. */
+  public add_heading(title: string, subtitleOrLevel?: string | number): this {
+    return this.addHeading(title, subtitleOrLevel);
   }
-  /** Alias of `addHeading`: adds a themed section heading with a bold accent-colored title and optional muted subtitle. */
-  public addHeader(title: string, subtitle?: string): this {
-    return this.addHeading(title, subtitle);
+  /** Alias of `addHeading`: adds a themed section heading with a bold accent-colored title and optional muted subtitle or heading level. */
+  public addHeader(title: string, subtitleOrLevel?: string | number): this {
+    return this.addHeading(title, subtitleOrLevel);
   }
-  /** Snake_case alias of `addHeading`: adds a themed section heading with a bold accent-colored title and optional muted subtitle. */
-  public add_header(title: string, subtitle?: string): this {
-    return this.addHeading(title, subtitle);
+  /** Snake_case alias of `addHeading`: adds a themed section heading with a bold accent-colored title and optional muted subtitle or heading level. */
+  public add_header(title: string, subtitleOrLevel?: string | number): this {
+    return this.addHeading(title, subtitleOrLevel);
   }
 
   /** Adds a medium-weight subheading label (`14px` bold) with optional custom text color. */
@@ -11293,51 +13868,190 @@ export class SimpleWindow {
 
   /** Updates the displayed value for a specific `key` row inside a live property grid control. */
   public setPropertyGridValue(id: string, key: string, value: string): this {
+    const ctrl = this.findControl(id);
+    if (ctrl && typeof ctrl.text === "string") {
+      const pairs = ctrl.text
+        .split(",")
+        .map((s: string) => s.trim())
+        .filter(Boolean);
+      let updated = false;
+      const nextPairs = pairs.map((p: string) => {
+        const idx = p.indexOf(":");
+        const k = idx >= 0 ? p.slice(0, idx).trim() : p.trim();
+        if (k === key) {
+          updated = true;
+          return `${k}:${value}`;
+        }
+        return p;
+      });
+      if (!updated) nextPairs.push(`${key}:${value}`);
+      ctrl.text = nextPairs.join(", ");
+    }
     if (this.isWindowRunning) {
       const safeId = JSON.stringify(id);
       const safeKey = JSON.stringify(key);
       const safeVal = JSON.stringify(value);
       this.evalJS(`
-                const grid = document.getElementById(${safeId});
-                if (grid) {
-                    const row = Array.from(grid.querySelectorAll('.prop-row')).find(r => r.textContent && r.textContent.includes(${safeKey}));
-                    if (row) {
-                        const valEl = row.querySelector('.prop-val');
-                        if (valEl) valEl.textContent = ${safeVal};
-                    }
-                }
-            `);
+        (function() {
+          const grid = document.getElementById(${safeId});
+          if (grid) {
+            const rows = Array.from(grid.querySelectorAll('.prop-row'));
+            const row = rows.find(r => (r.dataset && r.dataset.propKey === ${safeKey}) || (r.textContent && r.textContent.includes(${safeKey})));
+            if (row) {
+              const valEl = row.querySelector('.prop-val');
+              if (valEl) valEl.textContent = ${safeVal};
+            }
+          }
+        })();
+      `);
     }
     return this;
   }
 
-  /** Adds a text input control with an explicit `id`, `initialValue`, `placeholder`, and optional width/options. */
+  /** Adds a text input control with an explicit `id` (or placeholder when chained with `.id(...)`), `initialValue`, `placeholder`, optional `onChange` callback, and width/options. */
+  public addInput(
+    placeholderOrId?: string,
+    initialValue?: string,
+    onChange?: EventCallback,
+    options?: number | ControlOptions,
+  ): SimpleControlRef;
+  public addInput(
+    placeholderOrId: string,
+    onChange: EventCallback,
+    options?: number | ControlOptions,
+  ): SimpleControlRef;
+  public addInput(
+    placeholderOrId: string,
+    options: number | ControlOptions,
+  ): SimpleControlRef;
+  public addInput(
+    placeholderOrId: string,
+    initialValue: string,
+    options: number | ControlOptions,
+  ): SimpleControlRef;
   public addInput(
     id: string,
-    initialValue = "",
-    placeholder = "",
-    opts: any = {},
+    initialValue: string,
+    placeholder: string,
+    onChange?: EventCallback,
+    options?: number | ControlOptions,
+  ): SimpleControlRef;
+  public addInput(
+    id: string,
+    initialValue: string,
+    placeholder: string,
+    options: number | ControlOptions,
+  ): SimpleControlRef;
+  public addInput(
+    id?: string,
+    initialValue?: string | EventCallback | number | ControlOptions,
+    placeholder?: string | EventCallback | number | ControlOptions,
+    onChangeOrOpts?: EventCallback | number | ControlOptions,
+    optsArg: ControlOptions = {},
   ): SimpleControlRef {
-    const optObj = typeof opts === "number" ? { width: opts } : opts || {};
+    const resolvedId =
+      id !== undefined && id !== "" ? id : this.generateUniqueId("input");
+    let initVal = "";
+    let ph = "";
+    let explicitPh = false;
+    let onChange: EventCallback | undefined;
+    let rawOpts: any = optsArg;
+
+    if (typeof initialValue === "function") {
+      onChange = initialValue as EventCallback;
+      rawOpts = placeholder ?? {};
+    } else if (
+      typeof initialValue === "number" ||
+      (typeof initialValue === "object" && initialValue !== null)
+    ) {
+      rawOpts = initialValue;
+    } else {
+      initVal = initialValue ?? "";
+      if (typeof placeholder === "function") {
+        onChange = placeholder as EventCallback;
+        rawOpts = onChangeOrOpts ?? {};
+      } else if (
+        typeof placeholder === "number" ||
+        (typeof placeholder === "object" && placeholder !== null)
+      ) {
+        rawOpts = placeholder;
+      } else {
+        if (placeholder !== undefined) {
+          ph = placeholder;
+          explicitPh = true;
+        }
+        if (typeof onChangeOrOpts === "function") {
+          onChange = onChangeOrOpts as EventCallback;
+        } else if (onChangeOrOpts !== undefined) {
+          rawOpts = onChangeOrOpts;
+        }
+      }
+    }
+
+    const optObj =
+      typeof rawOpts === "number" ? { width: rawOpts } : rawOpts || {};
     const width = optObj.width !== undefined ? optObj.width : 280;
     const ref = this.addVisualControl("input", width, 36, {
-      id,
-      value: initialValue,
-      text: initialValue,
-      placeholder: placeholder || initialValue,
+      id: resolvedId,
+      value: initVal,
+      text: initVal,
+      placeholder: ph || initVal,
+      _inputFirstArg: id !== undefined && !explicitPh ? id : undefined,
+      _explicitPlaceholder: explicitPh || Boolean(optObj.placeholder),
       ...optObj,
     });
-    if (initialValue) this.formValuesStore[id] = initialValue;
+    if (initVal) this.formValuesStore[resolvedId] = initVal;
+    if (onChange) ref.onChange(onChange);
     return ref;
   }
-  /** Snake_case alias of `addInput`: adds a text input control with an explicit `id`, `initialValue`, `placeholder`, and optional width/options. */
+  /** Snake_case alias of `addInput`: adds a text input control with an explicit `id`, `initialValue`, `placeholder`, and optional callback/width/options. */
+  public add_input(
+    placeholderOrId?: string,
+    initialValue?: string,
+    onChange?: EventCallback,
+    options?: number | ControlOptions,
+  ): SimpleControlRef;
+  public add_input(
+    placeholderOrId: string,
+    onChange: EventCallback,
+    options?: number | ControlOptions,
+  ): SimpleControlRef;
+  public add_input(
+    placeholderOrId: string,
+    options: number | ControlOptions,
+  ): SimpleControlRef;
+  public add_input(
+    placeholderOrId: string,
+    initialValue: string,
+    options: number | ControlOptions,
+  ): SimpleControlRef;
   public add_input(
     id: string,
-    initialValue = "",
-    placeholder = "",
-    opts: any = {},
+    initialValue: string,
+    placeholder: string,
+    onChange?: EventCallback,
+    options?: number | ControlOptions,
+  ): SimpleControlRef;
+  public add_input(
+    id: string,
+    initialValue: string,
+    placeholder: string,
+    options: number | ControlOptions,
+  ): SimpleControlRef;
+  public add_input(
+    id?: string,
+    initialValue?: string | EventCallback | number | ControlOptions,
+    placeholder?: string | EventCallback | number | ControlOptions,
+    onChangeOrOpts?: EventCallback | number | ControlOptions,
+    optsArg: ControlOptions = {},
   ): SimpleControlRef {
-    return this.addInput(id, initialValue, placeholder, opts);
+    return (this.addInput as any)(
+      id,
+      initialValue,
+      placeholder,
+      onChangeOrOpts,
+      optsArg,
+    );
   }
   /** Alias of `addTextArea`: adds a multi-line text area control with optional ID, placeholder, and initial text content. */
   public addTextarea(
@@ -12436,14 +15150,18 @@ export class SimpleWindow {
   /** Updates the window's background color in state and immediately applies it to `document.body` when running. */
   public set_background_color(hexColor: string): this {
     this.backgroundColor = hexColor;
-    this.evalJS(`document.body.style.backgroundColor = "${hexColor}";`);
+    if (this.isWindowRunning) {
+      this.evalJS(`document.body.style.backgroundColor = ${JSON.stringify(hexColor)};`);
+    }
     return this;
   }
 
   /** Updates the window's default text color in state and immediately applies it to `document.body` when running. */
   public set_font_color(colorStr: string): this {
     this.fontColor = colorStr;
-    this.evalJS(`document.body.style.color = "${colorStr}";`);
+    if (this.isWindowRunning) {
+      this.evalJS(`document.body.style.color = ${JSON.stringify(colorStr)};`);
+    }
     return this;
   }
 
@@ -12466,44 +15184,44 @@ export class SimpleWindow {
 
   /** Snake_case alias of `setResponsiveLayout`: enables or disables responsive layout mode. */
   public set_responsive_layout(enabled: boolean): this {
-    return this;
+    return this.setResponsiveLayout(enabled);
   }
   /** Snake_case alias of `getResponsiveLayout`: returns `true` when responsive layout is enabled. */
   public get_responsive_layout(): boolean {
-    return true;
+    return this.getResponsiveLayout();
   }
 
   /** Snake_case alias of `setMinSize`: sets the minimum window width and height. */
   public set_min_size(w: number, h: number): this {
-    return this;
+    return this.setMinSize(w, h);
   }
   /** Snake_case alias of `setMaxSize`: sets the maximum window width and height. */
   public set_max_size(w: number, h: number): this {
-    return this;
+    return this.setMaxSize(w, h);
   }
   /** Snake_case alias of `setResizable`: configures whether the window is resizable. */
   public set_resizable(enabled: boolean): this {
-    return this;
+    return this.setResizable(enabled);
   }
   /** Snake_case alias of `getResizable`: returns `true` if the window is resizable. */
   public get_resizable(): boolean {
-    return true;
+    return this.getResizable();
   }
   /** Snake_case alias of `setMinimizable`: configures whether the window can be minimized. */
   public set_minimizable(enabled: boolean): this {
-    return this;
+    return this.setMinimizable(enabled);
   }
   /** Snake_case alias of `getMinimizable`: returns `true` if the window can be minimized. */
   public get_minimizable(): boolean {
-    return true;
+    return this.getMinimizable();
   }
   /** Snake_case alias of `setMaximizable`: configures whether the window can be maximized. */
   public set_maximizable(enabled: boolean): this {
-    return this;
+    return this.setMaximizable(enabled);
   }
   /** Snake_case alias of `getMaximizable`: returns `true` if the window can be maximized. */
   public get_maximizable(): boolean {
-    return true;
+    return this.getMaximizable();
   }
 
   /** Positions the window using a named screen alignment preset (`"center"`, `"top-left"`, `"bottom-right"`, etc.). */
@@ -12521,11 +15239,7 @@ export class SimpleWindow {
 
   /** Snake_case alias of `setSize`: resizes the window to `w` × `h` pixels. */
   public set_size(w: number, h: number): this {
-    this.width = w;
-    this.height = h;
-    if (this.webview)
-      this.webview.size = { width: w, height: h, hint: SIZE_HINT_NONE };
-    return this;
+    return this.setSize(w, h);
   }
 
   /** Snake_case alias of `getWidth`: returns the current window width in pixels. */
@@ -12539,70 +15253,69 @@ export class SimpleWindow {
 
   /** Snake_case alias of `setPosition`: sets the `(x, y)` screen coordinates of the window. */
   public set_position(x: number, y: number): this {
-    return this;
+    return this.setPosition(x, y);
   }
   /** Snake_case alias of `getX`: returns the window's horizontal `x` screen coordinate. */
   public get_x(): number {
-    return 100;
+    return this.getX();
   }
   /** Snake_case alias of `getY`: returns the window's vertical `y` screen coordinate. */
   public get_y(): number {
-    return 100;
+    return this.getY();
   }
 
   /** Snake_case alias of `setOpacity`: sets the CSS opacity of the window body. */
   public set_opacity(opacity: number): this {
-    this.evalJS(`document.body.style.opacity = "${opacity}";`);
-    return this;
+    return this.setOpacity(opacity);
   }
   /** Snake_case alias of `getOpacity`: returns the current window opacity (`1.0` by default). */
   public get_opacity(): number {
-    return 1.0;
+    return this.getOpacity();
   }
 
   /** Snake_case alias of `setTitlebarVisible`: shows or hides the native window titlebar. */
   public set_titlebar_visible(visible: boolean): this {
-    return this;
+    return this.setTitlebarVisible(visible);
   }
   /** Snake_case alias of `isTitlebarVisible`: returns `true` if the window titlebar is visible. */
   public is_titlebar_visible(): boolean {
-    return true;
+    return this.isTitlebarVisible();
   }
 
   /** Snake_case alias of `setSubtitle`: sets the window titlebar subtitle text. */
   public set_subtitle(subtitleStr: string): this {
-    return this;
+    return this.setSubtitle(subtitleStr);
   }
   /** Snake_case alias of `getSubtitle`: returns the window titlebar subtitle text. */
   public get_subtitle(): string {
-    return "";
+    return this.getSubtitle();
   }
 
   /** Snake_case alias of `setClosable`: configures whether the window can be closed. */
   public set_closable(enabled: boolean): this {
-    return this;
+    return this.setClosable(enabled);
   }
   /** Snake_case alias of `getClosable`: returns `true` if the window is closable. */
   public get_closable(): boolean {
-    return true;
+    return this.getClosable();
   }
 
   /** Snake_case alias of `setMovable`: configures whether the window can be moved by the user. */
   public set_movable(enabled: boolean): this {
-    return this;
+    return this.setMovable(enabled);
   }
   /** Snake_case alias of `getMovable`: returns `true` if the window is movable. */
   public get_movable(): boolean {
-    return true;
+    return this.getMovable();
   }
 
   /** Snake_case alias of `setHasShadow`: enables or disables the window frame drop shadow. */
   public set_has_shadow(enabled: boolean): this {
-    return this;
+    return this.setHasShadow(enabled);
   }
   /** Snake_case alias of `getHasShadow`: returns `true` if the window has a drop shadow. */
   public get_has_shadow(): boolean {
-    return true;
+    return this.getHasShadow();
   }
 
   /** Snake_case alias of `isVisible`: returns `true` while the window is running and visible. */
@@ -12616,14 +15329,6 @@ export class SimpleWindow {
   /** Returns `true` if the window is currently maximized/zoomed. */
   public is_maximized(): boolean {
     return false;
-  }
-  /** Snake_case alias of `isFullscreen`: returns `true` when the window is in fullscreen mode. */
-  public is_fullscreen(): boolean {
-    return this.fullscreen;
-  }
-  /** Snake_case alias of `setFullscreen`: enables or disables native fullscreen mode for the window. */
-  public set_fullscreen(val = true): this {
-    return this.setFullscreen(val);
   }
   /** Returns `true` when the window is currently running and active. */
   public is_active(): boolean {
@@ -12645,24 +15350,26 @@ export class SimpleWindow {
 
   /** Snake_case alias of `setBounds`: sets the window's bounding rectangle `(x, y, w, h)` in pixels. */
   public set_bounds(x: number, y: number, w: number, h: number): this {
-    return this.set_size(w, h);
+    return this.setBounds(x, y, w, h);
   }
   /** Snake_case alias of `getBounds`: returns `[x, y, width, height]` of the window. */
   public get_bounds(): [number, number, number, number] {
-    return [100, 100, this.width, this.height];
+    return this.getBounds();
   }
 
   /** Locks the window's resize aspect ratio to `wRatio : hRatio`. */
   public set_aspect_ratio(wRatio: number, hRatio: number): this {
+    this._hasAspectRatio = Number(wRatio) > 0 && Number(hRatio) > 0;
     return this;
   }
   /** Clears any fixed aspect ratio constraint on the window. */
   public reset_aspect_ratio(): this {
+    this._hasAspectRatio = false;
     return this;
   }
   /** Returns `true` if the window currently enforces a fixed aspect ratio. */
   public has_aspect_ratio(): boolean {
-    return false;
+    return this._hasAspectRatio;
   }
 
   /** Configures native OS background vibrancy/mica material (`"ultra-dark"`, `"hud"`, `"sidebar"`, etc.) on the window. */
@@ -12671,11 +15378,12 @@ export class SimpleWindow {
   }
   /** Sets the outer corner radius (in pixels) of the window frame. */
   public set_corner_radius(r: number): this {
+    this._cornerRadius = Number(r) || 0;
     return this;
   }
   /** Returns the outer corner radius (in pixels) of the window frame. */
   public get_corner_radius(): number {
-    return 12;
+    return this._cornerRadius;
   }
   /** Enables or disables background backdrop blur behind the window. */
   public set_background_blur(enabled: boolean): this {
@@ -12684,24 +15392,26 @@ export class SimpleWindow {
 
   /** Sets the window stacking level (`"normal"`, `"floating"`, `"modal"`, `"status"`). */
   public set_window_level(level: string): this {
+    this._windowLevel = String(level || "normal");
     return this;
   }
   /** Returns the current window stacking level string (default `"normal"`). */
   public get_window_level(): string {
-    return "normal";
+    return this._windowLevel;
   }
   /** Alias of `set_window_level`: sets the window stacking level. */
   public set_level_type(level: string): this {
-    return this;
+    return this.set_window_level(level);
   }
 
   /** Configures whether mouse clicks pass through the window to underlying applications. */
   public set_ignores_mouse_events(enabled: boolean): this {
+    this._ignoresMouseEvents = Boolean(enabled);
     return this;
   }
   /** Returns `true` if the window ignores mouse events (click-through mode). */
   public get_ignores_mouse_events(): boolean {
-    return false;
+    return this._ignoresMouseEvents;
   }
 
   /** Applies either a named theme key or a custom `SimpleGUITheme` palette object to the window. */
@@ -12711,9 +15421,11 @@ export class SimpleWindow {
     }
     this.backgroundColor = theme.background_color;
     this.fontColor = theme.font_color;
-    this.evalJS(
-      `document.body.style.backgroundColor = "${theme.background_color}"; document.body.style.color = "${theme.font_color}";`,
-    );
+    if (this.isWindowRunning) {
+      this.evalJS(
+        `document.body.style.backgroundColor = ${JSON.stringify(theme.background_color)}; document.body.style.color = ${JSON.stringify(theme.font_color)};`,
+      );
+    }
     return this;
   }
 
@@ -12801,31 +15513,33 @@ export class SimpleWindow {
     const ctrl = this.findControl(id);
     if (ctrl) ctrl.enabled = enabled;
     if (this.isWindowRunning) {
+      const safeId = JSON.stringify(id);
+      const isDis = !enabled;
       this.evalJS(`
-                (function() {
-                    const el = document.getElementById("${id}");
-                    if (el) {
-                        el.disabled = ${!enabled};
-                        if (${!enabled}) {
-                            el.setAttribute("disabled", "disabled");
-                            el.style.opacity = "0.5";
-                            el.style.pointerEvents = "none";
-                            el.style.userSelect = "none";
-                        } else {
-                            el.removeAttribute("disabled");
-                            el.style.opacity = "1";
-                            el.style.pointerEvents = "auto";
-                            el.style.userSelect = "auto";
-                        }
-                        const children = el.querySelectorAll("input, select, textarea, button");
-                        children.forEach(function(child) {
-                            child.disabled = ${!enabled};
-                            if (${!enabled}) child.setAttribute("disabled", "disabled");
-                            else child.removeAttribute("disabled");
-                        });
-                    }
-                })();
-            `);
+        (function() {
+          const el = document.getElementById(${safeId});
+          if (el) {
+            el.disabled = ${isDis};
+            if (${isDis}) {
+              el.setAttribute("disabled", "disabled");
+              el.style.opacity = "0.5";
+              el.style.pointerEvents = "none";
+              el.style.userSelect = "none";
+            } else {
+              el.removeAttribute("disabled");
+              el.style.opacity = "1";
+              el.style.pointerEvents = "auto";
+              el.style.userSelect = "auto";
+            }
+            const children = el.querySelectorAll("input, select, textarea, button");
+            children.forEach(function(child) {
+              child.disabled = ${isDis};
+              if (${isDis}) child.setAttribute("disabled", "disabled");
+              else child.removeAttribute("disabled");
+            });
+          }
+        })();
+      `);
     }
     return this;
   }
@@ -12848,17 +15562,26 @@ export class SimpleWindow {
       }
     }
     if (this.isWindowRunning) {
+      const safeId = JSON.stringify(id);
       this.evalJS(`
-                (function() {
-                    const cardEl = document.getElementById("rad_card_" + ${JSON.stringify(id)});
-                    if (cardEl) {
-                        cardEl.style.display = "${visible ? "" : "none"}";
-                        return;
-                    }
-                    const el = document.getElementById(${JSON.stringify(id)});
-                    if (el) el.style.display = "${visible ? "block" : "none"}";
-                })();
-            `);
+        (function() {
+          const cardEl = document.getElementById("rad_card_" + ${safeId});
+          if (cardEl) {
+            cardEl.style.display = ${visible ? '""' : '"none"'};
+            return;
+          }
+          const el = document.getElementById(${safeId});
+          if (!el) return;
+          if (${visible}) {
+            el.style.display = (el.dataset && el.dataset.sgOrigDisplay) || "";
+          } else {
+            if (el.style.display && el.style.display !== "none" && el.dataset) {
+              el.dataset.sgOrigDisplay = el.style.display;
+            }
+            el.style.display = "none";
+          }
+        })();
+      `);
     }
     return this;
   }
@@ -12904,17 +15627,19 @@ export class SimpleWindow {
     }
     if (wasRunning) {
       this.evalJS(`
-                (function() {
-                    const ids = ${JSON.stringify(names)};
-                    for (let i = 0; i < ids.length; i++) {
-                        const id = ids[i];
-                        const cardEl = document.getElementById("rad_card_" + id);
-                        if (cardEl) { cardEl.style.display = ""; continue; }
-                        const el = document.getElementById(id);
-                        if (el) el.style.display = "block";
-                    }
-                })();
-            `);
+        (function() {
+          const ids = ${JSON.stringify(names)};
+          for (let i = 0; i < ids.length; i++) {
+            const id = ids[i];
+            const cardEl = document.getElementById("rad_card_" + id);
+            if (cardEl) { cardEl.style.display = ""; continue; }
+            const el = document.getElementById(id);
+            if (el) {
+              el.style.display = (el.dataset && el.dataset.sgOrigDisplay) || "";
+            }
+          }
+        })();
+      `);
     }
     return this;
   }
@@ -12941,17 +15666,22 @@ export class SimpleWindow {
     }
     if (wasRunning) {
       this.evalJS(`
-                (function() {
-                    const ids = ${JSON.stringify(names)};
-                    for (let i = 0; i < ids.length; i++) {
-                        const id = ids[i];
-                        const cardEl = document.getElementById("rad_card_" + id);
-                        if (cardEl) { cardEl.style.display = "none"; continue; }
-                        const el = document.getElementById(id);
-                        if (el) el.style.display = "none";
-                    }
-                })();
-            `);
+        (function() {
+          const ids = ${JSON.stringify(names)};
+          for (let i = 0; i < ids.length; i++) {
+            const id = ids[i];
+            const cardEl = document.getElementById("rad_card_" + id);
+            if (cardEl) { cardEl.style.display = "none"; continue; }
+            const el = document.getElementById(id);
+            if (el) {
+              if (el.style.display && el.style.display !== "none" && el.dataset) {
+                el.dataset.sgOrigDisplay = el.style.display;
+              }
+              el.style.display = "none";
+            }
+          }
+        })();
+      `);
     }
     return this;
   }
@@ -13135,13 +15865,15 @@ export class SimpleWindow {
   public flashControl(id: string): this {
     if (this.isWindowRunning) {
       this.evalJS(`
-                const el = document.getElementById("${id}");
-                if (el) {
-                    el.style.transition = "outline 0.15s ease-in-out";
-                    el.style.outline = "2px solid #38bdf8";
-                    setTimeout(() => { el.style.outline = "none"; }, 300);
-                }
-            `);
+        (function() {
+          const el = document.getElementById(${JSON.stringify(id)});
+          if (el) {
+            el.style.transition = "outline 0.15s ease-in-out";
+            el.style.outline = "2px solid #38bdf8";
+            setTimeout(() => { el.style.outline = "none"; }, 300);
+          }
+        })();
+      `);
     }
     return this;
   }
@@ -13163,14 +15895,17 @@ export class SimpleWindow {
   /** Highlights the control identified by `id` with an accent glow for `durationMs` milliseconds. */
   public highlightControl(id: string, durationMs = 1000): this {
     if (this.isWindowRunning) {
+      const safeMs = Math.max(0, Number(durationMs) || 1000);
       this.evalJS(`
-                const el = document.getElementById("${id}");
-                if (el) {
-                    el.style.transition = "box-shadow 0.2s ease-in-out";
-                    el.style.boxShadow = "0 0 0 3px rgba(56, 189, 248, 0.6)";
-                    setTimeout(() => { el.style.boxShadow = "none"; }, ${durationMs});
-                }
-            `);
+        (function() {
+          const el = document.getElementById(${JSON.stringify(id)});
+          if (el) {
+            el.style.transition = "box-shadow 0.2s ease-in-out";
+            el.style.boxShadow = "0 0 0 3px rgba(56, 189, 248, 0.6)";
+            setTimeout(() => { el.style.boxShadow = "none"; }, ${safeMs});
+          }
+        })();
+      `);
     }
     return this;
   }
@@ -13499,9 +16234,16 @@ export class SimpleWindow {
   /** Moves DOM keyboard focus to the control element identified by `id`. */
   public setFocus(id: string): this {
     if (this.isWindowRunning) {
-      this.evalJS(
-        `const el = document.getElementById("${id}"); if(el) el.focus();`,
-      );
+      this.evalJS(`
+        (function() {
+          const el = document.getElementById(${JSON.stringify(id)});
+          if (!el) return;
+          const inner = (el.tagName === "INPUT" || el.tagName === "SELECT" || el.tagName === "TEXTAREA" || el.tagName === "BUTTON")
+            ? el
+            : (el.querySelector("input, select, textarea, button") || el);
+          if (inner && typeof inner.focus === "function") inner.focus();
+        })();
+      `);
     }
     return this;
   }
@@ -13517,7 +16259,14 @@ export class SimpleWindow {
   // 4. List Box & Dynamic Item Management
   /** Returns the array of option/item strings currently stored for list or dropdown control `id`. */
   public getListItems(id: string): string[] {
-    return this.listItemsStore[id] || [];
+    if (this.listItemsStore[id] !== undefined) {
+      return [...this.listItemsStore[id]];
+    }
+    const ctrl = this.findControl(id);
+    if (ctrl && Array.isArray(ctrl.items)) {
+      return ctrl.items.map(String);
+    }
+    return [];
   }
   /** Snake_case alias of `getListItems`: returns the array of option/item strings currently stored for list or dropdown control `id`. */
   public get_list_items(id: string): string[] {
@@ -13527,6 +16276,10 @@ export class SimpleWindow {
   /** Replaces the option/item strings for list or dropdown control `id` and refreshes its live DOM `<select>` or list container. */
   public setListItems(id: string, items: string[]): this {
     this.listItemsStore[id] = [...items];
+    const ctrl = this.findControl(id);
+    if (ctrl) {
+      ctrl.items = [...items];
+    }
     const currentVal = this.getValue(id);
     let nextVal = currentVal;
     if (Array.isArray(currentVal)) {
@@ -13673,14 +16426,16 @@ export class SimpleWindow {
 
   /** Enables or disables multi-selection mode on a list box control in the live DOM. */
   public setListMultiSelect(id: string, enabled: boolean): this {
+    const ctrl = this.findControl(id);
+    if (ctrl) ctrl.multiple = Boolean(enabled);
     if (this.isWindowRunning) {
       this.evalJS(`
-                (function() {
-                    let el = document.getElementById("${id}");
-                    if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
-                    if (el && el.tagName === "SELECT") el.multiple = ${enabled};
-                })();
-            `);
+        (function() {
+          let el = document.getElementById(${JSON.stringify(id)});
+          if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
+          if (el && el.tagName === "SELECT") el.multiple = ${Boolean(enabled)};
+        })();
+      `);
     }
     return this;
   }
@@ -13713,17 +16468,17 @@ export class SimpleWindow {
     this.setValue(id, selectedVals);
     if (this.isWindowRunning) {
       this.evalJS(`
-                (function() {
-                    let el = document.getElementById("${id}");
-                    if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
-                    if (el && el.tagName === "SELECT") {
-                        const idxs = new Set(${JSON.stringify(indexes)});
-                        Array.from(el.options).forEach((opt, idx) => {
-                            opt.selected = idxs.has(idx);
-                        });
-                    }
-                })();
-            `);
+        (function() {
+          let el = document.getElementById(${JSON.stringify(id)});
+          if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
+          if (el && el.tagName === "SELECT") {
+            const idxs = new Set(${JSON.stringify(indexes)});
+            Array.from(el.options).forEach((opt, idx) => {
+              opt.selected = idxs.has(idx);
+            });
+          }
+        })();
+      `);
     }
     return this;
   }
@@ -13750,14 +16505,14 @@ export class SimpleWindow {
     this.setValue(id, [...items]);
     if (this.isWindowRunning) {
       this.evalJS(`
-                (function() {
-                    let el = document.getElementById("${id}");
-                    if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
-                    if (el && el.tagName === "SELECT") {
-                        Array.from(el.options).forEach(opt => opt.selected = true);
-                    }
-                })();
-            `);
+        (function() {
+          let el = document.getElementById(${JSON.stringify(id)});
+          if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
+          if (el && el.tagName === "SELECT") {
+            Array.from(el.options).forEach(opt => opt.selected = true);
+          }
+        })();
+      `);
     }
     return this;
   }
@@ -13771,15 +16526,15 @@ export class SimpleWindow {
     this.setValue(id, "");
     if (this.isWindowRunning) {
       this.evalJS(`
-                (function() {
-                    let el = document.getElementById("${id}");
-                    if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
-                    if (el && el.tagName === "SELECT") {
-                        el.selectedIndex = -1;
-                        Array.from(el.options).forEach(opt => opt.selected = false);
-                    }
-                })();
-            `);
+        (function() {
+          let el = document.getElementById(${JSON.stringify(id)});
+          if (el && el.tagName !== "SELECT") el = el.querySelector("select") || el;
+          if (el && el.tagName === "SELECT") {
+            el.selectedIndex = -1;
+            Array.from(el.options).forEach(opt => opt.selected = false);
+          }
+        })();
+      `);
     }
     return this;
   }
@@ -14208,6 +16963,9 @@ export class SimpleWindow {
   /** Deletes the saved state file (`state.json`) for `appName` from disk and clears the in-memory `stateStore`. */
   public clearAppState(appName?: string, fileName = "state.json"): void {
     const appId = appName || this.getAppId();
+    if (!appName || appName === this.getAppId()) {
+      this.stateStore = {};
+    }
     const targetFile = getAppStateFile(appId, fileName);
     if (fs.existsSync(targetFile)) {
       try {
@@ -14242,7 +17000,7 @@ export class SimpleWindow {
     this.saveWindowSession(appName);
   }
 
-  /** Restores window dimensions, theme, and reactive state store from `<appStateDir>/session.json`. */
+  /** Restores window dimensions, theme, and reactive state store from `<appStateDir>/session.json`, preserving any options explicitly passed to `SimpleWindow` / `createWindow`. */
   public restoreWindowSession(appName?: string): boolean {
     const appId = appName || this.getAppId();
     let targetFile = getAppStateFile(appId, "session.json");
@@ -14255,16 +17013,28 @@ export class SimpleWindow {
       const loaded = JSON.parse(content);
       for (const [k, v] of Object.entries(loaded)) {
         if (k === "__win_theme") {
-          this.setTheme(String(v), false);
+          if (!this._explicitWindowOptions.theme) {
+            this._applyTheme(String(v), false);
+          }
         } else if (k === "__win_fullscreen") {
-          if (typeof v === "boolean" && this.fullscreen === false)
+          if (
+            typeof v === "boolean" &&
+            !this._explicitWindowOptions.fullscreen &&
+            !this._explicitWindowOptions.width &&
+            !this._explicitWindowOptions.height
+          ) {
             this.fullscreen = v;
+          }
         } else if (k === "__win_width") {
           const w = parseInt(String(v), 10);
-          if (w > 100) this.width = w;
+          if (w > 100 && !this._explicitWindowOptions.width) {
+            this.width = w;
+          }
         } else if (k === "__win_height") {
           const h = parseInt(String(v), 10);
-          if (h > 100) this.height = h;
+          if (h > 100 && !this._explicitWindowOptions.height) {
+            this.height = h;
+          }
         } else {
           this.setState(k, v);
         }
@@ -14417,16 +17187,18 @@ export class SimpleWindow {
     return this.saveAppFormStateOr(appName);
   }
 
-  /** Restores previously saved window dimensions, theme, reactive state, and eligible control values from `form_state.json`. */
+  /** Restores previously saved window dimensions, theme, reactive state, and eligible control values from `form_state.json`, preserving any options explicitly passed to `SimpleWindow` / `createWindow`. */
   public restoreAppFormState(appName?: string): boolean {
     const appId = appName || this.getAppId();
     let targetFile = getAppStateFile(appId, "form_state.json");
     if (!fs.existsSync(targetFile)) {
       targetFile = getAppConfigFile(appId, "form_state.json");
       if (!fs.existsSync(targetFile)) {
-        const savedTheme = getSavedTheme();
-        if (savedTheme && savedTheme !== this.theme) {
-          this.setTheme(savedTheme, false);
+        if (!this._explicitWindowOptions.theme) {
+          const savedTheme = getSavedTheme();
+          if (savedTheme && savedTheme !== this.theme) {
+            this._applyTheme(savedTheme, false);
+          }
         }
         return false;
       }
@@ -14441,23 +17213,36 @@ export class SimpleWindow {
       return false;
     }
 
-    if (loaded["__win_width"] !== undefined) {
+    if (
+      loaded["__win_width"] !== undefined &&
+      !this._explicitWindowOptions.width
+    ) {
       const w = parseInt(String(loaded["__win_width"]), 10);
       if (w >= 300 && w <= 4000) this.width = w;
     }
-    if (loaded["__win_height"] !== undefined) {
+    if (
+      loaded["__win_height"] !== undefined &&
+      !this._explicitWindowOptions.height
+    ) {
       const h = parseInt(String(loaded["__win_height"]), 10);
       if (h >= 200 && h <= 3000) this.height = h;
     }
-    if (loaded["__win_fullscreen"] !== undefined && this.fullscreen === false) {
+    if (
+      loaded["__win_fullscreen"] !== undefined &&
+      !this._explicitWindowOptions.fullscreen &&
+      !this._explicitWindowOptions.width &&
+      !this._explicitWindowOptions.height
+    ) {
       this.fullscreen = Boolean(loaded["__win_fullscreen"]);
     }
 
-    if (loaded["__win_theme"] && typeof loaded["__win_theme"] === "string") {
-      this.setTheme(loaded["__win_theme"], false);
-    } else {
-      const savedTheme = getSavedTheme();
-      if (savedTheme) this.setTheme(savedTheme, false);
+    if (!this._explicitWindowOptions.theme) {
+      if (loaded["__win_theme"] && typeof loaded["__win_theme"] === "string") {
+        this._applyTheme(loaded["__win_theme"], false);
+      } else {
+        const savedTheme = getSavedTheme();
+        if (savedTheme) this._applyTheme(savedTheme, false);
+      }
     }
 
     for (const [k, v] of Object.entries(loaded)) {
@@ -14564,11 +17349,13 @@ export class SimpleWindow {
       activeIndex: number,
     ) => void,
   ): this {
+    const boundCtrl = this.findControl(tabsId);
     const applyTabView = (
       activeTabOrIdx: string | number,
       triggerCallback: boolean,
     ) => {
-      const ctrl = this.findControl(tabsId);
+      const currentId = boundCtrl?.id || tabsId;
+      const ctrl = boundCtrl || this.findControl(currentId);
       const labels: string[] = Array.isArray(ctrl?.tabLabels)
         ? ctrl.tabLabels
         : Array.isArray(ctrl?.items)
@@ -14658,16 +17445,26 @@ export class SimpleWindow {
         ? { onFilter: optionsOrOnFilter }
         : (optionsOrOnFilter ?? {});
 
+    const boundInputCtrl = this.findControl(inputId);
+    const boundTableCtrl = this.findControl(tableId);
+
     const runFilter = (rawQuery: any) => {
-      const rows = typeof sourceRows === "function" ? sourceRows() : sourceRows;
-      const total = Array.isArray(rows) ? rows.length : 0;
+      const currentTableId = boundTableCtrl?.id || tableId;
+      const rawRows =
+        typeof sourceRows === "function" ? sourceRows() : sourceRows;
+      const rows: any[][] = Array.isArray(rawRows)
+        ? rawRows
+        : Array.isArray(this.findControl(currentTableId)?.rows)
+          ? this.findControl(currentTableId)!.rows
+          : [];
+      const total = rows.length;
       const query = String(rawQuery ?? "")
         .trim()
         .toLowerCase();
 
       let filtered: any[][];
       if (!query) {
-        filtered = Array.isArray(rows) ? rows : [];
+        filtered = rows;
       } else if (opts.predicate) {
         filtered = rows.filter((row) => opts.predicate!(row, query));
       } else if (Array.isArray(opts.columns) && opts.columns.length > 0) {
@@ -14701,7 +17498,7 @@ export class SimpleWindow {
         });
       }
 
-      this.setTableRows(tableId, filtered);
+      this.setTableRows(currentTableId, filtered);
 
       if (opts.countControlId) {
         const text = opts.countFormat
@@ -14715,7 +17512,7 @@ export class SimpleWindow {
       }
     };
 
-    const initialQuery = this.getText(inputId);
+    const initialQuery = this.getText(boundInputCtrl?.id || inputId);
     runFilter(initialQuery);
 
     this.onChange(inputId, (_win, val) => {
@@ -14765,13 +17562,15 @@ export class SimpleWindow {
       rowIndex: number,
     ) => void,
   ): this {
+    const boundTableCtrl = this.findControl(tableId);
     this.onClick(tableId, (w, rawRowId) => {
-      const ctrl = w.findControl(tableId);
+      const currentTableId = boundTableCtrl?.id || tableId;
+      const ctrl = boundTableCtrl || w.findControl(currentTableId);
       const rows: any[][] =
         ctrl?.rows ||
         (Array.isArray(ctrl?.value) ? ctrl.value : null) ||
-        (Array.isArray(w.formValuesStore[tableId])
-          ? w.formValuesStore[tableId]
+        (Array.isArray(w.formValuesStore[currentTableId])
+          ? w.formValuesStore[currentTableId]
           : []);
       const headers: string[] = Array.isArray(ctrl?.headers)
         ? ctrl.headers
@@ -15105,9 +17904,13 @@ export class SimpleWindow {
       .trim()
       .toLowerCase();
     const norm = this.normalizeShortcutChord(shortcut);
-    const cb =
+    let cb =
       this.eventHandlersMap.get(`shortcut_${norm}`) ||
       this.eventHandlersMap.get(`shortcut_${raw}`);
+    if (!cb && /^(ctrl|meta)\+/.test(norm)) {
+      const modNorm = norm.replace(/^(ctrl|meta)\+/, "mod+");
+      cb = this.eventHandlersMap.get(`shortcut_${modNorm}`);
+    }
     if (cb) {
       await cb(this, norm || raw);
     }
@@ -15417,8 +18220,11 @@ export class SimpleWindow {
     const cb =
       typeof nameOrCallback === "function" ? nameOrCallback : maybeCallback;
     this.beginRow();
-    if (cb) cb(this);
-    this.endRow();
+    try {
+      if (cb) cb(this);
+    } finally {
+      this.endRow();
+    }
     return this;
   }
 
@@ -15427,12 +18233,45 @@ export class SimpleWindow {
     nameOrCallback: string | ((win: SimpleWindow) => void),
     maybeCallback?: (win: SimpleWindow) => void,
   ): this {
+    const title = typeof nameOrCallback === "string" ? nameOrCallback : undefined;
     const cb =
       typeof nameOrCallback === "function" ? nameOrCallback : maybeCallback;
-    this.beginCard();
-    if (cb) cb(this);
-    this.endCard();
+    this.beginCard(title);
+    try {
+      if (cb) cb(this);
+    } finally {
+      this.endCard();
+    }
     return this;
+  }
+
+  /** Executes a builder callback inside a `beginGrid(cols, gap)` / `endGrid()` multi-column grid layout block. */
+  public grid(
+    cols: number,
+    gapOrCallback: number | ((win: SimpleWindow) => void),
+    maybeCallback?: (win: SimpleWindow) => void,
+  ): this {
+    const gap =
+      typeof gapOrCallback === "number" ? gapOrCallback : this.spacing;
+    const cb =
+      typeof gapOrCallback === "function" ? gapOrCallback : maybeCallback;
+    this.beginGrid(cols, gap);
+    try {
+      if (cb) cb(this);
+    } finally {
+      this.endGrid();
+    }
+    return this;
+  }
+
+  /** Executes a builder callback inside a titled `beginCard(title)` / `endCard()` section block. */
+  public section(title: string, callback: (win: SimpleWindow) => void): this {
+    return this.card(title, callback);
+  }
+
+  /** Alias of `section`: executes a builder callback inside a titled `beginGroupBox(title)` / `endGroupBox()` block. */
+  public groupBox(title: string, callback: (win: SimpleWindow) => void): this {
+    return this.card(title, callback);
   }
 
   /** Executes a builder callback inside a titled `beginCard(title)` / `endCard()` container block. */
@@ -15450,11 +18289,18 @@ export class SimpleWindow {
       cb = maybeCallback;
     }
     this.beginCard();
-    if (title) {
-      this.addLabel(title, { font_size: 15, is_bold: true, margin_bottom: 8 });
+    try {
+      if (title) {
+        this.addLabel(title, {
+          font_size: 15,
+          is_bold: true,
+          margin_bottom: 8,
+        });
+      }
+      if (cb) cb(this);
+    } finally {
+      this.endCard();
     }
-    if (cb) cb(this);
-    this.endCard();
     return this;
   }
   /** Snake_case alias of `cardWithTitle`: executes a builder callback inside a titled `beginCard(title)` / `endCard()` container block. */
@@ -15654,15 +18500,30 @@ export class SimpleWindow {
     text: string,
     color = "#0a84ff",
   ): SimpleControlRef {
-    const validTypes = ["info", "success", "warning", "error"] as const;
-    const type = (validTypes as readonly string[]).includes(color)
-      ? (color as "info" | "success" | "warning" | "error")
+    const validTypes = [
+      "info",
+      "success",
+      "warning",
+      "error",
+      "danger",
+    ] as const;
+    const isRole = (validTypes as readonly string[]).includes(color);
+    const type = isRole
+      ? color === "danger"
+        ? "error"
+        : (color as "info" | "success" | "warning" | "error")
       : "info";
-    return this.addBadge(text, type, {
-      id: name,
-      color,
-      background_color: color,
-    });
+    return this.addBadge(
+      text,
+      type,
+      isRole
+        ? { id: name }
+        : {
+            id: name,
+            color,
+            background_color: color,
+          },
+    );
   }
 
   /** Adds a horizontal divider control with an optional explicit `name`. */
@@ -16314,9 +19175,11 @@ export class SimpleWindow {
 
   /** Highlights and selects the row at zero-based `rowIndex` in the table control named `name`. */
   public selectTableRow(name: string, rowIndex: number): this {
-    if (this.webview) {
-      this.webview.eval(
-        `const t=document.getElementById("${name}");if(t){t.querySelectorAll("tbody tr").forEach((r,i)=>r.classList.toggle("sg-table-selected", i===${rowIndex}));}`,
+    if (this.isWindowRunning) {
+      const safeName = JSON.stringify(name);
+      const safeIdx = Number(rowIndex) || 0;
+      this.evalJS(
+        `(function(){const t=document.getElementById(${safeName});if(t){t.querySelectorAll("tbody tr").forEach((r,i)=>r.classList.toggle("sg-table-selected", i===${safeIdx}));}})();`,
       );
     }
     return this;
@@ -16851,43 +19714,111 @@ export function downloadsDir(): string {
 
 // Global Factory & Alias Exports matching vlang_simplegui API style
 /** Factory function that creates and returns a new `SimpleWindow` with the given title, dimensions, and options. */
+export function createWindow(): SimpleWindow;
+export function createWindow(options: SimpleWindowOptions): SimpleWindow;
 export function createWindow(
-  title = "SimpleGUI Application",
-  width = 800,
-  height = 600,
-  options: SimpleWindowOptions = {},
+  title: string,
+  options?: SimpleWindowOptions,
+): SimpleWindow;
+export function createWindow(
+  title?: string,
+  width?: number,
+  height?: number,
+  options?: SimpleWindowOptions,
+): SimpleWindow;
+export function createWindow(
+  titleOrOptions?: string | SimpleWindowOptions,
+  widthOrOptions?: number | SimpleWindowOptions,
+  height?: number,
+  options?: SimpleWindowOptions,
 ): SimpleWindow {
-  return new SimpleWindow(title, width, height, options);
+  return new SimpleWindow(
+    titleOrOptions as any,
+    widthOrOptions as any,
+    height as any,
+    options as any,
+  );
 }
 
 /** Alias of `createWindow` that instantiates and returns a new `SimpleWindow`. */
+export function newWindow(): SimpleWindow;
+export function newWindow(options: SimpleWindowOptions): SimpleWindow;
 export function newWindow(
-  title = "SimpleGUI Application",
-  width = 800,
-  height = 600,
-  options: SimpleWindowOptions = {},
+  title: string,
+  options?: SimpleWindowOptions,
+): SimpleWindow;
+export function newWindow(
+  title?: string,
+  width?: number,
+  height?: number,
+  options?: SimpleWindowOptions,
+): SimpleWindow;
+export function newWindow(
+  titleOrOptions?: string | SimpleWindowOptions,
+  widthOrOptions?: number | SimpleWindowOptions,
+  height?: number,
+  options?: SimpleWindowOptions,
 ): SimpleWindow {
-  return createWindow(title, width, height, options);
+  return new SimpleWindow(
+    titleOrOptions as any,
+    widthOrOptions as any,
+    height as any,
+    options as any,
+  );
 }
 
 /** Alias of `createWindow` that instantiates and returns a new `SimpleWindow`. */
+export function newSimpleWindow(): SimpleWindow;
+export function newSimpleWindow(options: SimpleWindowOptions): SimpleWindow;
 export function newSimpleWindow(
-  title = "SimpleGUI Application",
-  width = 800,
-  height = 600,
-  options: SimpleWindowOptions = {},
+  title: string,
+  options?: SimpleWindowOptions,
+): SimpleWindow;
+export function newSimpleWindow(
+  title?: string,
+  width?: number,
+  height?: number,
+  options?: SimpleWindowOptions,
+): SimpleWindow;
+export function newSimpleWindow(
+  titleOrOptions?: string | SimpleWindowOptions,
+  widthOrOptions?: number | SimpleWindowOptions,
+  height?: number,
+  options?: SimpleWindowOptions,
 ): SimpleWindow {
-  return createWindow(title, width, height, options);
+  return new SimpleWindow(
+    titleOrOptions as any,
+    widthOrOptions as any,
+    height as any,
+    options as any,
+  );
 }
 
 /** Snake_case factory alias of `createWindow` for Vlang SimpleGUI API parity. */
+export function new_simple_window(): SimpleWindow;
+export function new_simple_window(options: SimpleWindowOptions): SimpleWindow;
 export function new_simple_window(
-  title = "SimpleGUI Application",
-  width = 800,
-  height = 600,
-  options: SimpleWindowOptions = {},
+  title: string,
+  options?: SimpleWindowOptions,
+): SimpleWindow;
+export function new_simple_window(
+  title?: string,
+  width?: number,
+  height?: number,
+  options?: SimpleWindowOptions,
+): SimpleWindow;
+export function new_simple_window(
+  titleOrOptions?: string | SimpleWindowOptions,
+  widthOrOptions?: number | SimpleWindowOptions,
+  height?: number,
+  options?: SimpleWindowOptions,
 ): SimpleWindow {
-  return createWindow(title, width, height, options);
+  return new SimpleWindow(
+    titleOrOptions as any,
+    widthOrOptions as any,
+    height as any,
+    options as any,
+  );
 }
 
 /** Opens an external URL or URI in the user's default system browser or protocol handler. */
@@ -16908,6 +19839,12 @@ export const simplegui = {
   new_simple_window,
   listThemes,
   list_themes,
+  listShortThemes,
+  list_short_themes,
+  autoShortThemeName,
+  auto_short_theme_name,
+  getShortThemeName,
+  get_short_theme_name,
   getThemes,
   get_themes,
   getThemeNames,
@@ -16935,6 +19872,11 @@ export const simplegui = {
   resolve_theme_for_hardware,
   srgbToDisplayP3,
   srgb_to_display_p3,
+  isBrightColor,
+  is_bright_color,
+  isBrightAccentColor,
+  is_bright_accent_color,
+  saveTheme,
   save_theme,
   getSavedTheme,
   get_saved_theme,
@@ -16969,6 +19911,10 @@ export const simplegui = {
   load_state_from_file,
   shouldPersistControl,
   should_persist_control,
+  openUrl,
+  openExternal,
+  forceExit,
+  SimpleDialogs,
   SimpleWindow,
   SimpleControlRef,
 };

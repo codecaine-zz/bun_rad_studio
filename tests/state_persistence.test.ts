@@ -224,7 +224,8 @@ describe("⚡ Reactive State Store & State Persistence Suite (Parity with simple
     try {
       win.saveWindowSession(appId);
 
-      const win2 = createWindow("Session Window 2", 640, 480, { appId });
+      // Unpinned window restores saved session dimensions & theme
+      const win2 = createWindow("Session Window 2", { appId });
       const restored = win2.restoreWindowSession(appId);
       expect(restored).toBe(true);
 
@@ -232,6 +233,19 @@ describe("⚡ Reactive State Store & State Persistence Suite (Parity with simple
       expect(win2.height).toBe(768);
       expect(win2.theme).toBe("dracula");
       expect(win2.getState("active_view")).toBe("editor");
+
+      // Window with explicit overrides preserves explicit options while still restoring stateStore
+      const win3 = createWindow("Session Window 3", 640, 480, {
+        appId,
+        theme: "nord",
+        fullscreen: false,
+      });
+      expect(win3.restoreWindowSession(appId)).toBe(true);
+      expect(win3.width).toBe(640);
+      expect(win3.height).toBe(480);
+      expect(win3.theme).toBe("nord");
+      expect(win3.fullscreen).toBe(false);
+      expect(win3.getState("active_view")).toBe("editor");
     } finally {
       const sessionFile = getAppStateFile(appId, "session.json");
       if (fs.existsSync(sessionFile)) fs.unlinkSync(sessionFile);
@@ -335,10 +349,9 @@ describe("⚡ Reactive State Store & State Persistence Suite (Parity with simple
       const stateFile = getAppStateFile(appId, "form_state.json");
       expect(fs.existsSync(stateFile)).toBe(true);
 
-      // Fresh window restoring the form state
-      const win2 = createWindow("Form Auto-Persistence App", 800, 600, {
+      // Fresh unpinned window restoring the saved form state, dimensions, and theme
+      const win2 = createWindow("Form Auto-Persistence App", {
         appId,
-        theme: "apple_light",
       });
       win2.addTextInput("Workspace Path", "").id("txt_workspace");
       win2.addTextInput("Search Query", "").id("txt_query");

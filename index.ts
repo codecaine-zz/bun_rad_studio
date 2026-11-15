@@ -1612,8 +1612,10 @@ if (import.meta.main) {
 
 export {
   simplegui,
+  SIMPLEGUI_THEMES,
   SimpleWindow,
   SimpleControlRef,
+  SimpleDialogs,
   createWindow,
   newWindow,
   newSimpleWindow,
@@ -1628,6 +1630,25 @@ export {
   getThemeKeys,
   get_theme_keys,
   getTheme,
+  getSemanticColors,
+  get_semantic_colors,
+  getThemeFx,
+  get_theme_fx,
+  isFxTheme,
+  is_fx_theme,
+  fxCssVars,
+  fx_css_vars,
+  getSyntaxPalette,
+  get_syntax_palette,
+  FX_FALLBACK_THEMES,
+  detectThemeHardware,
+  detect_theme_hardware,
+  getFallbackThemeKey,
+  get_fallback_theme_key,
+  resolveThemeForHardware,
+  resolve_theme_for_hardware,
+  srgbToDisplayP3,
+  srgb_to_display_p3,
   saveTheme,
   save_theme,
   getSavedTheme,
@@ -1673,6 +1694,41 @@ export {
   get_short_theme_name,
   listShortThemes,
   list_short_themes,
+  openUrl,
+  openExternal,
+  forceExit,
+} from "./src/simplegui.ts";
+
+export type {
+  WindowOptions,
+  SimpleWindowOptions,
+  EventCallback,
+  ControlOptions,
+  ControlSpec,
+  FormSpec,
+  SimpleGUITheme,
+  SimpleguiLayoutSection,
+  ThemeFx,
+  FxMode,
+  SyntaxPalette,
+  SemanticPalette,
+  SemanticKind,
+  SemanticRole,
+  SemanticOverrides,
+  FxHardwareInput,
+  FxHardwareProfile,
+  FxHardwareTier,
+  FxNativeBackdrop,
+  HardwareResolvedTheme,
+  DialogOptions,
+  DialogResult,
+  DialogCallback,
+  DialogIcon,
+  DialogInputType,
+  DialogInputOptions,
+  FileDialogOptions,
+  UIComponentType,
+  UIOpts,
 } from "./src/simplegui.ts";
 
 export * from "./src/simplecli/index.ts";
@@ -2013,14 +2069,30 @@ export function generatePreviewHtml(spec: any): string {
         : "";
     let sh = getShadowCss(c.box_shadow, c.border_color || c.font_color);
     let ta = c.text_align ? `text-align:${c.text_align};` : "";
+    let fw = c.font_weight
+      ? `font-weight:${c.font_weight};`
+      : c.is_bold || c.bold
+        ? "font-weight:700;"
+        : "";
+    let fs = c.font_style ? `font-style:${c.font_style};` : "";
     let op =
       c.opacity !== undefined && c.opacity !== null && c.opacity !== ""
-        ? `opacity:${c.opacity / 100};`
+        ? `opacity:${Number(c.opacity) > 1 ? Number(c.opacity) / 100 : Number(c.opacity)};`
         : c.enabled === false
           ? "opacity:0.55;"
           : "";
     let pe = c.enabled === false ? "pointer-events:none;" : "";
     let cur = c.cursor ? `cursor:${c.cursor};` : "";
+    let customCss = "";
+    if (c.custom_styles && typeof c.custom_styles === "object") {
+      for (const [rawKey, rawVal] of Object.entries(c.custom_styles)) {
+        if (rawVal === undefined || rawVal === null || rawVal === "") continue;
+        const cssKey = rawKey.includes("-")
+          ? rawKey
+          : rawKey.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+        customCss += `${cssKey}:${String(rawVal).replace(/"/g, "'")};`;
+      }
+    }
     const posX = c.left !== undefined ? c.left : c.x !== undefined ? c.x : 0;
     const posY = c.top !== undefined ? c.top : c.y !== undefined ? c.y : 0;
 
@@ -2106,7 +2178,7 @@ export function generatePreviewHtml(spec: any): string {
     return (
       `${posStyle}` +
       `font-size:${c.font_size || 13}px;` +
-      `box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;${bw}${bc}${bs}${br}${sh}${ta}${op}${pe}${cur}${extra}`
+      `box-sizing:border-box;transition:background 0.15s,color 0.15s,filter 0.15s,transform 0.1s;${bw}${bc}${bs}${br}${sh}${ta}${fw}${fs}${op}${pe}${cur}${customCss}${extra}`
     );
   };
 
@@ -2119,6 +2191,23 @@ export function generatePreviewHtml(spec: any): string {
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;")
           .replace(/'/g, "&#039;");
+  const escPlain = (s: any) =>
+    s === null || s === undefined
+      ? ""
+      : String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+  const escAngles = (s: any) =>
+    s === null || s === undefined
+      ? ""
+      : String(s).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const renderCtrlText = (c: any, rawText: any) => {
+    if (!c || c._rawHtml === true || c._plainText !== true) {
+      return String(rawText ?? "");
+    }
+    return escPlain(rawText);
+  };
   const safeScriptJson = (v: unknown) =>
     JSON.stringify(v)
       .replace(/</g, "\\u003c")
@@ -2158,9 +2247,9 @@ export function generatePreviewHtml(spec: any): string {
       c.context_menu_items &&
       Array.isArray(c.context_menu_items) &&
       c.context_menu_items.length > 0
-        ? ` data-context-menu="${c.context_menu_items.join("|").replace(/"/g, "&quot;")}" data-ctrl-id="${c.id}"`
+        ? ` data-context-menu="${c.context_menu_items.join("|").replace(/"/g, "&quot;")}" data-ctrl-id="${esc(c.id)}"`
         : "";
-    const id = ` id="${c.id}"${ctxAttr}`;
+    const id = ` id="${esc(c.id)}"${ctxAttr}`;
     const disabled = c.enabled === false ? " disabled" : "";
     const titleAttr = c.tooltip
       ? ` title="${c.tooltip.replace(/"/g, "&quot;")}"`
@@ -2199,7 +2288,7 @@ export function generatePreviewHtml(spec: any): string {
     const hasCustomBorder =
       c.border_width !== undefined || c.border_color || c.border_style;
     const defBorder = hasCustomBorder
-      ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || "solid"};`
+      ? `border-width:${c.border_width ?? 1}px;border-color:${c.border_color || border};border-style:${c.border_style || "solid"};`
       : `border:1px solid ${border};`;
     const defRadius =
       c.border_radius !== undefined &&
@@ -2234,7 +2323,7 @@ export function generatePreviewHtml(spec: any): string {
             ? "#000000"
             : color || "#ffffff";
       const bBorder = hasCustomBorder
-        ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || "solid"};`
+        ? `border-width:${c.border_width ?? 1}px;border-color:${c.border_color || border};border-style:${c.border_style || "solid"};`
         : "border:none;";
       const bRadius =
         c.border_radius !== undefined &&
@@ -2246,6 +2335,7 @@ export function generatePreviewHtml(spec: any): string {
         c.hover_color || c.hover_text_color
           ? ""
           : ` onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''"`;
+      const btnCustomColorAttr = hasCustomFg ? ' data-custom-color="true"' : "";
       const roleKind = hasCustomBg
         ? null
         : normalizeKind(c.variant || c.alert_type || c.color);
@@ -2258,17 +2348,18 @@ export function generatePreviewHtml(spec: any): string {
             : look === "outline"
               ? `background:transparent;color:var(--${roleKind}-text);border:2px solid var(--${roleKind});`
               : `background:var(--${roleKind});color:var(--${roleKind}-on);${bBorder}`;
-        controls += `<button${id} data-custom-bg="true" data-variant="${roleKind}" class="rad-button rad-btn-${roleKind}"${titleAttr}${ev}${disabled} style="${base(c)}${roleStyle}${bRadius}cursor:${c.cursor || "pointer"};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${text}</button>\n`;
+        controls += `<button${id} data-custom-bg="true"${btnCustomColorAttr} data-variant="${roleKind}" class="rad-button rad-btn-${roleKind}"${titleAttr}${ev}${disabled} style="${base(c)}${roleStyle}${bRadius}cursor:${c.cursor || "pointer"};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${renderCtrlText(c, text)}</button>\n`;
       } else {
-        const customAttr = hasCustomBg
-          ? ' data-custom-bg="true"'
-          : ' class="rad-button btn-theme-accent"';
-        controls += `<button${id}${customAttr}${titleAttr}${ev}${disabled} style="${base(c)}background:${btnBg};color:${btnColor};${bBorder}${bRadius}cursor:${c.cursor || "pointer"};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${text}</button>\n`;
+        const customAttr =
+          (hasCustomBg
+            ? ' data-custom-bg="true"'
+            : ' class="rad-button btn-theme-accent"') + btnCustomColorAttr;
+        controls += `<button${id}${customAttr}${titleAttr}${ev}${disabled} style="${base(c)}background:${btnBg};color:${btnColor};${bBorder}${bRadius}cursor:${c.cursor || "pointer"};font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);"${mouseOverFilter} onmousedown="this.style.transform='scale(0.97)'" onmouseup="this.style.transform=''">${renderCtrlText(c, text)}</button>\n`;
       }
     } else if (t === "heading") {
-      controls += `<h1${id}${titleAttr}${ev} class="rad-heading" style="${base(c)}margin:0;font-size:${c.font_size || 22}px;font-weight:700;color:${color};background:${rawCbg};">${text}</h1>\n`;
+      controls += `<h1${id}${titleAttr}${ev} class="rad-heading" style="${base(c)}margin:0;font-size:${c.font_size || 22}px;font-weight:700;color:${color};background:${rawCbg};">${renderCtrlText(c, text)}</h1>\n`;
     } else if (t === "subheading") {
-      controls += `<h2${id}${titleAttr}${ev} class="rad-subheading" style="${base(c)}margin:0;font-size:${c.font_size || 16}px;font-weight:600;opacity:0.85;color:${color};background:${rawCbg};">${text}</h2>\n`;
+      controls += `<h2${id}${titleAttr}${ev} class="rad-subheading" style="${base(c)}margin:0;font-size:${c.font_size || 16}px;font-weight:600;opacity:0.85;color:${color};background:${rawCbg};">${renderCtrlText(c, text)}</h2>\n`;
     } else if (t === "raw_html") {
       controls += `<div${id}${titleAttr} class="rad-raw-html" style="${base(c)}">${text}</div>\n`;
     } else if (t === "markdown") {
@@ -2276,7 +2367,7 @@ export function generatePreviewHtml(spec: any): string {
     } else if (t === "kpi_card") {
       const val = c.value !== undefined ? c.value : "";
       const sub = c.secondary_text || c.change || "";
-      controls += `<div${id}${titleAttr} class="sg-kpi-card rad-kpi-card" style="${base(c)}background:${cbg};border:1px solid ${cardBorder};border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:4px;box-shadow:0 4px 12px rgba(0,0,0,0.15);"><div style="font-size:12px;opacity:0.8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:${color};">${text}</div><div style="font-size:24px;font-weight:800;color:${accent};">${val}</div>${sub ? `<div style="font-size:12px;opacity:0.75;color:${color};">${sub}</div>` : ""}</div>\n`;
+      controls += `<div${id}${titleAttr} class="sg-kpi-card rad-kpi-card" style="${base(c)}background:${cbg};border:1px solid ${cardBorder};border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:4px;box-shadow:0 4px 12px rgba(0,0,0,0.15);"><div style="font-size:12px;opacity:0.8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:${color};">${renderCtrlText(c, text)}</div><div style="font-size:24px;font-weight:800;color:${accent};">${escAngles(val)}</div>${sub ? `<div style="font-size:12px;opacity:0.75;color:${color};">${escAngles(sub)}</div>` : ""}</div>\n`;
     } else if (t === "scroll_view") {
       controls += `<div${id}${titleAttr} class="rad-scroll-view" style="${base(c)}max-height:${c.height || 300}px;overflow-y:auto;padding-right:8px;">${text}</div>\n`;
     } else if (t === "label") {
@@ -2299,19 +2390,34 @@ export function generatePreviewHtml(spec: any): string {
         : ' data-theme-label="true"';
       const captionAttr =
         c.is_caption || c.is_card_subtitle ? ' data-caption="true"' : "";
-      controls += `<div${id}${titleAttr}${ev}${customColorAttr}${captionAttr} class="rad-label" style="${base(c)}color:${color};display:flex;align-items:center;background:${rawCbg};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${statusStyle}">${text}</div>\n`;
+      controls += `<div${id}${titleAttr}${ev}${customColorAttr}${captionAttr} class="rad-label" style="${base(c)}color:${color};display:flex;align-items:center;background:${rawCbg};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${statusStyle}">${renderCtrlText(c, text)}</div>\n`;
     } else if (t === "input" || t === "search") {
-      controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="${t === "search" ? "search" : "text"}" value="${text}" placeholder="${c.placeholder || ""}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter'){const fnE=window['${c.id}_onEnter']||window['on_${c.id}_enter']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnE)fnE(this.value);}" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
+      const inpCustomAttrs =
+        (c.custom_background ? ' data-custom-bg="true"' : "") +
+        (c.custom_color ? ' data-custom-color="true"' : "");
+      controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${inpCustomAttrs}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="${t === "search" ? "search" : "text"}" value="${esc(text)}" placeholder="${esc(c.placeholder || "")}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter'){const fnE=window['${c.id}_onEnter']||window['on_${c.id}_enter']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnE)fnE(this.value);}" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
     } else if (t === "password") {
-      controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="password" value="${text}" placeholder="${c.placeholder || ""}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
+      const inpCustomAttrs =
+        (c.custom_background ? ' data-custom-bg="true"' : "") +
+        (c.custom_color ? ' data-custom-color="true"' : "");
+      controls += `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${inpCustomAttrs}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} type="password" value="${esc(text)}" placeholder="${esc(c.placeholder || "")}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter'){const fnE=window['${c.id}_onEnter']||window['on_${c.id}_enter']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnE)fnE(this.value);}" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;">\n`;
     } else if (t === "textarea") {
-      controls += `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ""}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:8px;resize:none;outline:none;">${text}</textarea>\n`;
+      const inpCustomAttrs =
+        (c.custom_background ? ' data-custom-bg="true"' : "") +
+        (c.custom_color ? ' data-custom-color="true"' : "");
+      controls += `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${id}${inpCustomAttrs}${titleAttr}${ev}${disabled}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${esc(c.placeholder || "")}" oninput="const fnC=window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}padding:8px;resize:none;outline:none;">${esc(text)}</textarea>\n`;
     } else if (t === "checkbox") {
       const chk = c.checked ? "checked" : "";
-      controls += `<label${id}${titleAttr} class="rad-checkbox-label" data-theme-label="true" style="${base(c)}display:flex;align-items:center;gap:8px;cursor:${c.cursor || "pointer"};color:${color};"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="checkbox" ${chk}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor || "pointer"};">${text}</label>\n`;
+      const lblThemeAttr = c.custom_color
+        ? ' data-custom-color="true"'
+        : ' data-theme-label="true"';
+      controls += `<label${id}${titleAttr} class="rad-checkbox-label"${lblThemeAttr} style="${base(c)}display:flex;align-items:center;gap:8px;cursor:${c.cursor || "pointer"};color:${color};"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="checkbox" ${chk}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor || "pointer"};">${renderCtrlText(c, text)}</label>\n`;
     } else if (t === "radio") {
       const chk = c.checked ? "checked" : "";
-      controls += `<label${id}${titleAttr} class="rad-radio-label" data-theme-label="true" style="${base(c)}display:flex;align-items:center;gap:8px;cursor:${c.cursor || "pointer"};color:${color};"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="radio" ${chk}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor || "pointer"};">${text}</label>\n`;
+      const lblThemeAttr = c.custom_color
+        ? ' data-custom-color="true"'
+        : ' data-theme-label="true"';
+      controls += `<label${id}${titleAttr} class="rad-radio-label"${lblThemeAttr} style="${base(c)}display:flex;align-items:center;gap:8px;cursor:${c.cursor || "pointer"};color:${color};"><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="radio" ${chk}${disabled}${reqAttr}${ev} style="width:16px;height:16px;accent-color:${accent};cursor:${c.cursor || "pointer"};">${renderCtrlText(c, text)}</label>\n`;
     } else if (t === "switch" || t === "form_switch") {
       const on = c.checked;
       const trackCol = on
@@ -2320,7 +2426,10 @@ export function generatePreviewHtml(spec: any): string {
           ? "rgba(0,0,0,0.15)"
           : "rgba(255,255,255,0.15)";
       const thumbX = on ? "22px" : "2px";
-      controls += `<div${id}${titleAttr} class="rad-switch-label" data-theme-label="true" style="${base(c)}display:flex;align-items:center;gap:10px;color:${color};cursor:${c.cursor || "pointer"};" onclick="this.querySelector('.sw-track').style.background=this.querySelector('.sw-thumb').style.left==='2px'?'${accent}':'${isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.15)"}';this.querySelector('.sw-thumb').style.left=this.querySelector('.sw-thumb').style.left==='2px'?'22px':'2px';">${t === "form_switch" ? `<span>${text}</span>` : ""}<div class="sw-track" style="width:44px;height:24px;background:${trackCol};border-radius:12px;position:relative;flex-shrink:0;transition:background 0.2s;"><div class="sw-thumb" style="position:absolute;left:${thumbX};top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left 0.2s;"></div></div>${t !== "form_switch" ? `<span>${text}</span>` : ""}</div>\n`;
+      const lblThemeAttr = c.custom_color
+        ? ' data-custom-color="true"'
+        : ' data-theme-label="true"';
+      controls += `<div${id}${titleAttr} class="rad-switch-label"${lblThemeAttr} style="${base(c)}display:flex;align-items:center;gap:10px;color:${color};cursor:${c.cursor || "pointer"};" onclick="this.querySelector('.sw-track').style.background=this.querySelector('.sw-thumb').style.left==='2px'?'${accent}':'${isLight ? "rgba(0,0,0,0.15)" : "rgba(255,255,255,0.15)"}';this.querySelector('.sw-thumb').style.left=this.querySelector('.sw-thumb').style.left==='2px'?'22px':'2px';">${t === "form_switch" ? `<span>${renderCtrlText(c, text)}</span>` : ""}<div class="sw-track" style="width:44px;height:24px;background:${trackCol};border-radius:12px;position:relative;flex-shrink:0;transition:background 0.2s;"><div class="sw-thumb" style="position:absolute;left:${thumbX};top:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left 0.2s;"></div></div>${t !== "form_switch" ? `<span>${renderCtrlText(c, text)}</span>` : ""}</div>\n`;
     } else if (t === "slider" || t === "form_slider") {
       const val = c.value !== undefined ? c.value : 50;
       const hasExplicitText =
@@ -2398,12 +2507,12 @@ export function generatePreviewHtml(spec: any): string {
           ? "border:1px solid #cbd5e1;"
           : "border:1px solid rgba(255,255,255,0.15);";
       }
-      controls += `<div${id}${titleAttr} class="rad-badge" style="${base(c)}background:${badgeBg};color:${badgeFg};${badgeBorder}${bRadius}display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${text}</div>\n`;
+      controls += `<div${id}${titleAttr} class="rad-badge" style="${base(c)}background:${badgeBg};color:${badgeFg};${badgeBorder}${bRadius}display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${renderCtrlText(c, text)}</div>\n`;
     } else if (t === "image") {
       const imgBorder = hasCustomBorder
-        ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || border};border-style:${c.border_style || "dashed"};`
+        ? `border-width:${c.border_width ?? 1}px;border-color:${c.border_color || border};border-style:${c.border_style || "dashed"};`
         : `border:1px dashed ${border};`;
-      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${imgBorder}${defRadius}display:flex;align-items:center;justify-content:center;color:${color};font-size:11px;">🖼️ ${text || "Image"}</div>\n`;
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};${imgBorder}${defRadius}display:flex;align-items:center;justify-content:center;color:${color};font-size:11px;">🖼️ ${renderCtrlText(c, text || "Image")}</div>\n`;
     } else if (t === "divider" || t === "separator") {
       controls += `<hr${id}${titleAttr} style="${base(c)}height:1px;background:${c.background_color && c.background_color !== "transparent" ? c.background_color : border};border:none;padding:0;margin:0;">\n`;
     } else if (t === "panel") {
@@ -2419,7 +2528,7 @@ export function generatePreviewHtml(spec: any): string {
         c.border_radius !== ""
           ? `border-radius:${c.border_radius}px;`
           : "border-radius:8px;";
-      controls += `<div${id}${titleAttr} style="${base(c)}background:${panelBg};color:${color};${defBorder}${pRadius}overflow:hidden;"><div style="padding:8px 12px;font-weight:700;font-size:11px;text-transform:uppercase;color:${accent};border-bottom:1px solid ${border};letter-spacing:0.5px;">${text}</div></div>\n`;
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${panelBg};color:${color};${defBorder}${pRadius}overflow:hidden;"><div style="padding:8px 12px;font-weight:700;font-size:11px;text-transform:uppercase;color:${accent};border-bottom:1px solid ${border};letter-spacing:0.5px;">${renderCtrlText(c, text)}</div></div>\n`;
     } else if (t === "groupbox") {
       const gbTitle = c.title || c.caption || text || "Group";
       const gbRadius =
@@ -2429,10 +2538,10 @@ export function generatePreviewHtml(spec: any): string {
           ? `border-radius:${c.border_radius}px;`
           : "border-radius:8px;";
       const legendColor = isLight ? "#0f172a" : accent;
-      controls += `<fieldset${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${gbRadius}padding:12px;box-sizing:border-box;"><legend style="padding:0 8px;font-size:11px;font-weight:700;color:${legendColor};text-transform:uppercase;letter-spacing:0.5px;">${gbTitle}</legend></fieldset>\n`;
+      controls += `<fieldset${id}${titleAttr}${ev} style="${base(c)}background:${cbg};${defBorder}${gbRadius}padding:12px;box-sizing:border-box;"><legend style="padding:0 8px;font-size:11px;font-weight:700;color:${legendColor};text-transform:uppercase;letter-spacing:0.5px;">${renderCtrlText(c, gbTitle)}</legend></fieldset>\n`;
     } else if (t === "drop_zone") {
       const dzBorder = hasCustomBorder
-        ? `border-width:${c.border_width || 2}px;border-color:${c.border_color || accent};border-style:${c.border_style || "dashed"};`
+        ? `border-width:${c.border_width ?? 2}px;border-color:${c.border_color || accent};border-style:${c.border_style || "dashed"};`
         : `border:2px dashed ${accent};`;
       const dzRadius =
         c.border_radius !== undefined &&
@@ -2456,7 +2565,7 @@ export function generatePreviewHtml(spec: any): string {
                 ? "rgba(0,0,0,0.3)"
                 : "rgba(255,255,255,0.3)"
               : sem.success.solid;
-      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;color:${color};"><div style="width:10px;height:10px;background:${statusColor};border-radius:50%;box-shadow:0 0 6px ${statusColor};flex-shrink:0;"></div><span style="font-size:12px;font-weight:600;">${text}</span></div>\n`;
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;color:${color};"><div style="width:10px;height:10px;background:${statusColor};border-radius:50%;box-shadow:0 0 6px ${statusColor};flex-shrink:0;"></div><span style="font-size:12px;font-weight:600;">${renderCtrlText(c, text)}</span></div>\n`;
     } else if (t === "metric_card") {
       const mRadius =
         c.border_radius !== undefined &&
@@ -2506,7 +2615,7 @@ export function generatePreviewHtml(spec: any): string {
         c.border_radius !== ""
           ? `border-radius:${c.border_radius}px;`
           : "border-radius:0 6px 6px 0;";
-      controls += `<div${id}${titleAttr} style="${base(c)}background:${c.background_color && c.background_color !== "transparent" ? c.background_color : alertCol + "22"};border-left:4px solid ${alertCol};${aRadius}display:flex;align-items:center;gap:10px;padding:0 12px;color:${color};"><span>${alertIcon}</span><span style="font-size:12px;">${text}</span></div>\n`;
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${c.background_color && c.background_color !== "transparent" ? c.background_color : alertCol + "22"};border-left:4px solid ${alertCol};${aRadius}display:flex;align-items:center;gap:10px;padding:0 12px;color:${color};"><span>${alertIcon}</span><span style="font-size:12px;">${renderCtrlText(c, text)}</span></div>\n`;
     } else if (t === "code_view") {
       const codeBg =
         c.background_color && c.background_color !== "transparent"
@@ -2520,11 +2629,11 @@ export function generatePreviewHtml(spec: any): string {
         c.border_radius !== ""
           ? `border-radius:${c.border_radius}px;`
           : "border-radius:8px;";
-      controls += `<textarea${id}${titleAttr}${ev}${roAttr}${autoFocusAttr} placeholder="${c.placeholder || ""}" style="${base(c)}background:${codeBg};${defBorder}${cdRadius}padding:12px;color:${codeFg};font-family:'Fira Code','Courier New',monospace;font-size:${c.font_size || 12}px;overflow:auto;margin:0;resize:none;outline:none;white-space:pre;" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'>${text}</textarea>\n`;
+      controls += `<textarea${id}${titleAttr}${ev}${roAttr}${autoFocusAttr} placeholder="${esc(c.placeholder || "")}" style="${base(c)}background:${codeBg};${defBorder}${cdRadius}padding:12px;color:${codeFg};font-family:'Fira Code','Courier New',monospace;font-size:${c.font_size || 12}px;overflow:auto;margin:0;resize:none;outline:none;white-space:pre;" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'>${esc(text)}</textarea>\n`;
     } else if (t === "metric_meter") {
       const val = c.value !== undefined ? c.value : 65;
       const meterBg = isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)";
-      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;"><span>${text}</span><span>${val}%</span></div><div style="width:100%;height:6px;background:${meterBg};border-radius:3px;overflow:hidden;"><div style="width:${val}%;height:100%;background:${c.background_color && c.background_color !== "transparent" ? c.background_color : `linear-gradient(to right, ${accent}, #818cf8)`};border-radius:3px;"></div></div></div>\n`;
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;color:${color};"><div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;"><span>${renderCtrlText(c, text)}</span><span>${val}%</span></div><div style="width:100%;height:6px;background:${meterBg};border-radius:3px;overflow:hidden;"><div style="width:${val}%;height:100%;background:${c.background_color && c.background_color !== "transparent" ? c.background_color : `linear-gradient(to right, ${accent}, #818cf8)`};border-radius:3px;"></div></div></div>\n`;
     } else if (t === "tag") {
       controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 8px;">${(
         text || "tag1,tag2"
@@ -2532,7 +2641,7 @@ export function generatePreviewHtml(spec: any): string {
         .split(",")
         .map(
           (tg: string) =>
-            `<span style="background:${cbg};color:${accent};${defBorder}${defRadius}padding:2px 10px;font-size:11px;font-weight:600;">${tg.trim()}</span>`,
+            `<span style="background:${cbg};color:${accent};${defBorder}${defRadius}padding:2px 10px;font-size:11px;font-weight:600;">${escAngles(tg.trim())}</span>`,
         )
         .join("")}</div>\n`;
     } else if (
@@ -2546,7 +2655,8 @@ export function generatePreviewHtml(spec: any): string {
           : t === "form_textarea"
             ? "textarea"
             : "text";
-      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label>${inputType === "textarea" ? `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ""}" style="flex:1;background:${cbg};color:${color};${defBorder}${defRadius}padding:6px 10px;resize:none;outline:none;font-size:${c.font_size || 13}px;"></textarea>` : `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="${inputType}"${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${c.placeholder || ""}" style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;font-size:${c.font_size || 13}px;">`}</div>\n`;
+      const formVal = c.value !== undefined ? String(c.value) : "";
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${renderCtrlText(c, text)}</label>${inputType === "textarea" ? `<textarea autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off'${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${esc(c.placeholder || "")}" style="flex:1;background:${cbg};color:${color};${defBorder}${defRadius}padding:6px 10px;resize:none;outline:none;font-size:${c.font_size || 13}px;">${esc(formVal)}</textarea>` : `<input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="${inputType}" value="${esc(formVal)}"${ev}${roAttr}${reqAttr}${maxLenAttr}${autoFocusAttr} placeholder="${esc(c.placeholder || "")}" style="height:32px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;outline:none;font-size:${c.font_size || 13}px;">`}</div>\n`;
     } else if (
       t === "select" ||
       t === "dropdown" ||
@@ -2617,12 +2727,18 @@ export function generatePreviewHtml(spec: any): string {
             (typeof opt === "string" && selectedVals.includes(opt))
               ? " selected"
               : "";
-          return `<option value="${val.replace(/"/g, "&quot;")}"${isSelected}>${label}</option>`;
+          return `<option value="${esc(val)}"${isSelected}>${renderCtrlText(c, label)}</option>`;
         })
         .join("");
 
       const sizeAttr = isListBox ? ` size="${c.size || 5}"` : "";
       const multiAttr = isMulti ? " multiple" : "";
+      const selCustomBgAttr = c.custom_background
+        ? ' data-custom-bg="true"'
+        : "";
+      const selCustomColorAttr = c.custom_color
+        ? ' data-custom-color="true"'
+        : "";
       const chevronColor = encodeURIComponent(accent || "#38bdf8");
       const selectInnerStyle = isListBox
         ? `width:100%;height:100%;background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;outline:none;cursor:${c.cursor || "pointer"};font-size:${c.font_size || 13}px;box-sizing:border-box;`
@@ -2630,9 +2746,9 @@ export function generatePreviewHtml(spec: any): string {
 
       const selectClass = isListBox ? "simplegui-listbox" : "simplegui-select";
       if (t === "form_dropdown") {
-        controls += `<div style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${text}</label><select id="${c.id}" class="${selectClass}"${sizeAttr}${multiAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
+        controls += `<div style="${base(c)}display:flex;flex-direction:column;justify-content:center;gap:4px;"><label style="font-size:10px;font-weight:700;color:${color};opacity:0.8;">${renderCtrlText(c, text)}</label><select id="${esc(c.id)}" class="${selectClass}"${selCustomBgAttr}${selCustomColorAttr}${sizeAttr}${multiAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
       } else {
-        controls += `<div style="${base(c)}"><select id="${c.id}" class="${selectClass}"${sizeAttr}${multiAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
+        controls += `<div style="${base(c)}"><select id="${esc(c.id)}" class="${selectClass}"${selCustomBgAttr}${selCustomColorAttr}${sizeAttr}${multiAttr}${ev}${disabled}${reqAttr} style="${selectInnerStyle}">${selOptions}</select></div>\n`;
       }
     } else if (t === "form_link") {
       controls += `<div${id}${titleAttr} style="${base(c)}display:flex;justify-content:space-between;align-items:center;color:${color};"><span style="font-size:11px;opacity:0.8;">${text}</span><a href="#"${ev} style="color:${accent};text-decoration:none;font-size:11px;font-weight:700;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">View Link 🔗</a></div>\n`;
@@ -2646,7 +2762,7 @@ export function generatePreviewHtml(spec: any): string {
             ? "#ffffff"
             : "rgba(15,23,42,0.8)";
       const dbBorder = hasCustomBorder
-        ? `border-width:${c.border_width || 1}px;border-color:${c.border_color || accent};border-style:${c.border_style || "solid"};`
+        ? `border-width:${c.border_width ?? 1}px;border-color:${c.border_color || accent};border-style:${c.border_style || "solid"};`
         : `border:1px solid ${accent};`;
       const dbRadius =
         c.border_radius !== undefined &&
@@ -3073,22 +3189,24 @@ export function generatePreviewHtml(spec: any): string {
               .replace(/"/g, "&quot;")
               .replace(/'/g, "&#039;");
 
+      const tgCidAttr = safeInlineJsStr(c.id);
       const thCheckbox = hasCheckboxes
-        ? `<th style="width:36px;padding:8px 6px;text-align:center;border-bottom:1px solid ${border};"><input type="checkbox" class="treegrid-select-all" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tbl=this.closest('table');const chks=tbl.querySelectorAll('tbody .treegrid-row-chk');const isChk=this.checked;chks.forEach(k=>{k.checked=isChk;const tr=k.closest('tr');if(tr){if(isChk){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}});if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></th>`
+        ? `<th style="width:36px;padding:8px 6px;text-align:center;border-bottom:1px solid ${border};"><input type="checkbox" class="treegrid-select-all" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tbl=this.closest('table');const chks=tbl.querySelectorAll('tbody .treegrid-row-chk');const isChk=this.checked;chks.forEach(k=>{k.checked=isChk;const tr=k.closest('tr');if(tr){if(isChk){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}});const cid=${tgCidAttr};if(window[cid+'_syncTable'])window[cid+'_syncTable']();"></th>`
         : "";
 
       const tableRowsHtml = flatRows
         .map((r: FlatTreeItem, rIdx: number) => {
           const rowPid = esc(r.id);
+          const rowPidJs = safeInlineJsStr(r.id);
           const tdCheckbox = hasCheckboxes
-            ? `<td style="width:36px;padding:6px 6px;text-align:center;"><input type="checkbox" class="treegrid-row-chk" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tr=this.closest('tr');if(tr){if(this.checked){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();"></td>`
+            ? `<td style="width:36px;padding:6px 6px;text-align:center;"><input type="checkbox" class="treegrid-row-chk" style="accent-color:${accent};cursor:pointer;" onclick="event.stopPropagation();const tr=this.closest('tr');if(tr){if(this.checked){tr.classList.add('selected-tr');tr.style.background='${selBg}';}else{tr.classList.remove('selected-tr');tr.style.background='';}}const cid=${tgCidAttr};if(window[cid+'_syncTable'])window[cid+'_syncTable']();"></td>`
             : "";
 
-          const rowClickScript = `const tr=this;const tbody=tr.closest('tbody');const table=tr.closest('table');const rows=Array.from(tbody.querySelectorAll('tr'));const curIdx=rows.indexOf(tr);const lastIdx=parseInt(table.dataset.lastIdx!==undefined?table.dataset.lastIdx:'-1',10);const isMulti=${isMulti};if(isMulti&&(event.ctrlKey||event.metaKey)){tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}else if(isMulti&&event.shiftKey&&lastIdx>=0){const start=Math.min(lastIdx,curIdx);const end=Math.max(lastIdx,curIdx);for(let i=start;i<=end;i++){rows[i].classList.add('selected-tr');rows[i].style.background='${selBg}';const chk=rows[i].querySelector('.treegrid-row-chk');if(chk)chk.checked=true;}}else{if(!isMulti){rows.forEach(r=>{r.classList.remove('selected-tr');r.style.background='';const chk=r.querySelector('.treegrid-row-chk');if(chk)chk.checked=false;});tr.classList.add('selected-tr');tr.style.background='${selBg}';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=true;table.dataset.lastIdx=curIdx;}else{tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}}window.selectedRowElement=tr;window.selectedRowPid='${rowPid}';if(window.onTableRowClick)window.onTableRowClick(tr);if(window['${c.id}_syncTable'])window['${c.id}_syncTable']();const fn=window['${c.id}_onClick']||window['on_${c.id}_click']||window['${c.id}_onSelect']||window['on_${c.id}_select'];if(fn)fn('${rowPid}');`;
+          const rowClickScript = `const tr=this;const cid=${tgCidAttr};const tbody=tr.closest('tbody');const table=tr.closest('table');const rows=Array.from(tbody.querySelectorAll('tr'));const curIdx=rows.indexOf(tr);const lastIdx=parseInt(table.dataset.lastIdx!==undefined?table.dataset.lastIdx:'-1',10);const isMulti=${isMulti};if(isMulti&&(event.ctrlKey||event.metaKey)){tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}else if(isMulti&&event.shiftKey&&lastIdx>=0){const start=Math.min(lastIdx,curIdx);const end=Math.max(lastIdx,curIdx);for(let i=start;i<=end;i++){rows[i].classList.add('selected-tr');rows[i].style.background='${selBg}';const chk=rows[i].querySelector('.treegrid-row-chk');if(chk)chk.checked=true;}}else{if(!isMulti){rows.forEach(r=>{r.classList.remove('selected-tr');r.style.background='';const chk=r.querySelector('.treegrid-row-chk');if(chk)chk.checked=false;});tr.classList.add('selected-tr');tr.style.background='${selBg}';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=true;table.dataset.lastIdx=curIdx;}else{tr.classList.toggle('selected-tr');tr.style.background=tr.classList.contains('selected-tr')?'${selBg}':'';const chk=tr.querySelector('.treegrid-row-chk');if(chk)chk.checked=tr.classList.contains('selected-tr');table.dataset.lastIdx=curIdx;}}window.selectedRowElement=tr;window.selectedRowPid=${rowPidJs};if(window.onTableRowClick)window.onTableRowClick(tr);if(window[cid+'_syncTable'])window[cid+'_syncTable']();const fn=window[cid+'_onClick']||window['on_'+cid+'_click']||window[cid+'_onSelect']||window['on_'+cid+'_select'];if(fn)fn(${rowPidJs});`;
 
           const indentPx = r.depth * 18 + 4;
           const toggleIcon = r.hasChildren
-            ? `<span class="treegrid-toggle" onclick="event.stopPropagation();window['${c.id}_toggleRow']('${rowPid}');" style="width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-size:9px;opacity:0.8;transition:transform 0.15s;transform:${r.expanded ? "rotate(90deg)" : "rotate(0deg)"};color:${accent};">▶</span>`
+            ? `<span class="treegrid-toggle" onclick="event.stopPropagation();const cid=${tgCidAttr};window[cid+'_toggleRow'](${rowPidJs});" style="width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;font-size:9px;opacity:0.8;transition:transform 0.15s;transform:${r.expanded ? "rotate(90deg)" : "rotate(0deg)"};color:${accent};">▶</span>`
             : `<span class="treegrid-spacer" style="width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:7px;opacity:0.25;">•</span>`;
 
           const iconHtml = r.icon
@@ -3125,8 +3243,9 @@ export function generatePreviewHtml(spec: any): string {
 
       const syncAndToggleScript = `<script>
 (function() {
-    window['${c.id}_syncTable'] = function() {
-        const cont = document.getElementById('${c.id}');
+    const __cid = ${safeScriptJson(String(c.id))};
+    window[__cid + '_syncTable'] = function() {
+        const cont = document.getElementById(__cid);
         if (!cont) return;
         const tbl = cont.querySelector('table');
         if (!tbl) return;
@@ -3138,18 +3257,18 @@ export function generatePreviewHtml(spec: any): string {
             selectAllChk.checked = allTrs.length > 0 && selectedTrs.length === allTrs.length;
             selectAllChk.indeterminate = selectedTrs.length > 0 && selectedTrs.length < allTrs.length;
         }
-        const hid = document.getElementById('${c.id}_selected');
+        const hid = document.getElementById(__cid + '_selected');
         if (hid) hid.value = pids.join(',');
-        const fnSel = window['${c.id}_onSelectionChange'] || window['on_${c.id}_selection_change'] || window['${c.id}_onChange'] || window['on_${c.id}_change'];
+        const fnSel = window[__cid + '_onSelectionChange'] || window['on_' + __cid + '_selection_change'] || window[__cid + '_onChange'] || window['on_' + __cid + '_change'];
         if (fnSel) fnSel(pids);
     };
 
-    window['${c.id}_toggleRow'] = function(rowId) {
-        const cont = document.getElementById('${c.id}');
+    window[__cid + '_toggleRow'] = function(rowId) {
+        const cont = document.getElementById(__cid);
         if (!cont) return;
         const tbl = cont.querySelector('table');
         if (!tbl) return;
-        const tr = tbl.querySelector('tr[data-tree-id="' + rowId + '"]');
+        const tr = Array.from(tbl.querySelectorAll('tbody tr')).find(function(r) { return r.getAttribute('data-tree-id') === String(rowId); });
         if (!tr) return;
         const isExpanded = tr.getAttribute('data-expanded') === 'true';
         const nextExpanded = !isExpanded;
@@ -3161,7 +3280,7 @@ export function generatePreviewHtml(spec: any): string {
         }
 
         function setDescendants(parentId, show) {
-            const children = tbl.querySelectorAll('tr[data-parent-id="' + parentId + '"]');
+            const children = Array.from(tbl.querySelectorAll('tbody tr')).filter(function(r) { return r.getAttribute('data-parent-id') === String(parentId); });
             children.forEach(function(child) {
                 child.style.display = show ? '' : 'none';
                 const childId = child.getAttribute('data-tree-id');
@@ -3177,12 +3296,12 @@ export function generatePreviewHtml(spec: any): string {
         }
 
         setDescendants(rowId, nextExpanded);
-        const fnToggle = window['${c.id}_onToggle'] || window['on_${c.id}_toggle'];
+        const fnToggle = window[__cid + '_onToggle'] || window['on_' + __cid + '_toggle'];
         if (fnToggle) fnToggle(rowId, nextExpanded);
     };
 
-    window['${c.id}_expandAll'] = function() {
-        const cont = document.getElementById('${c.id}');
+    window[__cid + '_expandAll'] = function() {
+        const cont = document.getElementById(__cid);
         if (!cont) return;
         cont.querySelectorAll('tr[data-has-children="true"]').forEach(function(tr) {
             tr.setAttribute('data-expanded', 'true');
@@ -3194,8 +3313,8 @@ export function generatePreviewHtml(spec: any): string {
         });
     };
 
-    window['${c.id}_collapseAll'] = function() {
-        const cont = document.getElementById('${c.id}');
+    window[__cid + '_collapseAll'] = function() {
+        const cont = document.getElementById(__cid);
         if (!cont) return;
         cont.querySelectorAll('tr[data-has-children="true"]').forEach(function(tr) {
             tr.setAttribute('data-expanded', 'false');
@@ -3208,7 +3327,7 @@ export function generatePreviewHtml(spec: any): string {
         });
     };
 
-    window['${c.id}_sortTreeGrid'] = function(colIdx, thEl) {
+    window[__cid + '_sortTreeGrid'] = function(colIdx, thEl) {
         const tbl = thEl.closest('table');
         if (!tbl) return;
         const tbody = tbl.querySelector('tbody');
@@ -3236,13 +3355,13 @@ export function generatePreviewHtml(spec: any): string {
             return isAsc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
         });
         rows.forEach(function(r) { tbody.appendChild(r); });
-        const fnSort = window['${c.id}_onSort'] || window['on_${c.id}_sort'];
+        const fnSort = window[__cid + '_onSort'] || window['on_' + __cid + '_sort'];
         if (fnSort) fnSort(colIdx, isAsc ? 'asc' : 'desc');
     };
 })();
 </script>`;
 
-      controls += `<div${id}${titleAttr} class="rad-treegrid-container" style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${tableBg};"><input type="hidden" id="${c.id}_selected" name="${c.id}_selected" value=""><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};position:sticky;top:0;z-index:2;">${thCheckbox}${headers
+      controls += `<div${id}${titleAttr} class="rad-treegrid-container" style="${base(c)}overflow:auto;${defBorder}${defRadius}background:${tableBg};"><input type="hidden" id="${esc(c.id)}_selected" name="${esc(c.id)}_selected" value=""><table style="width:100%;border-collapse:collapse;font-size:12px;color:${color};"><thead><tr style="background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};position:sticky;top:0;z-index:2;">${thCheckbox}${headers
         .map((h: any, colIdx: number) => {
           const isRight =
             h &&
@@ -3252,15 +3371,17 @@ export function generatePreviewHtml(spec: any): string {
               h.toLowerCase().includes("price") ||
               h.toLowerCase().includes("port"));
           const alignStyle = isRight ? "text-align:right;" : "text-align:left;";
-          return `<th onclick="window['${c.id}_sortTreeGrid'](${colIdx}, this);" style="position:relative;padding:8px 12px;${alignStyle}font-weight:700;color:${thColor};border-bottom:1px solid ${border};white-space:nowrap;cursor:pointer;user-select:none;"><span>${esc(h)}</span><span class="sort-icon" style="font-size:10px;opacity:0.6;margin-left:4px;"></span><span class="th-resizer" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();event.preventDefault();const th=this.parentNode;const startX=event.clientX;const startW=th.offsetWidth;function onColMove(e){const w=Math.max(40, startW + (e.clientX - startX));th.style.width=w+'px';th.style.minWidth=w+'px';}function onColUp(){window.removeEventListener('mousemove',onColMove);window.removeEventListener('mouseup',onColUp);}window.addEventListener('mousemove',onColMove);window.addEventListener('mouseup',onColUp);" style="position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;user-select:none;opacity:0.2;" onmouseover="this.style.opacity='1';this.style.background='${accent}';" onmouseout="this.style.opacity='0.2';this.style.background='transparent';"></span></th>`;
+          return `<th onclick="const cid=${tgCidAttr};window[cid+'_sortTreeGrid'](${colIdx}, this);" style="position:relative;padding:8px 12px;${alignStyle}font-weight:700;color:${thColor};border-bottom:1px solid ${border};white-space:nowrap;cursor:pointer;user-select:none;"><span>${esc(h)}</span><span class="sort-icon" style="font-size:10px;opacity:0.6;margin-left:4px;"></span><span class="th-resizer" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();event.preventDefault();const th=this.parentNode;const startX=event.clientX;const startW=th.offsetWidth;function onColMove(e){const w=Math.max(40, startW + (e.clientX - startX));th.style.width=w+'px';th.style.minWidth=w+'px';}function onColUp(){window.removeEventListener('mousemove',onColMove);window.removeEventListener('mouseup',onColUp);}window.addEventListener('mousemove',onColMove);window.addEventListener('mouseup',onColUp);" style="position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;user-select:none;opacity:0.2;" onmouseover="this.style.opacity='1';this.style.background='${accent}';" onmouseout="this.style.opacity='0.2';this.style.background='transparent';"></span></th>`;
         })
         .join(
           "",
         )}</tr></thead><tbody>${tableRowsHtml}</tbody></table></div>\n${syncAndToggleScript}\n`;
     } else if (t === "segmented_control") {
-      const items = (text || "Overview, Analytics, Reports")
-        .split(",")
-        .map((s: string) => s.trim());
+      const items = Array.isArray(c.items)
+        ? c.items.map(String)
+        : (text || "Overview, Analytics, Reports")
+            .split(",")
+            .map((s: string) => s.trim());
       const sel = c.value || items[0] || "";
       const segBg = isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)";
       const segRadius =
@@ -3273,24 +3394,57 @@ export function generatePreviewHtml(spec: any): string {
         c.background_color && c.background_color !== "transparent"
           ? c.background_color
           : accent;
-      controls += `<div${id}${titleAttr}${ev} data-value="${sel}" style="${base(c)}display:flex;align-items:center;background:${cbg !== "transparent" ? cbg : segBg};padding:3px;${defBorder}${segRadius}gap:3px;">${items
+      const segCidJs = safeInlineJsStr(c.id);
+      controls += `<div${id}${titleAttr}${ev} data-value="${esc(sel)}" style="${base(c)}display:flex;align-items:center;background:${cbg !== "transparent" ? cbg : segBg};padding:3px;${defBorder}${segRadius}gap:3px;">${items
         .map((item: string) => {
           const isSel = item === sel;
           const itemBg = isSel ? activeBg : "transparent";
           const itemFg = isSel ? "#ffffff" : color;
-          return `<button onclick="this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${activeBg}';this.style.color='#ffffff';this.parentNode.dataset.value='${item}';if(window['${c.id}_onChange'])window['${c.id}_onChange']('${item}');else if(window['on_${c.id}_change'])window['on_${c.id}_change']('${item}');" style="flex:1;height:100%;border:none;border-radius:6px;background:${itemBg};color:${itemFg};font-weight:600;font-size:11px;cursor:${c.cursor || "pointer"};transition:all 0.15s;">${item}</button>`;
+          const itemJs = safeInlineJsStr(item);
+          return `<button onclick="const cid=${segCidJs},v=${itemJs};this.parentNode.querySelectorAll('button').forEach(b=>{b.style.background='transparent';b.style.color='${color}'});this.style.background='${activeBg}';this.style.color='#ffffff';this.parentNode.dataset.value=v;if(window[cid+'_onChange'])window[cid+'_onChange'](v);else if(window['on_'+cid+'_change'])window['on_'+cid+'_change'](v);" style="flex:1;height:100%;border:none;border-radius:6px;background:${itemBg};color:${itemFg};font-weight:600;font-size:11px;cursor:${c.cursor || "pointer"};transition:all 0.15s;">${renderCtrlText(c, item)}</button>`;
         })
         .join("")}</div>\n`;
     } else if (t === "tree_view") {
-      const rawNodes = (
-        text ||
-        "📂 Project Root, 📂 src, 📄 index.ts, 📄 styles.css, 📁 assets, 🖼️ logo.png"
-      )
-        .split(",")
-        .map((n: string) => n.trim());
+      const rawNodes = Array.isArray(c.nodes)
+        ? c.nodes.map((n: any) =>
+            typeof n === "object" && n !== null
+              ? String(n.label ?? n.text ?? n.name ?? "")
+              : String(n),
+          )
+        : (
+            text ||
+            "📂 Project Root, 📂 src, 📄 index.ts, 📄 styles.css, 📁 assets, 🖼️ logo.png"
+          )
+            .split(",")
+            .map((n: string) => n.trim());
       const treeBg = cbg;
       const selBg = isLight ? "rgba(2,132,199,0.15)" : "rgba(56,189,248,0.2)";
       const selFg = isLight ? "#0f172a" : accent;
+      const tvCidJs = safeInlineJsStr(c.id);
+      const tvCollapsed = c.expanded === false;
+      const tvScript = `<script>
+(function() {
+  const __cid = ${safeScriptJson(String(c.id))};
+  window[__cid + '_expandAll'] = function() {
+    const cont = document.getElementById(__cid);
+    if (!cont) return;
+    cont.querySelectorAll('.tree-node').forEach(function(n) {
+      n.style.display = 'flex';
+      const arrow = n.querySelector('.tree-arrow');
+      if (arrow && arrow.textContent.trim() === '▶') arrow.textContent = '▼';
+    });
+  };
+  window[__cid + '_collapseAll'] = function() {
+    const cont = document.getElementById(__cid);
+    if (!cont) return;
+    cont.querySelectorAll('.tree-node').forEach(function(n, idx) {
+      const arrow = n.querySelector('.tree-arrow');
+      if (arrow && arrow.textContent.trim() === '▼') arrow.textContent = '▶';
+      if (idx > 0) n.style.display = 'none';
+    });
+  };
+})();
+</script>`;
       controls += `<div${id}${titleAttr}${ev} class="rad-tree-container" data-selected="" style="${base(c)}background:${treeBg};${defBorder}${defRadius}padding:6px 8px;overflow:auto;display:flex;flex-direction:column;gap:2px;font-size:12px;color:${color};">${rawNodes
         .map((nodeText: string, idx: number) => {
           const isFolder =
@@ -3300,11 +3454,12 @@ export function generatePreviewHtml(spec: any): string {
             nodeText.includes("assets") ||
             idx === 0;
           const indent = idx === 0 ? 0 : idx === 1 || idx === 4 ? 16 : 32;
-          const arrowIcon = isFolder ? "▼" : " ";
+          const arrowIcon = isFolder ? (tvCollapsed ? "▶" : "▼") : " ";
           const cleanName = nodeText;
-          return `<div class="tree-node${idx === 0 ? " selected-tree-node" : ""}" data-node="${cleanName}" style="padding:4px 8px;padding-left:${indent + 8}px;border-radius:4px;display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;transition:background 0.12s;${idx === 0 ? `background:${selBg};color:${selFg};font-weight:600;` : ""}" onclick="event.stopPropagation();const container=this.closest('.rad-tree-container');container.querySelectorAll('.tree-node').forEach(n=>{n.style.background='transparent';n.style.color='${color}';n.style.fontWeight='normal';});this.style.background='${selBg}';this.style.color='${selFg}';this.style.fontWeight='600';container.dataset.selected=this.dataset.node;if(window['${c.id}_onSelect'])window['${c.id}_onSelect'](this.dataset.node);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](this.dataset.node);if(window['${c.id}_onNodeClick'])window['${c.id}_onNodeClick'](this.dataset.node);" onmouseover="if(!this.style.background.includes('rgba')){this.style.background='${isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)"}'}" onmouseout="if(!this.style.background.includes('rgba(56')&&!this.style.background.includes('rgba(2,132')){this.style.background='transparent';}"><span class="tree-arrow" onclick="event.stopPropagation();const isCollapsed=this.textContent==='▶';this.textContent=isCollapsed?'▼':'▶';let curr=this.closest('.tree-node').nextElementSibling;while(curr){const currIndent=parseInt(curr.style.paddingLeft||'0');if(currIndent<=${indent + 8})break;curr.style.display=isCollapsed?'flex':'none';curr=curr.nextElementSibling;}" style="width:12px;font-size:9px;opacity:0.7;display:inline-block;cursor:pointer;">${arrowIcon}</span><span>${cleanName}</span></div>`;
+          const initDisplay = tvCollapsed && idx > 0 ? "none" : "flex";
+          return `<div class="tree-node${idx === 0 ? " selected-tree-node" : ""}" data-node="${esc(cleanName)}" style="padding:4px 8px;padding-left:${indent + 8}px;border-radius:4px;display:${initDisplay};align-items:center;gap:6px;cursor:pointer;user-select:none;transition:background 0.12s;${idx === 0 ? `background:${selBg};color:${selFg};font-weight:600;` : ""}" onclick="event.stopPropagation();const cid=${tvCidJs};const container=this.closest('.rad-tree-container');container.querySelectorAll('.tree-node').forEach(n=>{n.style.background='transparent';n.style.color='${color}';n.style.fontWeight='normal';});this.style.background='${selBg}';this.style.color='${selFg}';this.style.fontWeight='600';container.dataset.selected=this.dataset.node;if(window[cid+'_onSelect'])window[cid+'_onSelect'](this.dataset.node);else if(window['on_'+cid+'_change'])window['on_'+cid+'_change'](this.dataset.node);if(window[cid+'_onNodeClick'])window[cid+'_onNodeClick'](this.dataset.node);else if(window['on_'+cid+'_click'])window['on_'+cid+'_click'](this.dataset.node);" onmouseover="if(!this.style.background.includes('rgba')){this.style.background='${isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)"}'}" onmouseout="if(!this.style.background.includes('rgba(56')&&!this.style.background.includes('rgba(2,132')){this.style.background='transparent';}"><span class="tree-arrow" onclick="event.stopPropagation();const cid=${tvCidJs};const isCollapsed=this.textContent==='▶';this.textContent=isCollapsed?'▼':'▶';const nodeEl=this.closest('.tree-node');let curr=nodeEl.nextElementSibling;while(curr){const currIndent=parseInt(curr.style.paddingLeft||'0');if(currIndent<=${indent + 8})break;curr.style.display=isCollapsed?'flex':'none';curr=curr.nextElementSibling;}const fnT=window[cid+'_onToggle']||window['on_'+cid+'_toggle'];if(fnT)fnT(nodeEl.dataset.node,isCollapsed);" style="width:12px;font-size:9px;opacity:0.7;display:inline-block;cursor:pointer;">${arrowIcon}</span><span>${renderCtrlText(c, cleanName)}</span></div>`;
         })
-        .join("")}</div>\n`;
+        .join("")}</div>\n${tvScript}\n`;
     } else if (t === "avatar_group") {
       const avatars = (text || "JD, AS, MK, +3")
         .split(",")
@@ -3421,11 +3576,14 @@ export function generatePreviewHtml(spec: any): string {
           : "border-radius:8px;";
       const customClick =
         c.event_handlers?.onClick || c.event_handlers?.onclick || "";
-      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b"};${defBorder}${pgRadius}display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.2);"><div style="padding:6px 10px;background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};font-weight:700;font-size:11px;color:${accent};border-bottom:1px solid ${border};display:flex;align-items:center;gap:6px;"><span>📋</span><span>${c.caption || "Property Inspector"}</span></div><div class="prop-grid-body" style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;">${propsList
+      const pgCidJs = safeInlineJsStr(c.id);
+      const pgCustomJs = safeInlineJsStr(customClick);
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b"};${defBorder}${pgRadius}display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.2);"><div style="padding:6px 10px;background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};font-weight:700;font-size:11px;color:${accent};border-bottom:1px solid ${border};display:flex;align-items:center;gap:6px;"><span>📋</span><span>${renderCtrlText(c, c.caption || "Property Inspector")}</span></div><div class="prop-grid-body" style="display:flex;flex-direction:column;overflow-y:auto;flex:1;min-height:0;">${propsList
         .map((pair: string[]) => {
           const k = (pair[0] || "").trim();
           const v = (pair[1] || "").trim();
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-bottom:1px solid ${border};font-size:11px;cursor:pointer;" onmouseover="this.style.background='${isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.05)"}'" onmouseout="this.style.background=''" onclick="event.stopPropagation();const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${k}: ${v}');"><span style="font-weight:600;color:${color};opacity:0.85;">${k}</span><span style="font-size:11px;color:${accent};font-weight:600;font-family:monospace;">${v}</span></div>`;
+          const kvJs = safeInlineJsStr(`${k}: ${v}`);
+          return `<div class="prop-row" data-prop-key="${esc(k)}" style="display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-bottom:1px solid ${border};font-size:11px;cursor:pointer;" onmouseover="this.style.background='${isLight ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.05)"}'" onmouseout="this.style.background=''" onclick="event.stopPropagation();const cid=${pgCidJs},cc=${pgCustomJs};const fnK=(cc&&window[cc])||window[cid+'_onClick']||window['on_'+cid+'_click'];if(fnK)fnK(${kvJs});"><span class="prop-key" style="font-weight:600;color:${color};opacity:0.85;">${renderCtrlText(c, k)}</span><span class="prop-val" style="font-size:11px;color:${accent};font-weight:600;font-family:monospace;">${renderCtrlText(c, v)}</span></div>`;
         })
         .join("")}</div></div>\n`;
     } else if (t === "popup_menu") {
@@ -3578,23 +3736,27 @@ export function generatePreviewHtml(spec: any): string {
       const customMove =
         c.event_handlers?.onCardMove || c.event_handlers?.on_card_move || "";
 
+      const kbCidJs = safeInlineJsStr(c.id);
+      const kbCustomJs = safeInlineJsStr(customHandler);
       const kbScript = `<script>
 (function() {
-    window['${c.id}_dragStart'] = function(event, cardId) {
+    const __cid = ${safeScriptJson(String(c.id))};
+    const __customMove = ${safeScriptJson(String(customMove))};
+    window[__cid + '_dragStart'] = function(event, cardId) {
         event.dataTransfer.setData('text/plain', cardId);
         window.__draggedKanbanCardId = cardId;
         window.__draggedKanbanCardEl = event.currentTarget || event.target;
         if (window.__draggedKanbanCardEl) window.__draggedKanbanCardEl.style.opacity = '0.4';
     };
-    window['${c.id}_dragEnd'] = function(event) {
+    window[__cid + '_dragEnd'] = function(event) {
         if (window.__draggedKanbanCardEl) window.__draggedKanbanCardEl.style.opacity = '1';
         delete window.__draggedKanbanCardId;
         delete window.__draggedKanbanCardEl;
     };
-    window['${c.id}_dragOver'] = function(event) {
+    window[__cid + '_dragOver'] = function(event) {
         event.preventDefault();
     };
-    window['${c.id}_drop'] = function(event, toColId) {
+    window[__cid + '_drop'] = function(event, toColId) {
         event.preventDefault();
         const cardId = event.dataTransfer.getData('text/plain') || window.__draggedKanbanCardId;
         const cardEl = window.__draggedKanbanCardEl;
@@ -3604,7 +3766,7 @@ export function generatePreviewHtml(spec: any): string {
             if (list) list.appendChild(cardEl);
         }
         if (window.__draggedKanbanCardEl) window.__draggedKanbanCardEl.style.opacity = '1';
-        const fnMove = window['${customMove}'] || window['${c.id}_onCardMove'] || window['on_${c.id}_card_move'];
+        const fnMove = (__customMove && window[__customMove]) || window[__cid + '_onCardMove'] || window['on_' + __cid + '_card_move'];
         if (fnMove) fnMove(cardId, toColId);
     };
 })();
@@ -3612,7 +3774,8 @@ export function generatePreviewHtml(spec: any): string {
 
       controls += `<div${id}${titleAttr} class="rad-kanban-board" style="${base(c)}background:${cbg !== "transparent" ? cbg : isLight ? "#f8fafc" : "#0f172a"};${defBorder}${kbRadius}padding:8px;display:flex;gap:8px;box-shadow:0 4px 14px rgba(0,0,0,0.25);overflow-x:auto;">${cols
         .map((col) => {
-          return `<div class="kanban-column" data-col="${esc(col.id)}" ondragover="window['${c.id}_dragOver'](event);" ondrop="window['${c.id}_drop'](event, '${esc(col.id)}')" style="flex:1;min-width:90px;background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)"};border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:6px;transition:background 0.15s;"><div style="font-size:10px;font-weight:700;color:${accent};border-bottom:1px solid ${border};padding-bottom:4px;display:flex;justify-content:space-between;align-items:center;"><span>${esc(col.title)}</span></div><div class="kanban-cards" style="display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;min-height:30px;">${col.cards
+          const colIdJs = safeInlineJsStr(col.id);
+          return `<div class="kanban-column" data-col="${esc(col.id)}" ondragover="const cid=${kbCidJs};window[cid+'_dragOver'](event);" ondrop="const cid=${kbCidJs};window[cid+'_drop'](event, ${colIdJs})" style="flex:1;min-width:90px;background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)"};border-radius:6px;padding:6px;display:flex;flex-direction:column;gap:6px;transition:background 0.15s;"><div style="font-size:10px;font-weight:700;color:${accent};border-bottom:1px solid ${border};padding-bottom:4px;display:flex;justify-content:space-between;align-items:center;"><span>${esc(col.title)}</span></div><div class="kanban-cards" style="display:flex;flex-direction:column;gap:4px;flex:1;overflow-y:auto;min-height:30px;">${col.cards
             .map((card: any, cIdx: number) => {
               const cardId =
                 typeof card === "object" && card !== null
@@ -3626,7 +3789,8 @@ export function generatePreviewHtml(spec: any): string {
                 typeof card === "object" && card !== null
                   ? card.tag || card.category || ""
                   : "";
-              return `<div class="kanban-card" data-card="${esc(cardId)}" draggable="true" ondragstart="window['${c.id}_dragStart'](event, '${esc(cardId)}')" ondragend="window['${c.id}_dragEnd'](event)" onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${esc(cardId)}');" style="background:${isLight ? "#ffffff" : "#1e293b"};border:1px solid ${border};border-radius:4px;padding:4px 6px;font-size:10px;color:${color};font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.1);cursor:grab;user-select:none;transition:transform 0.12s, box-shadow 0.12s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 3px 8px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.1)';"><div>${esc(cardTitle)}</div>${cardTag ? `<div style="font-size:9px;opacity:0.6;margin-top:2px;">${esc(cardTag)}</div>` : ""}</div>`;
+              const cardIdJs = safeInlineJsStr(cardId);
+              return `<div class="kanban-card" data-card="${esc(cardId)}" draggable="true" ondragstart="const cid=${kbCidJs};window[cid+'_dragStart'](event, ${cardIdJs})" ondragend="const cid=${kbCidJs};window[cid+'_dragEnd'](event)" onclick="const cid=${kbCidJs},ch=${kbCustomJs};const fn=(ch&&window[ch])||window[cid+'_onClick']||window['on_'+cid+'_click'];if(fn)fn(${cardIdJs});" style="background:${isLight ? "#ffffff" : "#1e293b"};border:1px solid ${border};border-radius:4px;padding:4px 6px;font-size:10px;color:${color};font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.1);cursor:grab;user-select:none;transition:transform 0.12s, box-shadow 0.12s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 3px 8px rgba(0,0,0,0.15)';" onmouseout="this.style.transform='';this.style.boxShadow='0 1px 3px rgba(0,0,0,0.1)';"><div>${esc(cardTitle)}</div>${cardTag ? `<div style="font-size:9px;opacity:0.6;margin-top:2px;">${esc(cardTag)}</div>` : ""}</div>`;
             })
             .join("")}</div></div>`;
         })
@@ -3655,7 +3819,7 @@ export function generatePreviewHtml(spec: any): string {
         c.event_handlers?.onClick || c.event_handlers?.onclick || "";
       const customMenuHandler =
         c.event_handlers?.onMenu || c.event_handlers?.onmenu || "";
-      controls += `<div${id}${titleAttr} style="${base(c)}display:inline-flex;align-items:stretch;background:${cbg !== "transparent" ? cbg : accent};${defBorder}${sbRadius}overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.2);"><button onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn('${mainText}');" style="flex:1;padding:0 12px;background:none;border:none;color:#ffffff;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;">${mainText}</button><div style="width:1px;background:rgba(255,255,255,0.25);"></div><button onclick="const fn=window['${customMenuHandler}']||window['${c.id}_onMenu']||window['on_${c.id}_menu'];if(fn)fn();" style="padding:0 8px;background:none;border:none;color:#ffffff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▼</button></div>\n`;
+      controls += `<div${id}${titleAttr} style="${base(c)}display:inline-flex;align-items:stretch;background:${cbg !== "transparent" ? cbg : accent};${defBorder}${sbRadius}overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,0.2);"><button onclick="const fn=window['${customHandler}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fn)fn(${safeInlineJsStr(mainText)});" style="flex:1;padding:0 12px;background:none;border:none;color:#ffffff;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;">${renderCtrlText(c, mainText)}</button><div style="width:1px;background:rgba(255,255,255,0.25);"></div><button onclick="const fn=window['${customMenuHandler}']||window['${c.id}_onMenu']||window['on_${c.id}_menu'];if(fn)fn();" style="padding:0 8px;background:none;border:none;color:#ffffff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;">▼</button></div>\n`;
     } else if (t === "sparkline_table") {
       const rawRows =
         text || "Revenue: $48k [↗], Active Users: 1.2k [→], Errors: 0.01% [↘]";
@@ -4279,14 +4443,15 @@ export function generatePreviewHtml(spec: any): string {
       controls += `<div${id}${titleAttr}${ev} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg !== "transparent" ? cbg : isLight ? "#ffffff" : "#1e293b"};border:1px solid ${accent};${defRadius}padding:0 12px;box-shadow:0 4px 16px rgba(0,0,0,0.3);color:${color};"><span style="font-size:14px;color:${accent};">⌘</span><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" placeholder="${c.placeholder || "Type a command or search actions..."}" value="${text || ""}" style="flex:1;background:none;border:none;color:inherit;font-family:inherit;font-size:12px;outline:none;" ${disabled}${roAttr}><span style="font-size:10px;font-weight:700;background:${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)"};padding:2px 6px;border-radius:4px;opacity:0.8;">ESC</span></div>\n`;
     } else if (t === "toggle_button") {
       const isChecked = c.checked;
-      controls += `<button id="${c.id}" ${titleAttr}${ev}${disabled} style="${base(c)}background:${isChecked ? accent : cbg !== "transparent" ? cbg : isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};color:${isChecked ? "#ffffff" : color};${defBorder}${defRadius}font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:${c.cursor || "pointer"};" onclick="const isChk=this.dataset.checked==='true';this.dataset.checked=!isChk;this.style.background=!isChk?'${accent}':'${cbg !== "transparent" ? cbg : isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"}';this.style.color=!isChk?'#ffffff':'${color}';if(window['${c.id}_onChange'])window['${c.id}_onChange'](!isChk);else if(window['on_${c.id}_change'])window['on_${c.id}_change'](!isChk);" data-checked="${isChecked ? "true" : "false"}">${isChecked ? "🔒 Locked" : text || "🔓 Unlocked"}</button>\n`;
+      const tbCidJs = safeInlineJsStr(c.id);
+      controls += `<button id="${esc(c.id)}" ${titleAttr}${ev}${disabled} style="${base(c)}background:${isChecked ? accent : cbg !== "transparent" ? cbg : isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};color:${isChecked ? "#ffffff" : color};${defBorder}${defRadius}font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;cursor:${c.cursor || "pointer"};" onclick="const cid=${tbCidJs};const isChk=this.dataset.checked==='true';this.dataset.checked=!isChk;this.style.background=!isChk?'${accent}':'${cbg !== "transparent" ? cbg : isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"}';this.style.color=!isChk?'#ffffff':'${color}';if(window[cid+'_onChange'])window[cid+'_onChange'](!isChk);else if(window['on_'+cid+'_change'])window['on_'+cid+'_change'](!isChk);" data-checked="${isChecked ? "true" : "false"}">${isChecked && !(c && c._plainText) ? "🔒 Locked" : renderCtrlText(c, text || (isChecked ? "🔒 Locked" : "🔓 Unlocked"))}</button>\n`;
     } else if (t === "search_field") {
       const curVal = c.value !== undefined ? String(c.value) : text || "";
       const customChange =
         c.event_handlers?.onChange || c.event_handlers?.onchange || "";
       const customClick =
         c.event_handlers?.onClick || c.event_handlers?.onclick || "";
-      controls += `<div id="${c.id}_wrapper" class="search-field-wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};color:${color};${defBorder}border-radius:20px;padding:0 12px;gap:8px;"><span style="font-size:13px;opacity:0.6;">🔍</span><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="search" value="${curVal}" placeholder="${c.placeholder || "Search..."}"${disabled}${roAttr} style="flex:1;background:none;border:none;color:${color};outline:none;font-size:${c.font_size || 13}px;" oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter'){const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(this.value);}">${curVal ? `<button type="button" onclick="const inp=document.getElementById('${c.id}');if(inp){inp.value='';inp.dispatchEvent(new Event('input'));inp.dispatchEvent(new Event('change'));}" style="background:none;border:none;color:${color};opacity:0.5;cursor:pointer;font-size:12px;">✕</button>` : ""}</div>\n`;
+      controls += `<div id="${c.id}_wrapper" class="search-field-wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};color:${color};${defBorder}border-radius:20px;padding:0 12px;gap:8px;"><span style="font-size:13px;opacity:0.6;">🔍</span><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="search" value="${esc(curVal)}" placeholder="${esc(c.placeholder || "Search...")}"${disabled}${roAttr} style="flex:1;background:none;border:none;color:${color};outline:none;font-size:${c.font_size || 13}px;" oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter'){const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(this.value);}">${curVal ? `<button type="button" onclick="const inp=document.getElementById('${c.id}');if(inp){inp.value='';inp.dispatchEvent(new Event('input'));inp.dispatchEvent(new Event('change'));}" style="background:none;border:none;color:${color};opacity:0.5;cursor:pointer;font-size:12px;">✕</button>` : ""}</div>\n`;
     } else if (t === "token_field" || t === "tag_input") {
       const rawTokens =
         c.tags || c.tokens || (text ? text.split(",") : ["tag1", "tag2"]);
@@ -4298,19 +4463,19 @@ export function generatePreviewHtml(spec: any): string {
             .filter(Boolean);
       const customChange =
         c.event_handlers?.onChange || c.event_handlers?.onchange || "";
-      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;flex-wrap:wrap;gap:6px;background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;overflow-y:auto;"><input type="hidden" id="${c.id}" name="${c.id}" value="${tokenArr.join(",")}"><div class="token-list" style="display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;">${tokenArr.map((tok: string) => `<span class="token-chip" style="background:${isLight ? "rgba(2,132,199,0.12)" : "rgba(56,189,248,0.15)"};color:${accent};border:1px solid ${border};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;">${tok}<span onclick="const chip=this.parentNode;const cont=chip.closest('[id]');chip.remove();const all=Array.from(cont.querySelectorAll('.token-chip')).map(c=>c.textContent.replace('✕','').trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=all.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(all.join(','));" style="cursor:pointer;opacity:0.6;font-size:10px;">✕</span></span>`).join("")}</div><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" placeholder="${c.placeholder || "+ Add..."}" onkeydown="if(event.key==='Enter'&&this.value.trim()){event.preventDefault();const val=this.value.trim();const list=this.previousElementSibling;const span=document.createElement('span');span.className='token-chip';span.style.cssText='background:${isLight ? "rgba(2,132,199,0.12)" : "rgba(56,189,248,0.15)"};color:${accent};border:1px solid ${border};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;';span.innerHTML=val+'<span style=\\&quot;cursor:pointer;opacity:0.6;font-size:10px;\\&quot; onclick=\\&quot;const chip=this.parentNode;const cont=chip.closest(\\'[id]\\');chip.remove();const all=Array.from(cont.querySelectorAll(\\'.token-chip\\')).map(c=>c.textContent.replace(\\'✕\\',\\'\\').trim());const hid=document.getElementById(\\''+'${c.id}'+'\\');if(hid)hid.value=all.join(\\',\\');const fnC=window[\\''+'${customChange}'+'\\']||window[\\''+'${c.id}'+'_onChange\\']||window[\\'on_'+'${c.id}'+'_change\\'];if(fnC)fnC(all.join(\\',\\'));\\&quot;>✕</span>';list.appendChild(span);this.value='';const all=Array.from(list.querySelectorAll('.token-chip')).map(c=>c.textContent.replace('✕','').trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=all.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(all.join(','));}" style="flex:1;min-width:60px;background:none;border:none;color:${color};outline:none;font-size:11px;"></div>\n`;
+      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;flex-wrap:wrap;gap:6px;background:${cbg};color:${color};${defBorder}${defRadius}padding:4px 8px;overflow-y:auto;"><input type="hidden" id="${c.id}" name="${c.id}" value="${esc(tokenArr.join(","))}"><div class="token-list" style="display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;">${tokenArr.map((tok: string) => `<span class="token-chip" style="background:${isLight ? "rgba(2,132,199,0.12)" : "rgba(56,189,248,0.15)"};color:${accent};border:1px solid ${border};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;">${escAngles(tok)}<span onclick="const chip=this.parentNode;const cont=chip.closest('[id]');chip.remove();const all=Array.from(cont.querySelectorAll('.token-chip')).map(c=>c.textContent.replace('✕','').trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=all.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(all.join(','));" style="cursor:pointer;opacity:0.6;font-size:10px;">✕</span></span>`).join("")}</div><input autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" placeholder="${esc(c.placeholder || "+ Add...")}" onkeydown="if(event.key==='Enter'&&this.value.trim()){event.preventDefault();const val=this.value.trim();const list=this.previousElementSibling;const span=document.createElement('span');span.className='token-chip';span.style.cssText='background:${isLight ? "rgba(2,132,199,0.12)" : "rgba(56,189,248,0.15)"};color:${accent};border:1px solid ${border};border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;display:inline-flex;align-items:center;gap:4px;';span.innerHTML=val+'<span style=\\&quot;cursor:pointer;opacity:0.6;font-size:10px;\\&quot; onclick=\\&quot;const chip=this.parentNode;const cont=chip.closest(\\'[id]\\');chip.remove();const all=Array.from(cont.querySelectorAll(\\'.token-chip\\')).map(c=>c.textContent.replace(\\'✕\\',\\'\\').trim());const hid=document.getElementById(\\''+'${c.id}'+'\\');if(hid)hid.value=all.join(\\',\\');const fnC=window[\\''+'${customChange}'+'\\']||window[\\''+'${c.id}'+'_onChange\\']||window[\\'on_'+'${c.id}'+'_change\\'];if(fnC)fnC(all.join(\\',\\'));\\&quot;>✕</span>';list.appendChild(span);this.value='';const all=Array.from(list.querySelectorAll('.token-chip')).map(c=>c.textContent.replace('✕','').trim());const hid=document.getElementById('${c.id}');if(hid)hid.value=all.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(all.join(','));}" style="flex:1;min-width:60px;background:none;border:none;color:${color};outline:none;font-size:11px;"></div>\n`;
     } else if (t === "masked_input") {
       const mask = c.mask || "(999) 999-9999";
       const customChange =
         c.event_handlers?.onChange || c.event_handlers?.onchange || "";
-      controls += `<div id="${c.id}_wrapper" class="rad-masked-input-wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;gap:8px;"><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${text}" placeholder="${mask}"${disabled}${roAttr} oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="flex:1;background:none;border:none;color:${color};outline:none;font-family:monospace;font-size:${c.font_size || 13}px;letter-spacing:1px;"><span style="font-size:10px;opacity:0.6;font-family:monospace;color:${color};">${mask}</span></div>\n`;
+      controls += `<div id="${c.id}_wrapper" class="rad-masked-input-wrapper"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 10px;gap:8px;"><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${esc(text)}" placeholder="${esc(mask)}"${disabled}${roAttr} oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="flex:1;background:none;border:none;color:${color};outline:none;font-family:monospace;font-size:${c.font_size || 13}px;letter-spacing:1px;"><span style="font-size:10px;opacity:0.6;font-family:monospace;color:${color};">${escAngles(mask)}</span></div>\n`;
     } else if (t === "inline_editable_label") {
       const customChange =
         c.event_handlers?.onChange || c.event_handlers?.onchange || "";
-      controls += `<div id="${c.id}_container"${titleAttr} class="rad-editable-label-container" data-theme-label="true" title="Double-click to edit" ondblclick="const span=this.querySelector('.label-display');const inp=document.getElementById('${c.id}');span.style.display='none';inp.style.display='block';inp.focus();inp.select();" style="${base(c)}display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0 10px;box-sizing:border-box;"><div class="label-display" data-theme-label="true" style="font-size:${c.font_size || 13}px;font-weight:600;display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;"><span class="label-text" style="color:${color};font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${text || "Click to edit text"}</span><span class="rad-editable-badge" style="font-size:10px;font-weight:700;color:${accent};">✎ EDIT</span></div><input id="${c.id}" name="${c.id}" class="rad-editable-input" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${text}" onblur="const span=this.previousElementSibling;span.querySelector('.label-text').textContent=this.value;span.style.display='flex';this.style.display='none';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value=this.previousElementSibling.querySelector('.label-text').textContent;this.blur();}" style="display:none;width:100%;padding:3px 8px;outline:none;font-size:${c.font_size || 13}px;font-weight:600;"></div>\n`;
+      controls += `<div id="${c.id}_container"${titleAttr} class="rad-editable-label-container" data-theme-label="true" title="Double-click to edit" ondblclick="const span=this.querySelector('.label-display');const inp=document.getElementById('${c.id}');span.style.display='none';inp.style.display='block';inp.focus();inp.select();" style="${base(c)}display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:0 10px;box-sizing:border-box;"><div class="label-display" data-theme-label="true" style="font-size:${c.font_size || 13}px;font-weight:600;display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px;"><span class="label-text" style="color:${color};font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${renderCtrlText(c, text || "Click to edit text")}</span><span class="rad-editable-badge" style="font-size:10px;font-weight:700;color:${accent};">✎ EDIT</span></div><input id="${c.id}" name="${c.id}" class="rad-editable-input" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${esc(text)}" onblur="const span=this.previousElementSibling;span.querySelector('.label-text').textContent=this.value;span.style.display='flex';this.style.display='none';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.value=this.previousElementSibling.querySelector('.label-text').textContent;this.blur();}" style="display:none;width:100%;padding:3px 8px;outline:none;font-size:${c.font_size || 13}px;font-weight:600;"></div>\n`;
     } else if (t === "section_header") {
       const subtitle = c.subtitle || c.caption || "";
-      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid ${border};padding-bottom:6px;"><div style="font-size:16px;font-weight:800;color:${accent};letter-spacing:-0.2px;">${text}</div>${subtitle ? `<div style="font-size:11px;color:${color};opacity:0.7;margin-top:2px;">${subtitle}</div>` : ""}</div>\n`;
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid ${border};padding-bottom:6px;"><div style="font-size:16px;font-weight:800;color:${accent};letter-spacing:-0.2px;">${renderCtrlText(c, text)}</div>${subtitle ? `<div style="font-size:11px;color:${color};opacity:0.7;margin-top:2px;">${renderCtrlText(c, subtitle)}</div>` : ""}</div>\n`;
     } else if (t === "hotkey_badge") {
       const keys = (c.shortcut || text || "⌘K").split(/\s+|\+/).filter(Boolean);
       const rawDesc = c.description || "";
@@ -4318,7 +4483,7 @@ export function generatePreviewHtml(spec: any): string {
         rawDesc && rawDesc !== text && !keys.includes(rawDesc),
       );
       const justify = hasDesc ? "space-between" : "center";
-      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:${justify};gap:6px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 8px;box-sizing:border-box;white-space:nowrap;overflow:hidden;">${hasDesc ? `<span style="font-size:11px;font-weight:600;opacity:0.85;white-space:nowrap;">${rawDesc}</span>` : ""}<div style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">${keys.map((k: string) => `<kbd class="rad-mono" style="background:${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)"};border:1px solid ${border};border-radius:4px;padding:2px 5px;font-size:10px;font-weight:700;color:${accent};line-height:1.2;">${k}</kbd>`).join("")}</div></div>\n`;
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;justify-content:${justify};gap:6px;background:${cbg};color:${color};${defBorder}${defRadius}padding:0 8px;box-sizing:border-box;white-space:nowrap;overflow:hidden;">${hasDesc ? `<span style="font-size:11px;font-weight:600;opacity:0.85;white-space:nowrap;">${escAngles(rawDesc)}</span>` : ""}<div style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;">${keys.map((k: string) => `<kbd class="rad-mono" style="background:${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)"};border:1px solid ${border};border-radius:4px;padding:2px 5px;font-size:10px;font-weight:700;color:${accent};line-height:1.2;">${escAngles(k)}</kbd>`).join("")}</div></div>\n`;
     } else if (t === "link") {
       const url = String(c.url || c.href || c.placeholder || "#");
       const escHref = (s: string) =>
@@ -4327,7 +4492,7 @@ export function generatePreviewHtml(spec: any): string {
           .replace(/"/g, "&quot;")
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;");
-      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;"><a href="${escHref(url)}"${ev} target="_blank" style="color:${accent};text-decoration:none;font-size:${c.font_size || 13}px;font-weight:600;display:inline-flex;align-items:center;gap:4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><span>🔗</span><span>${text || escHref(url)}</span></a></div>\n`;
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:6px;"><a href="${escHref(url)}"${ev} target="_blank" style="color:${accent};text-decoration:none;font-size:${c.font_size || 13}px;font-weight:600;display:inline-flex;align-items:center;gap:4px;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'"><span>🔗</span><span>${text ? renderCtrlText(c, text) : escHref(url)}</span></a></div>\n`;
     } else if (t === "banner" || t === "status_banner") {
       const bStyle = c.style || c.alert_type || c.banner_style || "info";
       const bCol =
@@ -4353,7 +4518,7 @@ export function generatePreviewHtml(spec: any): string {
           ? `border-radius:${c.border_radius}px;`
           : "border-radius:8px;";
       const subtitle = c.message || c.caption || "";
-      controls += `<div${id}${titleAttr} style="${base(c)}background:${c.background_color && c.background_color !== "transparent" ? c.background_color : bCol + "18"};border-left:4px solid ${bCol};border-top:1px solid ${border};border-right:1px solid ${border};border-bottom:1px solid ${border};${bRadius}display:flex;align-items:center;gap:12px;padding:0 14px;color:${color};"><span style="font-size:16px;">${bIcon}</span><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-size:12px;font-weight:700;color:${color};">${text}</span>${subtitle ? `<span style="font-size:11px;opacity:0.8;color:${color};margin-top:1px;">${subtitle}</span>` : ""}</div></div>\n`;
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${c.background_color && c.background_color !== "transparent" ? c.background_color : bCol + "18"};border-left:4px solid ${bCol};border-top:1px solid ${border};border-right:1px solid ${border};border-bottom:1px solid ${border};${bRadius}display:flex;align-items:center;gap:12px;padding:0 14px;color:${color};"><span style="font-size:16px;">${bIcon}</span><div style="display:flex;flex-direction:column;min-width:0;"><span style="font-size:12px;font-weight:700;color:${color};">${renderCtrlText(c, text)}</span>${subtitle ? `<span style="font-size:11px;opacity:0.8;color:${color};margin-top:1px;">${renderCtrlText(c, subtitle)}</span>` : ""}</div></div>\n`;
     } else if (t === "info_callout") {
       const bCol =
         c.alert_type === "success"
@@ -4362,7 +4527,7 @@ export function generatePreviewHtml(spec: any): string {
             ? sem.warning.solid
             : accent;
       const btnText = c.button_text || "Learn More";
-      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-left:4px solid ${bCol};border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:${color};"><div style="display:flex;align-items:center;gap:10px;min-width:0;"><span style="font-size:20px;">💡</span><div style="display:flex;flex-direction:column;"><span style="font-weight:800;font-size:13px;color:${bCol};">${text || "Callout Title"}</span><span style="font-size:11px;opacity:0.8;margin-top:2px;">${c.message || c.caption || "Important callout details and guidance for the user."}</span></div></div>${btnText ? `<button style="padding:6px 12px;background:${bCol};color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;">${btnText}</button>` : ""}</div>\n`;
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${cbg};border:1px solid ${border};border-left:4px solid ${bCol};border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;color:${color};"><div style="display:flex;align-items:center;gap:10px;min-width:0;"><span style="font-size:20px;">💡</span><div style="display:flex;flex-direction:column;"><span style="font-weight:800;font-size:13px;color:${bCol};">${renderCtrlText(c, text || "Callout Title")}</span><span style="font-size:11px;opacity:0.8;margin-top:2px;">${renderCtrlText(c, c.message || c.caption || "Important callout details and guidance for the user.")}</span></div></div>${btnText ? `<button style="padding:6px 12px;background:${bCol};color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;">${escPlain(btnText)}</button>` : ""}</div>\n`;
     } else if (t === "hero_banner") {
       const heroGrad =
         c.gradient_style ||
@@ -4370,16 +4535,23 @@ export function generatePreviewHtml(spec: any): string {
       const hTitle = c.caption || text || "Hero Title";
       const hSubtitle = c.caption ? c.subtitle || text || "" : c.subtitle || "";
       const heroBtn = c.placeholder || c.button_text || "Get Started";
-      controls += `<div${id}${titleAttr} style="${base(c)}background:${heroGrad};border:1px solid ${border};border-radius:12px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;color:${color};box-shadow:0 8px 24px rgba(0,0,0,0.3);"><div style="display:flex;flex-direction:column;gap:4px;min-width:0;"><div style="font-size:18px;font-weight:800;color:${accent};letter-spacing:-0.3px;">${hTitle}</div><div style="font-size:12px;opacity:0.85;max-width:560px;">${hSubtitle}</div></div>${heroBtn ? `<button type="button" onclick="const fnK=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${heroBtn.replace(/'/g, "\\'")}');" style="padding:8px 18px;background:${accent};color:#ffffff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px ${accent}44;flex-shrink:0;">${heroBtn}</button>` : ""}</div>\n`;
+      controls += `<div${id}${titleAttr} style="${base(c)}background:${heroGrad};border:1px solid ${border};border-radius:12px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;color:${color};box-shadow:0 8px 24px rgba(0,0,0,0.3);"><div style="display:flex;flex-direction:column;gap:4px;min-width:0;"><div style="font-size:18px;font-weight:800;color:${accent};letter-spacing:-0.3px;">${renderCtrlText(c, hTitle)}</div><div style="font-size:12px;opacity:0.85;max-width:560px;">${renderCtrlText(c, hSubtitle)}</div></div>${heroBtn ? `<button type="button" onclick="const fnK=window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK(${safeInlineJsStr(heroBtn)});" style="padding:8px 18px;background:${accent};color:#ffffff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px ${accent}44;flex-shrink:0;">${escPlain(heroBtn)}</button>` : ""}</div>\n`;
     } else if (t === "image_button") {
-      const sym = c.symbol || "🚀";
-      controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-weight:600;font-size:12px;padding:0 12px;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''"><span style="font-size:14px;">${sym}</span><span>${text}</span></button>\n`;
+      const sym = c.symbol || (c.caption ? text : "") || "🚀";
+      const imgBtnLabel = c.caption || text;
+      controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${cbg};color:${color};${defBorder}${defRadius}display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-weight:600;font-size:12px;padding:0 12px;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''"><span style="font-size:14px;">${escAngles(sym)}</span><span>${renderCtrlText(c, imgBtnLabel)}</span></button>\n`;
     } else if (t === "help_button") {
-      controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};color:${color};border:1px solid ${border};border-radius:50%;width:${c.width || 26}px;height:${c.height || 26}px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;cursor:pointer;opacity:0.85;" title="${c.tooltip || text || "Help & Documentation"}" onmouseover="this.style.opacity='1';this.style.borderColor='${accent}';" onmouseout="this.style.opacity='0.85';this.style.borderColor='${border}';">?</button>\n`;
+      controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};color:${color};border:1px solid ${border};border-radius:50%;width:${c.width || 26}px;height:${c.height || 26}px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;cursor:pointer;opacity:0.85;" title="${esc(c.tooltip || text || "Help & Documentation")}" onmouseover="this.style.opacity='1';this.style.borderColor='${accent}';" onmouseout="this.style.opacity='0.85';this.style.borderColor='${border}';">?</button>\n`;
     } else if (t === "badge_button") {
-      const count = c.count !== undefined ? c.count : 3;
+      const badgeLabel = c.caption || text;
+      const count =
+        c.count !== undefined
+          ? c.count
+          : c.caption !== undefined && c.text !== undefined && c.text !== ""
+            ? c.text
+            : 3;
       const bCol = c.badge_color || sem.danger.solid;
-      controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}position:relative;background:${cbg};color:${color};${defBorder}${defRadius}display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-weight:700;font-size:12px;padding:0 14px;"><span>${text}</span><span style="background:${bCol};color:#ffffff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:800;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${count}</span></button>\n`;
+      controls += `<button${id}${titleAttr}${ev}${disabled} style="${base(c)}position:relative;background:${cbg};color:${color};${defBorder}${defRadius}display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;font-weight:700;font-size:12px;padding:0 14px;"><span>${renderCtrlText(c, badgeLabel)}</span><span style="background:${bCol};color:#ffffff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:800;box-shadow:0 1px 3px rgba(0,0,0,0.3);">${escPlain(count)}</span></button>\n`;
     } else if (t === "quick_action_bar") {
       const rawActs =
         c.items ||
@@ -4394,7 +4566,9 @@ export function generatePreviewHtml(spec: any): string {
             .map((s: string) => s.trim());
       const customClick =
         c.event_handlers?.onClick || c.event_handlers?.onclick || "";
-      controls += `<div id="${c.id}"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:3px;gap:4px;">${actions
+      const qabCidJs = safeInlineJsStr(c.id);
+      const qabCustomJs = safeInlineJsStr(customClick);
+      controls += `<div id="${esc(c.id)}"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:3px;gap:4px;">${actions
         .map((act: any) => {
           const label =
             typeof act === "object" && act
@@ -4406,14 +4580,42 @@ export function generatePreviewHtml(spec: any): string {
               : String(act);
           const icon =
             typeof act === "object" && act && act.icon ? act.icon + " " : "";
-          return `<button type="button" onclick="const fnK=window['${customClick}']||window['${c.id}_onClick']||window['on_${c.id}_click'];if(fnK)fnK('${actionId.replace(/'/g, "\\'")}');" style="flex:1;height:100%;background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};border:none;border-radius:4px;color:${color};font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.15s;" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"}';this.style.color='${color}';">${icon}${label}</button>`;
+          const actIdJs = safeInlineJsStr(actionId);
+          return `<button type="button" onclick="const cid=${qabCidJs},cc=${qabCustomJs};const fnK=(cc&&window[cc])||window[cid+'_onClick']||window['on_'+cid+'_click'];if(fnK)fnK(${actIdJs});" style="flex:1;height:100%;background:${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"};border:none;border-radius:4px;color:${color};font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;transition:all 0.15s;" onmouseover="this.style.background='${accent}';this.style.color='#fff';" onmouseout="this.style.background='${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"}';this.style.color='${color}';">${renderCtrlText(c, icon + label)}</button>`;
         })
         .join("")}</div>\n`;
     } else if (t === "floating_toolbar") {
-      const tools = (
-        c.tools || (text ? text.split(",") : ["🔍", "✂️", "📋", "🗑️", "⚙️"])
-      ).map((s: string) => s.trim());
-      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:rgba(20,25,35,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.18);border-radius:30px;padding:4px 8px;gap:6px;box-shadow:0 12px 30px rgba(0,0,0,0.5);">${tools.map((tl: string) => `<button onclick="if(window['${c.id}_onClick'])window['${c.id}_onClick']('${tl}');" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.08);border:none;color:#ffffff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;" onmouseover="this.style.background='${accent}';this.style.transform='scale(1.15)';" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.transform='scale(1)';">${tl}</button>`).join("")}</div>\n`;
+      const rawTools =
+        c.tools ||
+        c.items ||
+        (text ? text.split(",") : ["🔍", "✂️", "📋", "🗑️", "⚙️"]);
+      const toolList = Array.isArray(rawTools)
+        ? rawTools
+        : String(rawTools)
+            .split(",")
+            .map((s: string) => s.trim());
+      const customClick =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      const ftCidJs = safeInlineJsStr(c.id);
+      const ftCustomJs = safeInlineJsStr(customClick);
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;background:rgba(20,25,35,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.18);border-radius:30px;padding:4px 8px;gap:6px;box-shadow:0 12px 30px rgba(0,0,0,0.5);">${toolList
+        .map((tl: any) => {
+          const icon =
+            typeof tl === "object" && tl !== null
+              ? String(tl.icon || tl.label || tl.actionId || "")
+              : String(tl).trim();
+          const labelAttr =
+            typeof tl === "object" && tl !== null && tl.label
+              ? ` title="${esc(tl.label)}"`
+              : "";
+          const actionId =
+            typeof tl === "object" && tl !== null
+              ? String(tl.actionId || tl.label || tl.icon || "")
+              : String(tl).trim();
+          const actIdJs = safeInlineJsStr(actionId);
+          return `<button type="button"${labelAttr} onclick="const cid=${ftCidJs},cc=${ftCustomJs};const fn=(cc&&window[cc])||window[cid+'_onClick']||window['on_'+cid+'_click']||window['on_'+cid+'_change'];if(fn)fn(${actIdJs});" style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.08);border:none;color:#ffffff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;" onmouseover="this.style.background='${accent}';this.style.transform='scale(1.15)';" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.transform='scale(1)';">${renderCtrlText(c, icon)}</button>`;
+        })
+        .join("")}</div>\n`;
     } else if (t === "radio_group") {
       const rawOpts =
         c.items ||
@@ -4426,10 +4628,13 @@ export function generatePreviewHtml(spec: any): string {
       const curVal = c.value !== undefined ? String(c.value) : rOpts[0] || "";
       const customChange =
         c.event_handlers?.onChange || c.event_handlers?.onchange || "";
-      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:16px;color:${color};flex-wrap:wrap;"><input type="hidden" id="${c.id}" name="${c.id}" value="${curVal}">${rOpts
+      const rgCidJs = safeInlineJsStr(c.id);
+      const rgCustomJs = safeInlineJsStr(customChange);
+      controls += `<div id="${esc(c.id)}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;gap:16px;color:${color};flex-wrap:wrap;"><input type="hidden" id="${esc(c.id)}" name="${esc(c.id)}" value="${esc(curVal)}">${rOpts
         .map((opt: string, i: number) => {
           const isSel = opt === curVal || String(i) === curVal;
-          return `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:${c.font_size || 12}px;font-weight:500;"><input type="radio" name="${c.id}_group" value="${opt}" ${isSel ? "checked" : ""} style="accent-color:${accent};cursor:pointer;" onchange="const hid=document.getElementById('${c.id}');if(hid)hid.value='${opt}';const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC('${opt}');"><span>${opt}</span></label>`;
+          const optJs = safeInlineJsStr(opt);
+          return `<label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:${c.font_size || 12}px;font-weight:500;"><input type="radio" name="${esc(c.id)}_group" value="${esc(opt)}" ${isSel ? "checked" : ""} style="accent-color:${accent};cursor:pointer;" onchange="const cid=${rgCidJs},cc=${rgCustomJs},v=${optJs};const hid=document.getElementById(cid);if(hid)hid.value=v;const fnC=(cc&&window[cc])||window[cid+'_onChange']||window['on_'+cid+'_change'];if(fnC)fnC(v);"><span>${renderCtrlText(c, opt)}</span></label>`;
         })
         .join("")}</div>\n`;
     } else if (t === "pull_down" || t === "combo_box") {
@@ -4445,7 +4650,9 @@ export function generatePreviewHtml(spec: any): string {
       const curVal = c.value !== undefined ? String(c.value) : pOpts[0] || "";
       const customChange =
         c.event_handlers?.onChange || c.event_handlers?.onchange || "";
-      controls += `<div id="${c.id}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:0 8px;gap:6px;"><input id="${c.id}" name="${c.id}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${curVal}" placeholder="${c.placeholder || "Select or type..."}" style="flex:1;background:none;border:none;color:${color};font-size:${c.font_size || 13}px;outline:none;" oninput="const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);"><select onchange="const inp=document.getElementById('${c.id}');if(inp){inp.value=this.value;inp.dispatchEvent(new Event('input'));inp.dispatchEvent(new Event('change'));}const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(this.value);" style="background:none;border:none;color:${color};cursor:pointer;outline:none;width:18px;">${pOpts.map((opt: string) => `<option value="${opt}" ${opt === curVal ? "selected" : ""}>${opt}</option>`).join("")}</select></div>\n`;
+      const pdCidJs = safeInlineJsStr(c.id);
+      const pdCustomJs = safeInlineJsStr(customChange);
+      controls += `<div id="${esc(c.id)}_container"${titleAttr} style="${base(c)}display:flex;align-items:center;background:${cbg};${defBorder}${defRadius}padding:0 8px;gap:6px;"><input id="${esc(c.id)}" name="${esc(c.id)}" autocapitalize='none' autocorrect='off' spellcheck='false' autocomplete='off' type="text" value="${esc(curVal)}" placeholder="${esc(c.placeholder || "Select or type...")}" style="flex:1;background:none;border:none;color:${color};font-size:${c.font_size || 13}px;outline:none;" oninput="const cid=${pdCidJs},cc=${pdCustomJs};const fnC=(cc&&window[cc])||window[cid+'_onChange']||window['on_'+cid+'_change'];if(fnC)fnC(this.value);"><select onchange="const cid=${pdCidJs},cc=${pdCustomJs};const inp=document.getElementById(cid);if(inp){inp.value=this.value;inp.dispatchEvent(new Event('input'));inp.dispatchEvent(new Event('change'));}const fnC=(cc&&window[cc])||window[cid+'_onChange']||window['on_'+cid+'_change'];if(fnC)fnC(this.value);" style="background:none;border:none;color:${color};cursor:pointer;outline:none;width:18px;">${pOpts.map((opt: string) => `<option value="${esc(opt)}" ${opt === curVal ? "selected" : ""}>${renderCtrlText(c, opt)}</option>`).join("")}</select></div>\n`;
     } else if (t === "theme_menu" || t === "mode_control") {
       const rawModes = c.items || c.modes || ["System", "Dark", "Light"];
       const modes = Array.isArray(rawModes)
@@ -4575,11 +4782,12 @@ export function generatePreviewHtml(spec: any): string {
         : "rgba(56,189,248,0.22)";
       const itemSelBorder = `1px solid ${accent}`;
 
-      const syncScript = `<script>window['${c.id}_sync']=function(){const cont=document.getElementById('${c.id}_container');if(!cont)return;const availItems=cont.querySelector('.transfer-avail-items');const selItems=cont.querySelector('.transfer-sel-items');const curAvail=Array.from(availItems.querySelectorAll('.transfer-item')).map(el=>el.textContent.trim());const curSel=Array.from(selItems.querySelectorAll('.transfer-item')).map(el=>el.textContent.trim());const availCount=cont.querySelector('.transfer-avail-count');if(availCount)availCount.textContent=String(curAvail.length);const selCount=cont.querySelector('.transfer-sel-count');if(selCount)selCount.textContent=String(curSel.length);const hidSel=document.getElementById('${c.id}');if(hidSel)hidSel.value=curSel.join(',');const hidAvail=document.getElementById('${c.id}_available');if(hidAvail)hidAvail.value=curAvail.join(',');const fnC=window['${customChange}']||window['${c.id}_onChange']||window['on_${c.id}_change'];if(fnC)fnC(curSel,curAvail);};</script>`;
+      const tlCidJs = safeInlineJsStr(c.id);
+      const syncScript = `<script>(function(){const __cid=${safeScriptJson(String(c.id))},__cc=${safeScriptJson(String(customChange))};window[__cid+'_sync']=function(){const cont=document.getElementById(__cid+'_container');if(!cont)return;const availItems=cont.querySelector('.transfer-avail-items');const selItems=cont.querySelector('.transfer-sel-items');const curAvail=Array.from(availItems.querySelectorAll('.transfer-item')).map(el=>el.textContent.trim());const curSel=Array.from(selItems.querySelectorAll('.transfer-item')).map(el=>el.textContent.trim());const availCount=cont.querySelector('.transfer-avail-count');if(availCount)availCount.textContent=String(curAvail.length);const selCount=cont.querySelector('.transfer-sel-count');if(selCount)selCount.textContent=String(curSel.length);const hidSel=document.getElementById(__cid);if(hidSel)hidSel.value=curSel.join(',');const hidAvail=document.getElementById(__cid+'_available');if(hidAvail)hidAvail.value=curAvail.join(',');const fnC=(__cc&&window[__cc])||window[__cid+'_onChange']||window['on_'+__cid+'_change'];if(fnC)fnC(curSel,curAvail);};})();</script>`;
 
-      const moveItemDblClick = `const cont=this.closest('.transfer-container');const inAvail=this.closest('.transfer-avail');const target=inAvail?cont.querySelector('.transfer-sel-items'):cont.querySelector('.transfer-avail-items');this.classList.remove('selected');this.style.background='transparent';this.style.borderColor='transparent';target.appendChild(this);if(window['${c.id}_sync'])window['${c.id}_sync']();`;
+      const moveItemDblClick = `const cid=${tlCidJs};const cont=this.closest('.transfer-container');const inAvail=this.closest('.transfer-avail');const target=inAvail?cont.querySelector('.transfer-sel-items'):cont.querySelector('.transfer-avail-items');this.classList.remove('selected');this.style.background='transparent';this.style.borderColor='transparent';target.appendChild(this);if(window[cid+'_sync'])window[cid+'_sync']();`;
 
-      controls += `<div id="${c.id}_container" class="transfer-container"${titleAttr} style="${base(c)}display:flex;align-items:stretch;gap:8px;color:${color};"><input type="hidden" id="${c.id}" name="${c.id}" value="${sel.join(",")}"><input type="hidden" id="${c.id}_available" name="${c.id}_available" value="${avail.join(",")}"><div class="transfer-avail" style="flex:1;height:100%;min-height:0;background:${cbg};${defBorder}${defRadius}display:flex;flex-direction:column;font-size:11px;overflow:hidden;"><div style="font-weight:700;color:${accent};padding:6px 10px;border-bottom:1px solid ${border};display:flex;justify-content:space-between;align-items:center;background:${isLight ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.03)"};"><span>${leftTitle}</span><span class="transfer-avail-count" style="background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};padding:1px 6px;border-radius:10px;font-size:10px;">${avail.length}</span></div><div class="transfer-avail-items" style="flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:2px;">${avail.map((a: string) => `<div class="transfer-item" title="Click to select, double-click to transfer" ondblclick="${moveItemDblClick}" onclick="this.classList.toggle('selected');const isS=this.classList.contains('selected');this.style.background=isS?'${itemSelBg}':'transparent';this.style.border=isS?'${itemSelBorder}':'1px solid transparent';" style="padding:4px 8px;border-radius:4px;cursor:pointer;border:1px solid transparent;transition:all 0.12s;user-select:none;">${a}</div>`).join("")}</div></div><div class="transfer-buttons" style="display:flex;flex-direction:column;justify-content:center;gap:4px;"><button type="button" title="Move Selected to ${rightTitle}" onclick="const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=availList.querySelectorAll('.transfer-item.selected');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';selList.appendChild(el);});if(window['${c.id}_sync'])window['${c.id}_sync']();" style="width:32px;height:26px;padding:0;background:${accent};color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">›</button><button type="button" title="Move All to ${rightTitle}" onclick="const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=availList.querySelectorAll('.transfer-item');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';selList.appendChild(el);});if(window['${c.id}_sync'])window['${c.id}_sync']();" style="width:32px;height:26px;padding:0;background:${btnBg};color:${color};border:1px solid ${border};border-radius:4px;cursor:pointer;font-weight:bold;font-size:11px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='${btnHoverBg}'" onmouseout="this.style.background='${btnBg}'">»</button><button type="button" title="Move Selected to ${leftTitle}" onclick="const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=selList.querySelectorAll('.transfer-item.selected');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';availList.appendChild(el);});if(window['${c.id}_sync'])window['${c.id}_sync']();" style="width:32px;height:26px;padding:0;background:${btnBg};color:${color};border:1px solid ${border};border-radius:4px;cursor:pointer;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='${btnHoverBg}'" onmouseout="this.style.background='${btnBg}'">‹</button><button type="button" title="Move All to ${leftTitle}" onclick="const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=selList.querySelectorAll('.transfer-item');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';availList.appendChild(el);});if(window['${c.id}_sync'])window['${c.id}_sync']();" style="width:32px;height:26px;padding:0;background:${btnBg};color:${color};border:1px solid ${border};border-radius:4px;cursor:pointer;font-weight:bold;font-size:11px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='${btnHoverBg}'" onmouseout="this.style.background='${btnBg}'">«</button></div><div class="transfer-sel" style="flex:1;height:100%;min-height:0;background:${cbg};${defBorder}${defRadius}display:flex;flex-direction:column;font-size:11px;overflow:hidden;"><div style="font-weight:700;color:#10b981;padding:6px 10px;border-bottom:1px solid ${border};display:flex;justify-content:space-between;align-items:center;background:${isLight ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.03)"};"><span>${rightTitle}</span><span class="transfer-sel-count" style="background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};padding:1px 6px;border-radius:10px;font-size:10px;">${sel.length}</span></div><div class="transfer-sel-items" style="flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:2px;">${sel.map((s: string) => `<div class="transfer-item" title="Click to select, double-click to transfer" ondblclick="${moveItemDblClick}" onclick="this.classList.toggle('selected');const isS=this.classList.contains('selected');this.style.background=isS?'${itemSelBg}':'transparent';this.style.border=isS?'${itemSelBorder}':'1px solid transparent';" style="padding:4px 8px;border-radius:4px;cursor:pointer;border:1px solid transparent;transition:all 0.12s;user-select:none;">${s}</div>`).join("")}</div></div></div>\n${syncScript}\n`;
+      controls += `<div id="${esc(c.id)}_container" class="transfer-container"${titleAttr} style="${base(c)}display:flex;align-items:stretch;gap:8px;color:${color};"><input type="hidden" id="${esc(c.id)}" name="${esc(c.id)}" value="${esc(sel.join(","))}"><input type="hidden" id="${esc(c.id)}_available" name="${esc(c.id)}_available" value="${esc(avail.join(","))}"><div class="transfer-avail" style="flex:1;height:100%;min-height:0;background:${cbg};${defBorder}${defRadius}display:flex;flex-direction:column;font-size:11px;overflow:hidden;"><div style="font-weight:700;color:${accent};padding:6px 10px;border-bottom:1px solid ${border};display:flex;justify-content:space-between;align-items:center;background:${isLight ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.03)"};"><span>${renderCtrlText(c, leftTitle)}</span><span class="transfer-avail-count" style="background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};padding:1px 6px;border-radius:10px;font-size:10px;">${avail.length}</span></div><div class="transfer-avail-items" style="flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:2px;">${avail.map((a: string) => `<div class="transfer-item" title="Click to select, double-click to transfer" ondblclick="${moveItemDblClick}" onclick="this.classList.toggle('selected');const isS=this.classList.contains('selected');this.style.background=isS?'${itemSelBg}':'transparent';this.style.border=isS?'${itemSelBorder}':'1px solid transparent';" style="padding:4px 8px;border-radius:4px;cursor:pointer;border:1px solid transparent;transition:all 0.12s;user-select:none;">${renderCtrlText(c, a)}</div>`).join("")}</div></div><div class="transfer-buttons" style="display:flex;flex-direction:column;justify-content:center;gap:4px;"><button type="button" title="Move Selected to ${esc(rightTitle)}" onclick="const cid=${tlCidJs};const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=availList.querySelectorAll('.transfer-item.selected');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';selList.appendChild(el);});if(window[cid+'_sync'])window[cid+'_sync']();" style="width:32px;height:26px;padding:0;background:${accent};color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.filter='brightness(1.15)'" onmouseout="this.style.filter=''">›</button><button type="button" title="Move All to ${esc(rightTitle)}" onclick="const cid=${tlCidJs};const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=availList.querySelectorAll('.transfer-item');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';selList.appendChild(el);});if(window[cid+'_sync'])window[cid+'_sync']();" style="width:32px;height:26px;padding:0;background:${btnBg};color:${color};border:1px solid ${border};border-radius:4px;cursor:pointer;font-weight:bold;font-size:11px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='${btnHoverBg}'" onmouseout="this.style.background='${btnBg}'">»</button><button type="button" title="Move Selected to ${esc(leftTitle)}" onclick="const cid=${tlCidJs};const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=selList.querySelectorAll('.transfer-item.selected');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';availList.appendChild(el);});if(window[cid+'_sync'])window[cid+'_sync']();" style="width:32px;height:26px;padding:0;background:${btnBg};color:${color};border:1px solid ${border};border-radius:4px;cursor:pointer;font-weight:bold;font-size:12px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='${btnHoverBg}'" onmouseout="this.style.background='${btnBg}'">‹</button><button type="button" title="Move All to ${esc(leftTitle)}" onclick="const cid=${tlCidJs};const cont=this.closest('.transfer-container');const availList=cont.querySelector('.transfer-avail-items');const selList=cont.querySelector('.transfer-sel-items');const toMove=selList.querySelectorAll('.transfer-item');toMove.forEach(el=>{el.classList.remove('selected');el.style.background='transparent';el.style.border='1px solid transparent';availList.appendChild(el);});if(window[cid+'_sync'])window[cid+'_sync']();" style="width:32px;height:26px;padding:0;background:${btnBg};color:${color};border:1px solid ${border};border-radius:4px;cursor:pointer;font-weight:bold;font-size:11px;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='${btnHoverBg}'" onmouseout="this.style.background='${btnBg}'">«</button></div><div class="transfer-sel" style="flex:1;height:100%;min-height:0;background:${cbg};${defBorder}${defRadius}display:flex;flex-direction:column;font-size:11px;overflow:hidden;"><div style="font-weight:700;color:#10b981;padding:6px 10px;border-bottom:1px solid ${border};display:flex;justify-content:space-between;align-items:center;background:${isLight ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.03)"};"><span>${renderCtrlText(c, rightTitle)}</span><span class="transfer-sel-count" style="background:${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.08)"};padding:1px 6px;border-radius:10px;font-size:10px;">${sel.length}</span></div><div class="transfer-sel-items" style="flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:2px;">${sel.map((s: string) => `<div class="transfer-item" title="Click to select, double-click to transfer" ondblclick="${moveItemDblClick}" onclick="this.classList.toggle('selected');const isS=this.classList.contains('selected');this.style.background=isS?'${itemSelBg}':'transparent';this.style.border=isS?'${itemSelBorder}':'1px solid transparent';" style="padding:4px 8px;border-radius:4px;cursor:pointer;border:1px solid transparent;transition:all 0.12s;user-select:none;">${renderCtrlText(c, s)}</div>`).join("")}</div></div></div>\n${syncScript}\n`;
     } else if (t === "vertical_slider") {
       const val = c.value !== undefined ? c.value : 50;
       const customChange =
@@ -4758,8 +4966,24 @@ export function generatePreviewHtml(spec: any): string {
       ];
       controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:3px;background:${cbg};${defBorder}${defRadius}padding:0 8px;">${amps.map((a: number) => `<div style="flex:1;height:${a}%;background:${accent};border-radius:2px;opacity:0.85;"></div>`).join("")}</div>\n`;
     } else if (t === "image_gallery") {
-      const imgs = c.images || ["🖼️ Slide 1", "🖼️ Slide 2", "🖼️ Slide 3"];
-      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:8px;overflow-x:auto;">${imgs.map((im: string) => `<div style="min-width:100px;height:100%;border:1px solid ${border};border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:${color};background:${isLight ? "#f8fafc" : "#1e293b"};">${im}</div>`).join("")}</div>\n`;
+      const imgs = c.images || c.items || ["🖼️ Slide 1", "🖼️ Slide 2", "🖼️ Slide 3"];
+      const igCidJs = safeInlineJsStr(c.id);
+      const customClick =
+        c.event_handlers?.onClick || c.event_handlers?.onclick || "";
+      const igCustomJs = safeInlineJsStr(customClick);
+      controls += `<div${id}${titleAttr} style="${base(c)}display:flex;align-items:center;gap:8px;background:${cbg};${defBorder}${defRadius}padding:8px;overflow-x:auto;">${imgs
+        .map((im: any, idx: number) => {
+          const isObj = typeof im === "object" && im !== null;
+          const src = isObj ? String(im.src || im.url || "") : "";
+          const cap = isObj
+            ? String(im.caption || im.title || im.label || src)
+            : String(im);
+          const inner = src
+            ? `<img src="${esc(src)}" alt="${esc(cap)}" style="max-width:100%;max-height:70%;object-fit:cover;border-radius:4px;"><span style="font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;">${renderCtrlText(c, cap)}</span>`
+            : renderCtrlText(c, cap);
+          return `<div onclick="const cid=${igCidJs},cc=${igCustomJs};const fn=(cc&&window[cc])||window[cid+'_onClick']||window['on_'+cid+'_click'];if(fn)fn(${idx});" style="min-width:100px;height:100%;border:1px solid ${border};border-radius:6px;display:flex;flex-direction:column;gap:4px;padding:4px;box-sizing:border-box;align-items:center;justify-content:center;font-size:11px;color:${color};cursor:pointer;background:${isLight ? "#f8fafc" : "#1e293b"};">${inner}</div>`;
+        })
+        .join("")}</div>\n`;
     } else if (t === "media_player") {
       const song = c.title || text || "Midnight Drive";
       const artist = c.artist || "Synthwave Collective";
@@ -6412,6 +6636,14 @@ ${controls}
         try { window[fn]({ id: ctrlId, x: e.clientX, y: e.clientY }); } catch(err) {}
       }
       return false;
+    }
+    var directEl = target && target.closest ? target.closest('[data-ctrl-id], [id]') : null;
+    if (directEl) {
+      var directId = directEl.getAttribute('data-ctrl-id') || directEl.id;
+      if (directId && typeof window["on_" + directId + "_contextmenu"] === "function") {
+        try { window["on_" + directId + "_contextmenu"]({ id: directId, x: e.clientX, y: e.clientY }); } catch(err) {}
+        return false;
+      }
     }
     if (window.globalContextMenuItems && window.showContextMenu && window.globalContextMenuItems.length > 0) {
       if (window.showInteractionToast) {
