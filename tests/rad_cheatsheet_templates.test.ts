@@ -2,11 +2,16 @@ import { describe, expect, test } from "bun:test";
 import fs from "node:fs";
 import path from "node:path";
 import { newSimpleWindow } from "../src/simplegui";
-import { newSimpleCLI } from "../src/simplecli/index.ts";
+import {
+  createRedisNamespace,
+  newSimpleCLI,
+  stdlib,
+} from "../src/simplecli/index.ts";
 import { rad } from "../src/features/rad/index.ts";
 import { extractProcessName, parsePsOutput } from "../src/process_tools.ts";
 import { parseDfOutput } from "../src/features/gdu/gduDoers.ts";
 import { createFullStudioWorkspace } from "../examples/rad_tutorial/12_full_studio_workspace_template.ts";
+import { createJqStudio } from "../applications/jq_studio.ts";
 
 describe("RAD Cheatsheets, Full Studio Workspace Template & Cross-Platform QA", () => {
   test("12_full_studio_workspace_template builds, filters SQLite tasks, switches tabs, and updates telemetry", async () => {
@@ -351,7 +356,9 @@ describe("Documented Cheatsheet Docs & Ergonomic Patterns", () => {
     expect(cheatsheetSection).toBeDefined();
     expect(
       cheatsheetSection!.pages!.some(
-        (p) => p.path === "cheatsheets/studios-cli-and-troubleshooting-cheatsheet.md",
+        (p) =>
+          p.path ===
+          "cheatsheets/studios-cli-and-troubleshooting-cheatsheet.md",
       ),
     ).toBe(true);
   });
@@ -395,12 +402,10 @@ describe("Documented Cheatsheet Docs & Ergonomic Patterns", () => {
         body: "SQLite Postgres MySQL workbench with rollback and QBE queries",
       });
 
-      const matches = rad.sqliteutils.searchFts<{ title: string; body: string }>(
-        db,
-        "docs_fts",
-        "graveyard",
-        10,
-      );
+      const matches = rad.sqliteutils.searchFts<{
+        title: string;
+        body: string;
+      }>(db, "docs_fts", "graveyard", 10);
       expect(matches.length).toBe(1);
       expect(matches[0]!.title).toBe("Codecaine File Manager");
 
@@ -477,11 +482,273 @@ describe("Documented Cheatsheet Docs & Ergonomic Patterns", () => {
       .addFlagInt("port", "p", 8080, "Port number")
       .addFlagBool("json", "j", false, "JSON output");
 
-    const ok = cli.parseArgs(["--env", "staging", "-p", "9090", "--json", "deploy", "api"]);
+    const ok = cli.parseArgs([
+      "--env",
+      "staging",
+      "-p",
+      "9090",
+      "--json",
+      "deploy",
+      "api",
+    ]);
     expect(ok).toBe(true);
     expect(cli.getFlagString("env")).toBe("staging");
     expect(cli.getFlagInt("port")).toBe(9090);
     expect(cli.getFlagBool("json")).toBe(true);
     expect(cli.getPositionalArgs()).toEqual(["deploy", "api"]);
+  });
+
+  test("SimpleGUI headless studios, enterprise components, reactive state and dialogs work without win.run()", async () => {
+    const jqWin = createJqStudio({ fullscreen: false });
+    jqWin.setValue("txt_filter", ".modules | map(.name)");
+    await jqWin.triggerClick("btn_execute");
+    const output = jqWin.getText("txt_output_json");
+    expect(output).toContain("simplegui");
+    await jqWin.triggerClick("btn_reset_sample");
+    expect(jqWin.getText("txt_filter").length).toBeGreaterThan(0);
+
+    const win = newSimpleWindow("Enterprise UI Test", 900, 650, {
+      fullscreen: false,
+    });
+    const events: string[] = [];
+    win.setState("env", "dev");
+    win.onStateChange("env", (_w, next) => events.push(String(next)));
+
+    win.addTextInput("Environment").id("txtEnv").bindState("env");
+    win.statistic("Users", 420, { prefix: "#", trend: "+5%" }).id("statUsers");
+    win.descriptions("Info", [["OS", "macOS"]]).id("descInfo");
+    win.chips(["Bun", "RAD"]).id("chipsStack");
+    win
+      .virtualList(["alpha", "beta", "gamma"], { itemHeight: 32 })
+      .id("vlItems");
+    win.addCommandPalette("cpMain", [{ label: "Run Check", id: "run" }]);
+    win.addKanbanBoard("kbMain", [{ id: "todo", title: "To Do", items: [] }]);
+    win.addPropertyGrid("pgMain", { host: "127.0.0.1", port: "8080" });
+    win.popconfirm("Delete Item", "Confirm removal?").id("popDelete");
+    win.tour([{ target: "pgMain", title: "Properties" }]).id("tourIntro");
+
+    await win.triggerChange("txtEnv", "staging");
+    expect(win.getState("env")).toBe("staging");
+    expect(events).toEqual(["dev", "staging"]);
+    expect(win.getControl("statUsers")).toBeDefined();
+    expect(win.getControl("descInfo")).toBeDefined();
+    expect(win.getControl("chipsStack")).toBeDefined();
+    expect(win.getControl("vlItems")).toBeDefined();
+    expect(win.getControl("cpMain")).toBeDefined();
+    expect(win.getControl("kbMain")).toBeDefined();
+    expect(win.getControl("pgMain")).toBeDefined();
+    expect(win.getControl("popDelete")).toBeDefined();
+    expect(win.getControl("tourIntro")).toBeDefined();
+
+    let prompted = "";
+    const answer = await win.showPrompt("Name?", "Ada", (v) => {
+      prompted = v ?? "";
+    });
+    expect(answer).toBe("Ada");
+    expect(prompted).toBe("Ada");
+    expect(typeof win.dialogs.confirm).toBe("function");
+  });
+
+  test("SimpleCLI subcommands, stdlib helpers and NamespacedRedis memory fallback execute deterministically", async () => {
+    let deployedEnv = "";
+    let deployedTargets: string[] = [];
+
+    const cli = newSimpleCLI("rad-ops", "1.0.0", "Ops CLI");
+    cli.command("deploy", "Deploy service", (sub) => {
+      sub.addFlagString("env", "e", "dev", "Target environment");
+      sub.action((flags, pos) => {
+        deployedEnv = String(flags.env ?? "");
+        deployedTargets = [...pos];
+      });
+    });
+
+    const ran = await cli.run(["deploy", "--env", "prod", "web", "worker"]);
+    expect(ran).toBe(true);
+    expect(deployedEnv).toBe("prod");
+    expect(deployedTargets).toEqual(["web", "worker"]);
+
+    const hash = stdlib.sha256("hello");
+    expect(hash).toHaveLength(64);
+    const enc = stdlib.aesEncrypt(
+      "placeholder-secret-payload",
+      "placeholder-aes-key",
+    );
+    expect(stdlib.aesDecrypt(enc, "placeholder-aes-key")).toBe(
+      "placeholder-secret-payload",
+    );
+    expect(stdlib.csvParse("a,b\n1,2")).toEqual([
+      ["a", "b"],
+      ["1", "2"],
+    ]);
+    expect(stdlib.tomlParse('[app]\nname = "rad"')).toEqual({
+      app: { name: "rad" },
+    });
+    expect(stdlib.slugify("Hello RAD World!")).toBe("hello-rad-world");
+    expect(stdlib.isSemver("1.4.4")).toBe(true);
+    expect(stdlib.percentile([10, 20, 30, 40], 50)).toBe(25);
+
+    const redis = createRedisNamespace("test_ns", {
+      inMemory: true,
+      fallbackToMemory: true,
+    });
+    try {
+      expect(redis.isMemoryFallback()).toBe(true);
+      await redis.set("token", "placeholder-token", 60);
+      expect(await redis.get("token")).toBe("placeholder-token");
+      await redis.setJson("u1", { role: "admin" });
+      expect(await redis.getOrSet("u1", () => ({ role: "guest" }))).toEqual({
+        role: "admin",
+      });
+      await redis.del("token", "u1");
+      expect(await redis.get("token")).toBeNull();
+    } finally {
+      redis.close();
+    }
+  });
+
+  test("all 6 rad utility domains cover documented cheatsheet APIs", async () => {
+    const tomlDoc = rad.tomlutils.parseToml(
+      '[srv]\nport = 8080\nhost = "127.0.0.1"',
+    );
+    expect(rad.tomlutils.getInt(tomlDoc, "srv.port", 3000)).toBe(8080);
+    expect(rad.tomlutils.stringifyToml(tomlDoc)).toContain("8080");
+
+    const zipBytes = rad.archiveutils.zipFiles([
+      { name: "docs/readme.txt", data: "hello zip" },
+    ]);
+    const entries = await rad.archiveutils.unzipToMemory(zipBytes);
+    expect(
+      entries.some(
+        (e) =>
+          e.name === "docs/readme.txt" &&
+          new TextDecoder().decode(e.data) === "hello zip",
+      ),
+    ).toBe(true);
+
+    const trie = new rad.structutils.SimpleTrie();
+    expect(trie.add("rad")).toBe(true);
+    expect(trie.has("rad")).toBe(true);
+    expect(trie.hasPrefix("ra")).toBe(true);
+    const dsu = new rad.structutils.DisjointSet<string>();
+    dsu.union("a", "b");
+    expect(dsu.connected("a", "b")).toBe(true);
+    const ring = new rad.structutils.SimpleRingBuffer<number>(2);
+    ring.push(1);
+    ring.push(2);
+    ring.push(3);
+    expect(ring.toArray()).toEqual([2, 3]);
+
+    const graph = rad.graphutils
+      .newGraph<string>({ directed: true })
+      .addEdge("build", "test", 2)
+      .addEdge("test", "deploy", 3);
+    expect(graph.topologicalSort()).toEqual(["build", "test", "deploy"]);
+    expect(graph.dijkstra("build", "deploy")?.distance).toBe(5);
+
+    expect(
+      rad.templateutils.renderTemplate("Hi {{name | User}}!", { name: "Ada" }),
+    ).toBe("Hi Ada!");
+    expect(rad.templateutils.templateVariables("{{a}} {{b}}")).toEqual([
+      "a",
+      "b",
+    ]);
+    const patch = rad.diffutils.unifiedDiff("a\nb\n", "a\nc\n", "f.txt");
+    expect(rad.diffutils.applyPatch("a\nb\n", patch)).toBe("a\nc\n");
+
+    const router = rad.serverutils
+      .createRouter()
+      .get("/users/:id", (_req, p) => Response.json(p));
+    const res = await router.handle(
+      new Request("http://localhost/users/42"),
+      {} as any,
+    );
+    expect(await res.json()).toEqual({ id: "42" });
+
+    const jwt = rad.jwtutils.signJwt(
+      { sub: "u1" },
+      "placeholder-jwt-secret",
+      60,
+    );
+    const verified = rad.jwtutils.verifyJwt<{ sub: string }>(
+      jwt,
+      "placeholder-jwt-secret",
+    );
+    expect(verified?.sub).toBe("u1");
+    expect(
+      rad.cryptoutils.hmacSha256("msg", "placeholder-hmac-key"),
+    ).toHaveLength(64);
+    const pwHash = await rad.cryptoutils.hashPassword("example-password");
+    expect(
+      await rad.cryptoutils.verifyPassword("example-password", pwHash),
+    ).toBe(true);
+    expect(
+      rad.urlutils.redactCredentials(
+        "postgres://admin:placeholder@db.internal:5432/app",
+      ),
+    ).toBe("postgres://admin:***@db.internal:5432/app");
+
+    const mapped = await rad.asyncutils.parallelMap(
+      [1, 2, 3],
+      2,
+      async (n) => n * 2,
+    );
+    expect(mapped).toEqual([2, 4, 6]);
+    expect(rad.validutils.isEmail("a@b.com")).toBe(true);
+    expect(rad.validutils.isJson('{"ok":true}')).toBe(true);
+    expect(rad.validutils.inRange(5, 1, 10)).toBe(true);
+
+    const start = rad.timeutils.parseIso("2026-01-01T00:00:00Z");
+    const end = rad.timeutils.addDays(start, 7);
+    expect(rad.timeutils.diffDays(start, end)).toBe(7);
+  });
+
+  test("all 6 cheatsheet markdown files have balanced language-tagged code fences and expected coverage", () => {
+    const minBlocksByDoc: Array<[string, number, boolean]> = [
+      ["docs/cheatsheets/index.md", 8, true],
+      ["docs/cheatsheets/simplegui-cheatsheet.md", 20, true],
+      ["docs/cheatsheets/simplecli-cheatsheet.md", 15, true],
+      ["docs/cheatsheets/rad-modules-cheatsheet.md", 21, true],
+      [
+        "docs/cheatsheets/studios-cli-and-troubleshooting-cheatsheet.md",
+        8,
+        true,
+      ],
+      ["CHEATSHEET.md", 30, false],
+    ];
+
+    for (const [relPath, minBlocks, requireSingleH1] of minBlocksByDoc) {
+      const fullPath = path.join(process.cwd(), relPath);
+      expect(fs.existsSync(fullPath)).toBe(true);
+      const raw = fs.readFileSync(fullPath, "utf8");
+      const lines = raw.split(/\r?\n/);
+
+      let inFence = false;
+      let blockCount = 0;
+      const h1s: string[] = [];
+
+      for (const line of lines) {
+        const fenceMatch = line.match(/^```(.*)$/);
+        if (fenceMatch) {
+          if (!inFence) {
+            inFence = true;
+            blockCount += 1;
+            const lang = (fenceMatch[1] ?? "").trim();
+            expect(lang.length).toBeGreaterThan(0);
+          } else {
+            inFence = false;
+          }
+          continue;
+        }
+        if (!inFence && /^#\s+/.test(line)) {
+          h1s.push(line);
+        }
+      }
+
+      expect(inFence).toBe(false);
+      expect(blockCount).toBeGreaterThanOrEqual(minBlocks);
+      if (requireSingleH1) {
+        expect(h1s.length).toBe(1);
+      }
+    }
   });
 });

@@ -113,6 +113,36 @@ Verified against [`cli_apps/codecaine_suite_cli.ts`](../../cli_apps/codecaine_su
 | `codecaine upgrade` (or `update`) `[--yes]` | Updates installed global package / checkout |
 | `codecaine brew <subcommand>` | Subcommands: `status`, `doctor`, `check`, `install-deps`, `cask`, `link`, `unlink` |
 
+### Programmatic studio and launcher usage in TypeScript
+
+Every desktop studio exports a factory function (`createFdStudio`, `createJqStudio`, `createLauncherStudio`, `createSqliteStudio`, etc.) returning a `SimpleWindow`. Calling the factory **without** `.run()` lets you embed, inspect, or unit-test studio workflows headlessly in `bun test` without opening a native WebView:
+
+```typescript
+import { expect, test } from "bun:test";
+import { createFdStudio } from "./applications/fd_studio.ts";
+import { createJqStudio } from "./applications/jq_studio.ts";
+import { createLauncherStudio } from "./applications/launcher_studio.ts";
+
+test("Built-in studios can be driven headlessly without win.run()", async () => {
+  // Omit win.run() in tests so no native WebView window opens
+  const jqWin = createJqStudio({ fullscreen: false });
+  jqWin.setValue("txt_filter", ".modules | map(.name)");
+  await jqWin.triggerClick("btn_execute");
+  expect(jqWin.getText("txt_output_json").length).toBeGreaterThan(0);
+
+  await jqWin.triggerClick("btn_reset_sample");
+  expect(jqWin.getText("txt_filter")).toBe(".");
+
+  const fdWin = createFdStudio({ fullscreen: false, theme: "midnight" });
+  fdWin.setValue("txt_pattern", "*.ts");
+  await fdWin.triggerClick("btn_clear");
+  expect(fdWin.getText("txt_pattern")).toBe("");
+
+  const launcher = createLauncherStudio({ fullscreen: false });
+  expect(launcher.title).toContain("Launcher");
+});
+```
+
 ---
 
 ## Codecaine File Manager and workstation cheat sheet
@@ -149,6 +179,43 @@ Launch via `bun run app:files` (see [`applications/file_manager_studio.ts`](../.
 
 - **File Vault (`RADENC`):** In File Manager select files and press **`Ctrl/Cmd+Alt+L`**, or run `bun run cli:vault encrypt <file>` / `bun run cli:vault decrypt <file>.radenc`. Encrypts streaming files in authenticated 1 MiB STREAM chunks and prints an interactive prompt or stdin confirmation.
 - **Secrets Vault (`RADSEC`):** Built into File Manager (`file_manager_secrets.radsec` in `~/.bun_rad_studio/`). Supports master password + optional key file + 160-bit recovery key + optional `Bun.secrets` OS keychain unlock, automatically masks revealed values after **15 seconds**, and clears copied secrets from the system clipboard after **30 seconds**. See [`security.md`](../security.md) for the complete threat model.
+
+### Launching File Manager, RADENC vault CLI and safe atomic file handling
+
+```bash
+# Desktop WebView window (default) vs headless loopback browser server (ideal for VMs/Brave/Chrome)
+bun run app:files
+bun run app:files --server --port 9020
+
+# Clear corrupted/off-screen bounds saved in file_manager_window.json
+bun run app:files --reset-window
+
+# Stream-encrypt or decrypt files interactively (never accepts --password on argv)
+bun run cli:vault encrypt /tmp/notes.txt
+bun run cli:vault decrypt /tmp/notes.txt.radenc
+```
+
+When writing your own workstation utilities or custom configuration files, prefer `SimpleGUI`'s atomic `0o600` helpers (or `await rad.fileutils.writeFileAtomic` for async code):
+
+```typescript
+import {
+  getAppConfigFile,
+  getAppStateFile,
+  resolveUserPath,
+  writeFileAtomic,
+} from "./src/simplegui.ts";
+import { rad } from "./src/features/rad/index.ts";
+
+const userNotes = resolveUserPath("~/notes/daily.md");
+const cfgPath = getAppConfigFile("my_workstation", "settings.json"); // ~/.config/my_workstation/settings.json (macOS/Linux)
+const statePath = getAppStateFile("my_workstation", "session.json"); // OS state dir
+
+// Synchronous atomic temp-file + 0o600 rename (SimpleGUI)
+writeFileAtomic(cfgPath, JSON.stringify({ theme: "apple_dark", notesPath: userNotes }, null, 2));
+
+// Asynchronous atomic write from rad.fileutils (D-027 distinction)
+await rad.fileutils.writeFileAtomic(statePath, JSON.stringify({ lastOpened: Date.now() }));
+```
 
 ---
 
@@ -198,6 +265,77 @@ Verified in [`applications/sqlite_studio.ts`](../../applications/sqlite_studio.t
 | **Set membership** | `IN ('open', 'pending')` or `NOT IN (0, 99)` | `IN ('open', 'pending')` / `NOT IN (0, 99)` |
 | **Missing / present values** | `IS NULL` or `IS NOT NULL` | `IS NULL` / `IS NOT NULL` |
 | **Compound `AND` / `OR` filters** | Single cell: `BETWEEN 10 AND 50` / `IN ('US', 'CA')`; or use grid **`Criteria`** + **`Or`** / **`Or 2`** rows | Same-row columns combine with `AND`; **`Criteria` / `Or` / `Or 2`** rows combine with `OR` |
+
+### Copy-paste database examples (QBE, SQLite WAL + FTS5 + JSON1, Redis fallback and URL redaction)
+
+```sql
+-- Concrete QBE cell expressions -> generated SQL WHERE clause:
+-- [status]  Criteria: IN ('open', 'pending')      -> "orders"."status" IN ('open', 'pending')
+-- [total]   Criteria: > 100                        -> "orders"."total" > 100
+-- [created] Criteria: BETWEEN '2026-01-01' AND '2026-12-31'
+-- [email]   Criteria: LIKE '%acme%'  | Or: IS NULL -> ("orders"."email" LIKE '%acme%' OR "orders"."email" IS NULL)
+SELECT id, status, total, email
+FROM "orders"
+WHERE ("orders"."status" IN ('open', 'pending') AND "orders"."total" > 100)
+   OR ("orders"."email" IS NULL);
+```
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+// 1. SQLite WAL + Parameterized Transaction + JSON1 Document Store + FTS5 Search
+const db = rad.sqliteutils.openDb("/tmp/demo.sqlite"); // enables WAL automatically
+try {
+  rad.sqliteutils.createJsonStore(db, "events");
+  rad.sqliteutils.createFtsTable(db, "events_fts", ["title", "body"]);
+
+  rad.sqliteutils.transaction(db, () => {
+    rad.sqliteutils.saveDoc(db, "events", "evt-1", { service: "billing", level: "warn" });
+    rad.sqliteutils.saveDoc(db, "events", "evt-2", { service: "auth", level: "info" });
+    rad.sqliteutils.indexFts(db, "events_fts", {
+      title: "Billing timeout",
+      body: "Retry budget exceeded for billing webhook",
+    });
+  });
+
+  // SQLite JSON1 json_extract lookup + FTS5 MATCH
+  const billingDocs = rad.sqliteutils.findDocs<{ service: string; level: string }>(
+    db,
+    "events",
+    "$.service",
+    "billing",
+  );
+  const ftsHits = rad.sqliteutils.searchFts<{ title: string }>(db, "events_fts", "webhook", 10);
+  console.log({ billingCount: billingDocs.length, ftsHits });
+} finally {
+  rad.sqliteutils.closeDb(db);
+}
+```
+
+```typescript
+import { createRedisNamespace } from "./src/simplecli/index.ts";
+import { rad } from "./src/features/rad/index.ts";
+
+// 2. NamespacedRedis with automatic in-memory fallback + safe DB URL credential redaction
+const redis = createRedisNamespace("session_cache", {
+  url: "redis://localhost:6379",
+  inMemory: true, // set false to connect to live Redis and fall back only when offline
+  fallbackToMemory: true,
+});
+
+try {
+  await redis.setJson("user:42", { role: "admin" }, 300);
+  const profile = await redis.getOrSet("user:42", () => ({ role: "guest" }), 300);
+  console.log({ profile, memoryMode: redis.isMemoryFallback() });
+  await redis.del("user:42");
+} finally {
+  redis.close();
+}
+
+const rawDbUrl = "postgres://admin:placeholder@db.internal:5432/app";
+console.log(rad.urlutils.redactCredentials(rawDbUrl));
+// => "postgres://admin:***@db.internal:5432/app"
+```
 
 ---
 
@@ -273,6 +411,62 @@ Verified against `src/simplegui.ts` (`getAppConfigDir`, `getAppStateDir`, `getAp
 | **20** | **Visual Form Designer Database controls (`DB Grid`, etc.) or Export/Run behave unexpectedly** | Database widgets in the Designer are UI placeholders (`D-002`), and Run/Export native clicks are unverified (`docs/visual-designer/index.md`) | Copy generated TypeScript/SQLite tabs and build real database logic with `rad.sqliteutils`, `bun run workbench`, or `bun run app:sqlite`. |
 | **21** | **`RADENC` / `RADSEC` asks for a passphrase I forgot** | Argon2id + AES-256-GCM encryption has no password reset or key escrow | Restore from your offline **`RADSEC` 160-bit recovery key** or unencrypted backup; without it, encrypted data cannot be recovered. |
 | **22** | **`bun run docs:check` fails with secret scanner, broken `#anchor`, or `no such script`** | Password-like example `>= 8` chars lacks whitelisted prefix, `&`/emoji in heading changes `slugify`, or doc references a non-existent `bun run` script | Prefix example credentials with `placeholder-` / `example-password` / `your-api-key` (`postgres://user:placeholder@localhost:5432/appdb`), use `and` without emojis in headings, and verify `package.json` keys. |
+
+### Troubleshooting wrong vs right code recipes
+
+```typescript
+import { createWindow, writeFileAtomic as writeGuiFileAtomic } from "./src/simplegui.ts";
+import { rad } from "./src/features/rad/index.ts";
+import { Logger as CliLogger, LRUCache as CliLruCache, writeFileAtomic } from "./src/index.ts";
+
+// (a) Confirmation dialogs inside onClick: prefer trailing callback instead of awaiting inline
+const win = createWindow("Safe App", {
+  appId: "safe_app",
+  width: 960,
+  height: 640,
+  theme: "apple_dark",
+  fullscreen: false,
+});
+
+// ❌ Wrong: awaiting modal Promise inside native UI callback can stall WebView dispatch
+// win.addButton("Delete", async (w) => { if (await w.confirm("Delete?")) { /* ... */ } });
+// ✅ Right: use the trailing callback inside window event handlers
+win.addButton("Delete", (w) => {
+  w.dialogs.confirm("Delete item?", "Confirm", (ok) => {
+    if (ok) w.setHtml("lblStatus", "<b>Deleted</b>");
+  });
+});
+
+// (b) Checkbox boolean & HTML labels: never use setText() for booleans or raw HTML markup
+// ❌ Wrong: win.setText("chkActive", "true"); win.setText("lblStatus", "<b>Ready</b>"); // escapes <b>
+// ✅ Right:
+win.addCheckbox("Active", false).id("chkActive");
+win.addLabel("").id("lblStatus");
+win.setChecked("chkActive", true);
+win.setHtml("lblStatus", "<b>Ready</b>");
+
+// (c) session.json option precedence: unpinned createWindow("App", { appId }) lets saved session.json resize/re-theme
+// ❌ Wrong: createWindow("Safe App", { appId: "safe_app" }); // width/height/theme/fullscreen come from session.json
+// ✅ Right: pass explicit width, height, theme, and fullscreen: false to pin startup layout
+
+// (d) Command execution with user input: never interpolate untrusted text into shell strings
+async function searchUserTerm(userQuery: string) {
+  // ❌ Wrong: await rad.shellutils.execCmd(`rg "${userQuery}" ./src`); // shell injection risk
+  // ✅ Right: pass argv array via rad.sysutils.execSafe (no shell invoked)
+  return rad.sysutils.execSafe("rg", ["--fixed-strings", userQuery, "./src"]);
+}
+
+// (e) D-027 root barrel disambiguation (src/index.ts):
+// Root writeFileAtomic is SimpleGUI sync; Logger & LRUCache are SimpleCLI's.
+// Use rad.* namespaces whenever you specifically want async fileutils or rad.cacheutils/rad.logutils:
+const cliCache = new CliLruCache<string, number>(64);
+const cliLogger = new CliLogger();
+const radLogger = rad.logutils.newLogger({ prefix: "rad" });
+const radCache = new rad.cacheutils.LRUCache<string, number>(64);
+writeFileAtomic("./tmp-sync.txt", "sync 0600");
+void rad.fileutils.writeFileAtomic("./tmp-async.txt", "async");
+void [win, writeGuiFileAtomic, searchUserTerm, cliCache, cliLogger, radLogger, radCache];
+```
 
 ---
 

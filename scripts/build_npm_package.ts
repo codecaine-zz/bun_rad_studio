@@ -635,9 +635,9 @@ function getBundledDeclarations(): { indexDts: string; simpleGuiDts: string } {
         if (isTypeDecl) {
           const hasExport = Boolean(
             ts.canHaveModifiers(stmt) &&
-              ts
-                .getModifiers(stmt)
-                ?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword),
+            ts
+              .getModifiers(stmt)
+              ?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword),
           );
           if (!hasExport) {
             raw = raw.replace(
@@ -669,18 +669,15 @@ function getBundledDeclarations(): { indexDts: string; simpleGuiDts: string } {
             }
           }
           if (!helperPublicValues.has(declName)) {
-            raw = raw.replace(
-              /^(\s*(?:\/*\*[\s\S]*?\*\/\s*)*)export\s+/,
-              "$1",
-            );
+            raw = raw.replace(/^(\s*(?:\/*\*[\s\S]*?\*\/\s*)*)export\s+/, "$1");
           }
         }
       } else if (isSimpleGui) {
         const hasExport = Boolean(
           ts.canHaveModifiers(stmt) &&
-            ts
-              .getModifiers(stmt)
-              ?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword),
+          ts
+            .getModifiers(stmt)
+            ?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword),
         );
         if (hasExport) {
           if (

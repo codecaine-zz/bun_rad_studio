@@ -2,24 +2,24 @@
 
 > **Navigation:** [Cheatsheets Hub](./index.md) · [SimpleGUI Cheat Sheet](./simplegui-cheatsheet.md) · [RAD Modules Cheat Sheet](./rad-modules-cheatsheet.md) · [Full CLI API Reference](../CLI_API.md) · [Combined Handbook](../../CHEATSHEET.md)
 
-**SimpleCLI** is Bun RAD Studio's zero-dependency TypeScript toolkit for building **command-line tools, CI/CD automation scripts, interactive terminal wizards, backend API clients, Redis workers, and standalone compiled binaries** from one cohesive module (`src/simplecli/`).
+**SimpleCLI** is Bun RAD Studio's zero-dependency TypeScript toolkit for building **command-line tools, CI/CD automation scripts, interactive terminal wizards, backend API clients, Redis workers, and standalone compiled binaries** from `src/simplecli/`.
 
 ---
 
 ## How SimpleCLI Works in 60 Seconds
 
-Whether you are building your very first terminal command or a production deployment CLI, every SimpleCLI app follows the same straightforward lifecycle:
+Every SimpleCLI application follows one predictable lifecycle:
 
 1. **Create an app** with `newApp("tool-name", "1.0.0")` (or `newSimpleCLI(...)` when you want a custom help description too).
-2. **Register typed flags and subcommands** (`addFlagString`, `addFlagBool`, `command(...)`, `.action(...)`). SimpleCLI parses strings, integers, floats, booleans, repeatable arrays, and `choices` enums automatically—plus `-h`/`--help`, `-V`/`--version`, `--completion <shell>`, and typo `"Did you mean ...?"` suggestions.
+2. **Register typed flags and subcommands** (`addFlagString`, `addFlagBool`, `command(...)`, `.action(...)`). SimpleCLI handles strings, integers, floats, booleans, repeatable arrays, and `choices` enums—plus built-in `-h`/`--help`, `-V`/`--version`, `--completion <shell>`, and typo `"Did you mean ...?"` hints.
 3. **Run the parser**: call `await app.run()` to parse `process.argv.slice(2)` and invoke the matched `.action(flags, args)` handler, OR call `app.parseCli()` / `app.parseArgs(argv)` when you want manual control (and deterministic headless `bun test` unit tests!).
-4. **Stay dual-mode (Human TTY vs CI Pipe)**: inspect `process.stdout.isTTY`, `process.stdin.isTTY`, and `--json` / `--yes` flags so humans see ANSI tables, progress bars, and fuzzy prompts while automated CI scripts (`bun run app.ts --json | jq`) receive clean JSON without hanging on input.
-5. **Compose batteries-included engines**: chain `newPipeline()`, shell/hardware/network helpers (`sys`), shell-free safe process execution (`rad.sysutils.execSafe`), non-throwing HTTP CRUD (`createApiClient`), namespaced Redis (`app.redis`), crypto/math/collections (`stdlib`), and single-file binary builds (`bun build --compile`).
+4. **Stay dual-mode (Human TTY vs CI Pipe)**: inspect `process.stdout.isTTY`, `process.stdin.isTTY`, and `--json` / `--yes` flags so interactive terminals see styled tables, charts, and prompts while automated CI pipelines (`bun run app.ts --json | jq`) receive clean JSON without hanging on stdin.
+5. **Compose batteries-included engines**: combine `newPipeline()`, shell/hardware/network helpers (`sys`), shell-free safe process arrays (`rad.sysutils.execSafe`), non-throwing HTTP CRUD (`createApiClient`), namespaced Redis with in-memory fallback (`app.redis` / `createRedisNamespace`), crypto/math/collections (`stdlib`), and single-file binary compilation (`bun build --compile`).
 
 ### CLI Execution Flow Diagram
 
 ```text
-  bun run app.ts deploy --env prod --json   (or test: app.parseArgs([...]))
+  bun run app.ts --env prod deploy --json   (or test: app.parseArgs([...]))
           │
           ▼
   ┌─────────────────────────────────────────────────────────────────────┐
@@ -53,15 +53,13 @@ Whether you are building your very first terminal command or a production deploy
 
 ### The 3 Import Scenarios
 
-Use the import path that matches where your script lives—everything else in this cheat sheet stays identical:
-
 | Scenario | Where Your Script Lives | Copy-Paste Import |
 | :--- | :--- | :--- |
 | **A. Installed npm Package** | External project using `bun add bun-rad-studio` | `import { newApp, createApiClient, sys, stdlib, rad } from "bun-rad-studio";` |
 | **B. Repository Root** | Root script such as `app.ts` in this repo | `import { newApp, createApiClient, sys, stdlib } from "./src/simplecli";` |
 | **C. Subfolder Script** | File under `examples/rad_tutorial/` or `tests/sub/` | `import { newApp, createApiClient, sys, stdlib } from "../../src/simplecli";` |
 
-> **Hub Collision Note (`bun-rad-studio` / `"./src"`):** When importing from the unified root hub (`"bun-rad-studio"` or `"./src"`), **`LRUCache`**, **`Logger`**, **`LogLevel`**, and **`TreeNode`** resolve to **SimpleCLI**, while **`writeFileAtomic`** resolves to **SimpleGUI**. Keep using `rad.logutils`, `rad.cacheutils.LRUCache`, and `rad.fileutils.writeFileAtomic` (or import `"./src/simplecli"` directly) whenever you want the RAD-module variants.
+> **Hub Collision Note (`bun-rad-studio` / `"./src"`):** When importing from the unified root hub (`"bun-rad-studio"` or `"./src"`), **`LRUCache`**, **`Logger`**, **`LogLevel`**, and **`TreeNode`** resolve to **SimpleCLI**, while **`writeFileAtomic`** resolves to **SimpleGUI**. Use `rad.logutils`, `rad.cacheutils.LRUCache`, and `rad.fileutils.writeFileAtomic` (or import `"./src/simplecli"` directly) whenever you want the RAD-module variants.
 
 ### Hello CLI in 10 Lines
 
@@ -106,7 +104,7 @@ if (import.meta.main) {
 
 ## Step 1: App initialization, typed flags, and subcommands
 
-Start by creating a `SimpleCLI` application instance, defining strongly typed flags (with optional single-character aliases and allowed-value enums), registering nested or sibling subcommands, and wiring error handlers.
+Start by creating a `SimpleCLI` instance, defining strongly typed flags (with optional single-character aliases and `choices` enums), registering subcommands, and wiring actions or standalone `parseArgs()` calls.
 
 ### App Factories & Constructors
 
@@ -115,7 +113,7 @@ Start by creating a `SimpleCLI` application instance, defining strongly typed fl
 | `newApp` / `createApp` | `newApp(name: string, version = "1.0.0"): SimpleCLI` | Standard fluent app factory (both names are aliases) |
 | `newSimpleCLI` / `createCLI` | `newSimpleCLI(name: string, versionOrDescription = "1.0.0", version?: string): SimpleCLI` | Pass `("my-cli", "Description text", "2.0.0")` or `("my-cli", "2.0.0")` |
 | `initApp` | `initApp(): SimpleCLI` | Auto-infers app name from `process.argv[1]` basename |
-| `SimpleCLI.new` / `SimpleCLI.newApp` | `SimpleCLI.new(appName: string)` · `SimpleCLI.newApp(appName: string, version: string): SimpleCLI` | Static class factories on `SimpleCLI` (`version` is required on static `SimpleCLI.newApp`) |
+| `SimpleCLI.new` / `SimpleCLI.newApp` | `SimpleCLI.new(appName: string)` · `SimpleCLI.newApp(appName: string, version: string): SimpleCLI` | Static class factories (`version` is required on static `SimpleCLI.newApp`) |
 
 ### Typed Flags, Accessors & Positional Arguments
 
@@ -132,7 +130,7 @@ Start by creating a `SimpleCLI` application instance, defining strongly typed fl
 | `getFlagInt` | `getFlagInt(name: string): number` | Reads parsed integer flag |
 | `getFlagFloat` | `getFlagFloat(name: string): number` | Reads parsed float flag |
 | `getFlagBool` | `getFlagBool(name: string): boolean` | Reads parsed boolean flag |
-| `getFlagArray` | `getFlagArray(name: string): string[]` | Reads parsed `string[]` array flag (copy-safe usage) |
+| `getFlagArray` | `getFlagArray(name: string): string[]` | Reads parsed `string[]` array flag |
 | `getAllFlags` | `getAllFlags(): Record<string, any>` | Snapshot dictionary of every flag passed to `.action(flags, args)` |
 | `getPositionalArgs` | `getPositionalArgs(): string[]` | Remaining non-flag arguments (plus tokens after `--`) |
 
@@ -140,7 +138,7 @@ Start by creating a `SimpleCLI` application instance, defining strongly typed fl
 
 | Method | Signature | Purpose |
 | :--- | :--- | :--- |
-| `command` | `command(name: string, descriptionOrSetup?: string \| ((sub: SimpleCLI) => void), maybeSetup?: (sub: SimpleCLI) => void): SimpleCLI` | Creates & configures a subcommand (`SimpleCLI` child inheriting `version` and `noColor`); returns the child instance |
+| `command` | `command(name: string, descriptionOrSetup?: string \| ((sub: SimpleCLI) => void), maybeSetup?: (sub: SimpleCLI) => void): SimpleCLI` | Creates & configures a child `SimpleCLI` subcommand (inherits `version` and `noColor`); returns the child instance |
 | `action` | `action(fn: (flags: Record<string, any>, args: string[]) => void \| Promise<void>): this` | Registers execution handler for root app or subcommand |
 | `run` | `run(rawArgs: string[] = process.argv.slice(2)): Promise<boolean>` | Parses `rawArgs`; if a subcommand matches, delegates to `sub.run(...)`, otherwise invokes root `.action(flags, args)` |
 | `handleErrors` | `handleErrors(): this` | Installs friendly formatted handlers for uncaught exceptions and unhandled rejections |
@@ -148,80 +146,142 @@ Start by creating a `SimpleCLI` application instance, defining strongly typed fl
 
 ### `app.parseCli()` vs `app.parseArgs(customArgv)` vs `app.run()`
 
-Understanding which entry method to call prevents one of the biggest surprises for new users:
-
 | Feature / Behavior | `app.parseCli(rawArgs?)` | `app.parseArgs(args: string[])` | `await app.run(rawArgs?)` |
 | :--- | :--- | :--- | :--- |
 | **Default input** | `process.argv.slice(2)` | Explicit `string[]` you supply | `process.argv.slice(2)` |
 | **Invokes `.action(flags, args)`?** | **No** (parse only) | **No** (parse only) | **Yes** (matched subcommand or root `.action`) |
-| **Resets state on each call?** | Yes (resets flags & positional args) | Yes (safe to call repeatedly in tests!) | Yes |
+| **Resets state on each call?** | Yes (resets flags & positional args) | Yes (safe to call repeatedly in tests & handlers!) | Yes |
 | **Built-in `--help`/`--version`/`--completion`?** | Yes (prints & returns `false`) | Yes (prints & returns `false`) | Yes (prints & returns `false`) |
 | **Validates types, missing flag values & `choices`?** | Yes (prints error & returns `false`) | Yes (prints error & returns `false`) | Yes (returns `false`, skips `.action`) |
-| **Primary use case** | Imperative scripts doing `if (!app.parseCli()) return;` | **Headless `bun test` unit tests** | Standard subcommand-driven CLIs |
+| **Primary use case** | Imperative scripts doing `if (!app.parseCli()) return;` | **Headless `bun test` tests & embedded HTTP/script parsers** | Standard subcommand-driven CLIs |
 
 > **Built-In Features & Flag Placement Rules:**
-> - `--help` / `-h` and `--version` / `-V` / `-v` are handled inside `parseArgs()` immediately before returning `false`.
-> - `--completion bash|zsh|fish` and `my-cli completion zsh` are built into `parseArgs()` automatically—there is **no** `app.enableCompletions()` method.
-> - **Parent vs. Subcommand Flag Scope:** Flags registered on root `app` (`app.addFlagString("env", ...)`) MUST appear **before** the subcommand (`app.ts --env prod status`). Flags expected **after** a subcommand (`app.ts status --json`) must be registered directly on the child `sub` instance (`statusCmd.addFlagBool(...)`). Child subcommands only inherit `version` and `noColor`, not parent flags.
-> - **Typo Suggestions ("Did you mean ...?"):** Unknown subcommands print `Did you mean '<match>'?` and return `false`. Unknown `--flag` tokens print a suggestion when close to a registered flag and pass into `getPositionalArgs()`.
-> - Stop-parsing separator `--`: everything after `--` goes straight into `getPositionalArgs()` unchanged.
+> - `--help` / `-h` and `--version` / `-V` / `-v` are handled inside `parseArgs()` automatically before returning `false`.
+> - `--completion bash|zsh|fish` and `my-cli completion zsh` work out of the box—there is **no** `app.enableCompletions()` method.
+> - **Parent vs. Subcommand Flag Scope:** Flags registered on root `app` (`app.addFlagString("env", ...)`) MUST appear **before** the subcommand (`app.ts --env prod deploy`). Flags expected **after** a subcommand (`app.ts deploy --json`) must be registered directly on the child `sub` instance (`sub.addFlagBool(...)`). Child subcommands inherit `version` and `noColor`, not parent flags.
+> - **Typo Suggestions ("Did you mean ...?"):** Unknown subcommands print `Did you mean '<match>'?` and return `false`. Unknown `--flag` tokens print a suggestion when close to a registered flag and pass into `getPositionalArgs()`. Everything after `--` passes verbatim into `getPositionalArgs()`.
+
+### Example 1A: Minimal Single-Command CLI
 
 ```typescript
 import { newApp } from "./src/simplecli";
 
-const app = newApp("deploy-cli", "2.1.0").handleErrors();
+const app = newApp("hash-tool", "1.0.0").handleErrors();
 
-// Global flags (pass "" for `short` if no single-letter alias is desired)
-app.addFlagString("env", "e", "dev", "Target environment", ["dev", "staging", "prod"]);
-app.addFlagInt("replicas", "r", 2, "Pod replica count");
-app.addFlagFloat("canary", "", 0.1, "Canary traffic ratio (0.0 - 1.0)");
-app.addFlagBool("verbose", "v", false, "Enable verbose logging");
-app.addFlagArray("tag", "t", ["latest"], "Docker image tags (repeatable)");
+app.addFlagString("algo", "a", "sha256", "Digest algorithm", ["sha256", "sha512"]);
+app.addFlagBool("upper", "u", false, "Print uppercase hex digest");
 
-const statusCmd = app.command("status", "Show cluster rollout status");
-statusCmd.addFlagBool("json", "j", false, "Emit JSON output");
-statusCmd.action((flags, args) => {
-  statusCmd.output(
-    {
-      service: args[0] ?? "api-gateway",
-      env: app.getFlagString("env"),
-      replicas: app.getFlagInt("replicas"),
-      tags: app.getFlagArray("tag"),
-    },
-    { format: "kv", title: "Rollout Status" },
-  );
+app.action(async (flags, args) => {
+  const inputPath = args[0];
+  if (!inputPath) {
+    app.warn("Pass a file path: bun run app.ts README.md");
+    return;
+  }
+  const bytes = await Bun.file(inputPath).bytes();
+  const hex = new Bun.CryptoHasher(flags.algo).update(bytes).digest("hex");
+  app.println(flags.upper ? hex.toUpperCase() : hex);
 });
 
-app.command("rollback", "Roll back a release", (sub) => {
-  sub.addFlagInt("revision", "r", 1, "Target revision number");
-  sub.action((flags, args) => {
-    sub.info(`Rolling back ${args[0] ?? "all"} to revision ${flags.revision}`);
-  });
-});
-
-// Option A: Let SimpleCLI parse argv and execute the matched .action():
-// Example invocation: bun run app.ts --env prod --replicas 3 status --json
 if (import.meta.main) {
   const ok = await app.run();
   if (!ok) process.exitCode = 1;
 }
+```
 
-// Option B: Imperative parsing (remember parseCli() does NOT run .action()!):
-// if (!app.parseCli()) process.exit(0);
-// const env = app.getFlagString("env");
+### Example 1B: Multi-Subcommand CLI (`init`, `scan`, `deploy`)
+
+```typescript
+import { newApp, type SimpleCLI } from "./src/simplecli";
+
+function createWorkspaceCli(): SimpleCLI {
+  const app = newApp("studio-ops", "2.1.0").handleErrors();
+
+  // Global flags go BEFORE the subcommand: `bun run app.ts --env prod --verbose deploy`
+  app.addFlagString("env", "e", "dev", "Target environment", ["dev", "staging", "prod"]);
+  app.addFlagBool("verbose", "v", false, "Enable verbose diagnostics");
+
+  app.command("init", "Scaffold project workspace", (sub) => {
+    sub.addFlagString("template", "t", "minimal", "Starter preset", ["minimal", "api", "worker"]);
+    sub.addFlagBool("force", "f", false, "Overwrite existing config");
+    sub.action((flags, args) => {
+      const targetDir = args[0] ?? ".";
+      sub.printKv({ action: "init", targetDir, template: flags.template, force: flags.force });
+    });
+  });
+
+  app.command("scan", "Scan files with repeatable include tags", (sub) => {
+    sub.addFlagArray("ext", "x", [".ts"], "File extensions to match (repeatable)");
+    sub.addFlagInt("depth", "d", 4, "Maximum directory depth");
+    sub.action((flags, args) => {
+      const root = args[0] ?? "src";
+      sub.output({ root, extensions: sub.getFlagArray("ext"), maxDepth: flags.depth, env: app.getFlagString("env") }, { format: "kv", title: "Scan Plan" });
+    });
+  });
+
+  app.command("deploy", "Deploy service release", (sub) => {
+    sub.addFlagInt("replicas", "r", 2, "Replica count");
+    sub.addFlagFloat("canary", "c", 0.1, "Canary traffic ratio (0.0 - 1.0)");
+    sub.addFlagBool("json", "j", false, "Emit machine-readable JSON");
+    sub.action((flags, args) => {
+      const service = args[0] ?? "api-gateway";
+      // Pass global flags BEFORE `deploy` and command flags AFTER `deploy`:
+      // e.g. `bun run app.ts --env prod deploy api-gateway --replicas 4 --json`
+      sub.output(
+        { service, env: app.getFlagString("env"), replicas: flags.replicas, canary: flags.canary },
+        { format: "kv", title: "Deploy Plan" },
+      );
+    });
+  });
+
+  return app;
+}
+
+if (import.meta.main) {
+  const ok = await createWorkspaceCli().run();
+  if (!ok) process.exitCode = 1;
+}
+```
+
+### Example 1C: Standalone `parseCli()` and Non-Exiting `parseArgs()` in Scripts / HTTP Handlers
+
+Create a fresh parser instance inside helper functions or `sys.serveJson` HTTP handlers and call `parseArgs(argv)` (or `parseCli(argv)`)—neither mutates `process.argv` nor exits the process on bad input:
+
+```typescript
+import { SimpleCLI, newApp } from "./src/simplecli";
+
+// Pattern 1: Imperative script using `parseCli()` (`process.argv.slice(2)` by default)
+function parseFromArgv(customArgv?: string[]) {
+  const cli = newApp("worker", "1.0.0").setSilent(true).setNoColor(true);
+  cli.addFlagInt("concurrency", "c", 4, "Worker pool size");
+  cli.addFlagBool("dry-run", "d", false, "Skip mutations");
+  const ok = cli.parseCli(customArgv); // parses without triggering `.action()`
+  return { ok, concurrency: cli.getFlagInt("concurrency"), dryRun: cli.getFlagBool("dry-run"), targets: cli.getPositionalArgs() };
+}
+
+// Pattern 2: Embedding a safe command parser inside an HTTP route handler (never exits on invalid input)
+function handleAdminCommand(rawTokens: string[]) {
+  const parser = SimpleCLI.newApp("admin-rpc", "1.0.0").setSilent(true).setNoColor(true);
+  parser.addFlagString("action", "a", "status", "Operation", ["status", "reload", "drain"]);
+  parser.addFlagInt("timeout", "t", 5000, "Timeout in ms");
+
+  if (!parser.parseArgs(rawTokens)) {
+    return { status: 400, body: { ok: false, error: "Invalid action or integer timeout" } };
+  }
+  return { status: 200, body: { ok: true, flags: parser.getAllFlags(), args: parser.getPositionalArgs() } };
+}
+
+console.log("Script parse:", parseFromArgv(["--concurrency", "8", "--dry-run", "src/", "--", "--raw-arg"]));
+console.log("HTTP valid:", handleAdminCommand(["--action", "reload", "--timeout", "2500", "api-1"]));
+console.log("HTTP invalid:", handleAdminCommand(["--timeout", "12px"])); // fails cleanly -> status 400
 ```
 
 ---
 
 ## Step 2: Console UI, tables, sparklines, bar charts, trees, and diffs
 
-SimpleCLI ships a complete ANSI rendering engine that automatically respects `--no-color` (`app.setNoColor(true)`), `--silent` (`app.setSilent(true)`), and piped CI output (`!process.stdout.isTTY`).
+SimpleCLI includes an ANSI rendering engine that honors `setNoColor(true)`, `setSilent(true)`, and non-TTY piped streams (`!process.stdout.isTTY`).
 
 ### Interactive Terminal (TTY) vs Piped CI Output (`--json` and Pipes)
-
-When a user runs your CLI in a terminal (`process.stdout.isTTY === true`), human-friendly banners, tables, and colors look great. When they pipe output to another tool (`bun run app.ts status | jq`) or pass `--json`, color escapes and ASCII borders break scripts.
-
-Use **`app.output(data, options?)`** instead of hardcoding `console.log`:
 
 | Scenario | Behavior of `app.output(data, { format, title })` |
 | :--- | :--- |
@@ -231,7 +291,7 @@ Use **`app.output(data, options?)`** instead of hardcoding `console.log`:
 | Interactive TTY (`format: "kv"`) | Renders key-value pairs via `printKv(data)` (with optional `title` banner/step) |
 | `format: "markdown"` or `"text"` | Skips auto-JSON conversion on pipes and prints strings via `println(String(data))` (call `app.renderMarkdown(md)` explicitly when you want styled Markdown rendering) |
 
-> **Important API Clarity:** SimpleCLI does **not** have `app.isTty()`, `app.smartOutput()`, `app.printJson()`, or `app.forEachWithProgress()`. Check TTY natively with `process.stdout.isTTY` / `process.stdin.isTTY`, use **`app.output(data, { format, title })`** + **`app.tableToJson()`** + **`app.jsonHighlight()`** for dual-mode JSON output, and drive progress bars directly inside a standard `for` loop.
+> **Important API Clarity:** SimpleCLI does **not** have `app.isTty()`, `app.smartOutput()`, `app.printJson()`, or `app.forEachWithProgress()`. Check TTY natively with `process.stdout.isTTY` / `process.stdin.isTTY`, use **`app.output(data, { format, title })`** + **`app.tableToJson()`** + **`app.jsonHighlight()`**, and drive progress bars inside a standard `for` loop.
 
 ### Complete Console Visual Components Reference
 
@@ -254,46 +314,88 @@ Use **`app.output(data, options?)`** instead of hardcoding `console.log`:
 | **Task Items** | `taskItem(name, status: TaskStatus, durationMs = 0)` | Status checklist line (`PENDING`, `RUNNING`, `DONE`, `FAILED`, `SKIPPED`) |
 | **Code & Docs** | `jsonHighlight(jsonStr): string` · `renderMarkdown(markdownText): void` | Returns colorized JSON string; `renderMarkdown` prints styled terminal Markdown directly (`void`) |
 
-```typescript
-import { AlertKind, TaskStatus, TreeNode, newApp } from "./src/simplecli";
+### Example 2A: Styled Boxes, Panels, Cards, KV Layouts, Badges, Alerts & Tables
 
-const app = newApp("ui-tour", "1.0.0");
-app.addFlagBool("json", "j", false, "Emit JSON instead of terminal UI");
+```typescript
+import { AlertKind, TaskStatus, newApp } from "./src/simplecli";
+
+const app = newApp("ui-cards", "1.0.0");
+
+app.banner("Build Dashboard", "Bun RAD Studio • Release v2.1");
+app.step(1, "Status Summary");
+app.println(`${app.badge("ENV", "staging", AlertKind.WARNING)} ${app.badge("REGION", "us-east-1", AlertKind.INFO)}`);
+app.println(app.hex("#38bdf8", "Truecolor heading") + " • " + app.bold(app.green("All checks green")));
+
+app.panel("Deployment Notes", "Canary rollout at 10% weight with automated rollback.");
+app.card("Active Build", "commit: 94af21c\ntarget: bun-darwin-arm64");
+app.printKv({ Service: "billing-api", Port: 8080, TLS: true });
+
+app.alert(AlertKind.TIP, "CSV / Markdown Export", "Use tableToCsv() or tableToMarkdown() for CI artifacts.");
+app.taskItem("Compile TypeScript bundle", TaskStatus.DONE, 218);
+
+const headers = ["Node", "Zone", "RPM", "Healthy"];
+const rows = [
+  ["edge-01", "us-east", 1420, true],
+  ["edge-02", "eu-west", 980, true],
+];
+app.table(headers, rows);
+app.divider("─", 52);
+app.println("Markdown snapshot:\n" + app.tableToMarkdown(headers, rows));
+```
+
+### Example 2B: Terminal Charts (`sparkline`, `barChart`, `gauge`, `TreeNode`, `diff`, `renderMarkdown`)
+
+```typescript
+import { TreeNode, newApp } from "./src/simplecli";
+
+const app = newApp("ui-charts", "1.0.0");
+
+// Sparkline & threshold gauge (`OK` < 75%, `WARN` >= 75%, `CRITICAL` >= 90%)
+app.println("Latency (ms): " + app.cyan(app.sparkline([11, 14, 19, 48, 29, 17, 15])));
+app.gauge("Memory Pressure", 78, 100, "%");
+app.barChart("Requests per Route", { "/health": 1840, "/api/users": 920, "/graphql": 410 }, 24);
+
+// Hierarchical ASCII tree
+const tree = new TreeNode("bun_rad_studio/");
+const src = tree.addChild("src/");
+src.addChild("simplecli/index.ts");
+src.addChild("simplegui.ts");
+tree.addChild("tests/").addChild("simplecli_backend_client.test.ts");
+app.tree(tree);
+
+// Line-by-line unified diff + syntax-highlighted JSON + rendered Markdown
+app.diff("port = 3000\ncache = false", "port = 8080\ncache = true");
+app.println(app.jsonHighlight(JSON.stringify({ status: "ok", workers: 4 }, null, 2)));
+app.renderMarkdown("### Release Ready\n- **Zero** type errors\n- `bun build --compile` verified");
+```
+
+### Example 2C: Dual-Mode `app.output(data, options)` (Interactive TTY vs Piped `| jq` / `--json`)
+
+```typescript
+import { newApp } from "./src/simplecli";
+
+const app = newApp("inventory-cli", "1.0.0");
+app.addFlagBool("json", "j", false, "Force machine-readable JSON output");
 if (!app.parseCli()) process.exit(0);
 
-// Dual-mode data: prints styled table in interactive TTY, clean JSON with `--json` or pipes (`| jq`)
 const services = [
-  { Service: "api-gateway", LatencyMs: 14, Status: "HEALTHY" },
-  { Service: "worker-pool", LatencyMs: 42, Status: "HEALTHY" },
+  { Service: "api-gateway", Replicas: 4, LatencyMs: 14, Status: "HEALTHY" },
+  { Service: "worker-pool", Replicas: 2, LatencyMs: 42, Status: "HEALTHY" },
 ];
+
+// `app.output(...)` automatically switches formats:
+// 1) Interactive terminal (`bun run app.ts`) -> renders an aligned Unicode table with title
+// 2) Piped CI or flagged (`bun run app.ts --json | jq '.[0].Service'` or `bun run app.ts | cat`):
+//    emits clean JSON array:
+//    [
+//      { "Service": "api-gateway", "Replicas": 4, "LatencyMs": 14, "Status": "HEALTHY" },
+//      ...
+//    ]
 app.output(services, { format: "table", title: "Live Cluster Inventory" });
 
-// Interactive-only dashboard widgets (skip decorative UI when piping JSON)
+// Gate extra human-only headers/spinners behind BOTH `!flags.json` AND `process.stdout.isTTY`:
 if (!app.getFlagBool("json") && process.stdout.isTTY) {
-  app.banner("Release Telemetry", "Production Cluster • us-east");
-  app.step(1, "Resource Gauges & Sparklines");
-  app.println("CPU trend: " + app.cyan(app.sparkline([18, 22, 29, 44, 38, 27, 21])));
-  app.gauge("Memory Usage", 78, 100, "%"); // 78% -> WARN (>= 75% WARN, >= 90% CRITICAL)
-  app.barChart("Requests / sec by Route", { "/health": 1840, "/api/users": 920, "/graphql": 410 }, 24);
-
-  app.step(2, "Dependency Tree & Config Diff");
-  const root = new TreeNode("workspace/");
-  root.addChild("src/").addChild("index.ts");
-  root.addChild("tests/").addChild("cli.test.ts");
-  app.tree(root);
-
-  app.diff("port = 3000\ncache = false", "port = 8080\ncache = true");
-  app.alert(AlertKind.TIP, "Fast Export", "Pipe with `| jq` to receive clean JSON automatically.");
-  app.println(app.badge("BUILD", "v2.1.0", AlertKind.SUCCESS));
-  app.taskItem("Compile bundle", TaskStatus.DONE, 412);
-
-  // Progress bar loop (standard `for` loop — no `forEachWithProgress` wrapper)
-  const items = ["migrations", "assets", "schema"];
-  for (let i = 0; i < items.length; i++) {
-    app.progressBar(i + 1, items.length, `Syncing ${items[i]}`, 28);
-    await Bun.sleep(60);
-  }
-  await app.spinner("Finalizing checksums", 500);
+  app.dim("Tip: pass --json or pipe to `jq` for automation.");
 }
 ```
 
@@ -301,7 +403,7 @@ if (!app.getFlagBool("json") && process.stdout.isTTY) {
 
 ## Step 3: Interactive prompts, fuzzy menus, form wizards, and file picker
 
-SimpleCLI's prompt suite supports interactive raw-mode TTY controls (arrow keys, type-to-filter fuzzy search, directory browsing) AND automatic fallback behavior when `stdin` is piped in CI.
+SimpleCLI prompts provide TTY raw-mode navigation (arrow keys, live substring fuzzy search, directory browsing) AND automatic fallback behavior when `stdin` is piped in CI.
 
 ### Complete Prompt Method Table
 
@@ -320,68 +422,81 @@ SimpleCLI's prompt suite supports interactive raw-mode TTY controls (arrow keys,
 | `promptPath` | `promptPath(message: string, defaultVal = "", mode = PathMode.ANY): Promise<string>` | `string` | Expands `~`; validates against `PathMode` (`ANY`, `MUST_EXIST`, `FILE`, `DIRECTORY`) |
 | `filePicker` | `filePicker(message = "Select a file or directory:", options?: FilePickerOptions): Promise<string>` | `string` | TTY interactive directory navigator (`Enter` open/select, `Space` pick dir, `Esc`/`q`/Ctrl+C -> `""`); falls back to `promptPath` in non-TTY |
 
+> **Real Names Note:** SimpleCLI prompt methods are named `prompt`, `promptPassword`, `promptNumber`, `filePicker`, and `form` (there are **no** `ask()`, `password()`, `number()`, `pickFile()`, `wizard()`, or `selectFromObjects()` methods).
+
 ### `FormFieldKind`, `PathMode`, and `FilePickerOptions` Reference
 
-- **`FormFieldKind`** (use enum or lowercase string literal):
-  - `FormFieldKind.TEXT` (`"text"`) -> delegates to `prompt`
-  - `FormFieldKind.NUMBER` (`"number"`) -> delegates to `promptNumber` (still serialized as `string` in returned `Record<string, string>`, e.g. `"8080"`)
-  - `FormFieldKind.BOOLEAN` (`"boolean"`) -> delegates to `confirm` (returns `"true"` or `"false"`)
-  - `FormFieldKind.PASSWORD` (`"password"`) -> delegates to `promptPassword`
-  - `FormFieldKind.SELECT` (`"select"`) -> delegates to `select(..., field.choices ?? [])`
+- **`FormFieldKind`** (`enum` or lowercase string literal):
+  - `FormFieldKind.TEXT` (`"text"`) -> `prompt`
+  - `FormFieldKind.NUMBER` (`"number"`) -> `promptNumber` (serialized as `string` in returned `Record<string, string>`, e.g. `"8080"`)
+  - `FormFieldKind.BOOLEAN` (`"boolean"`) -> `confirm` (returns `"true"` or `"false"`)
+  - `FormFieldKind.PASSWORD` (`"password"`) -> `promptPassword`
+  - `FormFieldKind.SELECT` (`"select"`) -> `select(..., field.choices ?? [])`
 - **`FormField` properties**: `{ key: string; label: string; kind?: FormFieldKind; defaultVal?: string; required?: boolean; choices?: string[] }`
 - **`PathMode` values**: `PathMode.ANY` (default), `PathMode.MUST_EXIST`, `PathMode.FILE`, `PathMode.DIRECTORY`
 - **`FilePickerOptions` properties**: `{ baseDir?: string; mode?: PathMode; extensions?: string[]; allowHidden?: boolean }`
 
-### Selecting from Structured Objects (`select` + `Map` Pattern)
+### Ctrl+C, Non-TTY Behavior, and CI Flag Fallbacks
 
-`select()`, `multiSelect()`, and `fuzzySelect()` take `string[]` labels (there is **no** `app.selectFromObjects()` method). To select a typed object cleanly, pair formatted choice strings with a `Map`:
+1. **Ctrl+C (`\u0003`) in raw TTY menus**: `promptPassword`, `select`, `multiSelect`, and `fuzzySelect` restore terminal raw mode, print a newline, and call **`process.exit(130)`** (POSIX `SIGINT`). `filePicker` resolves `""` cleanly on `q`, `Esc`, or Ctrl+C so callers can check `if (!picked)`.
+2. **Non-TTY `stdin` (`CI=true`, cron, piped input)**: `select` / `multiSelect` fall back to numbered `readline` menus, `fuzzySelect` delegates to `select`, `filePicker` delegates to `promptPath`, and `form()` exits a failing `required` retry loop after **2 failed attempts**.
+3. **CI-Safe Pattern**: Always pair prompts with CLI flags and `!process.stdin.isTTY || flags.yes`.
+
+### Example 3A: Typed Scalar Prompts with Validation
 
 ```typescript
 import { newApp } from "./src/simplecli";
 
-const app = newApp("picker-demo", "1.0.0");
+const app = newApp("account-setup", "1.0.0");
+app.addFlagBool("yes", "y", false, "Use defaults without prompting");
+if (!app.parseCli()) process.exit(0);
 
-const targets = [
-  { id: "us-east-1", region: "Virginia", host: "10.0.1.24" },
-  { id: "eu-west-1", region: "Dublin", host: "10.0.2.18" },
-];
-
-const byLabel = new Map(
-  targets.map((t) => [`${t.id.padEnd(10)} | ${t.region.padEnd(10)} | ${t.host}`, t]),
-);
-
-const pickedLabel = await app.fuzzySelect("Select target cluster:", Array.from(byLabel.keys()));
-const chosen = byLabel.get(pickedLabel);
-app.info(`Chosen host: ${chosen?.host ?? "none"}`);
+if (app.getFlagBool("yes") || !process.stdin.isTTY) {
+  app.printKv({ owner: "ops-bot", email: "ops@example.com", port: 8080, url: "https://api.example.invalid", confirmed: true });
+} else {
+  const owner = await app.prompt("Service owner name", "ops-bot");
+  const email = await app.promptEmail("Alert email", "ops@example.com"); // re-prompts until valid email
+  const url = await app.promptUrl("Webhook endpoint", "https://api.example.invalid"); // requires http:/https:
+  const port = await app.promptNumber("Port (1024-65535)", 8080, 1024, 65535); // enforces numeric bounds
+  const secret = await app.promptPassword("Operator passphrase"); // masked `*` in TTY; Ctrl+C -> exit 130
+  const ok = await app.confirm("Save configuration?", true);
+  app.printKv({ owner, email, url, port, hasSecret: secret.length > 0, ok });
+}
 ```
 
-### Ctrl+C, Non-TTY Behavior, and CI Flag Fallbacks
-
-Understanding exact edge-case behavior prevents frozen CI jobs:
-
-1. **Ctrl+C (`\u0003`) in raw TTY menus**: `promptPassword`, `select`, `multiSelect`, and `fuzzySelect` restore terminal raw mode, print a newline, and call **`process.exit(130)`** (standard POSIX `SIGINT` exit code). `filePicker` returns `""` cleanly on `q`, `Esc`, or Ctrl+C so callers can check `if (!picked)`.
-2. **Non-TTY `stdin` (`CI=true`, cron, piped scripts)**:
-   - `select` / `multiSelect` automatically switch from arrow-key raw mode to numbered `readline` menus.
-   - `fuzzySelect` delegates to `select`; `filePicker` delegates to `promptPath`.
-   - `form()` stops retrying an empty `required` field after **2 failed attempts** so piped EOF does not infinite-loop.
-3. **Recommended CI-Safe Pattern**: Always pair prompts with CLI flags and check `!process.stdin.isTTY` (or `--yes`):
+### Example 3B: Interactive `select`, `multiSelect`, `fuzzySelect` (`Map`), `filePicker` & `form` Wizard
 
 ```typescript
 import { FormFieldKind, PathMode, newApp, type FilePickerOptions } from "./src/simplecli";
 
-const app = newApp("init-wizard", "1.0.0");
-app.addFlagString("env", "e", "", "Deployment environment", ["dev", "staging", "prod"]);
-app.addFlagBool("yes", "y", false, "Non-interactive mode (use flags/defaults)");
+const app = newApp("deploy-wizard", "1.0.0");
+app.addFlagString("env", "e", "", "Target environment", ["dev", "staging", "prod"]);
+app.addFlagBool("yes", "y", false, "Non-interactive CI mode");
 if (!app.parseCli()) process.exit(0);
+
+const targets = [
+  { id: "us-east-1", region: "Virginia", host: "10.0.1.24" },
+  { id: "eu-west-1", region: "Dublin", host: "10.0.2.18" },
+  { id: "ap-south-1", region: "Mumbai", host: "10.0.3.42" },
+];
+const targetByLabel = new Map(
+  targets.map((t) => [`${t.id.padEnd(10)} | ${t.region.padEnd(9)} | ${t.host}`, t]),
+);
 
 const nonInteractive = app.getFlagBool("yes") || !process.stdin.isTTY;
 
-const env = app.getFlagString("env") || (nonInteractive
-  ? "dev"
-  : await app.select("Environment:", ["dev", "staging", "prod"], 0));
+if (nonInteractive) {
+  app.printKv({ env: app.getFlagString("env") || "staging", cluster: targets[0]?.id ?? "us-east-1", mode: "ci-non-interactive" });
+} else {
+  const env = app.getFlagString("env") || (await app.select("Environment:", ["dev", "staging", "prod"], 1));
+  const pickedLabel = await app.fuzzySelect("Filter target cluster:", Array.from(targetByLabel.keys()));
+  const chosenTarget = targetByLabel.get(pickedLabel);
+  const features = await app.multiSelect("Enable add-ons:", ["metrics", "tracing", "autoscaling"], [0, 1]);
 
-if (!nonInteractive) {
-  const wizard = await app.form("Service Configuration", [
+  const pickerOpts: FilePickerOptions = { baseDir: ".", mode: PathMode.FILE, extensions: [".ts", ".json"] };
+  const configFile = await app.filePicker("Pick config file (Esc/q to skip):", pickerOpts);
+
+  const wizard = await app.form("Service Configuration Wizard", [
     { key: "service", label: "Service name", kind: FormFieldKind.TEXT, required: true, defaultVal: "api" },
     { key: "port", label: "Listen port", kind: FormFieldKind.NUMBER, defaultVal: "8080" },
     { key: "tls", label: "Enable TLS", kind: FormFieldKind.BOOLEAN, defaultVal: "true" },
@@ -389,9 +504,7 @@ if (!nonInteractive) {
     { key: "token", label: "Deploy token", kind: FormFieldKind.PASSWORD },
   ]);
 
-  const pickerOpts: FilePickerOptions = { baseDir: ".", mode: PathMode.FILE, extensions: [".ts", ".json"] };
-  const entry = await app.filePicker("Choose config or entry file (Esc to cancel):", pickerOpts);
-  app.printKv({ env, ...wizard, entry: entry || "(cancelled)" });
+  app.printKv({ env, host: chosenTarget?.host ?? "none", features: features.join(","), configFile: configFile || "(skipped)", ...wizard });
 }
 ```
 
@@ -413,7 +526,8 @@ if (!nonInteractive) {
 | Control / Method | Signature | Exact Behavior |
 | :--- | :--- | :--- |
 | `LogLevel` enum | `TRACE = 0`, `DEBUG = 1`, `INFO = 2`, `WARN = 3`, `ERROR = 4`, `SILENT = 5` | Also accepts lowercase `LogLevelName` strings (`"trace"` \| `"debug"` \| `"info"` \| `"warn"` \| `"error"` \| `"silent"`) |
-| `setLogLevel` | `setLogLevel(level: LogLevel \| LogLevelName): this` | Sets minimum threshold written to console and log file |
+| `Logger` class | `new Logger(level = LogLevel.INFO, logFile?, noColor = false)` | Standalone logger (`setLevel`, `getLevel`, `setLogFile`, `setNoColor`, `trace`..`fatal`); no `.child()` method—pass a tag prefix helper for scoped subsystems |
+| `setLogLevel` | `setLogLevel(level: LogLevel \| LogLevelName): this` | Sets minimum threshold written to console and log file on `SimpleCLI` |
 | `setDebug` / `setSilent` | `setDebug(enabled: boolean): this` · `setSilent(enabled: boolean): this` | Shortcuts for `LogLevel.DEBUG` and `LogLevel.SILENT` |
 | `setLogFile` | `setLogFile(filePath: string): this` | Appends timestamped, ANSI-stripped plain-text log lines to disk |
 | Log emitters | `trace(msg)` `debug(msg)` `info(msg)` `success(msg)` `warn(msg)` `error(msg)` `fatal(msg)` | `success` logs at `INFO` with `OK` styling; `fatal` logs at `ERROR` and calls `process.exit(1)` |
@@ -428,38 +542,73 @@ if (!nonInteractive) {
 | `measure<T>(fn)` | `measure<T>(fn: () => T): { result: T; durationMs: number; durationNs: number }` | Profiles a synchronous function at nanosecond precision |
 | `measureAsync<T>(fn)` | `measureAsync<T>(fn: () => Promise<T>): Promise<{ result: T; durationMs: number; durationNs: number }>` | Profiles an async function or I/O call cleanly |
 
+### Example 4A: `spinner`, `progressBar`, and Multi-Step `newPipeline` with Error Handling
+
 ```typescript
-import { LogLevel, newApp } from "./src/simplecli";
+import { newApp } from "./src/simplecli";
 
-const app = newApp("release-runner", "1.0.0")
-  .setLogLevel(LogLevel.INFO)
-  .setLogFile("release-runner.log"); // strips ANSI colors before writing to disk
+const app = newApp("release-runner", "1.0.0");
 
+// 1. Live progress loop (`for` + `app.progressBar`) + async spinner
+const stages = ["migrations", "assets", "schema"];
+for (let i = 0; i < stages.length; i++) {
+  app.progressBar(i + 1, stages.length, `Syncing ${stages[i]}`, 26);
+  await Bun.sleep(40);
+}
+await app.spinner("Warming cache", 300);
+
+// 2. Multi-step Pipeline that short-circuits cleanly on `false` or thrown errors
+const failingPipe = app.newPipeline("Preflight Gate")
+  .addStep("Check Bun version", () => true)
+  .addStep("Verify signing cert", () => false) // returning false aborts immediately!
+  .addStep("Deploy artifacts (skipped on failure)", () => true);
+
+const ok = await failingPipe.run();
+app.warn(`Pipeline aborted cleanly (ok=${ok})`);
+```
+
+### Example 4B: Structured `Logger`, JSONL Audit Sink & Timing Benchmark Comparison
+
+```typescript
+import * as path from "node:path";
+import { LogLevel, Logger, newApp, sys } from "./src/simplecli";
+
+const app = newApp("bench-runner", "1.0.0").setLogLevel(LogLevel.DEBUG);
+const logDir = sys.tempDir("cli_logs_");
+const textLog = path.join(logDir, "app.log");
+const jsonlLog = path.join(logDir, "events.jsonl");
+
+// Standalone Logger (plain-text ANSI-stripped file log) + structured JSONL event helper
+const logger = new Logger(LogLevel.INFO, textLog, false);
+const writeJsonlEvent = async (scope: string, msg: string, data: Record<string, unknown>) => {
+  logger.info(`[${scope}] ${msg}`);
+  await sys.append(jsonlLog, JSON.stringify({ ts: new Date().toISOString(), scope, msg, ...data }) + "\n");
+};
+
+// Compare pre-indexed Set lookup vs linear Array.includes with nanosecond precision
 app.resetTimer();
+const data = Array.from({ length: 20_000 }, (_, i) => `item-${i}`);
+const indexSet = new Set(data);
+const setLookup = app.measure(() => indexSet.has("item-19999"));
+const arrayScan = app.measure(() => data.includes("item-19999"));
 
-const bench = await app.measureAsync(async () => {
-  await Bun.sleep(25);
-  return { compiledFiles: 18 };
+await writeJsonlEvent("benchmark", "lookup comparison", {
+  setMs: Number(setLookup.durationMs.toFixed(4)),
+  arrayMs: Number(arrayScan.durationMs.toFixed(4)),
 });
-app.info(`Scanned ${bench.result.compiledFiles} files in ${bench.durationMs.toFixed(2)}ms`);
 
-const pipeline = app.newPipeline("Production Release Pipeline")
-  .addStep("Verify workspace", () => true)
-  .addStep("Run preflight latency check", async () => {
-    await Bun.sleep(40);
-    return true;
-  })
-  .addStep("Publish release manifest", () => true);
-
-const passed = await pipeline.run();
-app.info(`Pipeline finished in ${app.elapsedSeconds().toFixed(2)}s (ok=${passed})`);
+app.barChart("Lookup Time Comparison (microseconds)", {
+  "Set.has": Math.max(1, Math.round(setLookup.durationNs / 1000)),
+  "Array.includes": Math.max(1, Math.round(arrayScan.durationNs / 1000)),
+});
+app.info(`Total runtime: ${app.elapsedMs().toFixed(2)}ms • JSONL log saved to ${jsonlLog}`);
 ```
 
 ---
 
 ## Step 5: `sys` subprocesses, hardware telemetry, network, and OS integration
 
-`sys` (imported from `"./src/simplecli"` or `"bun-rad-studio"`) wraps Bun native APIs and OS commands into cross-platform static helpers.
+`sys` (exported from `"./src/simplecli"` or `"bun-rad-studio"`) wraps Bun native APIs and OS commands into cross-platform static helpers.
 
 ### Subprocesses: `sys.exec*` (Shell Strings) vs Shell-Free `rad.sysutils.execSafe`
 
@@ -477,24 +626,28 @@ app.info(`Pipeline finished in ${app.elapsedSeconds().toFixed(2)}s (ok=${passed}
 `ExecResult` shape: `{ output: string; exitCode: number; durationMs: number; timedOut: boolean; attempts: number }`.
 
 > **Security Warning — Shell-Free Execution (`rad.sysutils.execSafe` / `Bun.spawn`):**
-> Every `sys.exec*` helper executes inside a shell (`shell: true`) and **`sys.execSafe()` does NOT exist on `sys`**.
-> Whenever a command includes **user input, filenames, branch names, or commit messages**, use **`rad.sysutils.execSafe(cmd, args, opts?)`** (from `"bun-rad-studio"` or `"./src/features/rad/index.ts"`) or native **`Bun.spawn([...])`**! Both pass arguments as an argv array directly to the OS kernel with zero shell interpretation, eliminating command injection.
+> Every `sys.exec*` helper invokes a shell (`shell: true`) and **`sys.execSafe()` does NOT exist on `sys`**.
+> Whenever a command includes **user input, filenames, branch names, or commit messages**, use **`rad.sysutils.execSafe(cmd, args, opts?)`** (from `"bun-rad-studio"` or `"./src/features/rad/index.ts"`) or native **`Bun.spawn([...])`**! Both pass an argv array straight to the OS kernel with zero shell interpretation, eliminating command injection.
+
+### Example 5A: Safe Subprocesses vs Shell String Execution
 
 ```typescript
 import { sys } from "./src/simplecli";
 import { rad } from "./src/features/rad/index.ts";
 
-// 1. Static trusted check with sys.execOr / sys.execTimeout
+// 1. Static trusted commands with sys.execOr / sys.execTimeout / sys.execRetry
 const bunVer = sys.execOr("bun --version", "unknown");
 const check = await sys.execTimeout("bun --version", 3000);
-console.log({ bunVer, timedOut: check.timedOut, exitCode: check.exitCode });
+const parallel = await sys.execParallel(["bun --version", "uname -s"], 2);
+console.log({ bunVer, timedOut: check.timedOut, exitCode: check.exitCode, parallelCount: parallel.length });
 
-// 2. Untrusted/dynamic args -> ALWAYS use array args via rad.sysutils.execSafe (shell-free)
+// 2. Dynamic / untrusted args -> ALWAYS use array args via rad.sysutils.execSafe (shell-free)
 const userMessage = "fix: quote; $(whoami) safely";
 const safe = await rad.sysutils.execSafe("bun", ["--version"], { cwd: process.cwd() });
-// Safe commit pattern: await rad.sysutils.execSafe("git", ["commit", "-m", userMessage]);
-// With timeout: Bun.spawn(["git", "commit", "-m", userMessage], { signal: AbortSignal.timeout(5000) })
-console.log({ exitCode: safe.exitCode, stdout: safe.stdout.trim(), userMessage });
+// Safe commit example (array args prevent `$(...)` expansion):
+// await rad.sysutils.execSafe("git", ["commit", "-m", userMessage]);
+// With timeout: Bun.spawn(["git", "commit", "-m", userMessage], { signal: AbortSignal.timeout(5000) });
+console.log({ safeExit: safe.exitCode, stdout: safe.stdout.trim(), userMessage });
 ```
 
 ### Hardware Telemetry, OS Info & Paths
@@ -509,6 +662,29 @@ console.log({ exitCode: safe.exitCode, stdout: safe.stdout.trim(), userMessage }
 | **Config & App State** | `app.config` (`ConfigStore` storing `0o600` JSON in XDG/APPDATA; supports dot-paths `.get("db.host")`, `.set(...)`, `.save()`, `.path`), `app.getAppStateFile(appName, fileName)` |
 
 > **Method Naming Note:** `sys.homeDir()`, `sys.configDir()`, and `sys.expandPath()` do **not** exist in `src/simplecli/sys/index.ts`. Use **`sys.osHomedir()`**, **`app.config.path`**, and **`sys.expandTilde()`**! Also remember `sys.osTmpdir()` returns the OS temp root string, whereas **`sys.tempDir()` creates a new directory on disk**.
+
+### Example 5B: Hardware Telemetry & Cross-Platform OS Info
+
+```typescript
+import { newApp, stdlib, sys } from "./src/simplecli";
+
+const app = newApp("sys-telemetry", "1.0.0");
+const mem = sys.memoryInfo();
+const disk = sys.diskStats(process.cwd());
+
+app.printKv({
+  OS: `${sys.osPlatform()} (${sys.osArch()}) ${sys.osRelease()}`,
+  Hostname: sys.osHostname(),
+  CPU: `${sys.cpuModel()} x${sys.cpuCount()} (load1=${sys.cpuLoad()[0].toFixed(2)})`,
+  RAM: `${stdlib.humanSize(sys.ramUsed())} / ${stdlib.humanSize(sys.ramTotal())} (${mem.percent.toFixed(1)}%)`,
+  Disk: `${stdlib.humanSize(disk.usedBytes)} / ${stdlib.humanSize(disk.totalBytes)} (${disk.percent.toFixed(1)}%)`,
+  Uptime: stdlib.humanDuration(sys.osUptime() * 1000),
+  Home: sys.osHomedir(),
+  TmpRoot: sys.osTmpdir(),
+  ConfigPath: app.config.path,
+  ExpandedTilde: sys.expandTilde("~/.config"),
+});
+```
 
 ### Files, Environment, Binaries, Compression & Semver
 
@@ -537,42 +713,53 @@ console.log({ exitCode: safe.exitCode, stdout: safe.stdout.trim(), userMessage }
 | `clipboardCopy(text): boolean` / `clipboardPaste(): string` | Cross-platform system clipboard read/write |
 | `openUrl(url): boolean` | Opens validated `http:`, `https:`, or `mailto:` URL in default browser |
 
+### Example 5C: TCP Port Probing, HTTP Readiness, Local IP & OS Integration
+
+```typescript
+import { sys } from "./src/simplecli";
+
+// Start an ephemeral local HTTP service on free port 0 and probe it cleanly
+const server = sys.serveJson({ "/health": { ok: true } }, 0, "127.0.0.1");
+const port = server.port ?? 0;
+
+const tcpOpen = await sys.checkPort("127.0.0.1", port, 1000);
+const portReady = await sys.waitForPort("127.0.0.1", port, 3000, 50);
+const httpReady = await sys.waitForHttp(`${server.url}health`, 3000, 100, 200);
+const openPorts = await sys.portScan("127.0.0.1", port, port, 300);
+
+console.log({
+  localIp: sys.localIp(),
+  interfacesCount: Object.keys(sys.networkInterfaces()).length,
+  port,
+  tcpOpen,
+  portReady,
+  httpReady,
+  openPorts,
+  hasGitBinary: sys.hasBinary("git"),
+});
+
+// Cross-platform OS clipboard & desktop toast (safe no-op if headless)
+// sys.clipboardCopy(server.url.toString());
+// sys.notify("Service Ready", `Listening on port ${port}`);
+server.stop(true);
+```
+
 ---
 
 ## Step 6: `ApiClient` REST CRUD, non-throwing `try*` calls, and Redis
 
-SimpleCLI embeds **`BackendClient`** (exported also as **`ApiClient`**, factory **`createApiClient`**, **`createBackendClient`**, or **`app.api(...)`**) alongside a namespaced Redis client with zero-dependency in-memory fallback.
-
-### Client Initialization, Auth, Retries, Caching & Scoping
-
-```typescript
-import { createApiClient, newApp } from "./src/simplecli";
-
-const app = newApp("api-worker", "1.0.0");
-
-// Fluent builder (all placeholder tokens follow safe documentation conventions)
-const api = createApiClient("https://api.example.invalid/{version}")
-  .setVar("version", "v2")
-  .withBearer("my-api-token")              // or .withApiKey("your-api-key") / .withBasicAuth("admin", "example-password")
-  .setHeader("X-Client", "simplecli/1.0")
-  .setTimeout(8000)
-  .setRetries(3, 250)                      // retries [408, 425, 429, 500, 502, 503, 504] with backoff + Retry-After
-  .enableCache(30_000, 128)                // caches GET/HEAD responses (bypass per-call with { cache: false })
-  .setRateLimit(20, 1000);                 // sliding-window throttle: max 20 requests/sec
-
-// Scoped child client inheriting auth, retries, and base headers
-const adminApi = api.scope("/admin", { timeoutMs: 15_000 });
-```
+SimpleCLI embeds **`BackendClient`** (also exported as **`ApiClient`**, factories **`createApiClient`** / **`createBackendClient`** / **`app.api(...)`**) alongside **`NamespacedRedis`** (`app.redis()` / `createRedisNamespace()`) and **`InMemoryRedisClient`**.
 
 ### Complete `ApiClient` Method Reference
 
 | Group | Methods & Signatures | Return Shape / Behavior |
 | :--- | :--- | :--- |
+| **Auth & Reliability** | `withBearer(tok)` · `withBasicAuth(u, p)` · `withApiKey(k, hdr = "X-API-Key")` · `setTimeout(ms)` · `setRetries(n, backoffMs?, codes?)` · `enableCache(ttlMs?, max?)` · `setRateLimit(max, windowMs)` · `setVar(k, v)` | Fluent configuration returning `this` |
 | **Standard Verbs** | `request`, `get`, `post`, `put`, `patch`, `delete`, `head`, `options` | `Promise<BackendResponse<T>>` (`{ ok, status, statusCode, statusText, headers, data, body, text(): string, url, durationMs, attempts, cached }`); throws `BackendApiError` on 4xx/5xx unless `setThrowOnError(false)` |
 | **Unwrapped Helpers** | `getJson<T>(path, opts?)` · `postJson` · `putJson` · `patchJson` · `deleteJson` · `getText` · `getBytes` | Returns `T` directly; pass `{ fallback: defaultVal }` inside `opts: RequestOptions & { fallback?: T }` to swallow errors and return fallback |
 | **Non-Throwing `try*`** | `tryRequest`, `tryGet`, `tryPost`, `tryPut`, `tryPatch`, `tryDelete` | Never throws! Resolves `SafeApiResult<T>`: `{ ok: boolean; data: T \| null; error: string \| null; statusCode: number; durationMs: number; response: BackendResponse<T> \| null }` |
 | **Typed CRUD Resource** | `const users = api.resource<User, number>("/users")` | `.list(query?, opts?)`, `.get(id, query?, opts?)`, `.create(payload)`, `.update(id, payload)`, `.patch(id, payload)`, `.remove(id): Promise<boolean>`, `.action(id, "promote", body, "POST")` |
-| **Interceptors** | `useRequestInterceptor(fn)` · `useResponseInterceptor(fn)` · `onError(fn)` | Inject dynamic auth headers, mutate/inspect responses, centralize error logging |
+| **Interceptors & Scope** | `useRequestInterceptor(fn)` · `useResponseInterceptor(fn)` · `onError(fn)` · `scope(subPath, overrides?)` | Inject dynamic auth headers, mutate/inspect responses, centralize error logging, fork scoped clients |
 | **GraphQL** | `graphql<T>(query, variables?, operationName?, endpointPath = "/graphql", options?)` | Returns `GraphQLResult<T>` (`{ ok, data, errors, statusCode, headers, durationMs }`) |
 | **Pagination** | `paginate<T>(path, opts?: PaginationOptions): AsyncGenerator<T[]>` · `fetchAllPages<T>(path, opts?): Promise<T[]>` | Streams pages or collects all records across `"page"`, `"offset"`, `"cursor"`, and RFC 8288 `"link"` headers |
 | **Streaming** | `streamSse(path, onEvent, opts?)` · `streamLines(path, onLine, opts?)` · `streamJsonLines<T>(path, onItem, opts?)` | Incremental NDJSON, line-by-line logs, and Server-Sent Events (`SseEvent`) |
@@ -581,66 +768,161 @@ const adminApi = api.scope("/admin", { timeoutMs: 15_000 });
 
 > **Non-Throwing Tip (`tryGet` vs `tryGetJson`):** Use **`api.tryGet<Release>("/releases/latest")`** (which parses JSON automatically into `res.data`)—there is **no** `tryGetJson()` method.
 
-### End-to-End Mock Server + `tryGet` + `resource` Example
+### Example 6A: `ApiClient` Bearer Auth, Retries, Typed CRUD (`get`, `post`, `put`, `delete`) & Non-Throwing `tryGet` / `tryPost`
 
 ```typescript
 import { createApiClient, sys } from "./src/simplecli";
 
-// Port 0 binds an ephemeral free localhost port — ideal for scripts and `bun test`
+interface Item { id: number; name: string; role: string }
+const store = new Map<number, Item>([[1, { id: 1, name: "worker-a", role: "runner" }]]);
+let nextId = 2;
+
 const server = sys.serveJson(
   {
     "/health": { ok: true },
-    "GET /items": () => [{ id: 1, name: "worker-a", healthy: true }],
-    "POST /items": async (req: Request) => ({ id: 2, ...(await req.json()) }),
+    "GET /items": () => Array.from(store.values()),
+    "GET /items/:id": (_req: Request, params: Record<string, string>) =>
+      store.get(Number(params.id)) ?? new Response(JSON.stringify({ error: "Not found" }), { status: 404 }),
+    "POST /items": async (req: Request) => {
+      const created = { id: nextId++, ...(await req.json()) } as Item;
+      store.set(created.id, created);
+      return new Response(JSON.stringify(created), { status: 201, headers: { "Content-Type": "application/json" } });
+    },
+    "PUT /items/:id": async (req: Request, params: Record<string, string>) => {
+      const updated = { id: Number(params.id), ...(await req.json()) } as Item;
+      store.set(updated.id, updated);
+      return updated;
+    },
+    "DELETE /items/:id": (_req: Request, params: Record<string, string>) => ({ deleted: store.delete(Number(params.id)) }),
   },
   0,
   "127.0.0.1",
 );
 
-const client = createApiClient(server.url.toString());
+const api = createApiClient(server.url.toString())
+  .withBearer("your-api-token") // placeholder token
+  .setTimeout(5000)
+  .setRetries(2, 100);
 
-const safe = await client.tryGet<{ ok: boolean }>("/health");
-if (safe.ok) {
-  console.log("API healthy:", safe.data, `(${safe.durationMs.toFixed(1)}ms)`);
-}
+// 1. Non-throwing `tryGet` & `tryPost` (never throws on 404/5xx or network error)
+const missing = await api.tryGet<Item>("/items/999");
+if (!missing.ok) console.log("Handled 404 safely:", missing.statusCode, missing.error);
 
-interface Item { id: number; name: string; healthy?: boolean }
-const items = client.resource<Item, number>("/items");
-const list = await items.list();
-const created = await items.create({ name: "worker-b", healthy: true });
-console.log({ initialCount: list.length, created });
+const postSafe = await api.tryPost<Item>("/items", { name: "worker-b", role: "builder" });
+console.log("Created via tryPost:", postSafe.ok, postSafe.data);
+
+// 2. Direct verb calls (`get`, `put`, `delete`) + typed `api.resource()` CRUD
+const fetched = await api.get<Item>(`/items/${postSafe.data!.id}`);
+await api.put<Item>(`/items/${fetched.data.id}`, { name: "worker-b-v2", role: "primary" });
+
+const items = api.resource<Item, number>("/items");
+const allItems = await items.list();
+const removed = await items.remove(fetched.data.id);
+console.log({ countBeforeDelete: allItems.length, deleted: removed });
 
 server.stop(true);
 ```
 
-### Namespaced Redis + Automatic In-Memory Fallback + App State
-
-`app.redis(namespace?, options?)` returns a `NamespacedRedis` client that prefixes keys automatically and seamlessly falls back to `InMemoryRedisClient` when `fallbackToMemory: true` (perfect for local dev and tests without a running Redis server):
+### Example 6B: Interceptors, Scoped Clients, GraphQL, Pagination, SSE Streaming & `toCurl()`
 
 ```typescript
-import { newApp } from "./src/simplecli";
+import { createApiClient, sys } from "./src/simplecli";
+
+const server = sys.serveJson(
+  {
+    "GET /v1/events": () =>
+      new Response('id: 1\nevent: deploy\ndata: {"step":"done"}\n\n', {
+        status: 200,
+        headers: { "Content-Type": "text/event-stream" },
+      }),
+    "POST /v1/graphql": async (req: Request) => {
+      const payload = (await req.json()) as { variables?: { app?: string } };
+      return { data: { release: { app: payload.variables?.app ?? "api", status: "ACTIVE" } } };
+    },
+    "GET /v1/logs": (req: Request) => {
+      const page = Number(new URL(req.url).searchParams.get("page") ?? "1");
+      return { items: page === 1 ? ["boot", "ready"] : [], page, total: 2 };
+    },
+  },
+  0,
+  "127.0.0.1",
+);
+
+const rootClient = createApiClient(server.url.toString())
+  .withApiKey("your-api-key")
+  .enableCache(30_000, 128)
+  .setRateLimit(25, 1000)
+  .useRequestInterceptor((ctx) => {
+    ctx.headers["X-Trace-Id"] = "trace-001";
+    return ctx;
+  })
+  .onError((err, ctx) => console.error(`API fail on ${ctx.method} ${ctx.url}:`, err.message));
+
+const v1 = rootClient.scope("/v1");
+const gql = await v1.graphql<{ release: { app: string; status: string } }>(
+  "query GetRelease($app: String!) { release(app: $app) { app status } }",
+  { app: "studio" },
+  "GetRelease",
+);
+const logs = await v1.fetchAllPages<string>("/logs", { mode: "page", pageSize: 2, maxPages: 3 });
+
+const sseEvents: string[] = [];
+await v1.streamSse("/events", (ev) => {
+  sseEvents.push(`${ev.event}:${JSON.stringify(ev.json())}`);
+});
+
+console.log({
+  gql: gql.data,
+  logs,
+  sseEvents,
+  curlSnippet: v1.toCurl("POST", "/graphql", { body: { query: "{ health }" }, redactSecrets: true }),
+});
+
+server.stop(true);
+```
+
+### Example 6C: Namespaced Redis (`app.redis` / `createRedisNamespace`) Cache-Aside with In-Memory Fallback & App State
+
+> **Redis Factory Note:** SimpleCLI creates Redis clients via **`app.redis(namespace, options)`** or **`createRedisNamespace(namespace, options)`** (or `new InMemoryRedisClient()`)—there is **no** `createRedisClient()` function or `src/features/redis/` folder. When `fallbackToMemory: true` is passed and Redis is offline, all operations transparently use `InMemoryRedisClient`.
+
+```typescript
+import { createRedisNamespace, newApp } from "./src/simplecli";
 
 const app = newApp("cache-cli", "1.0.0");
+
+// Connects to Redis if available, or falls back automatically to InMemoryRedisClient
 const redis = app.redis("deploy-cli:", {
   url: process.env.REDIS_URL || "redis://:placeholder@127.0.0.1:6379",
   fallbackToMemory: true,
 });
 await redis.connect();
-console.log("Using memory fallback?", redis.isMemoryFallback());
+console.log("Memory fallback active?", redis.isMemoryFallback());
 
-// KV, typed JSON, read-through cache, hashes, lists, sets, zsets, distributed locks & pub/sub
-await redis.setJson("release:latest", { version: "2.1.0", sha: "abc1234" }, 300);
-const cached = await redis.getOrSet("config:flags", async () => ({ canary: true }), 60);
+// 1. Cache-aside JSON + TTL strings (`set(key, val, { ex: seconds })` or numeric TTL seconds)
+await redis.set("session:latest", "active", { ex: 60 });
+await redis.setJson("release:latest", { version: "2.1.0", sha: "94af21c" }, 300);
+const flags = await redis.getOrSet("config:flags", async () => ({ canary: true }), 60);
+
+// 2. Hashes, Lists, Sets, Distributed Locks & Sub-Namespaces
+await redis.hset("node:edge-01", { region: "us-east", status: "healthy" });
+const nodeMeta = await redis.hgetall("node:edge-01");
+
+const queue = createRedisNamespace("workers:", { fallbackToMemory: true });
+await queue.connect();
+await queue.lpush("jobs", "job-101");
+await queue.sadd("tags", "bun", "rad");
+const job = await queue.rpop("jobs");
+const tags = await queue.smembers("tags");
+
 await redis.withLock("migrate:prod", async () => {
   await redis.incr("migrations:count");
 }, 5000);
 
-// Child namespace sharing connection + clean teardown
-const jobCache = redis.namespace("jobs:");
-await jobCache.lpush("queue", "job-101");
+console.log({ flags, nodeMeta, job, tags });
+await queue.close();
 await redis.close();
 
-// Built-in per-app JSON state file (resolves to ~/.<app>/<fileName>; `app.config` uses ~/.config/<app>/)
+// 3. Built-in per-app JSON state file (resolves to ~/.<app>/<fileName>; `app.config` uses ~/.config/<app>/)
 const stateFile = app.getAppStateFile("cache-cli", "state.json");
 app.loadState(stateFile);
 app.setState("lastDeploy", new Date().toISOString());
@@ -651,7 +933,7 @@ app.saveState(stateFile);
 
 ## Step 7: Shell completions, man pages, and single-binary compilation
 
-SimpleCLI generates shell autocomplete scripts, troff UNIX man pages, Markdown docs, standalone compiled executables, AND ships a standard library (`stdlib`) for cryptography, encodings, validation, generic collections, and statistics.
+SimpleCLI generates shell autocomplete scripts, troff UNIX man pages, Markdown docs, standalone compiled executables, AND ships built-in **`stdlib`** utilities (`src/simplecli/stdlib/index.ts`).
 
 ### Shell Completions, Man Pages & Native Binaries
 
@@ -664,11 +946,14 @@ SimpleCLI generates shell autocomplete scripts, troff UNIX man pages, Markdown d
 | **Single-Binary Build (API)** | `await SimpleCLI.compileBinary(entrypoint, outName, target?)` | Wraps `bun build --compile` programmatically; returns `Promise<boolean>` |
 | **Single-Binary Build (CLI)** | `bun build --compile app.ts --outfile my-cli` | Produces zero-runtime native binary; pass `--target=bun-linux-x64` / `bun-darwin-arm64` / `bun-windows-x64` to cross-compile |
 
+### Example 7A: Programmatic Completions, UNIX Man Page & `compileBinary`
+
 ```typescript
 import { SimpleCLI, newApp } from "./src/simplecli";
 
 const app = newApp("ops-cli", "1.0.0");
 app.addFlagBool("man", "", false, "Print UNIX man page and exit");
+app.addFlagBool("docs", "", false, "Print Markdown CLI docs and exit");
 
 app.command("completions", "Generate shell completions", (sub) => {
   sub.addFlagString("shell", "s", "zsh", "Target shell", ["bash", "zsh", "fish"]);
@@ -677,60 +962,122 @@ app.command("completions", "Generate shell completions", (sub) => {
   });
 });
 
-if (!app.parseCli()) process.exit(0);
-if (app.getFlagBool("man")) {
-  app.println(app.generateManPage());
-  process.exit(0);
+if (import.meta.main) {
+  if (!app.parseCli()) process.exit(0);
+  if (app.getFlagBool("man")) {
+    app.println(app.generateManPage());
+    process.exit(0);
+  }
+  if (app.getFlagBool("docs")) {
+    app.println(app.generateMarkdownDocs());
+    process.exit(0);
+  }
+  // Optional programmatic binary compilation:
+  // await SimpleCLI.compileBinary("app.ts", "./dist/ops-cli");
+  await app.run();
 }
-// Optional programmatic compile:
-// await SimpleCLI.compileBinary("app.ts", "./dist/ops-cli");
+```
+
+### Example 7B: CLI Completion Install & Standalone Binary Cross-Compilation (`bash`)
+
+```bash
+# Install zsh or bash autocompletions directly from your CLI
+bun run app.ts --completion zsh > ~/.zsh/completions/_app
+bun run app.ts --completion bash > ~/.local/share/bash-completion/completions/app
+
+# Compile zero-runtime native single-file executables
+bun build --compile app.ts --outfile my-cli
+bun build --compile --target=bun-linux-x64 app.ts --outfile my-cli-linux
+bun build --compile --target=bun-darwin-arm64 app.ts --outfile my-cli-macos
 ```
 
 ### Built-In `stdlib` Utilities (`src/simplecli/stdlib/index.ts`)
 
-> **Warning – Encryption Key Hygiene:** `stdlib.aesEncrypt` uses authenticated AES-256-GCM (`<saltHex>:<base64Envelope>`). Always pass secrets from environment variables or prompt input—never commit real passphrases or API tokens in source files.
+> **Warning – Encryption Key Hygiene:** `stdlib.aesEncrypt` uses authenticated AES-256-GCM (`<saltHex>:<base64Envelope>`). Always supply passphrases via environment variables or interactive prompts—never commit real secrets or API keys in source files.
 
 | Module Area | Verified Methods & Exported Classes (`stdlib` / named imports) |
 | :--- | :--- |
 | **Crypto & Tokens** | `sha256`, `sha512`, `sha1`, `md5`, `hmacSha256`, `aesEncrypt(text, key, ivHex?)`, `aesDecrypt(payload, key)`, `bcryptHash(pw: string): Promise<string>`, `bcryptVerify(pw, hash)`, `uuid()`, `uuidV7()`, `randomBytes(n)`, `randomHex(n)`, `randomToken(n)` |
-| **Encodings & Parsers** | `base64Encode`/`Decode`, `hexEncode`/`Decode`, `urlEncode`/`Decode`, `rot13`, `csvParse(text, delim = ",")`, `tomlParse(tomlText)`, `humanSize`/`formatBytes`, `humanDuration`/`formatDuration`, `timeAgo`, `formatNumber` |
+| **Encodings & Parsers** | `base64Encode`/`Decode`, `hexEncode`/`Decode`, `urlEncode`/`Decode`, `rot13`, `csvParse(text, delim = ",")` (returns `string[][]`), `tomlParse(tomlText)`, `humanSize`/`formatBytes`, `humanDuration`/`formatDuration`, `timeAgo`, `formatNumber` |
 | **Validators** | `isEmail`, `isUrl`, `isIPv4`, `isIPv6`, `isPort`, `isSemver`, `isJson`, `isHex`, `isAlphanumeric`, `isUUID` |
 | **Strings & Fuzzy Search** | `levenshteinDistance`, `jaroWinklerSimilarity`, `fuzzyMatch`, `slugify`, `truncate`, `wordWrap`, `titleCase`, `snakeCase`, `camelCase`, `kebabCase`, `padCenter` |
 | **Generic Collections** | `Stack<T>`, `Queue<T>`, `SetCollection<T>` (`union`/`intersect`/`difference`), `RingBuffer<T>`, `MinHeap<T>`, `PriorityQueue<T>`, `LRUCache<K, V>` |
 | **Math & Statistics** | `sum`, `mean`, `median`, `mode`, `variance`, `stddev`, `rms`, `percentile(nums, p)`, `clamp`, `lerp`, `roundPrecision` |
 
-> Note: `stdlib` includes `csvParse` (returning `string[][]` rows including the header row) and `tomlParse` (there is no INI parser in `src/simplecli/stdlib/index.ts`).
+> **Where Do Filesystem, Globs, `.env`, Paths, Retry & Concurrency Live?** `stdlib` covers crypto, encodings/CSV/TOML, validators, strings, collections, and stats math—it does **not** have `stdlib.fsx`, `stdlib.glob`, `stdlib.pathx`, or `stdlib.dotenv`. For those, use **`sys`** (`readText`, `writeJson`, `findFiles`, `semverSatisfies`), **`node:path`** (`join`, `resolve`), and **`rad`** (`rad.globutils`, `rad.envutils`, `rad.flowutils.retry`, `rad.asyncutils.parallelMap`, `rad.fileutils`) as shown in Example 7D.
+
+### Example 7C: `stdlib` Crypto, Encodings, Validation, Text Matching, Collections & Stats
 
 ```typescript
-import { LRUCache, stdlib } from "./src/simplecli";
+import { LRUCache, PriorityQueue, stdlib } from "./src/simplecli";
 
-// Authenticated encryption & CSV/TOML parsing
+// Crypto: AES-256-GCM authenticated encryption, HMAC-SHA256 & bcrypt password verification
 const sealed = stdlib.aesEncrypt("database-connection-string", "placeholder-secret");
-const plain = stdlib.aesDecrypt(sealed, "placeholder-secret");
+const unsealed = stdlib.aesDecrypt(sealed, "placeholder-secret");
+const sig = stdlib.hmacSha256("webhook-payload", "placeholder-secret");
+const pwHash = await stdlib.bcryptHash("example-password");
+const pwValid = await stdlib.bcryptVerify("example-password", pwHash);
+
+// Encodings, validation & fuzzy text matching
 const csvRows = stdlib.csvParse("host,port\napi.local,8080\ndb.local,5432");
 const tomlObj = stdlib.tomlParse('[server]\nport = 8080\nhost = "127.0.0.1"');
-
-// Stats, formatting, validation & bounded cache
 const p95 = stdlib.percentile([12, 18, 22, 41, 195], 95);
-const cache = new LRUCache<string, number>(100);
+
+// Generic PriorityQueue & bounded LRUCache
+const pq = new PriorityQueue<string>();
+pq.enqueue("low-priority-report", 10);
+pq.enqueue("critical-alert", 1);
+
+const cache = new LRUCache<string, number>(64);
 cache.set("p95", p95);
 
 console.log({
-  plainMatch: plain === "database-connection-string",
-  csvCount: csvRows.length,
+  unsealedOk: unsealed === "database-connection-string",
+  sigPrefix: sig.slice(0, 12),
+  pwValid,
+  csvRowsCount: csvRows.length,
   tomlServer: tomlObj.server,
-  sizeLabel: stdlib.humanSize(1_548_288),
-  validEmail: stdlib.isEmail("ops@example.com"),
+  validators: { email: stdlib.isEmail("ops@example.com"), semver: stdlib.isSemver("2.1.0"), uuid: stdlib.isUUID(stdlib.uuidV7()) },
+  fuzzy: stdlib.fuzzyMatch("dply", "deploy-worker"),
+  nextJob: pq.dequeue(),
   p95: cache.get("p95"),
 });
+```
+
+### Example 7D: Full CLI Automation Utilities Recipe (`sys` FS/Semver + `rad.globutils` + `rad.envutils` + `rad.flowutils.retry` + `rad.asyncutils.parallelMap`)
+
+```typescript
+import * as path from "node:path";
+import { stdlib, sys } from "./src/simplecli";
+import { rad } from "./src/features/rad/index.ts";
+
+// 1. Parse `.env` text cleanly (`rad.envutils.parseEnvString` / `loadEnv`) + `node:path`
+const envVars = rad.envutils.parseEnvString("PORT=8080\nLOG_LEVEL=info\nAPI_TOKEN=your-api-token");
+const configDir = path.join(sys.osTmpdir(), "cli-rad-demo");
+sys.ensureDir(configDir);
+
+// 2. Native Bun.Glob discovery (`rad.globutils.findFiles`) + semver compatibility guard (`sys.semverSatisfies`)
+const tsFiles = await rad.globutils.findFiles("src/simplecli/**/*.ts", process.cwd());
+const bunCompatible = sys.semverSatisfies(sys.bunVersion(), ">=1.0.0");
+
+// 3. Concurrency-limited processing (`rad.asyncutils.parallelMap`) with exponential retry (`rad.flowutils.retry`)
+const sizes = await rad.asyncutils.parallelMap(tsFiles.slice(0, 5), 3, async (relPath) => {
+  return await rad.flowutils.retry(async () => {
+    const absPath = path.resolve(process.cwd(), relPath);
+    return { file: relPath, bytes: sys.fileSize(absPath) };
+  }, 2, 50);
+});
+
+const totalBytes = stdlib.sum(sizes.map((s) => s.bytes));
+console.log({ parsedPort: Number(envVars.PORT), bunCompatible, sampleFiles: sizes.length, totalBytes: stdlib.humanSize(totalBytes) });
 ```
 
 ---
 
 ## Step 8: Pro SimpleCLI RAD tips and tricks
 
-1. **Always Pair Interactive Prompts with Flags + TTY Checks**: Gate `select()`, `fuzzySelect()`, `form()`, and `filePicker()` behind `process.stdin.isTTY && !app.getFlagBool("yes")`, falling back to `--flag` values or safe defaults when running under CI.
-2. **Use `app.output(data, { format })` Everywhere You Emit Structured Results**: Because `app.output()` switches automatically to `JSON.stringify(data, null, 2)` whenever `--json` is passed OR `!process.stdout.isTTY`, the same handler cleanly serves interactive terminal users and `| jq` scripts.
+1. **Always Pair Interactive Prompts with Flags + TTY Checks**: Gate `select()`, `fuzzySelect()`, `form()`, and `filePicker()` behind `process.stdin.isTTY && !sub.getFlagBool("yes")`, falling back to `--flag` values or safe defaults in CI.
+2. **Use `app.output(data, { format })` Everywhere You Emit Structured Results**: Because `app.output()` switches automatically to `JSON.stringify(data, null, 2)` whenever `--json` is passed OR `!process.stdout.isTTY`, the same handler cleanly serves interactive terminals and `| jq` scripts.
 3. **Never Pass User Strings into `sys.exec*`**: `sys.exec*` invokes a shell (`shell: true`). Any untrusted branch name, commit message, path, or URL MUST go through **`rad.sysutils.execSafe(cmd, args)`** or **`Bun.spawn([...])`** with an argv array.
 4. **Use `tryGet` / `tryPost` to Keep Command Handlers Flat**: Instead of nesting `try/catch` blocks for every HTTP call, check `const res = await api.tryGet<T>(path); if (!res.ok) { app.error(res.error); return; }`.
 5. **Run Ephemeral `sys.serveJson(..., 0)` + `NamespacedRedis` (`fallbackToMemory: true`) in Local Dev & CI**: Binding port `0` assigns a free localhost port and memory fallback skips requiring a Redis container—giving zero-flake offline integration tests.
@@ -807,15 +1154,19 @@ describe("svc-cli headless tests", () => {
    Whenever `!process.stdout.isTTY` (or `--json` is `true`), `app.output()` switches non-`"text"`/`"markdown"` formats to JSON so scripts never break on box-drawing borders or ANSI escapes.
 5. **Why did Ctrl+C exit immediately with code `130`, or why did `form()` stop re-prompting in CI?**
    Raw TTY prompts (`promptPassword`, `select`, `multiSelect`, `fuzzySelect`) cleanly restore terminal mode and exit `130` (`SIGINT`) on Ctrl+C; `filePicker` returns `""`. When `stdin` is not a TTY, `form()` aborts failing `required` loops after 2 retries so pipelines never hang—always provide `--flag` / `--yes` fallbacks!
-6. **Why did `TypeError: ... is not a function` happen for methods mentioned in older docs?**
-   Use this exact mapping verified against `src/simplecli/`:
+6. **Why did `TypeError: ... is not a function` happen for conceptual or legacy helper names?**
+   Use this exact mapping verified against `src/simplecli/` and `src/features/rad/`:
 
-| Legacy / Misremembered Name | Real Verified Method in `src/simplecli/` (or `rad`) |
+| Legacy / Conceptual Name | Real Verified Method in `src/simplecli/` (or `rad`) |
 | :--- | :--- |
 | `app.isTty()` | `Boolean(process.stdout.isTTY)` / `Boolean(process.stdin.isTTY)` |
 | `app.smartOutput(rows, headers)` / `app.printJson(data)` | `app.output(data, { format: "table" \| "json" })`, `app.tableToJson()`, `app.jsonHighlight()` |
 | `app.forEachWithProgress(items, label, fn)` | Standard `for` loop calling `app.progressBar(i + 1, items.length, label)` |
 | `app.selectFromObjects(msg, objs, cols)` | `app.select()` or `app.fuzzySelect()` paired with a `Map<string, T>` |
+| `app.ask` / `password` / `number` / `pickFile` / `wizard` | `app.prompt()`, `app.promptPassword()`, `app.promptNumber()`, `app.filePicker()`, `app.form()` |
+| `TaskPipeline` / `BenchmarkSuite` / `Logger.child` | `app.newPipeline()`, `app.measure()` / `measureAsync()`, separate `new Logger()` instances or tagged prefix helpers |
+| `createRedisClient()` | `app.redis(ns, { fallbackToMemory: true })` / `createRedisNamespace(...)` / `new InMemoryRedisClient()` |
+| `stdlib.fsx` / `glob` / `pathx` / `dotenv` | `sys` (`readText`, `writeJson`, `findFiles`), `rad.globutils`, `node:path`, `rad.envutils` |
 | `app.enableCompletions()` / `app.generateCompletion()` | Completions (`--completion`) are automatic; generator is **`app.generateCompletions(shell)`** (plural) |
 | `api.tryGetJson<T>(path)` | **`api.tryGet<T>(path)`** (parses JSON into `res.data`) |
 | `sys.execSafe(argv)` | **`rad.sysutils.execSafe(cmd, args)`** (in `rad`) or **`Bun.spawn([cmd, ...args])`** |
@@ -889,7 +1240,7 @@ export function buildDevopsCli(): SimpleCLI {
       );
 
       const api = createApiClient(mockApi.url.toString())
-        .withBearer("my-api-token")
+        .withBearer("your-api-token")
         .setRetries(2, 100);
 
       // Namespaced Redis with automatic in-memory fallback when no local Redis is running

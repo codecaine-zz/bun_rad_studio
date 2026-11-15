@@ -93,13 +93,13 @@ describe("⚡ Bun Native System & Zero-Homebrew Suite", () => {
   it("6. Instantiates Bun System & Package Workstation (Zero Homebrew)", () => {
     const win1 = createBunSystemStudio();
     const html1 = win1.generateHtml();
-    expect(html1).toContain("Bun System & Package Workstation");
+    expect(html1).toContain("Bun System &amp; Package Workstation");
     expect(html1).toContain("btn_search");
 
     // Check alias
     const win2 = createBrewStudio();
     const html2 = win2.generateHtml();
-    expect(html2).toContain("Bun System & Package Workstation");
+    expect(html2).toContain("Bun System &amp; Package Workstation");
     expect(html2).toContain("btn_search");
   });
 

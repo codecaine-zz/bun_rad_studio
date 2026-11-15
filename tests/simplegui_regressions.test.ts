@@ -1,7 +1,17 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { describe, expect, test, spyOn } from "bun:test";
+import {
+  mkdtempSync,
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+  readFileSync,
+  existsSync,
+} from "node:fs";
+import * as os from "os";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { JSDOM } from "jsdom";
+import * as localGuard from "../src/localGuard";
 import {
   SimpleControlRef,
   SimpleWindow,
@@ -103,7 +113,9 @@ function makeFakeButton(initialText: string) {
     },
     set innerHTML(_next: string) {
       innerHtmlWrites++;
-      throw new Error("Button innerHTML must never be assigned by setValue/setText");
+      throw new Error(
+        "Button innerHTML must never be assigned by setValue/setText",
+      );
     },
     get _innerHtmlWrites() {
       return innerHtmlWrites;
@@ -160,7 +172,9 @@ describe("Bug 1: setValue() / setText() on <button> and text/caption controls", 
     expect(html1).toContain("Accept &lt;Updated&gt; Terms");
     // Checkbox checked value was NOT clobbered by setText()
     expect(win.getChecked("chkAgree")).toBe(true);
-    expect(html1).toMatch(/id="chkAgree"[\s\S]*?<input[^>]*type="checkbox"[^>]*checked/);
+    expect(html1).toMatch(
+      /id="chkAgree"[\s\S]*?<input[^>]*type="checkbox"[^>]*checked/,
+    );
 
     // 2. Subsequent setText / ref.setText before run()
     btn.setText("Shipped <v3> & Verified");
@@ -398,9 +412,9 @@ describe("Bug 3: index.d.ts and simplegui.d.ts strict TypeScript verification", 
         expect(ctrlBlockMatch![0]).toContain(`${m}(`);
       }
       for (const m of winMethods) {
-        expect(
-          dts.includes(`${m}(`) || dts.includes(`private ${m};`),
-        ).toBe(true);
+        expect(dts.includes(`${m}(`) || dts.includes(`private ${m};`)).toBe(
+          true,
+        );
       }
     }
 
@@ -409,8 +423,12 @@ describe("Bug 3: index.d.ts and simplegui.d.ts strict TypeScript verification", 
       join(ROOT, "dist", "npm", "simplegui.d.ts"),
     ]) {
       const sgDts = readFileSync(sgDtsPath, "utf8");
-      expect(sgDts).toMatch(/export type \{[\s\S]*\bWindowOptions\b[\s\S]*\} from "\.\/index\.js";/);
-      expect(sgDts).toMatch(/export \{[\s\S]*\bcreateWindow\b[\s\S]*\} from "\.\/index\.js";/);
+      expect(sgDts).toMatch(
+        /export type \{[\s\S]*\bWindowOptions\b[\s\S]*\} from "\.\/index\.js";/,
+      );
+      expect(sgDts).toMatch(
+        /export \{[\s\S]*\bcreateWindow\b[\s\S]*\} from "\.\/index\.js";/,
+      );
     }
   });
 
@@ -574,7 +592,9 @@ describe("High-level SimpleGUI ergonomic developer enhancements", () => {
     expect(w2.title).toBe("Title + Options");
     expect(w2.theme).toBe("dracula");
     expect(w2.fullscreen).toBe(false);
-    expect(newSimpleWindow({ title: "A", width: 400, height: 300 }).fullscreen).toBe(false);
+    expect(
+      newSimpleWindow({ title: "A", width: 400, height: 300 }).fullscreen,
+    ).toBe(false);
     expect(new_simple_window("B", 400, 300).fullscreen).toBe(false);
     expect(typeof simplegui.SimpleDialogs.prototype.fire).toBe("function");
     expect(typeof w2.dialogs.fire).toBe("function");
@@ -586,7 +606,9 @@ describe("High-level SimpleGUI ergonomic developer enhancements", () => {
     expect(w2.generateHtml()).toContain('placeholder="Enter username"');
 
     const chkRef = w2.addCheckbox("Remember me", false).id("chkRemember");
-    const roleRef = w2.addSelect(["Viewer", "Editor", "Admin"], "Editor").id("selRole");
+    const roleRef = w2
+      .addSelect(["Viewer", "Editor", "Admin"], "Editor")
+      .id("selRole");
 
     // Fluent value() / text() / checked() getter-setter overloads
     expect(userRef.value("alice")).toBe(userRef);
@@ -617,7 +639,11 @@ describe("High-level SimpleGUI ergonomic developer enhancements", () => {
     expect(w2.control("txtUser").clear().value()).toBe("");
 
     // Custom .bg() and .color() survive win.setTheme()
-    const customBtn = w2.addButton("Custom").id("btnCustom").bg("#ef4444").color("#fef2f2");
+    const customBtn = w2
+      .addButton("Custom")
+      .id("btnCustom")
+      .bg("#ef4444")
+      .color("#fef2f2");
     w2.setTheme("apple_light", false);
     expect(customBtn.spec.background_color).toBe("#ef4444");
     expect(customBtn.spec.font_color).toBe("#fef2f2");
@@ -656,5 +682,877 @@ describe("High-level SimpleGUI ergonomic developer enhancements", () => {
       }),
     ).toThrow("boom");
     expect((win as any).layoutStack.length).toBe(0);
+  });
+});
+
+async function withIsolatedHome(
+  fn: (tmpHome: string) => void | Promise<void>,
+): Promise<void> {
+  const prevHome = process.env.HOME;
+  const prevXdgConfig = process.env.XDG_CONFIG_HOME;
+  const prevXdgState = process.env.XDG_STATE_HOME;
+  const tmpHome = mkdtempSync(join(tmpdir(), "simplegui-reg-home-"));
+  const homeSpy = spyOn(os, "homedir").mockReturnValue(tmpHome);
+  process.env.HOME = tmpHome;
+  process.env.XDG_CONFIG_HOME = join(tmpHome, ".config");
+  process.env.XDG_STATE_HOME = join(tmpHome, ".local", "state");
+
+  try {
+    await fn(tmpHome);
+  } finally {
+    homeSpy.mockRestore();
+    if (prevHome === undefined) delete process.env.HOME;
+    else process.env.HOME = prevHome;
+    if (prevXdgConfig === undefined) delete process.env.XDG_CONFIG_HOME;
+    else process.env.XDG_CONFIG_HOME = prevXdgConfig;
+    if (prevXdgState === undefined) delete process.env.XDG_STATE_HOME;
+    else process.env.XDG_STATE_HOME = prevXdgState;
+    rmSync(tmpHome, { recursive: true, force: true });
+  }
+}
+
+function makeFakeControlButton(initialText: string) {
+  const btn = makeFakeButton(initialText);
+  btn.hasAttribute = (k: string) => btn.getAttribute(k) !== null;
+  return btn;
+}
+
+describe("SimpleWindow evalJS escaping and duration sanitization", () => {
+  test("setValue, setText, setHtml, setStatus, and setStatusBarText safely escape quotes, newlines, templates, and </script>", () => {
+    const win = new SimpleWindow({
+      title: "EvalJS Escaping",
+      width: 640,
+      height: 420,
+    });
+    win.addButton("Initial").id("btnEsc");
+    win.addInput("").id("inpEsc");
+    win.addLabel("").id("lblEsc");
+    win.addLabel("").id("lbl_status");
+    win.addStatusBar("Ready").id("status_bar");
+
+    const scripts: string[] = [];
+    (win as any).webview = { eval: (code: string) => scripts.push(code) };
+    (win as any).isWindowRunning = true;
+
+    const btnEl = makeFakeControlButton("Initial");
+    const makeStubDomEl = (
+      tagName: string,
+      extra: Record<string, any> = {},
+    ) => ({
+      tagName,
+      textContent: "",
+      innerHTML: "",
+      style: {},
+      dataset: {},
+      classList: {
+        contains: () => false,
+        add: () => {},
+        remove: () => {},
+        toggle: () => false,
+      },
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      setAttribute: () => {},
+      getAttribute: () => null,
+      hasAttribute: () => false,
+      ...extra,
+    });
+    const inpEl: any = makeStubDomEl("INPUT", { type: "text", value: "" });
+    const lblEl: any = makeStubDomEl("DIV");
+    const statusEl: any = makeStubDomEl("DIV");
+    const statusBarSpan: any = { textContent: "" };
+    const statusBarEl: any = makeStubDomEl("DIV", {
+      querySelector: (sel: string) =>
+        sel.includes("span") ? statusBarSpan : null,
+    });
+    const sim = createSimulatedDom({
+      btnEsc: btnEl,
+      inpEsc: inpEl,
+      lblEsc: lblEl,
+      lbl_status: statusEl,
+      status_bar: statusBarEl,
+    });
+
+    const tricky = `Line1\nLine2\r\n'single' "double" \`backtick\` \\slash\\ \${1+1} </script><img src=x onerror=alert(1)>\u2028\u2029`;
+
+    win.setValue("btnEsc", tricky);
+    win.setValue("inpEsc", tricky);
+    win.setText("lblEsc", tricky);
+    win.setStatus(tricky);
+    win.setStatusBarText("status_bar", tricky);
+
+    for (const s of scripts) {
+      sim.exec(s);
+    }
+
+    expect(btnEl.textContent).toBe(tricky);
+    expect(btnEl.value).toBe("");
+    expect(inpEl.value).toBe(tricky);
+    expect(lblEl.textContent).toBe(tricky);
+    expect(statusEl.textContent).toBe(tricky);
+    expect(statusBarSpan.textContent).toBe(tricky);
+
+    // setHtml deliberately updates innerHTML without syntax breakage on tricky payloads
+    scripts.length = 0;
+    win.setHtml("lblEsc", `<span>'a' "b" \`c\`\n\${2+2}</span>`);
+    expect(scripts.length).toBe(1);
+    sim.exec(scripts[0]!);
+    expect(lblEl.innerHTML).toBe(`<span>'a' "b" \`c\`\n\${2+2}</span>`);
+  });
+
+  test("toast and highlightControl safely serialize tricky strings and sanitize malicious or negative durations", () => {
+    const win = new SimpleWindow({
+      title: "Duration Safety",
+      width: 520,
+      height: 340,
+    });
+    win.addButton("Target").id("btnDur");
+
+    const scripts: string[] = [];
+    (win as any).webview = { eval: (code: string) => scripts.push(code) };
+    (win as any).isWindowRunning = true;
+
+    const tricky = `Alert "O'Reilly"\nline2 \`tick\` \${process.exit(1)} </script>\u2028`;
+    win.toast(
+      tricky,
+      "1500); globalThis.__toastInjected=1;//" as any,
+      "success",
+    );
+    expect(scripts.length).toBe(1);
+
+    const firedToasts: any[] = [];
+    try {
+      const fn = new Function("window", scripts[0]!);
+      fn({
+        SimpleDialogClient: {
+          fire: (opts: any) => {
+            firedToasts.push(opts);
+            return Promise.resolve({
+              isConfirmed: true,
+              isDenied: false,
+              isDismissed: false,
+              value: true,
+            });
+          },
+        },
+        handlePromptResultIPC: () => {},
+      });
+
+      expect((globalThis as any).__toastInjected).toBeUndefined();
+      expect(firedToasts.length).toBe(1);
+      expect(firedToasts[0].title).toBe(tricky);
+      expect(firedToasts[0].toast).toBe(true);
+      expect(firedToasts[0].timer).toBe(
+        "1500); globalThis.__toastInjected=1;//",
+      );
+    } finally {
+      delete (globalThis as any).__toastInjected;
+    }
+
+    // highlightControl clamps negative/NaN/injected durations to safe non-negative numbers
+    scripts.length = 0;
+    win.highlightControl("btnDur", "999); globalThis.__hiInjected=1;//" as any);
+    win.highlightControl("btnDur", -50);
+
+    expect(scripts.length).toBe(2);
+    const btnEl = makeFakeButton("Target");
+    const scheduledDelays: number[] = [];
+    try {
+      for (const s of scripts) {
+        const fn = new Function("document", "setTimeout", s);
+        fn(
+          { getElementById: (id: string) => (id === "btnDur" ? btnEl : null) },
+          (cb: () => void, ms: number) => {
+            scheduledDelays.push(ms);
+            cb();
+          },
+        );
+      }
+      expect((globalThis as any).__hiInjected).toBeUndefined();
+      expect(scheduledDelays).toEqual([1000, 0]);
+      expect(btnEl.style.boxShadow).toBe("none");
+    } finally {
+      delete (globalThis as any).__hiInjected;
+    }
+  });
+
+  test("setPropertyGridValue, setTableData, and copyToClipboard execute safely with quotes, newlines, and HTML-like strings", () => {
+    const win = new SimpleWindow({
+      title: "Rich Escaping",
+      width: 640,
+      height: 420,
+    });
+    win.addPropertyGrid("propGrid", { 'host"key': "old", safe: "ok" });
+    win.addTable(['Col"1', "Col<2>"], [["a", "b"]]).id("tblData");
+
+    const scripts: string[] = [];
+    (win as any).webview = { eval: (code: string) => scripts.push(code) };
+    (win as any).isWindowRunning = true;
+
+    const tricky = `val "q1" 'q2'\n\${7*7} <img src=x onerror=alert(1)>`;
+
+    const dom = new JSDOM(`<!doctype html><html><body>
+      <div id="propGrid">
+        <div class="prop-row" data-prop-key='host"key'><span class="prop-val">old</span></div>
+      </div>
+      <div id="tblData"></div>
+    </body></html>`);
+
+    win.setPropertyGridValue("propGrid", 'host"key', tricky);
+    win.setTableData("tblData", ['Col"1', "Col<2>"], [[tricky, "plain"]]);
+
+    expect(scripts.length).toBe(2);
+    for (const s of scripts) {
+      const fn = new Function("document", "window", s);
+      fn(dom.window.document, dom.window);
+    }
+
+    expect(dom.window.document.querySelector(".prop-val")?.textContent).toBe(
+      tricky,
+    );
+    const firstTd = dom.window.document.querySelector("#tblData tbody td");
+    expect(firstTd?.textContent).toBe(tricky);
+    expect(
+      dom.window.document.querySelectorAll("#tblData img, #tblData script")
+        .length,
+    ).toBe(0);
+
+    // copyToClipboard escapes multiline/quoted clipboard payload without touching host clipboard
+    const clipSpy = spyOn(localGuard, "writeClipboardSync").mockImplementation(
+      () => true,
+    );
+    try {
+      scripts.length = 0;
+      let copied = "";
+      win.copyToClipboard(tricky);
+      expect(clipSpy).toHaveBeenCalledWith(tricky);
+      expect(scripts.length).toBe(1);
+      const fn = new Function("navigator", "document", "console", scripts[0]!);
+      fn(
+        {
+          clipboard: {
+            writeText: (txt: string) => {
+              copied = txt;
+              return Promise.resolve();
+            },
+          },
+        },
+        dom.window.document,
+        console,
+      );
+      expect(copied).toBe(tricky);
+    } finally {
+      clipSpy.mockRestore();
+    }
+  });
+});
+
+describe("Styling, theming, flex, rightClick, hover, and treeView parity", () => {
+  test("SimpleControlRef.bg auto-contrasts text, emits data-custom-bg/color, and updates live DOM", () => {
+    const win = new SimpleWindow({
+      title: "Custom Colors",
+      width: 600,
+      height: 400,
+      theme: "midnight",
+    });
+    const darkBtn = win
+      .addButton("Dark BG", () => {})
+      .id("btnDark")
+      .bg("#111827");
+    const brightBtn = win
+      .addButton("Bright BG", () => {})
+      .id("btnBright")
+      .bg("#facc15");
+    const explicitBtn = win
+      .addButton("Explicit FG", () => {})
+      .id("btnExplicit")
+      .color("#10b981")
+      .bg("#111827");
+
+    expect(darkBtn.spec.custom_background).toBe(true);
+    expect(darkBtn.spec._isThemeAccent).toBe(false);
+    expect(darkBtn.spec.font_color).toBe("#ffffff");
+
+    expect(brightBtn.spec.font_color).toBe("#000000");
+
+    expect(explicitBtn.spec.custom_color).toBe(true);
+    expect(explicitBtn.spec.font_color).toBe("#10b981");
+
+    const html = win.generateHtml();
+    expect(html).toContain('id="btnDark"');
+    expect(html).toContain('data-custom-bg="true"');
+    expect(html).toContain('data-custom-color="true"');
+
+    // Live run() DOM updates via bg() and color()
+    const scripts: string[] = [];
+    (win as any).webview = { eval: (code: string) => scripts.push(code) };
+    (win as any).isWindowRunning = true;
+
+    const fakeBtn = makeFakeControlButton("Dark BG");
+    const sim = createSimulatedDom({ btnDark: fakeBtn });
+
+    darkBtn.bg("#fef08a"); // bright yellow -> should auto-contrast text to black when no custom color
+    darkBtn.color("#7c2d12");
+
+    for (const s of scripts) {
+      sim.exec(s);
+    }
+
+    expect(fakeBtn.style.background).toBe("#fef08a");
+    expect(fakeBtn.style.backgroundColor).toBe("#fef08a");
+    expect(fakeBtn.getAttribute("data-custom-bg")).toBe("true");
+    expect(fakeBtn.classList.contains("btn-theme-accent")).toBe(false);
+    expect(fakeBtn.getAttribute("data-custom-color")).toBe("true");
+    expect(fakeBtn.style.color).toBe("#7c2d12");
+  });
+
+  test("_applyTheme preserves custom colors, avoids pinning explicit theme, and preserves live custom DOM styles", () => {
+    const win = new SimpleWindow({ title: "Theme Switch" });
+    const btnBgOnly = win
+      .addButton("Bg Only", () => {})
+      .id("btnBgOnly")
+      .bg("#fde047");
+    const btnFgOnly = win
+      .addButton("Fg Only", () => {})
+      .id("btnFgOnly")
+      .color("#fb7185");
+    const lblCustom = win
+      .addLabel("Custom Label")
+      .id("lblCustom")
+      .color("#22d3ee");
+
+    expect((win as any)._explicitWindowOptions?.theme).toBe(false);
+
+    (win as any)._applyTheme("apple_light", false);
+    expect((win as any)._explicitWindowOptions?.theme).toBe(false);
+    expect(btnBgOnly.spec.background_color).toBe("#fde047");
+    expect(btnBgOnly.spec.font_color).toBe("#000000");
+    expect(btnFgOnly.spec.font_color).toBe("#fb7185");
+    expect(lblCustom.spec.font_color).toBe("#22d3ee");
+
+    // Public setTheme before run() DOES pin explicit theme, whereas _applyTheme does not
+    const winPinned = new SimpleWindow({ title: "Theme Pin Check" });
+    expect((winPinned as any)._explicitWindowOptions?.theme).toBe(false);
+    winPinned.setTheme("dracula", false);
+    expect((winPinned as any)._explicitWindowOptions?.theme).toBe(true);
+
+    // Switching live via setTheme updates DOM while preserving custom bg/fg attributes & styles
+    const html = win.generateHtml();
+    const dom = new JSDOM(html);
+    const scripts: string[] = [];
+    (win as any).webview = { eval: (code: string) => scripts.push(code) };
+    (win as any).isWindowRunning = true;
+
+    win.setTheme("dracula", false);
+    expect(win.theme).toBe("dracula");
+
+    expect(scripts.length).toBeGreaterThanOrEqual(1);
+    const themeScript = scripts[0]!;
+    const fn = new Function(
+      "document",
+      "window",
+      "navigator",
+      "getComputedStyle",
+      themeScript,
+    );
+    fn(
+      dom.window.document,
+      dom.window,
+      dom.window.navigator,
+      dom.window.getComputedStyle.bind(dom.window),
+    );
+
+    const domBtnBg = dom.window.document.getElementById("btnBgOnly");
+    const domLblCustom = dom.window.document.getElementById("lblCustom");
+    expect(domBtnBg?.getAttribute("data-custom-bg")).toBe("true");
+    expect(domBtnBg?.style.backgroundColor).toBeTruthy();
+    expect(domLblCustom?.getAttribute("data-custom-color")).toBe("true");
+    expect(domLblCustom?.style.color).toBeTruthy();
+    expect(
+      dom.window.document.documentElement.style.getPropertyValue("--accent"),
+    ).toBe(win.accentColor);
+  });
+
+  test("onRightClick sets has_context_menu, renders data-context-menu attributes, and updates live DOM", async () => {
+    const win = new SimpleWindow({ title: "Context Menu" });
+    let hits: string[] = [];
+    const btn = win
+      .addButton("Item", () => {})
+      .id("btnCtx")
+      .onRightClick((_w, v) => {
+        hits.push(`ref:${String(v ?? "ok")}`);
+      });
+    win.addLabel("Label").id("lblCtx");
+    win.onRightClick("lblCtx", (_w, v) => {
+      hits.push(`win:${String(v ?? "ok")}`);
+    });
+
+    expect(btn.spec.has_context_menu).toBe(true);
+    expect(win.eventHandlersMap.has("btnCtx:oncontextmenu")).toBe(true);
+    expect(win.eventHandlersMap.has("lblCtx:oncontextmenu")).toBe(true);
+
+    const html = win.generateHtml();
+    expect(html).toContain('data-context-menu=""');
+    expect(html).toContain('data-ctrl-id="btnCtx"');
+
+    const scripts: string[] = [];
+    (win as any).webview = { eval: (code: string) => scripts.push(code) };
+    (win as any).isWindowRunning = true;
+    const fakeBtn = makeFakeControlButton("Item");
+    const sim = createSimulatedDom({ btnCtx: fakeBtn });
+
+    btn.onRightClick(() => {
+      hits.push("live");
+    });
+    for (const s of scripts) {
+      sim.exec(s);
+    }
+    expect(fakeBtn.getAttribute("data-context-menu")).toBe("");
+    expect(fakeBtn.getAttribute("data-ctrl-id")).toBe("btnCtx");
+
+    await win.triggerEvent("btnCtx", "onContextMenu", "p1");
+    await win.triggerEvent("lblCtx", "onContextMenu", "p2");
+    expect(hits).toEqual(["ref:p1", "live", "win:p2"]);
+  });
+
+  test("SimpleControlRef.hover escapes special CSS selector characters in injected style elements", () => {
+    const win = new SimpleWindow({ title: "Hover Safety" });
+    const btn = win.addButton("Special Hover", () => {}).id("btn.save:v2[0]");
+
+    const scripts: string[] = [];
+    (win as any).webview = { eval: (code: string) => scripts.push(code) };
+    (win as any).isWindowRunning = true;
+
+    btn.hover("#1e293b", "#f8fafc");
+    expect(scripts.length).toBe(1);
+
+    const dom = new JSDOM(
+      `<!doctype html><html><head></head><body><button id="btn.save:v2[0]">Special Hover</button></body></html>`,
+    );
+    const fn = new Function("document", "window", scripts[0]!);
+    fn(dom.window.document, dom.window);
+
+    const styleEl = dom.window.document.getElementById(
+      "sg-hover-btn.save:v2[0]",
+    );
+    expect(styleEl).not.toBeNull();
+    expect(styleEl?.textContent).toContain("#btn\\.save\\:v2\\[0\\]:hover{");
+    expect(styleEl?.textContent).toContain(
+      "background-color:#1e293b !important;",
+    );
+    expect(styleEl?.textContent).toContain("color:#f8fafc !important;");
+  });
+
+  test("beginFlex/endFlex stack aligns row vs column children accurately", () => {
+    const win = new SimpleWindow({
+      title: "Flex Parity",
+      width: 640,
+      height: 480,
+    });
+    win.beginFlex("row");
+    const r1 = win.addButton("Left", () => {});
+    const r2 = win.addButton("Right", () => {});
+    win.endFlex();
+
+    expect(r1.spec.y).toBe(r2.spec.y);
+    expect(r2.spec.x).toBeGreaterThan(r1.spec.x);
+
+    win.begin_flex("column");
+    const c1 = win.addButton("Top", () => {});
+    const c2 = win.addButton("Bottom", () => {});
+    win.end_flex();
+
+    expect(c1.spec.x).toBe(c2.spec.x);
+    expect(c2.spec.y).toBeGreaterThan(c1.spec.y);
+
+    win.beginFlexBox("nested", "row");
+    win.beginFlex("column");
+    win.addLabel("Nested Col Item");
+    win.endFlex();
+    win.endFlexBox();
+    expect((win as any)._flexModeStack.length).toBe(0);
+    expect((win as any).layoutStack.length).toBe(0);
+  });
+
+  test("addTreeView renders tree_view markup, fires callbacks, and expandAll/collapseAll dispatch live", async () => {
+    const win = new SimpleWindow({
+      title: "TreeView Parity",
+      width: 520,
+      height: 420,
+    });
+    const picked: any[] = [];
+    const tv = win
+      .addTreeView(["📁 src", "📄 index.ts", "📄 app.ts"], (_w, val) => {
+        picked.push(val);
+      })
+      .id("projTree");
+
+    expect(tv.spec.control_type).toBe("tree_view");
+    expect(tv.spec.nodes).toEqual(["📁 src", "📄 index.ts", "📄 app.ts"]);
+
+    await win.triggerClick("projTree", "📄 app.ts");
+    await win.triggerChange("projTree", "📄 index.ts");
+    expect(picked).toEqual(["📄 app.ts", "📄 index.ts"]);
+
+    const html = win.generateHtml();
+    expect(html).toContain('class="rad-tree-container"');
+    expect(html).toContain('data-node="📄 index.ts"');
+    expect(html).toContain("_expandAll");
+    expect(html).toContain("_collapseAll");
+
+    const scripts: string[] = [];
+    (win as any).webview = { eval: (code: string) => scripts.push(code) };
+    (win as any).isWindowRunning = true;
+
+    tv.collapseAll();
+    expect(tv.spec.expanded).toBe(false);
+    tv.expandAll();
+    expect(tv.spec.expanded).toBe(true);
+    expect(scripts.length).toBe(2);
+
+    const calls: string[] = [];
+    const mockWin = {
+      projTree_collapseAll: () => calls.push("collapse"),
+      projTree_expandAll: () => calls.push("expand"),
+    };
+    for (const s of scripts) {
+      new Function("window", s)(mockWin);
+    }
+    expect(calls).toEqual(["collapse", "expand"]);
+  });
+});
+
+describe("Post-binding .id() chains preserve control bindings and placeholders", () => {
+  test("bindState, bindViews, bindDetail, filterTable, and placeholder followed by .id() operate under the new ID", async () => {
+    const win = new SimpleWindow({
+      title: "Post-Binding .id()",
+      width: 800,
+      height: 600,
+    });
+
+    // 1. bindState(...).id("usrInput")
+    const usrRef = win
+      .addInput("Username", "alice")
+      .bindState("username")
+      .id("usrInput");
+    expect(usrRef.spec.id).toBe("usrInput");
+    expect(win.getState("username")).toBe("alice");
+    win.setState("username", "bob");
+    expect(win.getValue("usrInput")).toBe("bob");
+    await win.triggerChange("usrInput", "charlie");
+    expect(win.getState("username")).toBe("charlie");
+
+    // 2. bindViews(...).id("mainTabs")
+    win.addLabel("Panel A").id("panelA");
+    win.addLabel("Panel B").id("panelB");
+    let lastTab = "";
+    win
+      .addTabs(["Overview", "Logs"], 0)
+      .bindViews({ Overview: ["panelA"], Logs: ["panelB"] }, (_w, tab) => {
+        lastTab = tab;
+      })
+      .id("mainTabs");
+    expect(win.findControl("panelA")?.visible).not.toBe(false);
+    expect(win.findControl("panelB")?.visible).toBe(false);
+    await win.triggerChange("mainTabs", "Logs");
+    expect(lastTab).toBe("Logs");
+    expect(win.findControl("panelB")?.visible).toBe(true);
+    expect(win.findControl("panelA")?.visible).toBe(false);
+
+    // 3. bindDetail(...).id("usersTable")
+    win.addInput("").id("detName");
+    win.addInput("").id("detRole");
+    let detailCalls = 0;
+    const rows = [
+      ["u1", "Ada Lovelace", "Architect"],
+      ["u2", "Grace Hopper", "Compiler Lead"],
+    ];
+    win
+      .addTable(["ID", "Name", "Role"], rows)
+      .bindDetail([null, "detName", "detRole"], () => {
+        detailCalls++;
+      })
+      .id("usersTable");
+    await win.triggerClick("usersTable", "u2");
+    expect(detailCalls).toBe(1);
+    expect(win.getValue("detName")).toBe("Grace Hopper");
+    expect(win.getValue("detRole")).toBe("Compiler Lead");
+
+    // 4. filterTable(...).id("searchBox")
+    win.addLabel("").id("matchCount");
+    win
+      .addInput("")
+      .placeholder("Filter users...")
+      .filterTable("usersTable", rows, { countControlId: "matchCount" })
+      .id("searchBox");
+    expect(win.findControl("searchBox")?.placeholder).toBe("Filter users...");
+    await win.triggerChange("searchBox", "ada");
+    expect(win.findControl("usersTable")?.rows).toEqual([
+      ["u1", "Ada Lovelace", "Architect"],
+    ]);
+    expect(win.getValue("matchCount")).toBe("1 / 2 rows");
+
+    // 5. placeholder(...).id("tokInput") preserves placeholder across ID rename
+    const tokRef = win
+      .addInput("Init")
+      .placeholder("Enter API key")
+      .id("tokInput");
+    expect(tokRef.spec.placeholder).toBe("Enter API key");
+    expect(win.generateHtml()).toContain('placeholder="Enter API key"');
+  });
+});
+
+describe("Password exclusion, clearAppState, window properties, shortcuts, and overloaded callbacks", () => {
+  test("saveAppFormState and saveValuesToFile exclude password fields, and clearAppState clears disk and in-memory stateStore", async () => {
+    await withIsolatedHome(async (tmpHome) => {
+      const appName = "reg_pwd_clear_test";
+      const win = new SimpleWindow({
+        title: "Persistence Security",
+        appId: appName,
+      });
+      win.addInput("Email", "user@example.com").id("email");
+      win.addPasswordInput("pw1", "Password").id("pwPrimary");
+      win.addPassword("pwSecondary", "Secret", "hunter2");
+
+      win.setValue("pwPrimary", "super-secret-1");
+      win.setValue("pwSecondary", "super-secret-2");
+      win.saveAppFormState(appName);
+
+      const formFile = getAppStateFile(appName, "form_state.json");
+      expect(formFile.startsWith(tmpHome)).toBe(true);
+      const persistedForm = JSON.parse(readFileSync(formFile, "utf-8"));
+      expect(persistedForm.email).toBe("user@example.com");
+      expect(persistedForm.pwPrimary).toBeUndefined();
+      expect(persistedForm.pwSecondary).toBeUndefined();
+
+      const exportPath = join(tmpHome, "exported_values.json");
+      win.saveValuesToFile(exportPath);
+      const exported = JSON.parse(readFileSync(exportPath, "utf-8"));
+      expect(exported.email).toBe("user@example.com");
+      expect(exported.pwPrimary).toBeUndefined();
+      expect(exported.pwSecondary).toBeUndefined();
+
+      // stateStore + state.json cleared by clearAppState
+      win.setState("sessionToken", "tok-123");
+      win.setState("activeTab", "build");
+      const stateFile = getAppStateFile(appName, "state.json");
+      mkdirSync(join(tmpHome, "Library", "Application Support", appName), {
+        recursive: true,
+      });
+      writeFileAtomic(stateFile, JSON.stringify({ sessionToken: "tok-123" }));
+      expect(existsSync(stateFile)).toBe(true);
+
+      win.clearAppState(appName);
+      expect(existsSync(stateFile)).toBe(false);
+      expect(Object.keys(win.stateStore).length).toBe(0);
+      expect(win.hasState("sessionToken")).toBe(false);
+      expect(win.getState("activeTab")).toBe("");
+    });
+  });
+
+  test("accentColor and responsiveLayout options, getters/setters, and responsive script toggling", () => {
+    const win = createWindow({
+      title: "Props Test",
+      accentColor: "#e11d48",
+      responsiveLayout: false,
+    } as any);
+    win.beginCard("Card 1");
+    win.addLabel("Inside Card");
+    win.endCard();
+
+    expect(win.accentColor).toBe("#e11d48");
+    expect(win.responsiveLayout).toBe(false);
+    expect(win.getResponsiveLayout()).toBe(false);
+    expect(win.get_responsive_layout()).toBe(false);
+
+    const winRespOpt = createWindow({
+      title: "Props Resp Opt",
+      responsive: false,
+    });
+    expect(winRespOpt.responsiveLayout).toBe(false);
+    expect(winRespOpt.getResponsiveLayout()).toBe(false);
+
+    const htmlNoResp = win.generateHtml();
+    expect(htmlNoResp).not.toContain("initSimpleguiUniversalResponsiveEngine");
+
+    win.setResponsiveLayout(true);
+    expect(win.responsiveLayout).toBe(true);
+    expect(win.generateHtml()).toContain(
+      "initSimpleguiUniversalResponsiveEngine",
+    );
+
+    win.set_responsive_layout(false);
+    expect(win.getResponsiveLayout()).toBe(false);
+
+    win.setTheme("dracula", false);
+    expect(win.accentColor).not.toBe("#e11d48");
+    expect(win.accentColor.startsWith("#")).toBe(true);
+  });
+
+  test("keyboard shortcut registration, chord normalization, triggerShortcut, and live __simpleguiShortcuts sync", async () => {
+    const win = new SimpleWindow({ title: "Shortcuts Test" });
+    const fired: string[] = [];
+
+    win.onShortcut("Ctrl+S", (_w, chord) => fired.push(`save:${chord}`));
+    win.on_shortcut("CmdOrCtrl+K", (_w, chord) => fired.push(`cmdk:${chord}`));
+    win.bindShortcut("Alt+Shift+P", (_w, chord) => fired.push(`pal:${chord}`));
+    win.bindKey("Esc", (_w, chord) => fired.push(`esc:${chord}`));
+
+    await win.triggerShortcut("Control+s");
+    await win.triggerShortcut("ctrl+k");
+    await win.triggerShortcut("meta+k");
+    await win.triggerShortcut("Shift+Option+p");
+    await win.triggerShortcut("escape");
+
+    expect(win.eventHandlersMap.has("shortcut_mod+k")).toBe(true);
+    expect(fired).toEqual([
+      "save:ctrl+s",
+      "cmdk:ctrl+k",
+      "cmdk:meta+k",
+      "pal:alt+shift+p",
+      "esc:escape",
+    ]);
+
+    const scripts: string[] = [];
+    (win as any).webview = { eval: (code: string) => scripts.push(code) };
+    (win as any).isWindowRunning = true;
+    win.onShortcut("Ctrl+D", () => {});
+    expect(scripts.length).toBe(1);
+    const mockWin: any = {};
+    new Function("window", scripts[0]!)(mockWin);
+    expect(Array.isArray(mockWin.__simpleguiShortcuts)).toBe(true);
+    expect(mockWin.__simpleguiShortcuts).toContain("ctrl+d");
+  });
+
+  test("overloaded callback registration works for addSplitButton, addModeControl, addRadioGroup, addPullDown, addComboBox, addPillToggle, and addModal", async () => {
+    const win = new SimpleWindow({ title: "Overloaded Builders" });
+    const calls: string[] = [];
+
+    // 1. addSplitButton / add_split_button
+    win.addSplitButton("sb1", "Deploy", ["Staging", "Prod"], () =>
+      calls.push("sb1"),
+    );
+    win.addSplitButton("sb2", "Build", (() => calls.push("sb2")) as any);
+    const sb3 = win.add_split_button("Run", ["Fast", "Full"], () =>
+      calls.push("sb3"),
+    );
+    const sb4 = win.addSplitButton("Ship", (() => calls.push("sb4")) as any);
+    win.addSplitButton("sb5", "Release", ["Alpha"], { tooltip: "r" }, (() =>
+      calls.push("sb5")) as any);
+
+    await win.triggerClick("sb1");
+    await win.triggerClick("sb2");
+    await win.triggerClick(sb3.spec.id);
+    await win.triggerClick(sb4.spec.id);
+    await win.triggerClick("sb5");
+
+    // 2. addModeControl / add_mode_control
+    win.addModeControl("mc1", ["A", "B"], "A", (_w, v) =>
+      calls.push(`mc1:${v}`),
+    );
+    win.addModeControl("mc2", ["A", "B"], (_w, v) => calls.push(`mc2:${v}`));
+    const mc3 = win.add_mode_control(["X", "Y"], "X", (_w, v) =>
+      calls.push(`mc3:${v}`),
+    );
+    const mc4 = win.addModeControl(["M1", "M2"], (_w, v) =>
+      calls.push(`mc4:${v}`),
+    );
+
+    await win.triggerChange("mc1", "B");
+    await win.triggerChange("mc2", "B");
+    await win.triggerChange(mc3.spec.id, "Y");
+    await win.triggerChange(mc4.spec.id, "M2");
+
+    // 3. addRadioGroup / add_radio_group
+    win.addRadioGroup("rg1", ["Opt1", "Opt2"], "Opt1", (_w, v) =>
+      calls.push(`rg1:${v}`),
+    );
+    win.addRadioGroup("rg2", ["Opt1", "Opt2"], (_w, v) =>
+      calls.push(`rg2:${v}`),
+    );
+    const rg3 = win.add_radio_group(["R1", "R2"], (_w, v) =>
+      calls.push(`rg3:${v}`),
+    );
+
+    await win.triggerChange("rg1", "Opt2");
+    await win.triggerChange("rg2", "Opt2");
+    await win.triggerChange(rg3.spec.id, "R2");
+
+    // 4. addPullDown / add_pull_down
+    win.addPullDown("pd1", ["Dev", "Prod"], "Dev", (_w, v) =>
+      calls.push(`pd1:${v}`),
+    );
+    win.addPullDown("pd2", ["Dev", "Prod"], (_w, v) => calls.push(`pd2:${v}`));
+    const pd3 = win.add_pull_down(["One", "Two"], (_w, v) =>
+      calls.push(`pd3:${v}`),
+    );
+
+    await win.triggerChange("pd1", "Prod");
+    await win.triggerChange("pd2", "Prod");
+    await win.triggerChange(pd3.spec.id, "Two");
+
+    // 5. addComboBox / add_combo_box
+    win.addComboBox("cb1", ["US", "EU"], "US", (_w, v) =>
+      calls.push(`cb1:${v}`),
+    );
+    win.addComboBox("cb2", ["US", "EU"], (_w, v) => calls.push(`cb2:${v}`));
+    const cb3 = win.add_combo_box(["Go", "Rust"], (_w, v) =>
+      calls.push(`cb3:${v}`),
+    );
+
+    await win.triggerChange("cb1", "EU");
+    await win.triggerChange("cb2", "EU");
+    await win.triggerChange(cb3.spec.id, "Rust");
+
+    // 6. addPillToggle / add_pill_toggle
+    win.addPillToggle("pt1", ["On", "Off"], 0, (_w, v) =>
+      calls.push(`pt1:${v}`),
+    );
+    win.addPillToggle("pt2", ["On", "Off"], (_w, v) => calls.push(`pt2:${v}`));
+    const pt3 = win.add_pill_toggle(["Day", "Night"], (_w, v) =>
+      calls.push(`pt3:${v}`),
+    );
+
+    await win.triggerChange("pt1", 1);
+    await win.triggerChange("pt2", 1);
+    await win.triggerChange(pt3.spec.id, 1);
+
+    // 7. addModal / add_modal
+    const m1 = win.addModal("Confirm body", () => calls.push("m1"));
+    const m2 = win.add_modal("Confirm Title", "Message", () =>
+      calls.push("m2"),
+    );
+    win.addModal("m3", "Title 3", "Msg 3", true, () => calls.push("m3"));
+
+    await win.triggerEvent(m1.spec.id, "onConfirm");
+    await win.triggerEvent(m2.spec.id, "onConfirm");
+    await win.triggerClick("m3");
+
+    expect(calls).toEqual([
+      "sb1",
+      "sb2",
+      "sb3",
+      "sb4",
+      "sb5",
+      "mc1:B",
+      "mc2:B",
+      "mc3:Y",
+      "mc4:M2",
+      "rg1:Opt2",
+      "rg2:Opt2",
+      "rg3:R2",
+      "pd1:Prod",
+      "pd2:Prod",
+      "pd3:Two",
+      "cb1:EU",
+      "cb2:EU",
+      "cb3:Rust",
+      "pt1:1",
+      "pt2:1",
+      "pt3:1",
+      "m1",
+      "m2",
+      "m3",
+    ]);
   });
 });

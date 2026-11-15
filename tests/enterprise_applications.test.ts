@@ -460,7 +460,7 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
   it("15. Color & Design Token Studio initializes with WCAG contrast audit", () => {
     const win = createColorStudio();
     const html = win.generateHtml();
-    expect(html).toContain("Color & Design Token Studio");
+    expect(html).toContain("Color &amp; Design Token Studio");
     expect(html).toContain("btn_analyze");
     expect(html).toContain("btn_palette_shades");
     expect(html).toContain("btn_export_css");
@@ -470,7 +470,7 @@ describe("⚡ Enterprise 16-Application Suite Specification", () => {
   it("16. Environment & Secret Vault Studio initializes with masking & diff", () => {
     const win = createEnvStudio();
     const html = win.generateHtml();
-    expect(html).toContain("Environment & Secret Vault");
+    expect(html).toContain("Environment &amp; Secret Vault");
     expect(html).toContain("btn_validate");
     expect(html).toContain("btn_mask");
     expect(html).toContain("btn_diff");

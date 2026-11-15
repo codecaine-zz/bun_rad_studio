@@ -167,7 +167,7 @@ describe("Launcher Studio Pro - Application Auto-Detection", () => {
     expect(win).toBeDefined();
     const html = win.generateHtml();
     expect(html.length).toBeGreaterThan(10000);
-    expect(html).toContain("Project Application & CLI Launcher");
+    expect(html).toContain("Project Application &amp; CLI Launcher");
     expect(html).toContain('id="lst_apps"');
     expect(html).toContain("simplegui-listbox");
     expect(html).toContain('id="dd_select_app"');

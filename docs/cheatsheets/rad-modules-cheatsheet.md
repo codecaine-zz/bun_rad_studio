@@ -20,7 +20,7 @@ Pick the import style that matches where your script lives:
 
 ### 1. Installed package in an external Bun or TypeScript project
 
-```ts
+```typescript
 // Import the unified rad namespace (safest — zero symbol collisions)
 import { rad } from "bun-rad-studio";
 
@@ -32,7 +32,7 @@ rad.sqliteutils.closeDb(db);
 
 ### 2. Script at the repository root (`app.ts` or `<your-file.ts>`)
 
-```ts
+```typescript
 // Run with: bun run app.ts   or   bun run <your-file.ts>
 import { rad } from "./src/features/rad/index.ts";
 
@@ -42,7 +42,7 @@ console.log(`${sys.platform}/${sys.arch} (${sys.cpuCount} CPUs)`);
 
 ### 3. Script nested two folders deep inside the repo (for example `scripts/tasks/job.ts`)
 
-```ts
+```typescript
 import { rad } from "../../src/features/rad/index.ts";
 
 const config = await rad.tomlutils.loadToml("bunfig.toml", {});
@@ -53,7 +53,7 @@ console.log(config);
 
 You can import module namespaces or specific functions directly from [`src/features/rad/index.ts`](../../src/features/rad/index.ts), or import a single module file directly for minimal bundle scope:
 
-```ts
+```typescript
 // Direct namespace + helper imports from the RAD barrel
 import {
   fileutils,
@@ -167,10 +167,56 @@ Find the right module immediately by what you are trying to build:
 | `rad.stateutils` | Yes (OS JSON files) | App preferences, UI state, reactive `.subscribe()` listeners, bounded rollback history | High-frequency relational queries or many records |
 | `rad.cacheutils` | No (RAM only) | Hot in-memory `LRUCache` or `TTLCache` with async `getOrSet` thundering-herd protection | Anything that must survive process restarts |
 
+```typescript
+import { join } from "node:path";
+import { rad } from "./src/features/rad/index.ts";
+
+await rad.fileutils.withTempDir(async (dir) => {
+  // 1. fileutils: raw crash-safe files
+  await rad.fileutils.writeFileAtomic(join(dir, "config.json"), '{"port":8080}');
+
+  // 2. sqliteutils: queryable tables + ACID transactions
+  const db = rad.sqliteutils.openDb(":memory:");
+  rad.sqliteutils.execSql(db, "CREATE TABLE hits (route TEXT PRIMARY KEY, count INTEGER)");
+  rad.sqliteutils.insertRow(db, "hits", { route: "/health", count: 1 });
+  rad.sqliteutils.closeDb(db);
+
+  // 3. stateutils: reactive desktop/CLI user settings with rollback
+  const prefs = new rad.stateutils.AppStateStore(
+    "rad-demo",
+    { theme: "dark" },
+    { customPath: join(dir, "prefs.json") },
+  );
+  await prefs.patch({ theme: "light" });
+  prefs.rollback(); // => { theme: "dark" }
+
+  // 4. cacheutils: fast RAM-only LRU / TTL cache
+  const cache = new rad.cacheutils.TTLCache<string, number>(5_000);
+  const value = await cache.getOrSet("user:42", async () => 42); // => 42
+  cache.dispose();
+});
+```
+
 ### 2. `rad.sysutils.execSafe` vs `rad.shellutils`
 
 - **Use `rad.sysutils.execSafe(cmd, args, options)`** whenever any argument comes from user input, filenames with spaces, or untrusted input. It spawns `cmd` directly without invoking `/bin/sh` or `cmd.exe`, eliminating shell injection (`;` / `&&` / `$()` / backtick attacks).
 - **Use `rad.shellutils.execCmd` / `exec` / `pipeCmds`** only for trusted developer commands that deliberately need shell syntax (`|`, redirects, env expansion, or `timeoutMs`).
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+// SAFE with untrusted user input: passed as argv[1], never parsed by /bin/sh
+const userInput = "report; echo injected";
+const safe = await rad.sysutils.execSafe("printf", ["%s", userInput]);
+// => { stdout: "report; echo injected", stderr: "", exitCode: 0 }
+
+// TRUSTED shell syntax only: pipelines, redirects, and timeouts work here
+const piped = await rad.shellutils.pipeCmds("printf 'b\\na\\n'", "sort");
+// => { stdout: "a\nb\n", stderr: "", exitCode: 0, success: true }
+
+const timed = await rad.shellutils.execCmd("echo ok", { timeoutMs: 2_000 });
+// => { stdout: "ok\n", stderr: "", exitCode: 0, success: true }
+```
 
 ### 3. `rad.cryptoutils` vs `rad.hashutils` vs `rad.jwtutils`
 
@@ -178,16 +224,69 @@ Find the right module immediately by what you are trying to build:
 - **`rad.hashutils`**: Ultra-fast **non-cryptographic** hashes (`wyhash`, `rapidhash`, `cityHash64`, `crc32`, `murmur32v3`) and `createBloomFilter`. **Never use `hashutils` for passwords, tokens, or tamper detection** — use it for cache keys, checksums, deduplication, and hash partitioning.
 - **`rad.jwtutils`**: Stateless `HS256` JSON Web Tokens (`signJwt`, `verifyJwt` with constant-time signature checks + `exp` validation, `decodeJwtUnverified` for debugging).
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+// cryptoutils: security (passwords + SHA-256)
+const pwHash = await rad.cryptoutils.hashPassword("example-password");
+const pwValid = await rad.cryptoutils.verifyPassword("example-password", pwHash); // => true
+const digest = rad.cryptoutils.sha256("payload"); // => 64-char SHA-256 hex
+
+// hashutils: non-crypto speed (cache keys + Bloom filter)
+const fastKey = rad.hashutils.hashHex("tenant:42:page:1", "wyhash"); // => hex string
+const bloom = rad.hashutils.createBloomFilter(1_000, 0.01);
+bloom.add("seen:id-1"); // bloom.has("seen:id-1") => true
+
+// jwtutils: stateless signed session claims
+const token = rad.jwtutils.signJwt({ sub: "user-42" }, "placeholder-secret", 3600);
+const claims = rad.jwtutils.verifyJwt<{ sub: string }>(token, "placeholder-secret");
+// => { sub: "user-42", iat: ..., exp: ... }
+```
+
 ### 4. `rad.archiveutils` vs `rad.tarutils` vs `rad.compressutils`
 
 - **`rad.archiveutils`**: Multi-file **`.zip`** archives with built-in zip-slip `safeJoin` checks and entry/total decompression size caps (`256 MiB` / `512 MiB` defaults). Best for cross-platform bundles shared with macOS/Windows users.
 - **`rad.tarutils`**: POSIX USTAR/PAX **`.tar` and `.tar.gz`** archives preserving Unix file modes and `mtime`. Best for backups, release tarballs, and Linux/macOS tooling.
 - **`rad.compressutils`**: In-memory & single-file **Gzip, Deflate, Brotli, and Zstd** compression for strings and `Uint8Array` buffers (does not bundle multiple files/directories into one archive).
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+// Multi-file .zip bundle
+const zipBytes = rad.archiveutils.zipFiles([{ name: "a.txt", data: "hello zip" }]);
+const zipText = await rad.archiveutils.readZipText(zipBytes, "a.txt"); // => "hello zip"
+
+// Multi-file .tar.gz tarball
+const tgzBytes = rad.tarutils.packTarGz([{ name: "a.txt", data: "hello tar" }]);
+const entries = rad.tarutils.unpackTarGz(tgzBytes); // => [{ name: "a.txt", text: "hello tar", ... }]
+
+// Single-payload Zstd / Gzip string compression
+const b64 = rad.compressutils.gzipCompressString("repeated payload ".repeat(10));
+const restored = rad.compressutils.gzipDecompressString(b64); // => "repeated payload ..."
+```
+
 ### 5. `rad.globutils` vs `fd` Coordinator `searchFiles`
 
 - **`rad.globutils`**: Ultra-fast wildcard pattern matching (`globMatch`, `globFilter`, `globScan`, `globScanSync`) powered by `Bun.Glob` (including extglob `!(...)` and brace ranges `{a..z}`). Returns `string[]` paths or booleans.
 - **`fd` Coordinator (`searchFiles`)**: Recursive directory traversal returning rich `FdEntry` metadata (`size`, `mtime`, `depth`, `isSymlink`, `isExecutable`) with regex smart-case, size bounds (`+10M`), age filters (`changedWithin: "2h"`), `--empty`, `--exclude`, and `--exec`.
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+import { searchFiles } from "./src/features/fd/fdCoordinator.ts";
+
+// Fast wildcard path strings only
+const paths = await rad.globutils.globScan("src/features/rad/modules/*.ts"); // => string[]
+
+// Rich file metadata with size/type/exclude filters
+const detailed = await searchFiles({
+  rootPath: "src/features/rad/modules",
+  hidden: false,
+  absolute: false,
+  typeFilter: "f",
+  extension: "ts",
+}); // => FdEntry[] with size, mtime, isExecutable
+console.log(paths.length, detailed[0]?.size);
+```
 
 ### 6. `rad.asyncutils` vs `rad.flowutils` vs `rad.fnutils`
 
@@ -195,10 +294,40 @@ Find the right module immediately by what you are trying to build:
 - **`rad.flowutils`**: Resilience and traffic **shaping** (`RateLimiter` token bucket, `CircuitBreaker`, jittered `retry`, `debounce`, `throttle`).
 - **`rad.fnutils`**: Functional **composition & call adapters** (`pipe`, `memoize`, `once`, `negate`, `partial`, `before`, `after`, `identity`, `noop`, `times`, `delay`).
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const limiter = new rad.flowutils.RateLimiter(5, 5);
+const square = rad.fnutils.memoize((n: number) => n * n);
+
+// Concurrency limit (2 in flight) + rate limit + exponential backoff retry
+const squares = await rad.asyncutils.parallelMap([2, 3, 4], 2, async (n) => {
+  await limiter.wait(1);
+  return rad.flowutils.retry(async () => square(n), 3, 25);
+});
+// => [4, 9, 16]
+```
+
 ### 7. `rad.fileutils.writeFileAtomic` (async) vs `SimpleGUI` `writeFileAtomic` (sync)
 
 - **`rad.fileutils.writeFileAtomic(filePath, data)`** is **asynchronous**, accepts `string | Uint8Array`, creates parent directories automatically, and returns `Promise<number>` (bytes written).
 - **`SimpleGUI`'s `writeFileAtomic(filePath, content)`** (exported at the top level of `"bun-rad-studio"` / [`src/index.ts`](../../src/index.ts)) is **synchronous**, returns `void`, accepts UTF-8 `string` only, and enforces `0o600` file permissions on POSIX.
+
+```typescript
+import { join } from "node:path";
+import { writeFileAtomic as writeFileAtomicSync } from "./src/index.ts";
+import { rad } from "./src/features/rad/index.ts";
+
+await rad.fileutils.withTempDir(async (dir) => {
+  // Async: creates parent folders and accepts string or Uint8Array
+  const bytes = await rad.fileutils.writeFileAtomic(join(dir, "nested/out.txt"), "async");
+  // => 5
+
+  // Sync: top-level helper from src/index.ts (0o600 permissions on POSIX)
+  writeFileAtomicSync(join(dir, "secret.txt"), "sync"); // => void
+  console.log({ bytes });
+});
+```
 
 ---
 
@@ -215,6 +344,20 @@ Find the right module immediately by what you are trying to build:
 - **File Ops, Temp Dirs, Traversal:** `touch(filePath: string): Promise<void>`, `copyFile(src: string, dest: string): Promise<void>`, `moveFile(src: string, dest: string): Promise<void>`, `copyDir(srcDir: string, destDir: string, overwrite = true): Promise<void>`, `removePath(path: string): Promise<boolean>`, `makeTempDir(prefix = "rad-"): Promise<string>`, `withTempDir<T>(fn: (dir: string) => Promise<T> | T, prefix = "rad-"): Promise<T>`, `walkFiles(dirPath: string, filter?: (filePath: string) => boolean, options?: WalkOptions): Promise<string[]>` (`WalkOptions`: `{ maxDepth?: number; skipDirs?: string[]; includeDirs?: boolean }`)
 - **CSV (RFC 4180):** `parseCsvString(csvText: string, delimiter = ",", options?: CsvParseOptions): string[][]`, `formatCsvString(rows: CsvCell[][], delimiter = ","): string`, `csvToObjects(rows: string[][]): Record<string, string>[]`, `objectsToCsv(records: Record<string, CsvCell>[], columns?: string[]): CsvCell[][]`, `readCsv(filePath: string, delimiter = ",", options?: CsvParseOptions): Promise<string[][]>`, `writeCsv(filePath: string, rows: CsvCell[][], delimiter = ","): Promise<void>`, `readCsvObjects(filePath: string, delimiter = ","): Promise<Record<string, string>[]>`, `writeCsvObjects(filePath: string, records: Record<string, CsvCell>[], columns?: string[], delimiter = ","): Promise<void>`
 
+```typescript
+import { join } from "node:path";
+import { rad } from "./src/features/rad/index.ts";
+
+await rad.fileutils.withTempDir(async (dir) => {
+  const csvPath = join(dir, "users.csv");
+  await rad.fileutils.writeCsvObjects(csvPath, [{ id: 1, role: "admin" }]);
+  const rows = await rad.fileutils.readCsvObjects(csvPath); // => [{ id: "1", role: "admin" }]
+  const written = await rad.fileutils.writeFileAtomic(join(dir, "state.json"), '{"ok":true}'); // => 11
+  const size = rad.fileutils.formatBytes(2048); // => "2.0 KB"
+  console.log({ rows, written, size });
+});
+```
+
 <a id="sqliteutils"></a>
 ### `rad.sqliteutils`
 
@@ -228,6 +371,20 @@ Find the right module immediately by what you are trying to build:
 - **FTS5 Full-Text Search:** `createFtsTable(db, table, columns: string[]): void`, `indexFts(db, table, row: Record<string, any>): void`, `searchFts<T>(db, table, query: string, limit = 50): T[]`, `searchFtsRanked<T>(db, table, query: string, limit = 50): (T & { rank: number })[]`
 - **Maintenance & Extensions:** `vacuumDb(db): void`, `checkpointWal(db): void`, `backupDb(db, destPath: string): void`, `dbSizeBytes(db): number`, `registerFunction(db, name, fn, options?)`, `registerAggregate(db, name, options)`, `onDatabaseChange(db, hooks): () => void`, `statementInfo(db, sql): SqliteStatementInfo`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const db = rad.sqliteutils.openDb(":memory:");
+rad.sqliteutils.execSql(db, "CREATE TABLE tasks (id INTEGER PRIMARY KEY, title TEXT, done INTEGER)");
+rad.sqliteutils.transaction(db, () => {
+  rad.sqliteutils.insertRow(db, "tasks", { title: "Ship docs", done: 1 });
+});
+const done = rad.sqliteutils.selectRows<{ id: number; title: string }>(
+  db, "tasks", ["id", "title"], "done = ?", [1],
+); // => [{ id: 1, title: "Ship docs" }]
+rad.sqliteutils.closeDb(db);
+```
+
 <a id="tomlutils"></a>
 ### `rad.tomlutils`
 
@@ -236,6 +393,18 @@ Find the right module immediately by what you are trying to build:
 - **Parse & Serialize:** `parse` (`Bun.TOML.parse`), `stringify`, `parseToml<T>(content: string): T`, `tryParseToml<T>(content: string): T | null`, `stringifyToml(data: Record<string, any>): string`
 - **File I/O & Layering:** `loadToml<T>(filePath: string, fallback?: T): Promise<T>`, `saveToml(filePath: string, data: Record<string, any>): Promise<number>`, `loadTomlLayers<T>(filePaths: string[]): Promise<T>`, `mergeToml<T>(base: T, override: Record<string, any>): T`
 - **Dot-Path Getters & Mutators:** `getTomlPath(doc, keyPath)`, `hasTomlKey(doc, keyPath): boolean`, `setTomlPath<T>(doc, keyPath, value): T`, `getString(doc, keyPath, fallback = ""): string`, `getInt(doc, keyPath, fallback = 0): number`, `getNumber(doc, keyPath, fallback = 0): number`, `getBool(doc, keyPath, fallback = false): boolean`, `getArray<T>(doc, keyPath, fallback = []): T[]`, `getTable<T>(doc, keyPath, fallback = {}): T`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const raw = '[server]\nport = 8080\ntls = true\n';
+const doc = rad.tomlutils.parseToml<Record<string, any>>(raw);
+const port = rad.tomlutils.getInt(doc, "server.port", 3000); // => 8080
+const tls = rad.tomlutils.getBool(doc, "server.tls", false); // => true
+const updated = rad.tomlutils.setTomlPath(doc, "server.port", 9090);
+const tomlOut = rad.tomlutils.stringifyToml(updated); // => updated TOML text
+console.log({ port, tls, hasPort: rad.tomlutils.hasTomlKey(doc, "server.port"), tomlOut });
+```
 
 <a id="archiveutils"></a>
 ### `rad.archiveutils`
@@ -246,6 +415,18 @@ Find the right module immediately by what you are trying to build:
 - **Inspect & Extract ZIPs:** `listZipEntries(zipDataOrPath): Promise<string[]>`, `listZipDetails(zipDataOrPath): Promise<ZipEntryInfo[]>`, `readZipEntry(zipDataOrPath, entryName: string): Promise<Uint8Array | null>`, `readZipText(zipDataOrPath, entryName: string): Promise<string | null>`, `unzipToMemory(zipDataOrPath, maxTotalBytes?): Promise<ZipExtractedEntry[]>`, `unzipToDir(zipDataOrPath, destDir: string, maxTotalBytes?): Promise<number>`
 - **Security & Time Helpers:** `safeJoin(destDir: string, entryName: string): string`, `toDosDateTime(d: Date): { time: number; date: number }`, `fromDosDateTime(time: number, date: number): Date`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const zipBytes = rad.archiveutils.zipFiles([
+  { name: "hello.txt", data: "Hello ZIP!" },
+  { name: "meta/info.json", data: '{"v":1}' },
+]);
+const entries = await rad.archiveutils.listZipEntries(zipBytes); // => ["hello.txt", "meta/info.json"]
+const text = await rad.archiveutils.readZipText(zipBytes, "hello.txt"); // => "Hello ZIP!"
+console.log({ entries, text });
+```
+
 <a id="compressutils"></a>
 ### `rad.compressutils`
 
@@ -254,6 +435,16 @@ Find the right module immediately by what you are trying to build:
 - **Format-Specific:** `gzipCompress(data, level?)`, `gzipDecompress(data, maxOutputLength?)`, `gzipCompressString(str): string` (Base64), `gzipDecompressString(base64Str, maxOutputLength?): string`, `deflateCompress(data, level?)`, `deflateDecompress(data, maxOutputLength?)`, `brotliCompress(data, quality = 11)`, `brotliDecompress(data, maxOutputLength?)`, `zstdCompress(data, level = 3)`, `zstdDecompress(data, maxOutputLength?)`
 - **Unified, Files & Inspection:** `compress(data, format: CompressionFormat, level?)`, `decompress(data, format: CompressionFormat, maxOutputLength?)` (`CompressionFormat`: `"gzip" | "deflate" | "brotli" | "zstd"`), `detectCompression(data: Uint8Array): DetectedCompression` (`"gzip" | "zstd" | "zlib" | "unknown"`), `compressFile(src, format = "gzip", dest?): Promise<string>`, `decompressFile(src, format = "gzip", dest?): Promise<string>`, `compressionRatio(uncompressedLen, compressedLen): number`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const zstd = rad.compressutils.zstdCompress("hello ".repeat(20));
+const format = rad.compressutils.detectCompression(zstd); // => "zstd"
+const b64 = rad.compressutils.gzipCompressString("hello gzip");
+const restored = rad.compressutils.gzipDecompressString(b64); // => "hello gzip"
+console.log({ format, zstdBytes: zstd.length, restored });
+```
+
 <a id="tarutils"></a>
 ### `rad.tarutils`
 
@@ -261,6 +452,16 @@ Find the right module immediately by what you are trying to build:
 
 - **Byte API:** `packTarBytes(entries: TarEntry[]): Uint8Array`, `unpackTarBytes(bytes: Uint8Array): UnpackedTarEntry[]`, `listTarEntries(bytes: Uint8Array): string[]`, `packTarGz(entries: TarEntry[], level?): Uint8Array`, `unpackTarGz(bytes: Uint8Array, maxOutputLength?): UnpackedTarEntry[]`, `paxRecord(key: string, value: string): string`
 - **Directory/File API:** `createTarFile(srcDir: string, destTarPath: string, filter?: (relPath: string) => boolean): Promise<number>`, `extractTarFile(tarPath: string, destDir: string): Promise<number>` (handles both `.tar` and `.tar.gz` / `.tgz`)
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const tar = rad.tarutils.packTarBytes([{ name: "README.txt", data: "hello tar" }]);
+const names = rad.tarutils.listTarEntries(tar); // => ["README.txt"]
+const tgz = rad.tarutils.packTarGz([{ name: "README.txt", data: "hello tgz" }]);
+const unpacked = rad.tarutils.unpackTarGz(tgz); // => [{ name: "README.txt", text: "hello tgz", ... }]
+console.log({ names, text: unpacked[0]?.text });
+```
 
 <a id="stateutils"></a>
 ### `rad.stateutils`
@@ -273,6 +474,23 @@ Find the right module immediately by what you are trying to build:
   - Properties & Methods: `filePath`, `autoSave`, `historyLimit`, `get(): T`, `select<K>(selector: (state: T) => K): K`, `update(updater: (prev: T) => T | void): Promise<void>`, `patch(partial: Partial<T>): Promise<void>`, `subscribe(listener: StateListener<T>): () => void`, `save(): Promise<void>`, `load(): Promise<T>`, `canRollback(): boolean`, `rollback(): void`, `reset(): void`, `removeFile(): Promise<boolean>`
 - **`KeyValueState` (`new KeyValueState(appName, customPath?)`):** `filePath`, `init(): Promise<void>`, `get<T>(key, fallback?): T`, `has(key): boolean`, `set(key, val): Promise<void>`, `setMany(entries): Promise<void>`, `delete(key): Promise<void>`, `keys(): string[]`, `all(): Record<string, any>`, `clear(): Promise<void>`
 
+```typescript
+import { join } from "node:path";
+import { rad } from "./src/features/rad/index.ts";
+
+await rad.fileutils.withTempDir(async (dir) => {
+  const store = new rad.stateutils.AppStateStore(
+    "rad-demo",
+    { count: 0, theme: "dark" },
+    { customPath: join(dir, "state.json") },
+  );
+  await store.update((s) => ({ ...s, count: s.count + 1 })); // count => 1
+  const count = store.select((s) => s.count); // => 1
+  store.rollback(); // count => 0
+  console.log({ count, afterRollback: store.get() });
+});
+```
+
 <a id="cacheutils"></a>
 ### `rad.cacheutils`
 
@@ -284,11 +502,26 @@ Find the right module immediately by what you are trying to build:
   - `options`: `{ sweepIntervalMs?: number; sliding?: boolean }`
   - `defaultTtlMs`, `sliding`, `size(): number`, `get(key): V | undefined`, `set(key, value, ttlMs?): void`, `getOrSet(key, factory: () => Promise<V> | V, ttlMs?): Promise<V>` (async with in-flight deduplication!), `has(key): boolean`, `ttl(key): number`, `touch(key, ttlMs?): boolean`, `delete(key): boolean`, `clear(): void`, `prune(): number`, `keys(): K[]`, `stats(): CacheStats`, `dispose(): void`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const lru = new rad.cacheutils.LRUCache<string, number>(2);
+lru.set("a", 1);
+lru.set("b", 2);
+lru.get("a"); // keeps "a" hot so "b" is evicted next
+lru.set("c", 3); // lru.has("b") => false, lru.size() => 2
+
+const ttl = new rad.cacheutils.TTLCache<string, string>(5_000);
+const cfg = await ttl.getOrSet("cfg", async () => "loaded"); // => "loaded"
+console.log({ hasB: lru.has("b"), size: lru.size(), cfg });
+ttl.dispose();
+```
+
 ### Domain 1 runnable recipes
 
 #### Recipe A: `sqliteutils` 4-in-1 (WAL SQL + Migrations + Transaction + KV + JSON Docs + FTS5)
 
-```ts
+```typescript
 import { rad } from "./src/features/rad/index.ts";
 
 const sql = rad.sqliteutils;
@@ -389,7 +622,7 @@ try {
 
 #### Recipe B: `fileutils` + `tomlutils` + `archiveutils` (Config layering, atomic audit log, and ZIP backup)
 
-```ts
+```typescript
 import { join } from "node:path";
 import { rad } from "./src/features/rad/index.ts";
 
@@ -460,6 +693,19 @@ await rad.fileutils.withTempDir(async (workDir) => {
 - **Sorting, Search & Sampling:** `sortBy`, `orderBy`, `isSorted`, `binarySearch`, `sortedIndex`, `shuffle`, `sample`, `sampleSize`
 - **Immutable Edits:** `insertAt`, `removeAt`, `moveItem`, `rotate`, `toggleItem`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const nums = [1, 2, 2, 3, 4, 5];
+const unique = rad.arrutils.unique(nums); // => [1, 2, 3, 4, 5]
+const batches = rad.sliceutils.chunk(unique, 2); // => [[1, 2], [3, 4], [5]] (sliceutils aliases arrutils)
+const byRole = rad.arrutils.groupBy(
+  [{ id: 1, role: "admin" }, { id: 2, role: "user" }],
+  (u) => u.role,
+); // => { admin: [{ id: 1, role: "admin" }], user: [{ id: 2, role: "user" }] }
+console.log({ unique, batches, isAlias: rad.arrutils === rad.sliceutils, byRole });
+```
+
 <a id="objutils"></a>
 ### `rad.objutils`
 
@@ -468,6 +714,17 @@ await rad.fileutils.withTempDir(async (workDir) => {
 - **Predicates & Equality:** `isNil(v)`, `isPlainObject(v)`, `isPrimitive(v)`, `isEqual(a, b, strict = false)`, `isEmpty(v)`
 - **Paths & Transformation:** `toPath(path: ObjPath): (string | number)[]`, `get(obj, path, defaultValue?)`, `has(obj, path)`, `set(obj, path, value)` (blocks `__proto__`/`constructor`/`prototype`), `unset(obj, path)`, `pick(obj, keys)`, `pickBy(obj, pred)`, `omit(obj, keys)`, `omitBy(obj, pred)`, `compactObject(obj)`, `findKey(obj, pred)`, `flattenObject(obj, prefix = "", flattenArrays = false)`, `unflattenObject(flat)`, `mapKeys(obj, fn)`, `mapValues(obj, fn)`, `renameKeys(obj, keyMap)`, `invert(obj)`, `typedKeys(obj)`, `typedEntries(obj)`
 - **Clones, Merges & Diffs:** `defaults(obj, ...sources)`, `deepClone<T>(val: T): T`, `deepMerge<T>(target, ...sources): T`, `deepFreeze<T>(obj: T): Readonly<T>`, `objectDiff(a, b): ObjectDiff` (`{ added, removed, changed }`)
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const cfg = { db: { host: "localhost", port: 5432 }, debug: true };
+const picked = rad.objutils.pick(cfg, ["debug"]); // => { debug: true }
+const updated = rad.objutils.set(cfg, "db.port", 6432);
+const flat = rad.objutils.flattenObject(updated); // => { "db.host": "localhost", "db.port": 6432, debug: true }
+const diff = rad.objutils.objectDiff({ a: 1, b: 2 }, { a: 1, b: 3, c: 4 }); // => { added: ["c"], removed: [], changed: ["b"] }
+console.log({ picked, flat, diff });
+```
 
 <a id="structutils"></a>
 ### `rad.structutils`
@@ -483,6 +740,18 @@ await rad.fileutils.withTempDir(async (workDir) => {
 - **`SimpleTrie`:** Prefix autocomplete tree (`add(word)`, `has(word)`, `hasPrefix(prefix)`, `withPrefix(prefix, limit = Infinity)`, `find(prefix, limit?)`, `delete(word)`, `size()`)
 - **`DisjointSet<T>`:** Union-find with path compression (`add(x)`, `find(x)`, `union(a, b)`, `connected(a, b)`, `setSize(x)`, `groups()`)
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const ring = new rad.structutils.SimpleRingBuffer<number>(2);
+ring.push(10); ring.push(20); ring.push(30); // => [20, 30]
+const trie = new rad.structutils.SimpleTrie();
+trie.add("bun"); trie.add("bundle");
+const dsu = new rad.structutils.DisjointSet<string>();
+dsu.union("a", "b");
+console.log({ ring: ring.toArray(), words: trie.withPrefix("bu"), connected: dsu.connected("a", "b") });
+```
+
 <a id="statutils"></a>
 ### `rad.statutils`
 
@@ -490,7 +759,17 @@ await rad.fileutils.withTempDir(async (workDir) => {
 
 - **Averages & Spread:** `mean`, `weightedMean`, `geometricMean`, `harmonicMean`, `median`, `mode`, `minMax`, `variance(nums, sample = true)`, `stdDev(nums, sample = true)`, `sem(nums)`
 - **Quantiles & Outliers:** `percentile(nums, p)`, `quartiles(nums): [number, number, number]`, `iqr(nums)`, `detectOutliers(nums, k = 1.5): number[]` (Tukey IQR fence), `skewness(nums)`, `kurtosis(nums)`
-- **Correlation, Regression & Series:** `covariance`, `pearsonCorrelation`, `rank`, `spearmanCorrelation`, `linearRegression(points): LinearModel` (`{ slope, intercept, r2 }`), `predictLinear(model, x)`, `zScore`, `zScores`, `normalize`, `movingAverage`, `exponentialMovingAverage`, `histogram(nums, bins = 10): HistogramBin[]`, `summarize(nums): StatsSummary`
+- **Correlation, Regression & Series:** `covariance`, `pearsonCorrelation`, `rank`, `spearmanCorrelation`, `linearRegression(x, y): LinearModel` (`{ slope, intercept, r2 }`), `predictLinear(model, x)`, `zScore`, `zScores`, `normalize`, `movingAverage`, `exponentialMovingAverage`, `histogram(nums, bins = 10): HistogramBin[]`, `summarize(nums): StatsSummary`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const samples = [10, 12, 11, 13, 12, 99];
+const summary = rad.statutils.summarize(samples); // => mean: ~26.17, median: 12
+const outliers = rad.statutils.detectOutliers(samples); // => [99]
+const model = rad.statutils.linearRegression([1, 2, 3], [2, 4, 6]); // => { slope: 2, intercept: 0, r2: 1 }
+console.log({ mean: summary.mean, outliers, predicted4: rad.statutils.predictLinear(model, 4) });
+```
 
 <a id="mathutils"></a>
 ### `rad.mathutils`
@@ -502,6 +781,16 @@ await rad.fileutils.withTempDir(async (workDir) => {
 - **Number Theory & Series:** `gcd`, `lcm`, `isPowerOfTwo`, `nextPowerOfTwo`, `isPrime`, `primeFactors`, `factorial(n): bigint`, `binomial(n, k)`, `sum`, `sumBy`, `product`, `percentOf`, `percentChange`
 - **Randomness:** `randomInt(min, max)`, `randomFloat(min, max)`, `secureRandomInt(min, max)`, `seededRandom(seed): () => number`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const mapped = rad.mathutils.remap(50, 0, 100, 0, 1); // => 0.5
+const fact = rad.mathutils.factorial(5); // => 120n
+const rotated = rad.mathutils.rotatePoint({ x: 1, y: 0 }, Math.PI / 2); // => { x: ~0, y: 1 }
+const rng = rad.mathutils.seededRandom(42);
+console.log({ mapped, fact, rotated, sample: rng().toFixed(4) });
+```
+
 <a id="bitutils"></a>
 ### `rad.bitutils`
 
@@ -510,6 +799,16 @@ await rad.fileutils.withTempDir(async (workDir) => {
 - **Bit Ops:** `popcount(n)`, `getBit(n, pos)`, `setBit(n, pos)`, `clearBit(n, pos)`, `toggleBit(n, pos)`, `countTrailingZeros(n)`, `toBinary(n, bits = 32): string`
 - **Named Flags:** `setFlag(mask, flag)`, `hasFlag(mask, flag)`, `hasAnyFlag(mask, flags)`, `clearFlag(mask, flag)`, `toggleFlag(mask, flag)`, `defineFlags(names: string[])`, `combineFlags(flagMap, names)`, `describeFlags(mask, flagMap)`
 - **`BitSet` (`new BitSet(size: number)` + `BitSet.fromIndices(size, indices)` + `BitSet.fromBinaryString(bits)`):** `set`, `get`, `clear`, `toggle`, `fill`, `countSet`, `any`, `none`, `all`, `nextSetBit`, `indices`, `toIndices`, `and`, `or`, `xor`, `andNot`, `clone`, `equals`, `toBinaryString`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const Flags = rad.bitutils.defineFlags(["READ", "WRITE", "ADMIN"]);
+const mask = rad.bitutils.combineFlags(Flags, ["READ", "ADMIN"]);
+const active = rad.bitutils.describeFlags(mask, Flags); // => ["READ", "ADMIN"]
+const bits = rad.bitutils.BitSet.fromIndices(16, [1, 4, 9]);
+console.log({ active, hasRead: rad.bitutils.hasFlag(mask, Flags.READ!), count: bits.countSet() });
+```
 
 <a id="graphutils"></a>
 ### `rad.graphutils`
@@ -520,9 +819,21 @@ await rad.fileutils.withTempDir(async (workDir) => {
   - **Mutations & Queries:** `addNode`, `addEdge(from, to, weight = 1)`, `removeNode`, `removeEdge`, `hasNode`, `hasEdge`, `getEdgeWeight`, `getNeighbors`, `predecessors`, `getNodes`, `getEdges`, `nodeCount`, `edgeCount`, `outDegree`, `inDegree`
   - **Algorithms:** `bfs(start)`, `dfs(start)`, `shortestPath(start, target): T[] | null`, `dijkstra(start, target): WeightedPath<T> | null`, `distancesFrom(start): Map<T, number>`, `reachableFrom(start)`, `topologicalSort(): T[]`, `hasCycle(): boolean`, `findCycle(): T[] | null`, `connectedComponents(): T[][]`, `stronglyConnectedComponents(): T[][]`, `reverse()`, `clone()`, `clear()`, `toJSON()`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const g = rad.graphutils.newGraph<string>({ directed: true });
+g.addEdge("build", "test", 2);
+g.addEdge("test", "deploy", 3);
+g.addEdge("build", "deploy", 8);
+const order = g.topologicalSort(); // => ["build", "test", "deploy"]
+const best = g.dijkstra("build", "deploy"); // => { path: ["build", "test", "deploy"], distance: 5 }
+console.log({ order, best, hasCycle: g.hasCycle() });
+```
+
 ### Domain 2 runnable recipe: Task scheduler dependency graph + telemetry stats
 
-```ts
+```typescript
 import { rad } from "./src/features/rad/index.ts";
 
 // 1. Build a weighted task DAG and compute execution order + critical cost
@@ -584,14 +895,36 @@ console.log({
 - **Fuzzy & Distance:** `levenshteinDistance(a, b)`, `similarity(a, b)` (0–1), `closestMatch(query, candidates)`, `fuzzyScore(query, target)`, `fuzzySearch<T>(query, items, getText: (item: T) => string = String): FuzzyResult<T>[]`
 - **Formatting & Unicode:** `truncate`, `truncateWords`, `truncateMiddle`, `padCenter`, `wordWrap(text, width: number, options?: WordWrapOptions)`, `dedent`, `indent`, `normalizeWhitespace`, `isBlank`, `splitLines`, `countOccurrences`, `ensurePrefix`, `ensureSuffix`, `removePrefix`, `removeSuffix`, `graphemes`, `reverse`, `displayWidth`, `stripAnsi` (**namespace-only on `strutils`**), `pluralize`, `ordinal`, `initials`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const slug = rad.strutils.slugify("Bun RAD Studio v2!"); // => "bun-rad-studio-v2"
+const masked = rad.strutils.maskEmail("alice@example.com"); // => "a***e@example.com"
+const hits = rad.strutils.fuzzySearch("rad", ["bun-rad-studio", "sqlite", "tarutils"]);
+const wrapped = rad.strutils.wordWrap("fast zero dependency helpers", 14);
+console.log({ slug, masked, top: hits[0], wrapped });
+```
+
 <a id="regexutils"></a>
 ### `rad.regexutils`
 
 **Why it exists:** Safe regex compilation, pre-tested `commonPatterns`, and zero-boilerplate named capture group extraction.
 
 - **Built-In Patterns (`commonPatterns`):** `email`, `url`, `ipv4`, `uuid`, `semver`, `hexColor`, `isoDate`, `slug`, `integer`, `number`, `whitespace`
-- **Compile & Test:** `escapeRegExp(str)`, `literal(str, flags = "")`, `isValidRegex(pattern)`, `tryRegex(pattern, flags = ""): RegExp | null`, `isMatch(text, pattern)`, `matchesPattern(text, name: CommonPatternName)`, `anyOf(patterns: string[], flags = ""): RegExp`
-- **Extract & Transform:** `findFirst`, `findAll`, `matchFirst`, `matchAll`, `countMatches`, `replace`, `replaceFirst`, `split`, `findNamedGroups(text, pattern)`, `extractGroups(text, pattern)`
+- **Compile & Test:** `escapeRegExp(str)`, `literal(str, flags = "")`, `isValidRegex(pattern)`, `tryRegex(pattern, flags = ""): RegExp | null`, `isMatch(pattern, text)`, `matchesPattern(name: CommonPatternName, text)`, `anyOf(patterns: string[], flags = ""): RegExp`
+- **Extract & Transform:** `findFirst`, `findAll`, `matchFirst`, `matchAll`, `countMatches`, `replace`, `replaceFirst`, `split`, `findNamedGroups(pattern, text)`, `extractGroups(pattern, text)`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const isEmail = rad.regexutils.matchesPattern("email", "ada@example.com"); // => true
+const found = rad.regexutils.findFirst(/\d+/, "port=8080"); // => "8080"
+const groups = rad.regexutils.findNamedGroups(
+  /v(?<major>\d+)\.(?<minor>\d+)/,
+  "release v2.4 ready",
+); // => [{ major: "2", minor: "4" }]
+console.log({ isEmail, found, groups });
+```
 
 <a id="templateutils"></a>
 ### `rad.templateutils`
@@ -600,6 +933,18 @@ console.log({
 
 - **Engine:** `builtinFilters` (`upper`, `lower`, `trim`, `capitalize`, `title`, `json`, `escape`, `length`), `compileTemplate(template: string, options?: TemplateOptions): CompiledTemplate` (`TemplateOptions`: `{ escape?: boolean; missing?: "empty" | "keep" | "throw"; filters?: Record<string, TemplateFilter> }`), `renderTemplate(template: string, data: Record<string, any>, options?: TemplateOptions): string`, `templateVariables(template: string): string[]`
 - **Markdown:** `renderMarkdownAnsi(markdown: string): string`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const rendered = rad.templateutils.renderTemplate(
+  "Hello {{user.name | title}} ({{count}} items)",
+  { user: { name: "ada lovelace" }, count: 3 },
+  { missing: "throw" },
+); // => "Hello Ada Lovelace (3 items)"
+const vars = rad.templateutils.templateVariables("Hi {{name}}, role={{role}}"); // => ["name", "role"]
+console.log({ rendered, vars });
+```
 
 <a id="colorutils"></a>
 ### `rad.colorutils`
@@ -610,6 +955,16 @@ console.log({
 - **Manipulate & Palettes:** `lighten`, `darken`, `saturate`, `desaturate`, `rotateHue`, `complement`, `invertColor`, `grayscale`, `mix`, `gradient(c1, c2, steps)`, `shades(rgb: RGB, count = 9)`, `harmony(rgb: RGB, scheme)`
 - **WCAG Accessibility & ANSI:** `luminance(rgb)`, `contrastRatio(fg: RGB, bg: RGB): number`, `isAccessible(fg: RGB, bg: RGB, level?: WcagLevel): boolean`, `isLight`, `isDark`, `bestTextColor(bg: RGB): RGB`, `randomColor()`, `fgRgb`, `bgRgb`, `fgColor`, `gradientText`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const bg = rad.colorutils.hexToRgb("#0f172a")!;
+const fg = rad.colorutils.bestTextColor(bg); // => { r: 255, g: 255, b: 255 }
+const ratio = rad.colorutils.contrastRatio(fg, bg); // => ~17.85
+const palette = rad.colorutils.harmony(bg, "triadic"); // => 3 RGB colors
+console.log({ fgHex: rad.colorutils.rgbToHex(fg), ratio: ratio.toFixed(2), paletteLen: palette.length });
+```
+
 <a id="htmlutils"></a>
 ### `rad.htmlutils`
 
@@ -617,6 +972,17 @@ console.log({
 
 - **Escaping & Safe Builders:** `escapeHtml`, `unescapeHtml`, `rawHtml(html): RawHtml`, `safeHtml(strings, ...values): RawHtml` (call `.toString()` or `String(...)` for the rendered HTML string), `buildTag(tag, attrs?, content?)`
 - **Extraction & Text Conversion:** `stripTags`, `htmlToText`, `parseAttributes(attrStr)`, `selectAll(html, selector): HtmlElementInfo[]`, `selectFirst(html, selector): HtmlElementInfo | null`, `extractLinks(html, baseUrl?): HtmlLink[]`, `extractImages(html, baseUrl?)`, `extractHeadings(html)`, `extractMeta(html): HtmlMeta`, `getElementById(html, id): { id, tag, text, raw } | null`, `getElementsByTag(html, tag): { tag, text, raw }[]`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const html = rad.htmlutils
+  .safeHtml`<a href="https://example.com" class="cta">${"<script>alert(1)</script>"}</a>`
+  .toString();
+const links = rad.htmlutils.extractLinks(html); // => [{ href: "https://example.com", text: ... }]
+const plain = rad.htmlutils.stripTags(html); // => "&lt;script&gt;alert(1)&lt;/script&gt;"
+console.log({ html, links, plain });
+```
 
 <a id="diffutils"></a>
 ### `rad.diffutils`
@@ -626,9 +992,20 @@ console.log({
 - **Diff Computation:** `diffArrays<T>(a, b): DiffOp<T>[]`, `diffLines(oldText, newText, options?: DiffLineOptions): DiffChange[]` (`DiffType = "add" | "delete" | "equal"`), `diffWords(oldText, newText): DiffOp<string>[]`, `diffChars(oldText, newText): DiffOp<string>[]`, `diffStats(changes): DiffStats`, `similarityRatio(oldText, newText): number`
 - **Unified Patches & Rendering:** `unifiedDiff(oldText, newText, filename = "file.txt", options?: UnifiedDiffOptions): string` (`options`: `{ context?, newFilename?, ignoreWhitespace?, ignoreCase? }`), `parseUnifiedDiff(patch): DiffHunk[]`, `applyPatch(oldText, patch: string): string`, `renderColoredDiff(diffText: string): string`, `renderInlineDiff(oldText, newText): string`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const oldText = "port = 3000\nworkers = 2";
+const newText = "port = 8080\nworkers = 2";
+const patch = rad.diffutils.unifiedDiff(oldText, newText, "app.toml");
+const patched = rad.diffutils.applyPatch(oldText, patch); // => newText
+const stats = rad.diffutils.diffStats(rad.diffutils.diffLines(oldText, newText)); // => { added: 1, deleted: 1, unchanged: 1 }
+console.log({ matches: patched === newText, stats, patch });
+```
+
 ### Domain 3 runnable recipe: Accessible release summary + patch diff report
 
-```ts
+```typescript
 import { rad } from "./src/features/rad/index.ts";
 
 // 1. Validate contrast for a status badge color
@@ -673,6 +1050,15 @@ console.log("Applied round-trip matches:", rad.diffutils.applyPatch(oldCfg, patc
 - **OS & Clipboard:** `getSystemInfo(): SystemInfo` (`{ platform, arch, cpuCount, totalMem, freeMem, uptime, hostname }`), `getHomeDir(): string`, `getTempDir(): string`, `copyToClipboard(text: string): Promise<boolean>`, `readFromClipboard(): Promise<string>`
 - **Safe Subprocesses:** `quoteArg(arg: string): string`, `execSafe(cmd: string, args: string[] = [], options?: { cwd?: string; env?: Record<string, string> }): Promise<{ stdout: string; stderr: string; exitCode: number }>`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const info = rad.sysutils.getSystemInfo(); // => { platform, arch, cpuCount, ... }
+const quoted = rad.sysutils.quoteArg("my file.txt"); // => shell-safe quoted string
+const res = await rad.sysutils.execSafe("bun", ["--version"]); // => { stdout: "...", stderr: "", exitCode: 0 }
+console.log({ platform: info.platform, cpus: info.cpuCount, quoted, exitCode: res.exitCode });
+```
+
 <a id="cliutils"></a>
 ### `rad.cliutils`
 
@@ -680,6 +1066,16 @@ console.log("Applied round-trip matches:", rad.diffutils.applyPatch(oldCfg, patc
 
 - **ANSI Colors & Width:** `colors`, `bold`, `dim`, `red`, `green`, `yellow`, `blue`, `magenta`, `cyan`, `gray`, `stripAnsi(str): string`, `stringWidth(str): number`, `sliceAnsi(str, start, end?): string`, `wrapAnsi(str, width): string`
 - **Widgets & Charts:** `progressBar` / `formatProgressBar(current, total, width = 30)`, `sparkline` / `renderSparkline(nums): string`, `barChart` / `renderBarChart(items: BarChartItem[], maxWidth = 30): string`, `gauge` / `renderGauge(value: number, min: number, max: number, width = 20): string`, `tree` / `renderTree(node: TreeNode): string` (`BarChartItem`: `{ label, value }`, `TreeNode`: `{ name, children? }`)
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const bar = rad.cliutils.formatProgressBar(7, 10, 10);
+const spark = rad.cliutils.renderSparkline([1, 4, 2, 8]); // => " ▄▂█"
+const gauge = rad.cliutils.renderGauge(75, 0, 100, 10); // => "[-------●--] 75 (75%)"
+const plain = rad.cliutils.stripAnsi(rad.cliutils.green("OK")); // => "OK"
+console.log({ bar, spark, gauge, plain });
+```
 
 <a id="envutils"></a>
 ### `rad.envutils`
@@ -689,12 +1085,30 @@ console.log("Applied round-trip matches:", rad.diffutils.applyPatch(oldCfg, patc
 - **Typed Getters & Mutation:** `getStr(key, fallback = "")`, `getInt(key, fallback = 0)`, `getFloat(key, fallback = 0)`, `getBool(key, fallback = false)`, `set(key, value)`, `requireEnv(key): string` (throws if missing/empty)
 - **File Parsing & Expansion:** `parseEnvString(content): Record<string, string>`, `loadEnv(contentOrPath: string): Promise<Record<string, string>>`, `expandVars(str, extraVars?): string`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const vars = await rad.envutils.loadEnv("APP_ENV=prod\nPORT=8080\nDEBUG=true");
+const expanded = rad.envutils.expandVars("env=${APP_ENV}, port=${PORT}", vars); // => "env=prod, port=8080"
+const parsed = rad.envutils.parseEnvString("RETRIES=3\nDRY_RUN=yes"); // => { RETRIES: "3", DRY_RUN: "yes" }
+console.log({ vars, expanded, parsed });
+```
+
 <a id="shellutils"></a>
 ### `rad.shellutils`
 
 **Why it exists:** Runs trusted shell strings, pipes commands together, captures output lines cleanly, resolves executables in `PATH`, and escapes arguments — wrapping Bun's shell capabilities (`exec` is an alias for `execCmd(command: string, options?: ShellOptions)`).
 
 - **Execution & Pipes:** `which` / `whichCmd(cmd: string): string | null`, `exec` / `execCmd(command: string, options?: ShellOptions): Promise<ShellExecResult>` (`ShellOptions`: `{ cwd?, env?, timeoutMs? }`; `ShellExecResult`: `{ stdout, stderr, exitCode, success }`), `execLines(command: string, options?: ShellOptions): Promise<string[]>`, `pipeCmds(cmd1: string, cmd2: string): Promise<ShellExecResult>`, `escapeArg(arg: string): string`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const bunBin = rad.shellutils.whichCmd("bun"); // => "/.../bun" | null
+const piped = await rad.shellutils.pipeCmds("printf 'b\\na\\n'", "sort");
+const lines = await rad.shellutils.execLines("printf 'one\\ntwo\\n'"); // => ["one", "two"]
+console.log({ bunBin, sorted: piped.stdout.trim(), lines });
+```
 
 <a id="globutils"></a>
 ### `rad.globutils`
@@ -704,12 +1118,31 @@ console.log("Applied round-trip matches:", rad.diffutils.applyPatch(oldCfg, patc
 - **Pattern Matching:** `createGlob(pattern): Glob`, `globMatch(pattern, path): boolean`, `globFilter(pattern, paths): string[]`, `globMatchAny(patterns, path): boolean`, `globMatchAll(patterns, path): boolean`
 - **Filesystem Scanning:** `glob` / `globScan(pattern, options?: GlobScanOptions): Promise<string[]>`, `globScanSync(pattern, options?: GlobScanOptions): string[]` (`GlobScanOptions`: `{ cwd?, onlyFiles?, dot?, followSymlinks?, absolute? }`), `findFiles(pattern, dir = "."): Promise<string[]>`, `hasMatch(pattern, dir = "."): Promise<boolean>`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const matched = rad.globutils.globMatch("src/**/*.ts", "src\\features\\rad\\index.ts"); // => true
+const kept = rad.globutils.globFilter("*.ts", ["a.ts", "b.md", "c.ts"]); // => ["a.ts", "c.ts"]
+const files = await rad.globutils.globScan("src/features/rad/*.ts"); // => sorted matching paths (string[])
+console.log({ matched, kept, filesCount: files.length });
+```
+
 <a id="transpileutils"></a>
 ### `rad.transpileutils`
 
 **Why it exists:** Exposes `Bun.Transpiler` for in-memory TypeScript/TSX transpilation, static AST import/export scanning without executing code, type stripping, and quick snippet evaluation.
 
 - **Functions:** `transpileTs(source: string, options?: TranspileOptions): string` (`TranspileOptions`: `{ loader?: "ts" | "tsx" | "js" | "jsx"; minify?: boolean }`), `scanImports(source, loader = "ts"): { path: string; kind: string }[]`, `analyzeCode(source, loader = "ts"): CodeAnalysis` (`{ exports, imports }`), `stripTypes(source): string`, `evalTs<T = any>(source: string): T`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const tsCode = 'import { rad } from "./src/features/rad/index.ts";\nexport const port: number = 8080;';
+const analysis = rad.transpileutils.analyzeCode(tsCode, "ts"); // => { exports: ["port"], imports: [...] }
+const js = rad.transpileutils.stripTypes("const x: number = 42;"); // => "const x = 42;"
+const evaluated = rad.transpileutils.evalTs<number>("return 2 + 3;"); // => 5
+console.log({ analysis, js: js.trim(), evaluated });
+```
 
 <a id="logutils"></a>
 ### `rad.logutils`
@@ -719,12 +1152,35 @@ console.log("Applied round-trip matches:", rad.diffutils.applyPatch(oldCfg, patc
 - **Exports:** `LogLevel` (`DEBUG = 0`, `INFO = 1`, `WARN = 2`, `ERROR = 3`), `Logger` (`new Logger(options?: LoggerOptions)`), `newLogger(options?: LoggerOptions): Logger` (`LoggerOptions`: `{ level?, prefix?, json?, logFile? }`)
 - **`Logger` Methods:** `.debug(msg, meta?)`, `.info(msg, meta?)`, `.warn(msg, meta?)`, `.error(msg, meta?)`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const log = rad.logutils.newLogger({
+  prefix: "worker",
+  level: rad.logutils.LogLevel.INFO,
+  json: true,
+});
+log.debug("skipped below INFO threshold");
+log.info("job finished", { jobId: 42, ok: true });
+```
+
 <a id="cronutils"></a>
 ### `rad.cronutils`
 
 **Why it exists:** Standard 5-field (`minute hour dayOfMonth month dayOfWeek`) cron parser, date matcher, next-run calculator (minute resolution up to 366 days ahead), and human-readable summary formatter — replacing `cron-parser` and `cronstrue`.
 
 - **Functions:** `parseCron(expr: string): CronSchedule`, `matchesCron(cron: CronSchedule, date = new Date()): boolean`, `nextCronRun(cron: CronSchedule, fromDate = new Date()): Date`, `cronToHuman(expr: string): string`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const cron = rad.cronutils.parseCron("0 9 * * 1-5");
+const summary = rad.cronutils.cronToHuman("0 9 * * 1-5");
+const monday9am = new Date(2026, 0, 5, 9, 0, 0);
+const matches = rad.cronutils.matchesCron(cron, monday9am); // => true
+const next = rad.cronutils.nextCronRun(cron, new Date(2026, 0, 5, 0, 0, 0));
+console.log({ summary, matches, nextIso: next.toISOString() });
+```
 
 <a id="semverutils"></a>
 ### `rad.semverutils`
@@ -733,9 +1189,19 @@ console.log("Applied round-trip matches:", rad.diffutils.applyPatch(oldCfg, patc
 
 - **Functions:** `parseSemver(version: string): SemVer` (`{ major, minor, patch, prerelease?, build? }`), `compareSemver(v1, v2): -1 | 0 | 1`, `satisfiesRange(version, range): boolean`, `bumpVersion(version, type: "major" | "minor" | "patch"): string`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const parsed = rad.semverutils.parseSemver("1.4.2-beta.1"); // => { major: 1, minor: 4, patch: 2, prerelease: "beta.1" }
+const next = rad.semverutils.bumpVersion("1.4.2", "minor"); // => "1.5.0"
+const ok = rad.semverutils.satisfiesRange(next, "^1.0.0"); // => true
+const cmp = rad.semverutils.compareSemver("1.4.2", next); // => -1
+console.log({ parsed, next, ok, cmp });
+```
+
 ### Domain 4 runnable recipe: Release pre-flight checker
 
-```ts
+```typescript
 import { rad } from "./src/features/rad/index.ts";
 
 // 1. Setup structured logger and read env defaults
@@ -789,6 +1255,15 @@ console.log({
 
 - **Functions:** `getLocalIp(): string`, `getPublicIp(timeoutMs = 4000): Promise<string>` (queries `api.ipify.org`), `isOnline(timeoutMs = 3000): Promise<boolean>` (`HEAD` probe to `1.1.1.1`), `tcpPing(host: string, port: number, timeoutMs = 2000): Promise<{ reachable: boolean; durationMs: number }>`, `resolveHost(host: string): Promise<string[]>`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const localIp = rad.netutils.getLocalIp(); // => local IPv4 address string
+const addrs = await rad.netutils.resolveHost("localhost"); // => ["127.0.0.1"] or ["::1"]
+const ping = await rad.netutils.tcpPing("127.0.0.1", 1, 200); // => { reachable: boolean, durationMs: number }
+console.log({ localIp, addrs, ping });
+```
+
 <a id="httputils"></a>
 ### `rad.httputils`
 
@@ -796,6 +1271,25 @@ console.log({
 
 - **Query Strings:** `buildQuery(params: Record<string, any>): string`, `parseQuery(queryString: string): Record<string, string>` (blocks `__proto__`/`constructor`/`prototype`)
 - **HTTP Requests:** `fetchWithRetry(url, init?, maxRetries = 3, backoffMs = 200): Promise<Response>`, `getJson<T>(url, headers = {}): Promise<T>`, `postJson<T, R = any>(url, body: T, headers = {}): Promise<R>`, `putJson<T, R = any>(url, body: T, headers = {}): Promise<R>`, `deleteJson<R = any>(url, headers = {}): Promise<R>`, `getText(url, headers = {}): Promise<string>`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const qs = rad.httputils.buildQuery({ page: 2, tag: "bun" }); // => "?page=2&tag=bun"
+const parsed = rad.httputils.parseQuery(qs); // => { page: "2", tag: "bun" }
+
+const router = rad.serverutils.createRouter();
+router.get("/ping", () => Response.json({ ok: true }));
+const server = rad.serverutils.serveHttp({ port: 0, router });
+try {
+  const data = await rad.httputils.getJson<{ ok: boolean }>(
+    rad.urlutils.joinUrl(server.url, "ping"),
+  ); // => { ok: true }
+  console.log({ qs, parsed, data });
+} finally {
+  server.stop();
+}
+```
 
 <a id="serverutils"></a>
 ### `rad.serverutils`
@@ -806,6 +1300,22 @@ console.log({
 - **Static Files:** `serveStatic(options: StaticServerOptions): ServerInstance` (`{ dir, port?, hostname?, spaFallback? }`)
 - **WebSockets:** `createWsHub(options?: WsHubOptions): WebSocketHub` (`{ port, url, broadcast(topic, data), stop(), raw }`; clients subscribe via `?topic=...`, defaulting to `"default"`)
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const router = rad.serverutils.createRouter();
+router.get("/users/:id", (_req, params) => Response.json({ id: params.id }));
+const server = rad.serverutils.serveHttp({ port: 0, router });
+try {
+  const res = await rad.httputils.getJson<{ id: string }>(
+    rad.urlutils.joinUrl(server.url, "users/42"),
+  ); // => { id: "42" }
+  console.log({ url: server.url, res });
+} finally {
+  server.stop();
+}
+```
+
 <a id="urlutils"></a>
 ### `rad.urlutils`
 
@@ -813,12 +1323,33 @@ console.log({
 
 - **Functions:** `parseUrl(urlStr: string): ParsedUrl` (`{ href, protocol, host, hostname, port, pathname, search, hash, username, password?, hostWithPort, pathSegments, queryParams }`), `joinUrl(base: string, ...segments: string[]): string`, `redactCredentials(urlStr: string): string`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const joined = rad.urlutils.joinUrl("https://api.example.com/v1/", "/users/", "42");
+// => "https://api.example.com/v1/users/42"
+const parsed = rad.urlutils.parseUrl("https://user:placeholder@db.local:5432/app?ssl=true");
+const safeLog = rad.urlutils.redactCredentials(parsed.href);
+console.log({ joined, host: parsed.host, segments: parsed.pathSegments, safeLog });
+```
+
 <a id="jwtutils"></a>
 ### `rad.jwtutils`
 
 **Why it exists:** Dependency-free `HS256` JSON Web Token signing and constant-time (`timingSafeEqual`) signature + `exp` verification — replacing `jsonwebtoken` for symmetric HMAC tokens.
 
 - **Functions:** `signJwt(payload: Record<string, any>, secret: string, expiresInSeconds = 3600): string`, `verifyJwt<T = Record<string, any>>(token: string, secret: string): T`, `decodeJwtUnverified<T = Record<string, any>>(token: string): T`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const secret = "placeholder-secret";
+const token = rad.jwtutils.signJwt({ sub: "user-42", role: "editor" }, secret, 3600);
+const claims = rad.jwtutils.verifyJwt<{ sub: string; role: string }>(token, secret);
+// => { sub: "user-42", role: "editor", iat: ..., exp: ... }
+const preview = rad.jwtutils.decodeJwtUnverified<{ sub: string; role: string }>(token);
+console.log({ sub: claims.sub, role: preview.role });
+```
 
 <a id="cryptoutils"></a>
 ### `rad.cryptoutils`
@@ -829,17 +1360,38 @@ console.log({
 - **Encoding:** `base64Encode(data)`, `base64Decode(str)`, `base64UrlEncode(data)`, `base64UrlDecode(str)`
 - **IDs & Passwords:** `uuidV4()`, `uuidV7()`, `randomToken(length = 32)`, `hashPassword(password): Promise<string>`, `verifyPassword(password, hash): Promise<boolean>`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const digest = rad.cryptoutils.sha256("hello bun"); // => 64-char SHA-256 hex
+const sig = rad.cryptoutils.hmacSha256("payload", "placeholder-secret");
+const id = rad.cryptoutils.uuidV7(); // => time-ordered UUIDv7
+const hash = await rad.cryptoutils.hashPassword("example-password");
+const ok = await rad.cryptoutils.verifyPassword("example-password", hash); // => true
+console.log({ digest, sigLen: sig.length, id, ok });
+```
+
 <a id="hashutils"></a>
 ### `rad.hashutils`
 
 **Why it exists:** Exposes native `Bun.hash` non-cryptographic algorithms (`wyhash`, `rapidhash`, `cityHash64`, `crc32`, etc.) plus a double-hashed `BloomFilter` for ultra-fast cache keys, checksums, and deduplication.
 
 - **Algorithms:** `wyhash(data, seed?)`, `rapidhash(data, seed?)`, `cityHash64(data, seed?)`, `cityHash32(data)`, `murmur64v2(data, seed?)`, `murmur32v3(data, seed?)`, `crc32(data)`, `adler32(data)`, `hashHex(data, algo: HashAlgorithm = "wyhash"): string`
-- **Probabilistic Sets:** `createBloomFilter(expectedItems = 1000, falsePositiveRate = 0.01): BloomFilter` (`add`, `has`, `count`, `sizeBits`)
+- **Probabilistic Sets:** `createBloomFilter(expectedItems = 1000, falsePositiveRate = 0.01): BloomFilter` (`add`, `has`, `count()`, `sizeBits()`)
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const hashNum = rad.hashutils.wyhash("cache:key:1"); // => bigint
+const hashStr = rad.hashutils.hashHex("cache:key:1", "rapidhash"); // => hex string
+const bloom = rad.hashutils.createBloomFilter(1_000, 0.01);
+bloom.add("seen:doc-1");
+console.log({ hashNum, hashStr, seen1: bloom.has("seen:doc-1"), count: bloom.count(), bits: bloom.sizeBits() });
+```
 
 ### Domain 5 runnable recipe: Authenticated HTTP API + WebSocket micro-server
 
-```ts
+```typescript
 import { rad } from "./src/features/rad/index.ts";
 
 const jwtSecret = "placeholder-secret";
@@ -933,6 +1485,18 @@ try {
 
 - **Functions & Classes:** `parallelMap<T, R>(items, concurrency, fn: (item, index) => Promise<R>): Promise<R[]>` (preserves order), `parallelFilter<T>(items, concurrency, predicate): Promise<T[]>`, `parallelEach<T>(items, concurrency, fn): Promise<void>`, `createWaitGroup(): WaitGroup` (`add`, `done`, `wait`), `timeoutPromise<T>(promise, ms, errorMsg?): Promise<T>`, `WorkerPool` (`new WorkerPool(concurrency)` -> `submit(task)`, `waitAll()`)
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const doubled = await rad.asyncutils.parallelMap([1, 2, 3, 4], 2, async (n) => n * 2); // => [2, 4, 6, 8]
+const fast = await rad.asyncutils.timeoutPromise(Promise.resolve("ok"), 500); // => "ok"
+const wg = rad.asyncutils.createWaitGroup();
+wg.add(1);
+setTimeout(() => wg.done(), 10);
+await wg.wait();
+console.log({ doubled, fast });
+```
+
 <a id="flowutils"></a>
 ### `rad.flowutils`
 
@@ -942,6 +1506,22 @@ try {
 - **`CircuitBreaker` (`new CircuitBreaker(failureThreshold = 5, resetTimeoutMs = 10_000)`):** `getState(): CircuitState`, `canExecute(): boolean`, `recordSuccess(): void`, `recordFailure(): void`, `execute<T>(fn: () => Promise<T>): Promise<T>`
 - **Functions:** `retry<T>(fn, maxAttempts = 3, delayMs = 100, multiplier = 2.0, maxDelayMs = 5000): Promise<T>`, `debounce(fn, waitMs)` (with `.cancel()`), `throttle(fn, intervalMs)` (with `.cancel()`)
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const limiter = new rad.flowutils.RateLimiter(5, 10); // 5 burst, 10/s refill
+const breaker = new rad.flowutils.CircuitBreaker(3, 5_000);
+let attempts = 0;
+const result = await breaker.execute(() =>
+  rad.flowutils.retry(
+    async () => (++attempts < 2 ? Promise.reject(new Error("blip")) : "ok"),
+    3,
+    10,
+  ),
+); // => "ok" after retry
+console.log({ allowed: limiter.allow(1), state: breaker.getState(), result });
+```
+
 <a id="fnutils"></a>
 ### `rad.fnutils`
 
@@ -950,12 +1530,37 @@ try {
 - **Combinators & Guards:** `once(fn)`, `memoize(fn, keyResolver?)` (exposes `.cache` `Map`), `negate(predicate)`, `partial(fn, ...presetArgs)`, `before(n, fn)`, `after(n, fn)`, `debounce(fn, waitMs)`, `throttle(fn, waitMs)`
 - **Utilities:** `identity(val)`, `noop()`, `times(n, iteratee)`, `delay(ms): Promise<void>`, `pipe(initialValue, ...fns)`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const piped = rad.fnutils.pipe(
+  "  hello bun  ",
+  (s: string) => s.trim(),
+  (s: string) => s.toUpperCase(),
+); // => "HELLO BUN"
+const square = rad.fnutils.memoize((n: number) => n * n);
+const initOnce = rad.fnutils.once(() => "ready");
+console.log({ piped, cached: square(9), cacheSize: square.cache.size, init: initOnce() });
+```
+
 <a id="eventutils"></a>
 ### `rad.eventutils`
 
 **Why it exists:** Browser- and Bun-friendly zero-dependency pub/sub `EventEmitter`.
 
 - **Exports:** `EventEmitter` (`on`, `once`, `off`, `emit`, `listenerCount`, `removeAllListeners`), `newEmitter(): EventEmitter`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const bus = rad.eventutils.newEmitter();
+const seen: string[] = [];
+bus.on("build:done", (target: string) => seen.push(target));
+bus.once("ready", () => seen.push("once"));
+bus.emit("ready");
+bus.emit("build:done", "linux-x64");
+console.log({ seen, listeners: bus.listenerCount("build:done") }); // => { seen: ["once", "linux-x64"], listeners: 1 }
+```
 
 <a id="validutils"></a>
 ### `rad.validutils`
@@ -964,12 +1569,34 @@ try {
 
 - **Predicates:** `isEmail(str)`, `isUrl(str)` (`http:`, `https:`, `ftp:`), `isIpv4(str)` (dotted quad `0..255`, no leading zeroes), `isIpv6(str)`, `isPhone(str)`, `isAlphanumeric(str)`, `inRange(val, min, max)`, `isUuid(str)` (v1–v8, nil, max), `isJson(str)`
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const checks = {
+  email: rad.validutils.isEmail("dev@example.com"), // => true
+  url: rad.validutils.isUrl("https://bun.sh"), // => true
+  ipv4: rad.validutils.isIpv4("127.0.0.1"), // => true
+  uuid: rad.validutils.isUuid("01936f20-7b1c-7000-8000-000000000001"), // => true
+  json: rad.validutils.isJson('{"ok":true}'), // => true
+};
+console.log(checks);
+```
+
 <a id="mockutils"></a>
 ### `rad.mockutils`
 
 **Why it exists:** Instant synthetic user fixtures, contact details, endpoints, and Lorem Ipsum text for tests and demos without installing `faker`.
 
 - **Generators:** `mockUser(): MockUser` (`{ id, name, email, role, phone, avatar }`), `mockUsers(count): MockUser[]`, `mockEmail(name?)`, `mockPhone()`, `mockIpv4()`, `mockUrl()`, `loremWords(count)`, `loremText(paragraphs = 1, minSentences = 3, maxSentences = 6)`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const users = rad.mockutils.mockUsers(2); // => 2 synthetic MockUser objects
+const ip = rad.mockutils.mockIpv4(); // => synthetic IPv4 string
+const copy = rad.mockutils.loremWords(6); // => 6 lorem words
+console.log({ count: users.length, firstEmail: users[0]?.email, ip, copy });
+```
 
 <a id="timeutils"></a>
 ### `rad.timeutils`
@@ -979,9 +1606,19 @@ try {
 - **Dates & Formatting:** `timeAgo(input, now = new Date())`, `formatIso(date = new Date())`, `parseIso(isoStr): Date`, `startOfDay`, `endOfDay`, `startOfMonth`, `endOfMonth`, `addDays(date, days)`, `diffDays(d1, d2)`
 - **Benchmarking:** `createStopwatch(): Stopwatch` (`start`, `stop`, `elapsedMs`, `reset`), `nanoseconds(): number` (`Bun.nanoseconds()`)
 
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const sw = rad.timeutils.createStopwatch();
+const yesterday = rad.timeutils.addDays(new Date(), -1);
+const label = rad.timeutils.timeAgo(yesterday); // => "1 day ago"
+const elapsedMs = sw.stop();
+console.log({ label, iso: rad.timeutils.formatIso(yesterday), elapsedMs: elapsedMs.toFixed(3) });
+```
+
 ### Domain 6 runnable recipe: Bounded parallel jobs with retries, timeouts, and circuit breaker
 
-```ts
+```typescript
 import { rad } from "./src/features/rad/index.ts";
 
 const bus = rad.eventutils.newEmitter();
@@ -1064,7 +1701,7 @@ Every one of the 10 system tools in `bun-rad-studio` works **3 ways**:
   - Optional: `pattern?: string`, `typeFilter?: "f" | "d" | "l" | "x"`, `extension?: string`, `maxDepth?: number`, `minDepth?: number`, `caseSensitive?: boolean`, `execCmd?: string[]` (replaces `"{}"` with matched path), `exclude?: string[]`, `sizeFilter?: string` (`"+10M"`, `"-1k"`, `"500"`), `changedWithin?: string` (`"10m"`, `"2h"`, `"7d"`), `empty?: boolean`
 - **Return (`FdEntry`):** `{ path, displayPath, name, isDirectory, isFile, isSymlink, isExecutable, depth, size?, mtime? }`
 
-```ts
+```typescript
 import { searchFiles } from "./src/features/fd/fdCoordinator.ts";
 
 const recentTsFiles = await searchFiles({
@@ -1093,7 +1730,7 @@ console.log(recentTsFiles.slice(0, 5).map((e) => `${e.displayPath} (${e.size ?? 
 
 > **Warning – Verify file targets before writing:** `runSdCoordinator` with `preview: false` overwrites every changed file in `options.files` in place. Always test first with `preview: true` or non-destructive `processFile(...)`, and consider setting `backupExt: ".bak"` on real source trees.
 
-```ts
+```typescript
 import { join } from "node:path";
 import { rad } from "./src/features/rad/index.ts";
 import { processFile, runSdCoordinator } from "./src/features/sd/sdCoordinator.ts";
@@ -1141,7 +1778,7 @@ await rad.fileutils.withTempDir(async (dir) => {
 
 > **Warning – Verify targets and options carefully:** `buryTarget` and `runRipCoordinator` move real files or directories out of their original paths into the graveyard, while `permanent: true` or `decompose: true` permanently deletes files from disk without undo. Built-in safety checks block `/`, `$HOME`, and graveyard ancestors, so verify paths first and preview with `dryRun: true` or isolated temp folders.
 
-```ts
+```typescript
 import { join } from "node:path";
 import { rad } from "./src/features/rad/index.ts";
 import { buryTarget, runRipCoordinator, unburyTarget } from "./src/features/rip/ripCoordinator.ts";
@@ -1182,7 +1819,7 @@ await rad.fileutils.withTempDir(async (dir) => {
   - Optional: `keyword?: string`, `user?: string`, `sortBy?: "cpu" | "mem" | "pid" | "user"`, `limit?: number`, `json?: boolean`, `ports?: boolean`, `killPid?: number`, `signal?: string` (defaults `"SIGTERM"`), `interactive?: boolean`
 - **Return (`ProcessInfo`):** `{ pid, ppid, user, cpu, mem, stat, time, command, ports?: string[] }`
 
-```ts
+```typescript
 import { getProcesses, runProcsCoordinator } from "./src/features/procs/procsCoordinator.ts";
 
 const topProcs = await getProcesses(undefined, "cpu", 5);
@@ -1209,7 +1846,7 @@ console.log(treeOutput);
   - Optional: `extensions?: string[]`, `filterPatterns?: string[]`, `shell?: string`
 - **Return:** `{ close: () => void }`; spawned commands receive `WATCHEXEC_WRITTEN_PATH`, `WATCHEXEC_TRIGGERED_PATH`, and `WATCHEXEC_COMMON_PATH` in `env`.
 
-```ts
+```typescript
 import { runWatchexecCoordinator } from "./src/features/watchexec/watchexecCoordinator.ts";
 
 const watcher = await runWatchexecCoordinator({
@@ -1239,7 +1876,7 @@ setTimeout(() => watcher.close(), 1000);
   - Optional: `json?: boolean`, `markdown?: boolean`, `excludes?: string[]` (merged with `node_modules`, `.git`, `.graveyard`, `dist`, `build`)
 - **Return (`LanguageReport`):** `{ language, files, stats: { lines, blank, comment, code }, fileDetails: FileStat[] }`
 
-```ts
+```typescript
 import { computeCodeStats } from "./src/features/tokei/tokeiCoordinator.ts";
 
 const reports = await computeCodeStats({
@@ -1267,7 +1904,7 @@ for (const r of reports) {
   - Optional: `top?: number`, `maxDepth?: number`, `sortBy?: "size" | "name" | "count" | "mtime"`, `minSize?: number | string`, `json?: boolean`, `noCross?: boolean`
 - **Return (`DiskUsageItem`):** `{ name, path, size, itemCount, isDirectory, mtime, children?: DiskUsageItem[] }`
 
-```ts
+```typescript
 import { analyzeDirectory, formatReport } from "./src/features/gdu/gduCoordinator.ts";
 
 const gduOpts = {
@@ -1302,7 +1939,7 @@ console.log(formatReport(tree, gduOpts).join("\n"));
   - `SubnetInfo` (for CIDR): `{ cidr, network, broadcast, netmask, wildcard, firstHost, lastHost, totalHosts, usableHosts }`
   - `LocalInterfaceInfo` (when `local: true`): `{ name, address, family, netmask, mac, internal }`
 
-```ts
+```typescript
 import { runIpInfoCoordinator } from "./src/features/ipinfo/ipinfoCoordinator.ts";
 
 // Offline CIDR subnet math (works without internet access)
@@ -1328,7 +1965,7 @@ console.log(JSON.parse(subnetJson));
   - Optional: `sources?: string[]`, `outputFile?: string`, `ports?: number[]`, `detectWildcard?: boolean`
 - **Return (`SubdomainResult`):** `{ host, sources, ip?, httpStatus?, httpTitle?, openPorts?, isWildcard?, httpScheme?, note? }`
 
-```ts
+```typescript
 import { enumerateDomain } from "./src/features/subfinder/subfinderCoordinator.ts";
 
 const subdomains = await enumerateDomain(
@@ -1353,7 +1990,7 @@ console.log(subdomains.map((s) => `${s.host} -> ${s.ip?.join(", ") ?? "unresolve
   - Optional: `nameserver?: string`, `doh?: boolean`, `dohUrl?: string`, `all?: boolean`
 - **Return (`DoggoResponse`):** `{ domain, queryType, answers: DnsAnswer[], queryTimeMs, server, protocol?: "UDP" | "DoH" }` where `DnsAnswer` is `{ name, type, class, ttl?, data }`
 
-```ts
+```typescript
 import { lookupDomain, runDoggoCoordinator } from "./src/features/doggo/doggoCoordinator.ts";
 
 const res = await lookupDomain("example.com", "MX");

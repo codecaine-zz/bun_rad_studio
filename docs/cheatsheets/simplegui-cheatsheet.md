@@ -41,16 +41,23 @@ A complete, beginner-friendly step-by-step cheat sheet for building cross-platfo
 
 ### 3 Import Scenarios
 
-Choose the import path that matches where your script runs:
+Choose the import block that matches where your script runs:
+
+**1. Installed package or downstream app (`package.json` dependency):**
 
 ```typescript
-// 1. Installed package or downstream app (package.json dependency)
 import { newSimpleWindow, createWindow, simplegui } from "bun-rad-studio/simplegui";
+```
 
-// 2. Script at the repository root (e.g., app.ts)
+**2. Script at the repository root (e.g., `app.ts`):**
+
+```typescript
 import { newSimpleWindow, createWindow } from "./src/simplegui";
+```
 
-// 3. Script inside a nested folder (e.g., examples/rad_tutorial/app.ts or demos/app.ts)
+**3. Script inside a nested folder (e.g., `examples/rad_tutorial/app.ts` or `demos/app.ts`):**
+
+```typescript
 import { newSimpleWindow, createWindow } from "../../src/simplegui";
 ```
 
@@ -143,29 +150,45 @@ const w4 = newSimpleWindow("Release Console", 1040, 720, {
 | `hosted` | `boolean` | `false` | Declared compatibility option (not read by constructor — use `win.hostInBrowser(...)` to serve in browser) |
 | `effects` | `"full" \| "reduced" \| "off"` | `"full"` | Visual FX shader layer mode for futuristic FX shader themes (`isFxTheme(name)`) |
 
-### Runtime Window Methods
+### Runtime Window Lifecycle
 
 ```typescript
-win.setTheme("tokyo_night");          // Re-theme controls live & persist globally (pass persist=false to skip saving)
-win.setEffects("reduced");            // "full" | "reduced" (glass without motion) | "off"
-win.setSize(1200, 800);               // Resize window (alias: win.resize(w, h))
-win.center();                         // Center window on active screen (alias: win.centerWindow())
-win.setFullscreen(false);             // Explicit fullscreen toggle -> win.isFullscreen() / win.toggleFullscreen()
-win.setAlwaysOnTop(true);             // Pin or unpin always-on-top
-win.setMinimizable(true);             // Compatibility stub (Cmd/Ctrl/Alt+M minimizes native window)
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow({
+  title: "Release Monitor v1.0",
+  width: 960,
+  height: 640,
+  theme: "nord", // Pinned in _explicitWindowOptions -> overrides saved session theme
+  appId: "release_monitor",
+});
+
+win.setTitle("Release Monitor — Live"); // Updates titlebar at runtime
+win.center();                           // Center on active monitor
+win.setEffects("reduced");              // "full" | "reduced" (glass without motion) | "off"
+win.setSize(1024, 680);                 // Resize window programmatically
+win.setFullscreen(false);               // Query with win.isFullscreen() / toggleFullscreen()
+win.setAlwaysOnTop(true);               // Pin floating window above desktop windows
+win.setMinimizable(true);               // Compatibility stub (Cmd/Ctrl/Alt+M minimizes native window)
 win.addStatusBar("statusBar", "Ready", "v1.0");
-win.setStatusBarText("statusBar", "Synced 42 records"); // Updates status bar safely
-win.setOpacity(0.95);                 // Set window body opacity (0.0..1.0)
-win.shakeWindow();                    // Horizontal shake feedback on error
-win.evalJS("console.log('ready');");  // Execute JS directly inside the running WebView
-win.onClose((w) => {                  // Return false to cancel window closure
+win.setOpacity(0.96);                   // Set window opacity (0.0..1.0)
+win.evalJS("console.log('WebView booted');");
+
+let ticks = 0;
+win.addTimer(2000, (w) => {
+  ticks += 1;
+  w.setStatusBarText("statusBar", `Heartbeat #${ticks} · Session active`);
+});
+
+win.onClose((w) => {                    // Return false to cancel window closure
+  w.saveWindowSession();
   w.saveAppFormState();
   return true;
 });
-// Programmatic close / exit:
-// win.close();                       // Runs onClose listeners & closes window
-// win.exit(0); / win.quit(0);        // Stops event loop, saves state, exits native process
-win.run();                            // Launch WebView loop (call last!)
+
+if (import.meta.main) {
+  win.run();                            // Launch WebView loop (call last!)
+}
 ```
 
 ---
@@ -201,32 +224,46 @@ win.run();                            // Launch WebView loop (call last!)
 
 ### Style 1: Scoped Auto-Closing Layout Blocks (Recommended)
 
-Scoped helpers (`row`, `card`, `grid`, `section`, `groupBox`, `cardWithTitle`) wrap `begin*` / `end*` inside a `try { ... } finally { ... }` block. Even if an exception is thrown inside the builder callback, `layoutStack` unwinds cleanly so subsequent controls never leak into the wrong container. (`section` and `groupBox` delegate directly to `card(title, callback)`.)
+Scoped helpers (`row`, `card`, `grid`, `section`, `groupBox`, `cardWithTitle`) wrap `begin*` / `end*` inside a `try { ... } finally { ... }` block. Even if an exception is thrown inside the builder callback, `layoutStack` unwinds cleanly so subsequent controls never leak into the wrong container. (`section` and `groupBox` delegate directly to `card(title, callback)`; for vertical stacks inside containers, controls stack vertically by default or inside `beginFlex("column")` / `endFlex()` — note there is no `win.col()` helper.)
 
 ```typescript
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Workspace Settings", 920, 560);
+
 win.section("Workspace Settings", (w) => {
   w.grid(2, 16, (g) => {
     g.card("General", (c) => {
       c.addFormField("Project Name:", "txtProj", "Studio App");
+      c.addFormDropdown("Target:", "cmbTarget", ["Staging", "Production"], "Staging");
       c.row((r) => {
         r.addButton("btnSave", "Save", () => c.toast("Saved!"));
         r.addButton("btnReset", "Reset", () => c.resetForm());
       });
     });
 
-    g.groupBox("Notifications", (c) => {
-      c.addSwitch("chkEmail", "Email alerts", true);
-      c.addSwitch("chkSound", "Sound chimes", false);
+    g.groupBox("Notifications & Alerts", (c) => {
+      c.beginFlex("column");
+        c.addSwitch("chkEmail", "Email alerts", true);
+        c.addSwitch("chkSound", "Sound chimes", false);
+        c.addSlider("sldRate", 1, 60, 15).width(220);
+      c.endFlex();
     });
   });
 });
+
+if (import.meta.main) win.run();
 ```
 
-### Style 2: Paired `begin*` / `end*` Containers, Container Widgets & `.at(x, y)`
+### Style 2: Paired `begin*` / `end*` Containers, Splitters, Accordions & `.at(x, y)`
 
 Use paired calls when splitting construction across helper functions, and use widget containers (`addSplitPane`, `addAccordionGroup`, `addScrollView`) for interactive splitters, collapsible sections, and fixed-height scroll viewports:
 
 ```typescript
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Cluster Layout", 920, 680);
+
 // Paired begin* / end* layout containers (every begin* has a matching end*)
 win.beginGrid(2, 16);
   win.beginCard("Server Config", "Production Cluster");
@@ -243,7 +280,11 @@ win.beginGrid(2, 16);
 win.endGrid();
 
 // Interactive container widgets & absolute positioning
-win.addSplitPane("spMain", "Left Explorer", "Right Inspector", { initialSplit: 35, width: 640, height: 180 });
+win.addSplitPane("spMain", "Left Explorer", "Right Inspector", {
+  initialSplit: 35,
+  width: 640,
+  height: 180,
+});
 win.addAccordionGroup([
   { title: "Build Logs", content: "0 errors, 2 warnings", expanded: true },
   { title: "Environment", content: "Bun v1.4+ / macOS" },
@@ -252,6 +293,8 @@ win.addScrollView(640, 220);
 
 // Pin exact pixel coordinates when building custom tool palettes or overlays
 win.addBadge("bdgLive", "LIVE", "success").at(740, 16).size(72, 24);
+
+if (import.meta.main) win.run();
 ```
 
 ---
@@ -265,6 +308,10 @@ win.addBadge("bdgLive", "LIVE", "success").at(740, 16).size(72, 24);
 Every `add*()` method returns a chainable `SimpleControlRef`:
 
 ```typescript
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Control ID Styles", 640, 360);
+
 // Style A: Fluent nameless + .id("...")
 // On addInput("Enter username"), calling .id("txtUser") promotes "Enter username" to placeholder
 // if no explicit placeholder was set, and migrates any handlers/values to the new ID!
@@ -280,6 +327,8 @@ win.addInput("txtEmail", "alice@example.com", "you@company.com", (_w, val) => {
 
 // addTextInput also accepts (placeholder).id(id) or (id, initialValue, placeholder)
 win.addTextInput("Filter logs...").id("txtFilter");
+
+if (import.meta.main) win.run();
 ```
 
 ### How to Read & Update Any Control
@@ -294,9 +343,46 @@ win.addTextInput("Filter logs...").id("txtFilter");
 | **Batch read / write** | `win.values()` / `win.getValues(ids?)` / `win.getFormValues(ids?)` | `win.values(dict)` / `win.setValues(dict)` / `win.setFormValues(dict)` / `win.resetForm(defaults?)` | Snapshot all form/input values (including default/empty inputs) or update multiple IDs at once. `clearForm()` empties stored inputs. Also: `setAll`, `getAll`, `setManyTexts`, `getManyTexts`, `setManyChecked`, `setManyNumbers`, `setManyVisibility`, `setManyEnabled`. |
 | **Lookup control handle** | `win.control(id)` / `win.ref(id)` | `win.getControl(id)` (`null`) / `win.getRef(id)` (`undefined`) | **`control(id)` throws** `[SimpleGUI] Control '...' not found` immediately on a typo; **`getControl(id)` returns `null`** for optional controls. |
 
+```typescript
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Read & Update Controls", 720, 460);
+
+// Contrast safe plain text vs raw value vs raw HTML vs typed bool/int/float & batch ops:
+win.addLabel("lblPreview", "Initial preview");
+win.addHtmlView("<p>Ready</p>", 320, 60).id("htmlBanner");
+win.addInput("txtName", "Ada", "Your name");
+win.addCheckbox("chkOptIn", "Send release notes", false);
+win.addSlider("sldWorkers", 1, 16, 4);
+
+win.addButton("btnInspect", "Inspect Controls", (w) => {
+  // 1. Escaped plain text (HTML characters appear literally, safe for untrusted input)
+  w.setText("lblPreview", "<b>Safe text</b>");      // getText("lblPreview") => "<b>Safe text</b>"
+  // 2. Explicit raw HTML escape hatch (rendered as markup)
+  w.setHtml("htmlBanner", "<strong>Deployed</strong> <em>v1.4</em>");
+  // 3. Boolean & numeric accessors (use getInt/getFloat — never nonexistent getNumber)
+  w.setChecked("chkOptIn", true);
+  const optedIn = w.getBool("chkOptIn");             // => true
+  const workers = w.getInt("sldWorkers");            // => 4
+  const ratio = w.getFloat("sldWorkers") / 16;       // => 0.25
+  // 4. Snapshot / batch update + strict vs nullable control lookup
+  const snapshot = w.values();                       // { txtName: "Ada", chkOptIn: true, ... }
+  w.setValues({ txtName: "Grace", sldWorkers: 8 });
+  const required = w.control("txtName");             // Throws on typo
+  const optional = w.getControl("doesNotExist");     // Returns null cleanly
+  w.toast(`id=${required.getId()}, keys=${Object.keys(snapshot).length}, optIn=${optedIn}, missing=${optional === null}, workers=${workers} (${ratio})`, 2500, "info");
+});
+
+if (import.meta.main) win.run();
+```
+
 ### `SimpleControlRef` Chaining Methods
 
 ```typescript
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Control Chaining", 640, 320);
+
 win.addButton("🚀 Deploy Build", () => {})
   .id("btnDeploy")
   .size(220, 42)              // Or .width(220).height(42) / .at(x, y) / .pos(x, y) / .expandFill(true)
@@ -320,6 +406,8 @@ win.addButton("🚀 Deploy Build", () => {})
 // .value() / .value(v), .text() / .text(t), .checked() / .checked(b), .html() / .html(raw)
 // .setHtml(raw), .clear(), .appendText(s), .appendLine(s), .increment(delta)
 // .options(items), .min(v), .max(v), .step(v), .bindState(key), .bindViews(...), .filterTable(...), .bindDetail(...)
+
+if (import.meta.main) win.run();
 ```
 
 ---
@@ -381,15 +469,43 @@ Every `addForm*` builder wraps a fixed-width `Label` and control inside a horizo
 | `addFormLink` | `addFormLink(label, id, linkText, url = "#")` | Label + clickable external link |
 | `addFormDropZone` | `addFormDropZone(id, promptText?, opts?)` | Embedded drag-and-drop file drop zone |
 
+> [!NOTE]
+> Compound label+control rows in `SimpleWindow` use the `addForm*` family (`addFormField`, `addFormPassword`, `addFormDropdown`, etc., or `win.row(...)` around standalone `add*` controls) — there are no `addLabeledInput` or `addFormRow` methods.
+
 ```typescript
-win.card("User Profile", (w) => {
-  w.addFormField("Full Name:", "txtFullName", "Ada Lovelace");
-  w.addFormPassword("API Token:", "txtApiToken", "my-api-token");
-  w.addFormDropdown("Role:", "cmbRole", ["Developer", "Reviewer", "Admin"], "Developer");
-  w.addFormSlider("Daily Quota:", "sldQuota", 80);
-  w.addFormSwitch("Access:", "swtActive", "Account Enabled", true);
-  w.addFormDatePicker("Start Date:", "dtStart", "2026-01-15");
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("User Profile", 820, 560);
+
+const FORM_DEFAULTS = {
+  txtFullName: "Ada Lovelace",
+  txtApiToken: "my-api-token",
+  cmbRole: "Developer",
+  sldQuota: 80,
+  swtActive: true,
+  dtStart: "2026-01-15",
+  clrAccent: "#0a84ff",
+};
+
+win.card("User Profile (Compound Form + Standalone Pickers)", (w) => {
+  w.addFormField("Full Name:", "txtFullName", FORM_DEFAULTS.txtFullName);
+  w.addFormPassword("API Token:", "txtApiToken", FORM_DEFAULTS.txtApiToken);
+  w.addFormDropdown("Role:", "cmbRole", ["Developer", "Reviewer", "Admin"], FORM_DEFAULTS.cmbRole);
+  w.addFormSlider("Daily Quota:", "sldQuota", FORM_DEFAULTS.sldQuota);
+  w.addFormDatePicker("Start Date:", "dtStart", FORM_DEFAULTS.dtStart);
+  w.addFormSwitch("Access:", "swtActive", "Account Enabled", FORM_DEFAULTS.swtActive);
+  w.addFormDropZone("dzAvatar", "Drop avatar PNG or click to browse...");
+
+  w.row((r) => {
+    r.addPasswordInput("txtPin", "Enter 2FA code");
+    r.addDatePicker(FORM_DEFAULTS.dtStart).id("dtCustom");
+    r.addColorPicker("clrAccent", FORM_DEFAULTS.clrAccent); // alias: addColorWell(...)
+    r.addSlider("sldRate", 0, 100, 65).width(160);
+    r.addButton("btnResetForm", "Reset Defaults", (b) => b.resetForm(FORM_DEFAULTS));
+  });
 });
+
+if (import.meta.main) win.run();
 ```
 
 ---
@@ -408,18 +524,59 @@ win.card("User Profile", (w) => {
 | `showControls` / `hideControls` | `win.showControls(ids)` / `win.hideControls(ids)` | Batch visibility helpers for custom view containers. |
 
 ```typescript
-win.addTabs(["Overview", "Telemetry", "Settings"], 0)
-  .id("mainTabs")
-  .bindViews(
-    {
-      Overview: ["cardOverview", "tblItems"],
-      Telemetry: ["cardCharts"],
-      Settings: ["cardPrefs"],
-    },
-    (w, activeTab, activeIndex) => {
-      w.setStatusBarText(`Tab #${activeIndex + 1}: ${activeTab}`);
-    },
-  );
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Multi-View Workspace", 920, 620);
+win.addStatusBar("status_bar", "Ready");
+
+// Multi-view switching with Tabs (.bindViews), Segmented Control & Nav Rail:
+win.addNavRail(
+  [
+    { icon: "📊", label: "Overview", id: "railOverview", active: true },
+    { icon: "📈", label: "Telemetry", id: "railMetrics" },
+    { icon: "⚙️", label: "Settings", id: "railPrefs" },
+  ],
+  (w, item) => w.toast(`Rail selected: ${String(item)}`),
+);
+
+win.addSegmentedControl(
+  "segMode",
+  ["Overview", "Telemetry", "Settings"],
+  0,
+  (w, mode) => w.setStatusBarText("status_bar", `Mode: ${String(mode)}`),
+);
+
+win.addTabs(["Overview", "Telemetry", "Settings"], 0).id("mainTabs");
+
+// Create the cards and table referenced by .bindViews(...)
+win.beginCard("Overview", "System summary", "cardOverview");
+  win.addLabel("lblOverview", "3 healthy services online");
+win.endCard();
+win.addTable("tblItems", ["Service", "Status"], [
+  ["api-gateway", "Running"],
+  ["worker-queue", "Paused"],
+]);
+
+win.beginCard("Telemetry", "Live throughput", "cardCharts");
+  win.addSparkline("spkMain", [18, 24, 21, 29, 34], 42);
+win.endCard();
+
+win.beginCard("Settings", "Workspace preferences", "cardPrefs");
+  win.addSwitch("chkAutoRefresh", "Auto-refresh every 5s", true);
+win.endCard();
+
+win.control("mainTabs").bindViews(
+  {
+    Overview: ["cardOverview", "tblItems"],
+    Telemetry: ["cardCharts"],
+    Settings: ["cardPrefs"],
+  },
+  (w, activeTab, activeIndex) => {
+    w.setStatusBarText("status_bar", `Tab #${activeIndex + 1}: ${activeTab}`);
+  },
+);
+
+if (import.meta.main) win.run();
 ```
 
 ---
@@ -439,6 +596,10 @@ win.addTabs(["Overview", "Telemetry", "Settings"], 0)
 | Inspect & Export | `getTableRows`, `getTableHeaders`, `getTableObjects`, `tableRowCount`, `exportTableCsv(id, path?)`, `exportTableJson(id, path?)` | Converts rows to RFC-4180 CSV or `{ [header]: cell }` JSON (writing to `path` if provided). |
 
 ```typescript
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Service Explorer", 860, 560);
+
 const sourceRows: any[][] = [
   ["101", "api-gateway", "Running", "12ms"],
   ["102", "worker-queue", "Paused", "48ms"],
@@ -447,11 +608,19 @@ const sourceRows: any[][] = [
 
 win.row((r) => {
   r.addSearchInput("Filter services...").id("txtSearch");
-  r.addBadge("bdgMatches", "3 / 3 rows", "info");
+  r.addBadge("bdgMatches", "3 / 3 services", "info");
+});
+
+// Master-detail fields populated automatically when a row is clicked:
+win.row((r) => {
+  r.addFormField("Selected ID:", "txtSelId", "");
+  r.addFormField("Service:", "txtSelName", "");
+  r.addFormField("Status:", "txtSelStatus", "");
 });
 
 win.addTable("tblServices", ["ID", "Service", "Status", "Latency"], sourceRows)
   .bindDetail({ ID: "txtSelId", Service: "txtSelName", Status: "txtSelStatus" });
+// Equivalent window-level call: win.bindMasterDetail("tblServices", { ID: "txtSelId", ... });
 
 win.control("txtSearch").filterTable("tblServices", () => sourceRows, {
   columns: [1, 2],
@@ -459,12 +628,21 @@ win.control("txtSearch").filterTable("tblServices", () => sourceRows, {
   countFormat: (matched, total) => `${matched} / ${total} services`,
 });
 
-// Export current table view on button click:
-win.addButton("Export CSV", (w) => {
-  const csv = w.exportTableCsv("tblServices");
-  w.copyToClipboard(csv);
-  w.toast("Copied CSV to clipboard", 2000, "success");
+// Export current filtered rows as RFC-4180 CSV or JSON array of objects:
+win.row((r) => {
+  r.addButton("btnCsv", "Export CSV", (w) => {
+    const csv = w.exportTableCsv("tblServices");
+    w.copyToClipboard(csv);
+    w.toast("Copied CSV to clipboard", 2000, "success");
+  });
+  r.addButton("btnJson", "Export JSON", (w) => {
+    const json = w.exportTableJson("tblServices");
+    w.copyToClipboard(json);
+    w.toast("Copied JSON to clipboard", 2000, "success");
+  });
 });
+
+if (import.meta.main) win.run();
 ```
 
 ---
@@ -484,7 +662,7 @@ win.addButton("Export CSV", (w) => {
 | `addDonutChart` | `addDonutChart(id, title, percent?, subtitle?, opts?)` | `setValue(id, pct)` | Circular donut ring with title & subtitle |
 | `addActivityRings` | `addActivityRings(id, rings?, opts?)` | — | Build-time concentric multi-ring SVG (`[{ label, percent, color }]`) |
 | `addSegmentDistributionBar` | `addSegmentDistributionBar(id, segments[], opts?)` | — | Proportional stacked horizontal bar (`addSegmentedProgress`) |
-| `addMetricCard` | `addMetricCard(id, title, value, badge?, subtitle?)` | `setMetricCardValue(id, val, badge?)` | KPI card (`stat_card`) with title & delta badge (`badge` accepted in signature; forwards `setValue`) |
+| `addMetricCard` | `addMetricCard(id, title, value, badge?, subtitle?)` (also `addKpiCard` / `stat_card`) | `setMetricCardValue(id, val, badge?)` | KPI card (`stat_card`) with title & delta badge (no `addStatCard` method) |
 | `addStatGrid` | `addStatGrid(stats[], opts?)` (chain `.id(id)`) | — | Multi-metric summary grid (`{ label, value, delta?, trend? }`) |
 | `addActivityFeed` | `addActivityFeed(id, height = 140)` | `addActivityFeedItem(id, time, msg)` | Timestamped event stream |
 | `addTimeline` | `addTimeline(id, height = 160)` | `addTimelineItem(id, title, sub, time, status?)` | Vertical milestone timeline |
@@ -492,7 +670,16 @@ win.addButton("Export CSV", (w) => {
 | `addTimer` | `addTimer(intervalMs, onTick, opts?)` | Disable via `win.setControlEnabled(timerId, false)` | Repeating background interval firing `(w) => ...` |
 
 ```typescript
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Live Telemetry", 820, 580);
 const history = [24, 38, 31, 46, 52];
+
+win.grid(2, 12, (g) => {
+  g.addMetricCard("cardCpu", "Live CPU", "52%", "+4.1%", "8 cores active");
+  g.addProgressBar("prgQueue", 42, 100);
+});
+
 win.addChart("chtCpu", "area", 140);
 win.setChartData("chtCpu", history);
 win.addGauge("ggeCpu", "CPU Load (%)", 52);
@@ -508,7 +695,11 @@ win.addTimer(1000, (w) => {
   w.setGaugeValue("ggeCpu", cpu);
   w.setCircularProgress("ringMem", Math.min(100, cpu + 10));
   w.setSparklineData("spkLatency", history.slice(-8));
+  w.setMetricCardValue("cardCpu", `${cpu}%`);
+  w.setProgress("prgQueue", Math.min(100, Math.round(cpu * 1.1)));
 });
+
+if (import.meta.main) win.run();
 ```
 
 ---
@@ -538,10 +729,15 @@ Every component accepts `UIOpts` (`{ id, width, height, onChange, onClick, ... }
 | **Enterprise Inputs (8)** | `autocomplete(options, opts)`, `cascader(options, opts)`, `treeSelect(options, opts)`, `mentions(options, opts)`, `signaturePad(opts)`, `richText(opts)`, `copyButton(label, text, opts)`, `loadingButton(label, opts)` | `autocomplete` (`multiple`, `freeSolo`, `limitTags`, `{ label, value, group, disabled }`); `cascader` (`{ label, value, children }`); `treeSelect` (`multiple`, `leafOnly`, `expandAll`); `copyButton` (`text` or `{ target: "#id" }`); `loadingButton` + `setLoading(id, bool)` |
 | **Data Display (11)** | `chips(chips, opts)`, `avatarGroup(avatars, opts)`, `descriptions(title, items, opts)`, `statistic(title, value, opts)`, `countdown(title, opts)`, `watermark(mark, content, opts)`, `masonry(items, opts)`, `imageCompare(before, after, opts)`, `marquee(items, opts)`, `typography(variant, text, opts)`, `virtualList(items, opts)` | `statistic` (`prefix`, `suffix`, `trend`, `precision`, `animate`); `countdown` (`seconds` or `target`, `uiCall(id, "reset", secs)`); `descriptions` (`columns`, `bordered`); `virtualList` (`itemHeight`, `search: true` for 100k+ items) |
 
-### Highlighted Enterprise Widget Examples
+### 3. Highlighted Enterprise Component Recipes
+
+#### (a) Enterprise Inputs (`autocomplete`, `cascader`, `treeSelect`, `mentions`, `richText`, `signaturePad`, `copyButton`, `loadingButton`)
 
 ```typescript
-// Searchable multi-select autocomplete with grouped items & free-solo input
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Enterprise Inputs", 860, 680);
+
 win.autocomplete(
   [
     { label: "TypeScript", value: "ts", group: "Languages" },
@@ -551,40 +747,161 @@ win.autocomplete(
   { id: "acStack", label: "Tech Stack", multiple: true, freeSolo: true, limitTags: 2 },
 ).onChange((w, tags) => w.toast(`Selected: ${JSON.stringify(tags)}`));
 
-// Hierarchical cascader & dropdown tree-select
 win.cascader(
   [{ label: "US", value: "us", children: [{ label: "Austin", value: "aus" }] }],
   { id: "casRegion", placeholder: "Pick region..." },
 );
+
 win.treeSelect(
   [{ label: "src", value: "src", children: [{ label: "simplegui.ts", value: "sg" }] }],
   { id: "tsFile", leafOnly: true, expandAll: true },
 );
 
-// Async loading button, one-click copy, popconfirm, slide-out drawer & onboarding tour
-win.loadingButton("Deploy", { id: "btnLoad", color: "success" }).onClick((w) => {
-  w.setLoading("btnLoad", true);
-  setTimeout(() => w.setLoading("btnLoad", false), 1200);
+win.mentions(["Ada Lovelace", "Grace Hopper"], {
+  id: "txtMention",
+  trigger: "@",
+  placeholder: "Type @ to notify a reviewer...",
 });
-win.copyButton("Copy Key", "your-api-key", { id: "btnCopy" });
-win.popconfirm("Delete Cache", "Clear all cached builds?", { okText: "Clear" })
-  .onChange((w, confirmed) => confirmed && w.toast("Cache cleared", 1800, "success"));
 
-win.drawer("Quick Nav", { id: "navDrawer", anchor: "left", items: ["Home", "Logs"], trigger: "Menu" });
-win.statistic("Active Users", 12840, { prefix: "", trend: "+14.2%", precision: 0 });
-win.descriptions("Service Info", [["Region", "us-east-1"], ["Runtime", "Bun"]], { columns: 2, bordered: true });
-win.emptyState("No deployments yet", "Push a release tag to create your first build.", { actions: ["Create Build"] });
+win.richText({
+  id: "rtNotes",
+  placeholder: "Write release notes...",
+  toolbar: ["bold", "italic", "h2", "quote", "ul", "code", "link", "clear"],
+});
 
-// Kanban Board & Split Button
-win.addKanbanBoard("kbSprint", [
-  { title: "Backlog", cards: ["Write tests"] },
-  { title: "In Progress", cards: ["Expand docs"] },
-], (w, move) => w.toast(`Moved card: ${JSON.stringify(move)}`));
-win.addSplitButton("Run Suite", ["Run Fast Tests", "Run Full Suite"], (w, choice) => w.toast(String(choice)));
+win.signaturePad({
+  id: "sigApprove",
+  penColor: "#0f172a",
+  penWidth: 2.5,
+  saveButton: true,
+});
 
-// Interactive guided tour targeting control IDs
-win.tour([{ target: "acStack", title: "Step 1", text: "Choose your stack tags." }], { id: "tourOnboard" });
-win.addButton("Start Tour", (w) => w.startTour("tourOnboard", 0));
+win.row((r) => {
+  r.copyButton("Copy Key", "your-api-key", { id: "btnCopy" });
+  r.loadingButton("Deploy", { id: "btnLoad", color: "success" }).onClick((w) => {
+    w.setLoading("btnLoad", true);
+    setTimeout(() => w.setLoading("btnLoad", false), 1200);
+  });
+});
+
+if (import.meta.main) win.run();
+```
+
+#### (b) Data Display (`virtualList`, `statistic`, `countdown`, `descriptions`, `chips`, `avatarGroup`, `imageCompare`)
+
+```typescript
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Enterprise Data Display", 900, 720);
+
+const largeLogItems = Array.from({ length: 10_000 }, (_, i) => ({
+  primary: `Log entry #${i + 1}`,
+  secondary: i % 5 === 0 ? "WARN" : "200 OK",
+}));
+
+win.virtualList(largeLogItems, {
+  id: "vlLogs",
+  height: 220,
+  itemHeight: 34,
+  search: true,
+  onClick: (w, ev) => w.toast(`Clicked: ${ev.item.primary}`),
+});
+
+win.grid(2, 12, (g) => {
+  g.statistic("Active Users", 12840, { trend: "+14.2%", precision: 0 });
+  g.countdown("Release Window", { id: "cdWindow", seconds: 300 });
+});
+win.addButton("Reset Countdown", (w) => w.uiCall("cdWindow", "reset", 300));
+
+win.descriptions(
+  "Service Metadata",
+  [["Region", "us-east-1"], ["Runtime", "Bun"], ["Database", "SQLite WAL"]],
+  { columns: 3, bordered: true },
+);
+
+win.chips(
+  [
+    { label: "TypeScript", color: "primary" },
+    { label: "Bun", color: "success" },
+    { label: "Desktop", color: "secondary" },
+  ],
+  { clickable: true, deletable: true },
+);
+
+win.avatarGroup(["Ada Lovelace", "Grace Hopper", "Linus Torvalds", "Ken Thompson"], {
+  max: 3,
+  size: 36,
+});
+
+win.imageCompare("https://example.com/before.png", "https://example.com/after.png", {
+  beforeLabel: "Before",
+  afterLabel: "After",
+  height: 180,
+});
+
+if (import.meta.main) win.run();
+```
+
+#### (c) Studio & Workflow (`appBar`, `drawer`, `addKanbanBoard`, `addPropertyGrid`, `addCommandPalette`, `addDiffView`, `popconfirm`, `tour`)
+
+```typescript
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Enterprise Studio & Workflow", 980, 760);
+
+win.appBar("OmniStudio", [{ label: "Workspace", value: "ws" }, { label: "Logs", value: "logs" }], {
+  search: true,
+  actions: [{ label: "Alerts", icon: "bell", badge: 3 }],
+});
+
+win.drawer("Quick Nav", {
+  id: "navDrawer",
+  anchor: "left",
+  items: ["Home", "Builds", "Logs"],
+  trigger: "Menu",
+});
+
+win.addCommandPalette(
+  "cmdQuick",
+  ["Open File", "Switch Theme", "Export CSV"],
+  (w, cmd) => w.toast(`Command: ${String(cmd)}`),
+);
+
+win.addKanbanBoard(
+  "kbSprint",
+  [
+    { title: "Backlog", cards: ["Write tests"] },
+    { title: "In Progress", cards: ["Expand docs"] },
+  ],
+  (w, move) => w.toast(`Moved card: ${JSON.stringify(move)}`),
+);
+
+win.addPropertyGrid(
+  "pgEnv",
+  { Host: "127.0.0.1", Port: "3000", Mode: "WAL" },
+  { caption: "Runtime Properties" },
+);
+
+win.addDiffView(
+  "diffCfg",
+  "timeout: 5000\nretries: 2",
+  "timeout: 3000\nretries: 5",
+  { width: 520, height: 150 },
+);
+
+win.row((r) => {
+  r.addButton("Open Drawer", (w) => w.openDrawer("navDrawer"));
+  r.popconfirm("Delete Cache", "Clear all cached builds?", { okText: "Clear" })
+    .onChange((w, confirmed) => confirmed && w.toast("Cache cleared", 1800, "success"));
+  r.addButton("Start Tour", (w) => w.startTour("tourOnboard", 0));
+});
+
+win.tour(
+  [{ target: "cmdQuick", title: "Step 1", text: "Jump to any workspace action." }],
+  { id: "tourOnboard" },
+);
+
+if (import.meta.main) win.run();
 ```
 
 ---
@@ -610,14 +927,50 @@ Validate multiple fields declaratively before saving or submitting:
 - **Return shape:** `{ valid: boolean, errors: Record<string, string>, firstErrorId: string | null, firstInvalidId: string | null, firstErrorMessage: string | null }`.
 
 ```typescript
-const result = win.validateForm({
-  txtUser: { required: true, minLength: 3, label: "Username" },
-  txtEmail: { required: true, pattern: /^[^@\s]+@[^@\s]+\.[^@\s]+$/, message: "Enter a valid email." },
-  numPort: { min: 1024, max: 65535, validate: (v) => Number(v) !== 22 || "Port 22 is reserved" },
+import {
+  createWindow,
+  getAppConfigFile,
+  loadStateFromFile,
+  saveStateToFile,
+  writeFileAtomic,
+} from "./src/simplegui";
+
+const win = createWindow("Service Settings", 760, 560, { appId: "svc_prefs" });
+
+win.addFormField("Username:", "txtUser", "ada");
+win.addFormField("Email:", "txtEmail", "ada@example.com");
+win.addFormNumber("Port:", "numPort", 8080);
+
+// Two-way binding between an input control and win.stateStore + listener
+win.addInput("Workspace label").id("txtWorkspace").bindState("workspace_label");
+win.addLabel("lblMirror", "Workspace: default");
+win.onStateChange("workspace_label", (w, val) => {
+  w.setText("lblMirror", `Workspace: ${String(val)}`);
 });
-if (!result.valid) {
-  win.warn("Validation Failed", result.firstErrorMessage || "Fix highlighted fields");
-}
+
+win.addButton("btnSaveCfg", "Validate & Save", (w) => {
+  const check = w.validateForm({
+    txtUser: { required: true, minLength: 3, label: "Username" },
+    txtEmail: { required: true, pattern: /^[^@\s]+@[^@\s]+\.[^@\s]+$/, message: "Enter a valid email." },
+    numPort: { min: 1024, max: 65535, validate: (v) => Number(v) !== 22 || "Port 22 is reserved" },
+  });
+  if (!check.valid) {
+    w.warn("Validation Failed", check.firstErrorMessage || "Fix highlighted fields");
+    return;
+  }
+
+  // Persist custom JSON state atomically to the OS config file
+  const cfgPath = getAppConfigFile("svc_prefs", "profile.json");
+  saveStateToFile(cfgPath, {
+    user: w.getText("txtUser"),
+    email: w.getText("txtEmail"),
+    port: w.getText("numPort"),
+  });
+  writeFileAtomic(getAppConfigFile("svc_prefs", "last_sync.txt"), new Date().toISOString());
+  const loaded = loadStateFromFile(cfgPath);
+  w.setState("last_saved_user", loaded.user);
+  w.toast(`Saved profile for ${loaded.user}`, 2000, "success");
+});
 ```
 
 ### Reactive State & Two-Way Control Binding
@@ -666,6 +1019,10 @@ SimpleGUI exposes cross-platform standard directory helpers (all accepting an `a
   - **Headless mode (`!win.isRunning()`):** Logs `[Dialog]` / `[Toast]` and resolves `{ isConfirmed: true, isDenied: false, isDismissed: false, value: opts.input ? opts.inputValue : true }` so `bun test` suites never hang!
 
 ```typescript
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Menus & Dialogs", 840, 520);
+
 // Menu Bar, Toolbar, Global Context Menu & Control Context Menu
 win.addMenuBar("mainMenu", [
   { label: "File", items: ["📄 New", "📂 Open...", "💾 Save", "---", "🚪 Exit"] },
@@ -705,6 +1062,52 @@ win.open_webview_file_dialog("Select Database", ".sqlite,.db", (p) => p && win.t
 win.open_webview_folder_dialog("Select Workspace", (dir) => dir && win.toast(String(dir)));
 win.save_webview_file_dialog("Save Export", "export.json", (dest) => dest && win.toast(String(dest)));
 // Or options-object API: win.openFiles({ native: "never", filter: ["ts", "json"] }, (paths) => {});
+
+if (import.meta.main) win.run();
+```
+
+### Multi-Step Dialog Wizards (`win.dialogs.queue`), `confirmDelete`, `selectDialog` & File Pickers
+
+```typescript
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Dialog Wizards", 780, 420);
+
+win.row((r) => {
+  r.addButton("btnWizard", "Run Setup Wizard", (w) => {
+    w.dialogs.queue(
+      [
+        { title: "Step 1: Project", input: "text", inputPlaceholder: "api-service", validate: "required" },
+        { title: "Step 2: Maintainer Email", input: "email", validate: "email" },
+      ],
+      (out) => {
+        if (out.completed) {
+          w.toast(`Created ${out.results[0]?.value} (${out.results[1]?.value})`, 2200, "success");
+        }
+      },
+    );
+  });
+
+  r.addButton("btnRegion", "Pick Region", (w) => {
+    w.selectDialog("Deploy Target", { us: "US East", eu: "EU Central", ap: "AP Tokyo" }, (region) => {
+      if (region) w.toast(`Target: ${String(region)}`, 1800, "info");
+    });
+  });
+
+  r.addButton("btnDel", "Delete Archive", (w) => {
+    w.confirmDelete("build-cache-2026.zip", { confirmButtonColor: "#dc2626" }, (ok) => {
+      if (ok) w.toast("Archive deleted", 1800, "warning");
+    });
+  });
+
+  r.addButton("btnImport", "Open Config...", (w) => {
+    w.open_webview_file_dialog("Choose JSON Config", ".json", (filePath) => {
+      if (filePath) w.toast(`Loaded ${filePath}`, 1800, "success");
+    });
+  });
+});
+
+if (import.meta.main) win.run();
 ```
 
 ---
@@ -717,20 +1120,33 @@ win.save_webview_file_dialog("Save Export", "export.json", (dest) => dest && win
 While SimpleGUI launched with 133 classic themes and 12 FX shader presets, `getThemeNames()` now returns **310 canonical themes** (`getThemeKeys()` returns **385** registry keys including aliases) spanning developer IDE palettes, clean light themes, OS heritage themes, and **167 futuristic FX shader themes** with glassmorphism, backdrop blur, border sheen, and pointer lighting. (Note: `OS_THEMES` and `FX_THEMES` are internal registries in `src/shared/osThemes.ts` and `src/shared/fxThemes.ts`, not re-exported by `simplegui` — query themes with `getThemeNames()`, `getThemeKeys()`, `getTheme()`, and `isFxTheme()`.)
 
 ```typescript
-import { getThemeKeys, getThemeNames, getTheme, isFxTheme } from "./src/simplegui"; // or "../../src/simplegui" inside nested folders
+import { createWindow, getTheme, getThemeKeys, getThemeNames, isFxTheme } from "./src/simplegui";
 
-// Add a 1-line theme selector dropdown that switches & persists themes automatically:
+const win = createWindow("Theme & FX Studio", 860, 560, { theme: "midnight" });
+
+// 1-line built-in theme selector dropdown (persists user selection automatically):
 win.addThemeSelector("dd_theme", "Theme:");
 
-// Switch themes, cycle themes, or tune FX shader intensity at runtime:
-win.setTheme("cyberpunk_hologram");
-win.setEffects("full"); // "full" (default) | "reduced" (glass without motion) | "off"
-
-// Inspect themes programmatically:
-const canonicalNames = getThemeNames();     // 310 canonical theme identifiers
+// Filter all 310 canonical themes and 167 futuristic FX shader themes:
+const canonicalNames = getThemeNames();     // 310 canonical themes
 const allKeys = getThemeKeys();             // 385 registry keys including aliases
-const fxOnly = allKeys.filter(isFxTheme);   // 167 FX shader theme keys
-const nordTheme = getTheme("nord");         // Unknown names fall back safely to theme "Monokai Pro" ("monokai_pro")
+const fxNames = canonicalNames.filter(isFxTheme); // 167 FX shader themes
+
+win.row((r) => {
+  r.addDropdown("cmbFx", fxNames.slice(0, 12), fxNames[0], (w, chosen) => {
+    w.setTheme(String(chosen));
+    const meta = getTheme(String(chosen));
+    w.toast(`Applied ${meta.name} (${isFxTheme(String(chosen)) ? "FX Shader" : "Standard"})`);
+  });
+
+  r.addSegmentedControl("segFxMode", ["full", "reduced", "off"], 0, (w, mode) => {
+    w.setEffects(String(mode) as "full" | "reduced" | "off");
+    w.toast(`Shader effects: ${String(mode)}`, 1600, "info");
+  });
+});
+
+// Unknown theme names safely fall back to theme "Monokai Pro" ("monokai_pro"):
+const safeFallback = getTheme("unknown_palette"); // => { name: "Monokai Pro", ... }
 ```
 
 | Theme Category | Verified Sample Keys | Live Preview Command |
@@ -751,6 +1167,30 @@ const nordTheme = getTheme("nord");         // Unknown names fall back safely to
 3. **Batch Updates (`setValues`, `setManyTexts`, `setManyEnabled`)**: Prefer `win.setValues({ a: "1", b: "2" })` / `win.setManyTexts(...)` / `win.setManyEnabled(...)` instead of scattering ad-hoc reads and writes across callbacks, and keep per-control custom `.bg()`/`.color()` styling separate so `win.setTheme(...)` preserves your accents automatically.
 4. **Safe Async Buttons (`withBusyState`)**: Wrap async button handlers in `await w.withBusyState(["btnDeploy"], "⏳ Deploying...", async (w, done) => { ... done("Deployed!"); })` to disable controls, show status feedback, and automatically re-enable controls when finished (or call `done(completionStatus)`).
 5. **Global Keyboard Shortcuts (`onShortcut`)**: Register chords like `win.onShortcut("ctrl+s", (w) => ...)` and test them headlessly with `await win.triggerShortcut("ctrl+s")`.
+
+### Async Busy State (`withBusyState`) & Shortcuts (`onShortcut` / `triggerShortcut`)
+
+```typescript
+import { createWindow } from "./src/simplegui";
+
+const win = createWindow("Deploy Tool", 640, 380, { appId: "deploy_tool" });
+win.addStatusBar("status_bar", "Idle");
+win.addLabel("lblResult", "Waiting to deploy");
+
+async function runDeploy(w: typeof win) {
+  await w.withBusyState(["btnDeploy"], "Deploying release...", async (ctx, done) => {
+    await ctx.delay(50); // WebView-safe sleep
+    ctx.setText("lblResult", "Deployed v2.4.0");
+    done("Deploy complete");
+  });
+}
+
+win.addButton("btnDeploy", "Deploy (Ctrl+S)", (w) => void runDeploy(w));
+win.onShortcut("ctrl+s", (w) => void runDeploy(w));
+
+// Inside bun test:
+// await win.triggerShortcut("ctrl+s");
+```
 
 ### Headless `bun test` Guide (Zero WebView Required)
 
@@ -807,7 +1247,137 @@ test("updates greeting on click", async () => {
 
 ## Complete full-featured Studio Workspace Template
 
-You can run the full OmniStudio Workspace template (featuring multi-tab `.bindViews`, live `.filterTable` + `.bindDetail`, live `addTimer` telemetry charts, reactive state, `validateForm`, SweetAlert2 `fire()` dialogs, and headless unit-testable `export function createFullStudioWorkspace()`) directly with:
+Copy-paste this self-contained template directly into `app.ts` and run `bun run app.ts` (or import `createStudioWorkspace()` in `bun test` with zero WebView overhead):
+
+```typescript
+import { newSimpleWindow, type SimpleWindow } from "./src/simplegui";
+
+export function createStudioWorkspace(): SimpleWindow {
+  const win = newSimpleWindow("OmniStudio RAD Workspace", 1040, 740, {
+    theme: "apple_dark",
+    padding: 16,
+    spacing: 10,
+    appId: "omnistudio_template",
+  });
+  win.disableAutoSave();
+
+  const serviceRows: any[][] = [
+    ["101", "api-gateway", "Running", "12ms"],
+    ["102", "worker-queue", "Paused", "48ms"],
+    ["103", "metrics-sync", "Running", "19ms"],
+  ];
+
+  // Top Header + Live Theme Switcher + Bottom Status Bar
+  win.addStatusBar("status_bar", "Ready · 3 services");
+  win.row((r) => {
+    r.addHeading("OmniStudio Workspace", "Tabs, Search, Master-Detail, Charts, Validation & Modals");
+    r.addThemeSelector("dd_theme", "Theme:");
+  });
+
+  // 1-Line Multi-View Navigation (.bindViews is attached once target views exist below)
+  win.addTabs(["Services", "Telemetry", "Settings"], 0).id("wsTabs");
+
+  // Tab 1: Live Keystroke Search (.filterTable) + Master-Detail (.bindDetail) + Add Row
+  win.card("Live Search & Filter", (c) => {
+    c.id("cardSearch");
+    c.row((r) => {
+      r.addSearchInput("Filter services...").id("txtFilter");
+      r.addBadge("bdgMatches", "3 / 3 services", "info");
+    });
+  });
+
+  win.addTable("tblServices", ["ID", "Service", "Status", "Latency"], serviceRows)
+    .bindDetail({ ID: "txtSelId", Service: "txtSelName", Status: "txtSelStatus" });
+
+  win.control("txtFilter").filterTable("tblServices", () => serviceRows, {
+    columns: [1, 2],
+    countControlId: "bdgMatches",
+    countFormat: (m, t) => `${m} / ${t} services`,
+  });
+
+  win.card("Selected Service & Quick Add", (c) => {
+    c.id("cardDetail");
+    c.row((r) => {
+      r.addFormField("ID:", "txtSelId", "101");
+      r.addFormField("Service:", "txtSelName", "api-gateway");
+      r.addFormField("Status:", "txtSelStatus", "Running");
+    });
+    c.row((r) => {
+      r.addButton("btnAddSvc", "Add Demo Service", (w) => {
+        const nextId = String(101 + serviceRows.length);
+        const name = w.getText("txtSelName") || `worker-${nextId}`;
+        serviceRows.push([nextId, name, "Running", "15ms"]);
+        w.setTableRows("tblServices", serviceRows);
+        w.setText("bdgMatches", `${serviceRows.length} / ${serviceRows.length} services`);
+        w.toast(`Added ${name}`, 1800, "success");
+      });
+      r.addButton("btnCsv", "Export CSV", (w) => {
+        w.copyToClipboard(w.exportTableCsv("tblServices"));
+        w.toast("CSV copied to clipboard", 1800, "info");
+      });
+    });
+  });
+
+  // Tab 2: Live Charts, Gauges & Sparklines via Timer
+  const loadHistory = [28, 36, 42, 39, 45];
+  win.card("Live Telemetry", (c) => {
+    c.id("cardTelemetry");
+    c.grid(2, 12, (g) => {
+      g.addMetricCard("kpiLoad", "CPU Load", "45%", "+3.1%", "Healthy");
+      g.addGauge("ggeLoad", "Cluster Utilization (%)", 45);
+    });
+    c.addChart("chtLoad", "area", 140);
+    c.setChartData("chtLoad", loadHistory);
+    c.addSparkline("spkTrend", loadHistory, 32);
+  });
+
+  win.addTimer(1500, (w) => {
+    const next = 30 + (w.getInt("kpiLoad") || 40) % 50;
+    loadHistory.push(next);
+    if (loadHistory.length > 12) loadHistory.shift();
+    w.setChartData("chtLoad", loadHistory);
+    w.setGaugeValue("ggeLoad", next);
+    w.setSparklineData("spkTrend", loadHistory);
+    w.setMetricCardValue("kpiLoad", `${next}%`);
+  });
+
+  // Tab 3: Reactive State, Validation, FX Mode & SweetAlert2 fire()
+  win.card("Preferences & Validation", (c) => {
+    c.id("cardPrefs");
+    c.addFormField("Maintainer:", "txtMaintainer", "ada").bindState("maintainer");
+    c.addFormField("Alert Email:", "txtEmail", "ada@example.com");
+    c.row((r) => {
+      r.addButton("btnValidate", "Save Settings", (w) => {
+        const res = w.validateForm({
+          txtMaintainer: { required: true, minLength: 2 },
+          txtEmail: { required: true, pattern: /^[^@\s]+@[^@\s]+\.[^@\s]+$/, message: "Invalid email" },
+        });
+        if (!res.valid) return void w.warn("Check Form", res.firstErrorMessage || "Fix invalid fields");
+        w.fire({ title: "Saved!", text: `Updated ${w.getText("txtMaintainer")}`, icon: "success" });
+      });
+      r.addButton("btnReducedFx", "Reduced FX", (w) => w.setEffects("reduced"));
+    });
+  });
+
+  win.control("wsTabs").bindViews(
+    {
+      Services: ["cardSearch", "tblServices", "cardDetail"],
+      Telemetry: ["cardTelemetry"],
+      Settings: ["cardPrefs"],
+    },
+    (w, tabName) => w.setStatusBarText("status_bar", `View: ${tabName}`),
+  );
+
+  win.onShortcut("ctrl+s", (w) => w.toast("Saved workspace state", 1600, "success"));
+  return win;
+}
+
+if (import.meta.main) {
+  createStudioWorkspace().run();
+}
+```
+
+You can also run the full SQLite-backed OmniStudio Workspace template directly from this repository:
 
 ```bash
 bun run examples/rad_tutorial/12_full_studio_workspace_template.ts

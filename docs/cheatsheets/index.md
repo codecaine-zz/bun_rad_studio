@@ -113,7 +113,52 @@ bun run app.ts --name Ada
 
 What appears in your terminal: a green success line (`Hello, Ada!`) followed by a Unicode table—or clean JSON if stdout is piped (for example `bun run app.ts --name Ada | cat`). You also get `--help` and `--version` automatically.
 
-> **Note – verification scope:** Both 6-line snippets and all API symbols in this hub were verified against TypeScript source and executed headlessly via `bun -e` on macOS (Bun 1.4.4). Native desktop window rendering is documented from `examples/rad_tutorial/01_quickstart.ts` and [Install and first launch](../getting-started/install-and-first-launch.md).
+### Write a dual-mode GUI and CLI app in one file (`app.ts`)
+
+Because **SimpleGUI**, **SimpleCLI**, and **`rad`** share the same Bun runtime, one pure TypeScript function (`analyzeProject`) can power both a terminal/JSON report and an interactive desktop window in ~25 lines:
+
+```typescript
+import { newSimpleWindow } from "./src/simplegui";
+import { newApp, sys } from "./src/simplecli";
+import { rad } from "./src/features/rad/index.ts";
+
+async function analyzeProject(dir: string) {
+  const files = await rad.globutils.findFiles("**/*.ts", dir);
+  return { directory: dir, tsFiles: files.length, platform: sys.osPlatform(), cpus: sys.cpuCount() };
+}
+
+const app = newApp("project-scan", "1.0.0")
+  .addFlagBool("cli", "c", false, "Print report to terminal or JSON pipe")
+  .addFlagBool("json", "j", false, "Force JSON output")
+  .addFlagString("dir", "d", "./src", "Directory to scan");
+if (!app.parseCli()) process.exit(0);
+
+const report = await analyzeProject(app.getFlagString("dir"));
+if (app.getFlagBool("cli") || app.getFlagBool("json") || !process.stdout.isTTY) {
+  app.output([report], { title: "Project Summary" });
+} else {
+  const win = newSimpleWindow("Project Analyzer", 640, 380, { theme: "apple_dark" });
+  win.addHeading("Project Summary", `${report.directory} (${report.platform})`);
+  win.addTable("tblStats", ["Directory", "TS Files", "OS", "CPUs"], [[report.directory, report.tsFiles, report.platform, report.cpus]]);
+  win.addLabel(`Found ${report.tsFiles} TypeScript files`).id("lblCount");
+  win.addButton("Re-scan", async (w) => {
+    const fresh = await analyzeProject(app.getFlagString("dir"));
+    w.setTableRows("tblStats", [[fresh.directory, fresh.tsFiles, fresh.platform, fresh.cpus]]);
+    w.setText("lblCount", `Found ${fresh.tsFiles} TypeScript files`).toast("Updated");
+  });
+  win.run();
+}
+```
+
+Run the exact same file either as a GUI desktop app or a scriptable CLI:
+
+```bash
+bun run app.ts             # Opens native 640x380 desktop window
+bun run app.ts --cli       # Prints Unicode summary table in terminal
+bun run app.ts --cli | cat # Switches automatically to JSON when piped
+```
+
+> **Note – verification scope:** Every TypeScript example, `D-027` alias snippet, mini-recipe, and API symbol in this hub was verified against TypeScript source, syntax-checked with `Bun.Transpiler` / `tsc --noEmit`, and executed headlessly on macOS (Bun 1.4.4). Native desktop window rendering is documented from `examples/rad_tutorial/01_quickstart.ts` and [Install and first launch](../getting-started/install-and-first-launch.md).
 
 ---
 
@@ -123,23 +168,92 @@ Almost every `"Cannot find module"` error comes from using a repo-root import pa
 
 | What you need | Installed via `bun add bun-rad-studio` | Script at repo root (`app.ts`) | Script in a subfolder (`examples/rad_tutorial/`) |
 | :--- | :--- | :--- | :--- |
-| **Everything (`SimpleGUI` + `SimpleCLI` + `rad`)** | `import { newApp, createWindow, rad } from "bun-rad-studio";` | `import { newApp, newSimpleWindow, rad } from "./src";` | `import { newApp, newSimpleWindow, rad } from "../../src";` |
-| **`SimpleGUI` only (lightweight desktop import)** | `import { newSimpleWindow, createWindow } from "bun-rad-studio/simplegui";` | `import { newSimpleWindow } from "./src/simplegui";` | `import { newSimpleWindow } from "../../src/simplegui";` |
+| **`SimpleGUI` + `SimpleCLI` (+ `rad` in repo)** | `import { newApp, createWindow, sys, stdlib } from "bun-rad-studio";` | `import { newApp, newSimpleWindow, rad } from "./src";` | `import { newApp, newSimpleWindow, rad } from "../../src";` |
+| **`SimpleGUI` only (lightweight desktop import)** | `import { newSimpleWindow, createWindow, listThemes } from "bun-rad-studio/simplegui";` | `import { newSimpleWindow } from "./src/simplegui";` | `import { newSimpleWindow } from "../../src/simplegui";` |
 | **`SimpleCLI` only (zero-window CLI import)** | `import { newApp, sys, createApiClient } from "bun-rad-studio";` | `import { newApp, sys, createApiClient } from "./src/simplecli";` | `import { newApp, sys, createApiClient } from "../../src/simplecli";` |
-| **`rad` utility modules only** | `import { rad } from "bun-rad-studio";` | `import { rad } from "./src/features/rad/index.ts";` | `import { rad } from "../../src/features/rad/index.ts";` |
+| **`rad` / system utilities** | `import { sys, stdlib } from "bun-rad-studio";` *(use repo source for `rad`)* | `import { rad } from "./src/features/rad/index.ts";` | `import { rad } from "../../src/features/rad";` |
 
-> **Note:** In your own external project using `bun-rad-studio`, prefer `"bun-rad-studio/simplegui"` when you only need desktop windows so Bun skips loading unrelated CLI modules. Inside this cloned repository, adjust `../` depth to reach `src/`.
+> **Note:** In your own external project using `bun add bun-rad-studio`, `"bun-rad-studio"` re-exports root [`index.ts`](../../index.ts) (`SimpleGUI` + `SimpleCLI` + `sys` + `stdlib`), and `"bun-rad-studio/simplegui"` loads only desktop GUI APIs. Inside this cloned repository, `"./index.ts"` exports `SimpleGUI` + `SimpleCLI` while `"./src"` (`src/index.ts`) exports all three (`SimpleGUI`, `SimpleCLI`, and `rad`); inside subfolders, adjust `../` depth to reach `src/`.
+
+### Side-by-side code for all 3 import scenarios
+
+**(a) Script at repository root (`./index.ts` + `./src/features/rad/index.ts`):**
+
+```typescript
+// Repo root (app.ts): SimpleGUI + SimpleCLI from ./index.ts, 45 rad modules from ./src/features/rad/index.ts
+import { newSimpleWindow, newApp, sys } from "./index.ts";
+import { rad } from "./src/features/rad/index.ts";
+
+const files = await rad.globutils.findFiles("**/*.ts", "./src");
+const app = newApp("root-check", "1.0.0");
+console.log({ os: sys.osPlatform(), tsFiles: files.length });
+```
+
+**(b) Script inside a nested folder (`examples/rad_tutorial/` or `applications/`):**
+
+```typescript
+// Nested folder (two levels below repo root): import explicit subpath modules from ../../src/
+import { newSimpleWindow } from "../../src/simplegui";
+import { newApp, createApiClient } from "../../src/simplecli";
+import { rad } from "../../src/features/rad";
+
+const app = newApp("nested-tool", "1.0.0");
+const api = createApiClient("https://api.example.com");
+const slug = rad.strutils.slugify("Hello RAD Studio");
+```
+
+**(c) External project installed via `bun add bun-rad-studio`:**
+
+```typescript
+// Installed npm package: root barrel ("bun-rad-studio") or lightweight GUI subpath ("bun-rad-studio/simplegui")
+import { newApp, createWindow, sys, createApiClient } from "bun-rad-studio";
+import { newSimpleWindow, listThemes } from "bun-rad-studio/simplegui";
+
+const app = newApp("external-cli", "1.0.0");
+const api = createApiClient("https://api.example.com");
+console.log({ themes: listThemes().length, arch: sys.osArch() });
+```
 
 ### Namespace disambiguation in the unified hub (D-027)
 
-Four identifier names exist in more than one library with different behavior. As recorded in [D-027](../documentation-maintenance/discrepancies.md#d-027) and `src/index.ts`, the unified hub (`"bun-rad-studio"` or `"./src"`) exports one concrete definition at the top level while keeping the `rad` variants under their module namespaces:
+Four identifier names exist in more than one library with different behavior. As recorded in [D-027](../documentation-maintenance/discrepancies.md#d-027) and `src/index.ts`, the unified hub (`"./src"`) exports one concrete definition at the top level while keeping the `rad` variants under their module namespaces:
 
 | Top-level unified export | What it resolves to | How to access the `rad` alternative |
 | :--- | :--- | :--- |
 | `writeFileAtomic` | **SimpleGUI synchronous** `writeFileAtomic(path, content): void` | `rad.fileutils.writeFileAtomic(path, content)` (**asynchronous** `Promise<void>`) or `fileutils.writeFileAtomic` |
 | `LRUCache` | **SimpleCLI** `LRUCache` | `rad.cacheutils.LRUCache` (or `cacheutils.LRUCache`) |
 | `Logger`, `LogLevel` | **SimpleCLI** `Logger` and `LogLevel` | `rad.logutils.Logger`, `rad.logutils.LogLevel`, `rad.logutils.newLogger` |
-| `TreeNode` | **SimpleCLI** `TreeNode` (terminal tree visualizer) | Use directly for `app.tree(root)` |
+| `TreeNode` | **SimpleCLI** `TreeNode` (terminal tree visualizer) | Use directly for `app.tree(root)` (or TS interface `TreeNode` from `cliutils.ts`) |
+
+Alias top-level imports when combining the unified `./src` barrel (or Node built-ins like `node:util` `parseArgs`) with `rad.*` in one file:
+
+```typescript
+import { join } from "node:path";
+import { parseArgs as nodeParseArgs } from "node:util";
+import {
+  writeFileAtomic as writeGuiSync,
+  LRUCache as CliLruCache,
+  escapeHtml,
+  newApp,
+} from "./src";
+import { rad } from "./src/features/rad/index.ts";
+
+// D-027 safe disambiguation: SimpleGUI sync vs rad.fileutils async; SimpleCLI vs rad.cacheutils
+await rad.fileutils.withTempDir(async (dir) => {
+  writeGuiSync(join(dir, "sync.txt"), "SimpleGUI sync atomic write");
+  await rad.fileutils.writeFileAtomic(join(dir, "async.txt"), "RAD async atomic write");
+});
+const cliCache = new CliLruCache<string, number>(64);
+const radCache = new rad.cacheutils.LRUCache<string, number>(64);
+cliCache.set("hits", 1);
+radCache.set("hits", 1);
+
+// Root ./src exports rad.htmlutils.escapeHtml directly, while CLI argv parsing uses app.parseArgs()
+const safeTitle = escapeHtml("<b>RAD & Studio</b>");
+const parsedNode = nodeParseArgs({ args: ["--port", "3000"], options: { port: { type: "string" } } });
+const app = newApp("safe-alias", "1.0.0").addFlagString("port", "p", parsedNode.values.port ?? "3000", safeTitle);
+app.parseArgs(["--port", "8080"]);
+```
 
 ---
 
@@ -149,7 +263,7 @@ Use this index to jump straight to the guide built for your task:
 
 | Cheatsheet | Who it is for | What questions it answers |
 | :--- | :--- | :--- |
-| **[RAD development cheatsheets](index.md)** *(this hub)* | Beginners starting in 5 minutes and developers picking the right tool | How Bun RAD Studio works, the 3 import paths, tool chooser, 39-goal lookup matrix, pro tips, and handbook links |
+| **[RAD development cheatsheets](index.md)** *(this hub)* | Beginners starting in 5 minutes and developers picking the right tool | How Bun RAD Studio works, dual-mode `app.ts` quickstart, 3 import code examples + D-027 aliasing, tool chooser, 39-goal matrix + 4 mini-recipes, pro tips, and handbook links |
 | **[SimpleGUI desktop RAD cheat sheet](simplegui-cheatsheet.md)** | Developers building native desktop windows in TypeScript | Window factories and explicit option precedence, scoped (`win.row`/`win.card`/`win.grid`) and paired layouts, `.id()` placeholder promotion, `getText`/`setText`/`setHtml`/`values()`, `.bindViews` tabs, live table filtering, charts/timers, 35 enterprise controls, `validateForm`, OS state paths, `fire()` modals, file pickers, 310 themes, and headless `bun test` |
 | **[SimpleCLI console and backend RAD cheat sheet](simplecli-cheatsheet.md)** | Developers building terminal tools, DevOps scripts, and CI automation | Typed flags and subcommands, `parseCli()` vs `parseArgs()`, TTY tables vs JSON `--json`/pipe `app.output`, interactive prompts/fuzzy menus/wizards, multi-step `Pipeline`, `sys` telemetry and timeouts, `stdlib` helpers, `ApiClient` REST CRUD and `try*` calls, Redis fallback, shell completions, and single-binary builds |
 | **[45 RAD utility modules and 10 system tools cheat sheet](rad-modules-cheatsheet.md)** | Developers replacing heavy npm boilerplate with built-in utilities | Confusing-pairs chooser (`fileutils` vs `sqliteutils` vs `stateutils`, `rad.sysutils.execSafe` vs `shellutils`, `asyncutils` vs `flowutils`), exact signatures across all 45 `rad` modules (WAL + FTS5 SQLite, TOML, ZIP/tar, `Bun.Glob`, `Bun.serve`, JWT/crypto, `parallelMap`), and TypeScript Coordinator/Doer APIs for `fd`, `sd`, `rip`, `procs`, `watchexec`, `tokei`, `gdu`, `ipinfo`, `subfinder`, `doggo` |
@@ -187,7 +301,7 @@ Every symbol and method below has been verified against `src/simplegui.ts`, `src
 | **Add a labeled input in 1 line** | `addFormField` / `addFormPassword` | `win.addFormField("Email:", "txtEmail", "ada@example.com");` |
 | **Read or update plain text safely** | `getText` / `setText` | `const name = win.getText("txtName"); win.setText("lblStatus", "Saved!");` |
 | **Render trusted raw HTML explicitly** | `setHtml` | `win.setHtml("lblRich", "<strong>Active</strong>");` |
-| **Read checkboxes, numbers, or batch fields** | `getBool` / `getNumber` / `setValues` | `const ok = win.getBool("chkOk"); win.setValues({ txtHost: "localhost", chkOk: true });` |
+| **Read checkboxes, numbers, or batch fields** | `getBool` / `getInt` / `getFloat` / `getManyNumbers` / `setValues` | `const ok = win.getBool("chkOk"); const port = win.getInt("txtPort"); win.setValues({ txtHost: "localhost", chkOk: true });` |
 | **Switch views automatically on tab click** | `addTabs(...).bindViews(map)` | `win.addTabs(["Tasks", "Charts"], 0).bindViews({ Tasks: ["tbl"], Charts: ["crt"] });` |
 | **Filter a table on every keystroke** | `bindTableFilter` / `.filterTable` | `win.bindTableFilter("txtSearch", "tbl", () => rows, { countControlId: "bdg" });` |
 | **Fill a form when a table row is clicked** | `bindMasterDetail` / `.bindDetail` | `win.bindMasterDetail("tbl", ["txtId", "txtName", "cmbRole"]);` |
@@ -202,7 +316,7 @@ Every symbol and method below has been verified against `src/simplegui.ts`, `src
 | **Show a rich SweetAlert-style modal** | `win.fire(opts, cb)` | `win.fire({ title: "Deploy?", icon: "question", showCancelButton: true }, cb);` |
 | **Show quick alerts, confirms, or toasts** | `info` / `warn` / `ask` / `toast` | `if (await win.ask("Delete item?", "Confirm")) win.toast("Deleted");` |
 | **Pick a file or folder in-window** | `open_webview_file_dialog` | `win.open_webview_file_dialog("Open File", ".json", (p) => {});` |
-| **Prevent double-clicks during async work** | `withBusyState` | `await win.withBusyState(["btnSave"], "Saving...", async (ctx) => { await ctx.sleep(500); });` |
+| **Prevent double-clicks during async work** | `withBusyState` | `await win.withBusyState(["btnSave"], "Saving...", async (w, done) => { await Bun.sleep(500); done("Saved"); });` |
 | **Parse typed CLI flags and subcommands** | `newApp` / `command` / `parseCli` | `app.addFlagString("env", "e", "dev", "Environment").parseCli();` |
 | **Print TTY tables or JSON when piped** | `app.output(data, opts)` | `app.output([{ service: "api", ok: true }], { title: "Status" });` |
 | **Ask interactive prompts or form wizards** | `prompt` / `select` / `fuzzySelect` / `form` | `const env = await app.select("Target:", ["dev", "staging", "prod"]);` |
@@ -219,6 +333,91 @@ Every symbol and method below has been verified against `src/simplegui.ts`, `src
 | **Test windows and CLIs headlessly** | `bun test` (`triggerClick`, `parseArgs`) | `await win.triggerClick("btnSave"); app.parseArgs(["--env", "prod"]);` |
 | **Compile to a standalone executable** | `bun build --compile` | `bun build --compile examples/rad_tutorial/01_quickstart.ts --outfile my-app` |
 
+### 4 bite-sized copy-paste mini-recipes
+
+#### 1. Desktop form with `win.card`, `win.values()`, and `validateForm`
+
+```typescript
+import { newSimpleWindow } from "./src/simplegui";
+
+const win = newSimpleWindow("Quick Signup", 520, 380, { theme: "apple_dark" });
+win.card("Account Details", (w) => {
+  w.addFormField("Full Name:", "txtName", "");
+  w.addFormField("Email:", "txtEmail", "");
+  w.addFormPassword("Password:", "txtPass");
+});
+win.addButton("Create Account", (w) => {
+  const check = w.validateForm({
+    txtName: { required: true, label: "Full Name" },
+    txtEmail: { required: true, pattern: /^[^@\s]+@[^@\s]+\.[^@\s]+$/, label: "Email" },
+    txtPass: { required: true, minLength: 8, label: "Password" },
+  });
+  if (!check.valid) { w.toast(check.firstErrorMessage ?? "Fix highlighted field", 3000, "warning"); return; }
+  const data = w.values();
+  w.info("Saved", `Created account for ${data.txtName} (${data.txtEmail})`);
+});
+win.run();
+```
+
+#### 2. Zero-SQL `rad.sqliteutils` CRUD and FTS5 search
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const db = rad.sqliteutils.openDb(":memory:");
+rad.sqliteutils.execSql(db, "CREATE TABLE notes (id INTEGER PRIMARY KEY, title TEXT, body TEXT)");
+rad.sqliteutils.insertMany(db, "notes", [
+  { title: "WAL Mode", body: "Concurrent SQLite reads and writes in Bun" },
+  { title: "FTS5 Search", body: "Ranked BM25 full-text queries with zero dependencies" },
+]);
+rad.sqliteutils.updateRows(db, "notes", { title: "SQLite WAL Mode" }, "title = ?", ["WAL Mode"]);
+const notes = rad.sqliteutils.selectRows<{ title: string; body: string }>(db, "notes", ["title", "body"]);
+rad.sqliteutils.createFtsTable(db, "notes_fts", ["title", "body"]);
+for (const row of notes) rad.sqliteutils.indexFts(db, "notes_fts", row);
+const hits = rad.sqliteutils.searchFtsRanked<{ title: string }>(db, "notes_fts", "BM25");
+console.log({ count: notes.length, topHit: hits[0]?.title });
+rad.sqliteutils.closeDb(db);
+```
+
+#### 3. `SimpleCLI` `app.output()` table vs piped JSON
+
+```typescript
+import { newApp, sys } from "./src/simplecli";
+
+const app = newApp("host-report", "1.0.0")
+  .addFlagBool("json", "j", false, "Force JSON output instead of an interactive table");
+if (!app.parseCli()) process.exit(0);
+
+const mem = sys.memoryInfo();
+const report = [
+  { host: sys.osHostname(), os: `${sys.osPlatform()}/${sys.osArch()}`, cpus: sys.cpuCount(), ramPct: `${mem.percent.toFixed(1)}%` },
+];
+// Prints a Unicode table on interactive TTYs, or clean JSON when piped (`| cat`) or with `--json`
+app.output(report, { title: "Host Telemetry" });
+```
+
+#### 4. Native HTTP JSON API with `rad.serverutils.createRouter()` and `rad.sqliteutils`
+
+```typescript
+import { rad } from "./src/features/rad/index.ts";
+
+const db = rad.sqliteutils.openDb(":memory:");
+rad.sqliteutils.execSql(db, "CREATE TABLE tasks (id INTEGER PRIMARY KEY, title TEXT NOT NULL)");
+rad.sqliteutils.insertRow(db, "tasks", { title: "Ship cheatsheet examples" });
+
+const router = rad.serverutils.createRouter()
+  .get("/tasks", () => Response.json(rad.sqliteutils.selectRows(db, "tasks", ["id", "title"])))
+  .post("/tasks", async (req: Request) => {
+    const body = (await req.json()) as { title?: string };
+    if (!body.title) return Response.json({ error: "title required" }, { status: 400 });
+    const id = rad.sqliteutils.insertRow(db, "tasks", { title: body.title });
+    return Response.json({ id, title: body.title }, { status: 201 });
+  });
+
+const server = rad.serverutils.serveHttp({ router, port: 0 });
+console.log(`JSON API ready at ${server.url}/tasks`); // Call server.stop() and rad.sqliteutils.closeDb(db) on exit
+```
+
 ---
 
 ## Top 15 pro RAD tips and tricks
@@ -228,7 +427,7 @@ Every symbol and method below has been verified against `src/simplegui.ts`, `src
 3. **Wire 1-line live search (`.filterTable`) and debounce heavy queries:** Chain `.filterTable("tblUsers", () => rows)` onto `win.addSearchInput(...)` for instant in-memory search, or wrap database queries in `rad.flowutils.debounce(fn, 200)` so rapid typing stays smooth.
 4. **Populate detail forms in 1 line (`bindMasterDetail` / `.bindDetail`):** Attach `.bindDetail(["txtId", "txtName", "cmbRole"])` to your table so clicking any row fills the matching editor fields automatically.
 5. **Batch control updates with `setValues` or `setManyTexts`:** Instead of scattering dozens of individual updates across handlers, pass a dictionary to `win.setValues({ txtHost: "localhost", swtTls: true })` or `win.setManyTexts({ lblCount: "5", lblStatus: "Ready" })`.
-6. **Prevent accidental double-clicks (`win.withBusyState`):** Wrap slow async button work in `await win.withBusyState(["btnSave"], "Saving...", async (ctx) => { ... })`; it disables the button while running and restores it automatically afterward.
+6. **Prevent accidental double-clicks (`win.withBusyState`):** Wrap slow async button work in `await win.withBusyState(["btnSave"], "Saving...", async (w, done) => { ... done("Saved"); })`; it disables the button while running and restores it automatically afterward.
 7. **Validate and focus in 1 call (`win.validateForm`):** Check `required`, `minLength`, `maxLength`, `min`, `max`, `pattern`, and custom `validate` rules in one object—SimpleGUI automatically highlights and focuses `res.firstInvalidId`.
 8. **Understand explicit window option precedence:** Passing explicit `width, height` opens windowed (`fullscreen: false`), whereas omitting dimensions defaults to `fullscreen: true`; explicit `{ theme, fullscreen }` options override saved `session.json` and `form_state.json` while still restoring input values.
 9. **Keep UI text updates XSS-safe (`setText` vs `setHtml`):** `win.setText` and `win.setValue` escape text cleanly on labels, buttons, headings, badges, and checkboxes (without overwriting checkbox `.checked`); use `win.setHtml` only when intentionally rendering trusted HTML markup.

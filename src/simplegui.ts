@@ -261,6 +261,16 @@ export type UIOpts = Record<string, any> & {
   onClick?: EventCallback;
 };
 
+/** Returns the last function value in an argument list as a fallback for overloaded trailing callbacks. */
+function findTrailingCallback(
+  args: ArrayLike<unknown>,
+): EventCallback | undefined {
+  for (let i = args.length - 1; i >= 0; i--) {
+    if (typeof args[i] === "function") return args[i] as EventCallback;
+  }
+  return undefined;
+}
+
 /** Fluent handle returned when adding a control to a `SimpleWindow`, enabling chainable layout, styling, value manipulation, and event binding. */
 export class SimpleControlRef {
   public spec: any;
@@ -297,8 +307,7 @@ export class SimpleControlRef {
         delete this.window.listItemsStore[oldId];
       }
       const stateBindings = (this.window as any).controlStateBindings as
-        | Map<string, string>
-        | undefined;
+        Map<string, string> | undefined;
       if (stateBindings && stateBindings.has(oldId)) {
         const boundKey = stateBindings.get(oldId)!;
         stateBindings.delete(oldId);
@@ -503,11 +512,18 @@ export class SimpleControlRef {
     this.spec.custom_background = true;
     this.spec.custom_card_background = true;
     this.spec._isThemeAccent = false;
+    const ctrlType = this.spec.control_type || this.spec.type;
+    let autoBtnFg: string | null = null;
+    if (ctrlType === "button" && !this.spec.custom_color) {
+      autoBtnFg = isBrightAccentColor(color) ? "#000000" : "#ffffff";
+      this.spec.font_color = autoBtnFg;
+    }
     if (this.window && this.window.isRunning()) {
       const safeId = JSON.stringify(this.spec.id);
       const safeCol = JSON.stringify(color);
+      const safeAutoFg = autoBtnFg ? JSON.stringify(autoBtnFg) : "null";
       this.window.evalJS(
-        `(function(){const el=document.getElementById(${safeId});if(el){el.style.background=${safeCol};el.style.backgroundColor=${safeCol};el.setAttribute("data-custom-bg","true");el.classList.remove("btn-theme-accent");}})();`,
+        `(function(){const el=document.getElementById(${safeId});if(el){el.style.background=${safeCol};el.style.backgroundColor=${safeCol};el.setAttribute("data-custom-bg","true");el.classList.remove("btn-theme-accent");if(${safeAutoFg}&&!el.hasAttribute("data-custom-color"))el.style.color=${safeAutoFg};}})();`,
       );
     }
     return this;
@@ -521,7 +537,7 @@ export class SimpleControlRef {
       const safeId = JSON.stringify(this.spec.id);
       const safeCol = JSON.stringify(color);
       this.window.evalJS(
-        `(function(){const el=document.getElementById(${safeId});if(el){el.style.color=${safeCol};el.setAttribute("data-custom-color","true");el.removeAttribute("data-theme-label");}})();`,
+        `(function(){const id=${safeId};const el=document.getElementById(id);if(el){el.style.color=${safeCol};el.setAttribute("data-custom-color","true");el.removeAttribute("data-theme-label");const pLbl=el.closest&&el.closest("label");if(pLbl){pLbl.style.color=${safeCol};pLbl.setAttribute("data-custom-color","true");pLbl.removeAttribute("data-theme-label");}}const lbl=document.getElementById(id+"_label")||document.getElementById(id+"_lbl");if(lbl){lbl.style.color=${safeCol};lbl.setAttribute("data-custom-color","true");lbl.removeAttribute("data-theme-label");}})();`,
       );
     }
     return this;
@@ -768,7 +784,14 @@ export class SimpleControlRef {
 
   /** Registers a callback invoked when the user right-clicks (opens the context menu on) this control. */
   onRightClick(handler: EventCallback): this {
+    this.spec.has_context_menu = true;
     this.window.bindControlEvent(this.spec.id, "onContextMenu", handler);
+    if (this.window && this.window.isRunning()) {
+      const safeId = JSON.stringify(this.spec.id);
+      this.window.evalJS(
+        `(function(){const id=${safeId};const el=document.getElementById(id);if(el){if(!el.hasAttribute("data-context-menu"))el.setAttribute("data-context-menu","");el.setAttribute("data-ctrl-id",id);}})();`,
+      );
+    }
     return this;
   }
   /** Snake_case alias of `onRightClick`: registers a callback invoked when the user right-clicks (opens the context menu on) this control. */
@@ -1184,7 +1207,7 @@ export class SimpleControlRef {
       const safeFg =
         textColor !== undefined ? JSON.stringify(textColor) : "null";
       this.window.evalJS(
-        `(function(){const id=${safeId};const el=document.getElementById(id);if(!el)return;let st=document.getElementById("sg-hover-"+id);if(!st){st=document.createElement("style");st.id="sg-hover-"+id;document.head.appendChild(st);}const rules=[];if(${safeBg})rules.push("background:"+(${safeBg})+" !important;background-color:"+(${safeBg})+" !important;");if(${safeFg})rules.push("color:"+(${safeFg})+" !important;");st.textContent="#"+CSS.escape(id)+":hover{"+rules.join("")+"}";})();`,
+        `(function(){const id=${safeId};const el=document.getElementById(id);if(!el)return;let st=document.getElementById("sg-hover-"+id);if(!st){st=document.createElement("style");st.id="sg-hover-"+id;document.head.appendChild(st);}const rules=[];if(${safeBg})rules.push("background:"+(${safeBg})+" !important;background-color:"+(${safeBg})+" !important;");if(${safeFg})rules.push("color:"+(${safeFg})+" !important;");const escId=(typeof CSS!=="undefined"&&CSS.escape)?CSS.escape(id):String(id).replace(/([^a-zA-Z0-9_-])/g,"\\\\$1");st.textContent="#"+escId+":hover{"+rules.join("")+"}";})();`,
       );
     }
     return this;
@@ -1194,9 +1217,15 @@ export class SimpleControlRef {
   style(styles: Record<string, string | number>): this {
     if (!styles || typeof styles !== "object") return this;
     this.spec.custom_styles = { ...(this.spec.custom_styles || {}), ...styles };
-    if (styles.backgroundColor || styles["background-color"] || styles.background) {
+    if (
+      styles.backgroundColor ||
+      styles["background-color"] ||
+      styles.background
+    ) {
       const bgVal = String(
-        styles.backgroundColor ?? styles["background-color"] ?? styles.background,
+        styles.backgroundColor ??
+          styles["background-color"] ??
+          styles.background,
       );
       this.bg(bgVal);
     }
@@ -2054,6 +2083,8 @@ export class SimpleWindow {
       }
     }
 
+    const anyOpts = options as Record<string, any>;
+    const customAccent = anyOpts.accentColor ?? anyOpts.accent_color;
     const explicitWidth =
       typeof rawWidth === "number" || typeof options.width === "number";
     const explicitHeight =
@@ -2061,7 +2092,8 @@ export class SimpleWindow {
     const explicitTheme =
       (typeof options.theme === "string" && options.theme.length > 0) ||
       typeof options.background_color === "string" ||
-      typeof options.font_color === "string";
+      typeof options.font_color === "string" ||
+      typeof customAccent === "string";
     const explicitFullscreen = options.fullscreen !== undefined;
 
     this._explicitWindowOptions = {
@@ -2092,9 +2124,11 @@ export class SimpleWindow {
     this.fullscreen = explicitFullscreen
       ? Boolean(options.fullscreen)
       : !(explicitWidth || explicitHeight);
-    this.responsiveLayout = options.responsive ?? true;
-
-    const anyOpts = options as Record<string, any>;
+    this.responsiveLayout =
+      options.responsive ??
+      anyOpts.responsiveLayout ??
+      anyOpts.responsive_layout ??
+      true;
     if (typeof anyOpts.minWidth === "number") this._minWidth = anyOpts.minWidth;
     if (typeof anyOpts.minHeight === "number")
       this._minHeight = anyOpts.minHeight;
@@ -2150,8 +2184,9 @@ export class SimpleWindow {
 
     const resolvedTheme = this.resolveThemeColors(
       this.theme,
-      options.background_color,
-      options.font_color,
+      options.background_color ?? anyOpts.backgroundColor,
+      options.font_color ?? anyOpts.fontColor,
+      typeof customAccent === "string" ? customAccent : undefined,
     );
     this.backgroundColor = resolvedTheme.bg;
     this.fontColor = resolvedTheme.fg;
@@ -2164,12 +2199,13 @@ export class SimpleWindow {
     name: string,
     customBg?: string,
     customFg?: string,
+    customAccent?: string,
   ): { bg: string; fg: string; accent: string } {
     const theme = getTheme(name);
     return {
       bg: customBg || theme.background_color,
       fg: customFg || theme.font_color,
-      accent: theme.accent_color || "#0a84ff",
+      accent: customAccent || theme.accent_color || "#0a84ff",
     };
   }
 
@@ -2272,6 +2308,12 @@ export class SimpleWindow {
           if (!ctrl.custom_color) {
             ctrl.font_color = btnFg;
           }
+        } else if (!ctrl.custom_color) {
+          ctrl.font_color = isBrightAccentColor(
+            String(ctrl.background_color || ""),
+          )
+            ? "#000000"
+            : "#ffffff";
         }
       } else if (type === "split_button") {
         if (!ctrl.custom_background) {
@@ -2327,8 +2369,36 @@ export class SimpleWindow {
         }),
       );
 
+      const customBgIds = this.controls
+        .filter((c) => c.custom_background && c.id)
+        .map((c) => ({
+          id: String(c.id),
+          bg: String(c.background_color || ""),
+        }));
+      const customFgIds = this.controls
+        .filter((c) => c.custom_color && c.id)
+        .map((c) => ({
+          id: String(c.id),
+          fg: String(c.font_color || ""),
+          type: String(c.control_type || c.type || ""),
+        }));
+
       this.evalJS(`
                 (function() {
+                    var _customBgList = ${JSON.stringify(customBgIds)};
+                    for (var _bi = 0; _bi < _customBgList.length; _bi++) {
+                        var _bItem = _customBgList[_bi];
+                        var _bEl = document.getElementById(_bItem.id);
+                        if (_bEl) { _bEl.setAttribute('data-custom-bg', 'true'); if (_bItem.bg) { _bEl.style.backgroundColor = _bItem.bg; } }
+                    }
+                    var _customFgList = ${JSON.stringify(customFgIds)};
+                    for (var _fi = 0; _fi < _customFgList.length; _fi++) {
+                        var _fItem = _customFgList[_fi];
+                        var _fEl = document.getElementById(_fItem.id);
+                        if (_fEl) { _fEl.setAttribute('data-custom-color', 'true'); _fEl.removeAttribute('data-theme-label'); if (_fItem.fg) { _fEl.style.color = _fItem.fg; } }
+                        var _fLbl = document.getElementById(_fItem.id + '_label') || document.getElementById(_fItem.id + '_lbl');
+                        if (_fLbl) { _fLbl.setAttribute('data-custom-color', 'true'); _fLbl.removeAttribute('data-theme-label'); if (_fItem.fg) { _fLbl.style.color = _fItem.fg; } }
+                    }
                     var _ua = ((navigator.userAgent || '') + ' ' + (navigator.platform || '')).replace(/like\\s+Android[^;)]*/gi, '');
                     if (/Linux|X11|Wayland|Ubuntu/i.test(_ua) && !/Android/i.test(_ua)) {
                         document.documentElement.classList.add('rad-linux');
@@ -3977,9 +4047,7 @@ export class SimpleWindow {
   public addTextArea(
     idOrPlaceholder = "",
     initialValueOrPlaceholderOrOnChange:
-      | string
-      | EventCallback
-      | Partial<any> = "",
+      string | EventCallback | Partial<any> = "",
     optsOrPlaceholderOrOnChange: string | EventCallback | Partial<any> = {},
     onChangeOrOpts?: EventCallback | Partial<any>,
     optsArg: Partial<any> = {},
@@ -4055,10 +4123,7 @@ export class SimpleWindow {
     onChange: EventCallback,
     options?: ControlOptions,
   ): SimpleControlRef;
-  public addCheckbox(
-    label: string,
-    options: ControlOptions,
-  ): SimpleControlRef;
+  public addCheckbox(label: string, options: ControlOptions): SimpleControlRef;
   public addCheckbox(
     label: string,
     checked: boolean,
@@ -4091,10 +4156,7 @@ export class SimpleWindow {
   public addCheckbox(
     idOrLabel: string,
     labelOrCheckedOrOnChange:
-      | string
-      | boolean
-      | EventCallback
-      | Partial<any> = false,
+      string | boolean | EventCallback | Partial<any> = false,
     checkedOrOnChangeOrOpts: boolean | EventCallback | Partial<any> = false,
     onChangeOrOpts?: EventCallback | Partial<any>,
     optsArg: Partial<any> = {},
@@ -4178,10 +4240,7 @@ export class SimpleWindow {
   public addSwitch(
     idOrLabel: string,
     labelOrCheckedOrOnChange:
-      | string
-      | boolean
-      | EventCallback
-      | Partial<any> = false,
+      string | boolean | EventCallback | Partial<any> = false,
     checkedOrOnChangeOrOpts?: boolean | EventCallback | Partial<any>,
     onChangeOrOpts?: EventCallback | Partial<any>,
     optsArg: Partial<any> = {},
@@ -4623,16 +4682,8 @@ export class SimpleWindow {
   public addDropdown(
     idOrItems: string | string[],
     itemsOrSelected?:
-      | string[]
-      | string
-      | number
-      | EventCallback
-      | Record<string, any>,
-    selectedOrOnChange?:
-      | string
-      | number
-      | EventCallback
-      | Record<string, any>,
+      string[] | string | number | EventCallback | Record<string, any>,
+    selectedOrOnChange?: string | number | EventCallback | Record<string, any>,
     onChangeOrOpts?: EventCallback | Record<string, any>,
     optsArg: Record<string, any> = {},
   ): SimpleControlRef {
@@ -4766,16 +4817,8 @@ export class SimpleWindow {
   public add_dropdown(
     idOrItems: string | string[],
     itemsOrSelected?:
-      | string[]
-      | string
-      | number
-      | EventCallback
-      | Record<string, any>,
-    selectedOrOnChange?:
-      | string
-      | number
-      | EventCallback
-      | Record<string, any>,
+      string[] | string | number | EventCallback | Record<string, any>,
+    selectedOrOnChange?: string | number | EventCallback | Record<string, any>,
     onChangeOrOpts?: EventCallback | Record<string, any>,
     optsArg: Record<string, any> = {},
   ): SimpleControlRef {
@@ -4800,10 +4843,7 @@ export class SimpleWindow {
     onChange: EventCallback,
     options?: ControlOptions,
   ): SimpleControlRef;
-  public addSelect(
-    items: string[],
-    options: ControlOptions,
-  ): SimpleControlRef;
+  public addSelect(items: string[], options: ControlOptions): SimpleControlRef;
   public addSelect(
     items: string[],
     selected: string | number | undefined,
@@ -4836,16 +4876,8 @@ export class SimpleWindow {
   public addSelect(
     idOrItems: string | string[],
     itemsOrSelected?:
-      | string[]
-      | string
-      | number
-      | EventCallback
-      | Record<string, any>,
-    selectedOrOnChange?:
-      | string
-      | number
-      | EventCallback
-      | Record<string, any>,
+      string[] | string | number | EventCallback | Record<string, any>,
+    selectedOrOnChange?: string | number | EventCallback | Record<string, any>,
     onChangeOrOpts?: EventCallback | Record<string, any>,
     optsArg: Record<string, any> = {},
   ): SimpleControlRef {
@@ -4870,10 +4902,7 @@ export class SimpleWindow {
     onChange: EventCallback,
     options?: ControlOptions,
   ): SimpleControlRef;
-  public add_select(
-    items: string[],
-    options: ControlOptions,
-  ): SimpleControlRef;
+  public add_select(items: string[], options: ControlOptions): SimpleControlRef;
   public add_select(
     items: string[],
     selected: string | number | undefined,
@@ -4906,16 +4935,8 @@ export class SimpleWindow {
   public add_select(
     idOrItems: string | string[],
     itemsOrSelected?:
-      | string[]
-      | string
-      | number
-      | EventCallback
-      | Record<string, any>,
-    selectedOrOnChange?:
-      | string
-      | number
-      | EventCallback
-      | Record<string, any>,
+      string[] | string | number | EventCallback | Record<string, any>,
+    selectedOrOnChange?: string | number | EventCallback | Record<string, any>,
     onChangeOrOpts?: EventCallback | Record<string, any>,
     optsArg: Record<string, any> = {},
   ): SimpleControlRef {
@@ -5527,15 +5548,16 @@ export class SimpleWindow {
       | string
       | Partial<any> = "info",
     typeOrOpts:
-      | "info"
-      | "success"
-      | "warning"
-      | "error"
-      | "danger"
-      | Partial<any> = {},
+      "info" | "success" | "warning" | "error" | "danger" | Partial<any> = {},
     optsArg: Partial<any> = {},
   ): SimpleControlRef {
-    const badgeRoles = new Set(["info", "success", "warning", "error", "danger"]);
+    const badgeRoles = new Set([
+      "info",
+      "success",
+      "warning",
+      "error",
+      "danger",
+    ]);
     let explicitId: string | undefined;
     let text = idOrText;
     let badgeType = "info";
@@ -5581,10 +5603,7 @@ export class SimpleWindow {
     onSelect: EventCallback,
     options?: ControlOptions,
   ): SimpleControlRef;
-  public addTable(
-    columns: string[],
-    options: ControlOptions,
-  ): SimpleControlRef;
+  public addTable(columns: string[], options: ControlOptions): SimpleControlRef;
   public addTable(
     columns: string[],
     rows: any[][],
@@ -6843,27 +6862,87 @@ export class SimpleWindow {
 
   /** Adds a primary action button paired with a secondary dropdown menu of related actions. */
   public addSplitButton(
-    caption: string,
-    menuItems: string[] = ["Action 1", "Action 2"],
-    onClick?: EventCallback,
-    opts: Partial<any> = {},
+    idOrCaption: string,
+    captionOrItems: string | string[] = ["Action 1", "Action 2"],
+    itemsOrOnClick?: string[] | EventCallback,
+    onClickOrOpts?: EventCallback | Partial<any>,
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
+    let explicitId: string | undefined;
+    let caption = idOrCaption;
+    let menuItems: string[] = ["Action 1", "Action 2"];
+    let onClick: EventCallback | undefined;
+    let opts: Partial<any> = {};
+    if (typeof captionOrItems === "string") {
+      explicitId = idOrCaption;
+      caption = captionOrItems;
+      if (Array.isArray(itemsOrOnClick)) {
+        menuItems = itemsOrOnClick;
+        if (typeof onClickOrOpts === "function")
+          onClick = onClickOrOpts as EventCallback;
+        else if (onClickOrOpts && typeof onClickOrOpts === "object")
+          opts = onClickOrOpts;
+        if (typeof maybeOpts === "function")
+          onClick = onClick ?? (maybeOpts as EventCallback);
+        else if (maybeOpts && typeof maybeOpts === "object")
+          opts = { ...opts, ...maybeOpts };
+      } else if (typeof itemsOrOnClick === "function") {
+        onClick = itemsOrOnClick;
+        if (onClickOrOpts && typeof onClickOrOpts === "object")
+          opts = onClickOrOpts;
+        if (maybeOpts && typeof maybeOpts === "object")
+          opts = { ...opts, ...maybeOpts };
+      } else {
+        if (itemsOrOnClick && typeof itemsOrOnClick === "object")
+          opts = itemsOrOnClick as Partial<any>;
+        if (typeof onClickOrOpts === "function")
+          onClick = onClickOrOpts as EventCallback;
+        else if (onClickOrOpts && typeof onClickOrOpts === "object")
+          opts = { ...opts, ...onClickOrOpts };
+        if (typeof maybeOpts === "function")
+          onClick = onClick ?? (maybeOpts as EventCallback);
+        else if (maybeOpts && typeof maybeOpts === "object")
+          opts = { ...opts, ...maybeOpts };
+      }
+    } else {
+      if (Array.isArray(captionOrItems)) menuItems = captionOrItems;
+      else if (typeof captionOrItems === "function")
+        onClick = captionOrItems as EventCallback;
+      else if (captionOrItems && typeof captionOrItems === "object")
+        opts = captionOrItems as Partial<any>;
+      if (typeof itemsOrOnClick === "function")
+        onClick = onClick ?? itemsOrOnClick;
+      else if (Array.isArray(itemsOrOnClick)) menuItems = itemsOrOnClick;
+      else if (itemsOrOnClick && typeof itemsOrOnClick === "object")
+        opts = { ...opts, ...(itemsOrOnClick as Partial<any>) };
+      if (typeof onClickOrOpts === "function")
+        onClick = onClick ?? (onClickOrOpts as EventCallback);
+      else if (onClickOrOpts && typeof onClickOrOpts === "object")
+        opts = { ...opts, ...onClickOrOpts };
+      if (typeof maybeOpts === "function")
+        onClick = onClick ?? (maybeOpts as EventCallback);
+      else if (maybeOpts && typeof maybeOpts === "object")
+        opts = { ...opts, ...maybeOpts };
+    }
+    if (!onClick) onClick = findTrailingCallback(arguments);
     return this.addVisualControl("split_button", 160, 38, {
+      ...(explicitId ? { id: explicitId } : {}),
       caption,
       text: caption,
       items: menuItems,
-      onClick,
       ...opts,
+      ...(onClick ? { onClick } : {}),
     });
   }
   /** Snake_case alias of `addSplitButton`: adds a primary action button paired with a secondary dropdown menu of related actions. */
   public add_split_button(
-    caption: string,
-    menuItems: string[] = ["Action 1", "Action 2"],
-    onClick?: EventCallback,
-    opts: Partial<any> = {},
+    idOrCaption: string,
+    captionOrItems: string | string[] = ["Action 1", "Action 2"],
+    itemsOrOnClick?: string[] | EventCallback,
+    onClickOrOpts?: EventCallback | Partial<any>,
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addSplitButton(caption, menuItems, onClick, opts);
+    return this.addSplitButton.apply(this, arguments as any);
   }
 
   /** Adds a push button adorned with a numeric or text notification counter badge. */
@@ -7034,13 +7113,60 @@ export class SimpleWindow {
 
   /** Adds a vertical group of mutually exclusive radio buttons for `groupName` with an optional change handler. */
   public addRadioGroup(
-    groupName: string,
-    options: string[],
-    selected = "",
-    onChange?: EventCallback,
-    opts: Partial<any> = {},
+    groupNameOrOptions:
+      string | Array<string | { label: string; value?: string }>,
+    optionsOrSelected?:
+      | Array<string | { label: string; value?: string }>
+      | string
+      | EventCallback,
+    selectedOrOnChange: string | EventCallback = "",
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
-    const initial = selected || options[0] || "";
+    let groupName: string;
+    let options: Array<string | { label: string; value?: string }> = [];
+    let selected = "";
+    let onChange: EventCallback | undefined;
+    let opts: Partial<any> = {};
+    if (Array.isArray(groupNameOrOptions)) {
+      groupName = this.generateUniqueId("radio_group");
+      options = groupNameOrOptions;
+      if (typeof optionsOrSelected === "string") {
+        selected = optionsOrSelected;
+        if (typeof selectedOrOnChange === "function")
+          onChange = selectedOrOnChange;
+        if (onChangeOrOpts && typeof onChangeOrOpts === "object")
+          opts = onChangeOrOpts;
+      } else if (typeof optionsOrSelected === "function") {
+        onChange = optionsOrSelected;
+        if (selectedOrOnChange && typeof selectedOrOnChange === "object")
+          opts = selectedOrOnChange as any;
+      }
+    } else {
+      groupName = groupNameOrOptions;
+      options = Array.isArray(optionsOrSelected) ? optionsOrSelected : [];
+      if (typeof selectedOrOnChange === "function") {
+        onChange = selectedOrOnChange;
+        if (onChangeOrOpts && typeof onChangeOrOpts === "object")
+          opts = onChangeOrOpts;
+      } else {
+        selected =
+          typeof selectedOrOnChange === "string" ? selectedOrOnChange : "";
+        if (typeof onChangeOrOpts === "function")
+          onChange = onChangeOrOpts as EventCallback;
+        else if (onChangeOrOpts && typeof onChangeOrOpts === "object")
+          opts = onChangeOrOpts;
+        if (maybeOpts && typeof maybeOpts === "object")
+          opts = { ...opts, ...maybeOpts };
+      }
+    }
+    if (!onChange) onChange = findTrailingCallback(arguments);
+    const firstItem = options[0];
+    const firstVal =
+      firstItem && typeof firstItem === "object"
+        ? String((firstItem as any).value ?? (firstItem as any).label ?? "")
+        : String(firstItem ?? "");
+    const initial = selected || firstVal;
     return this.addVisualControl(
       "radio_group",
       240,
@@ -7050,72 +7176,174 @@ export class SimpleWindow {
         group: groupName,
         items: options,
         value: initial,
-        onChange,
         ...opts,
+        ...(onChange ? { onChange } : {}),
       },
     );
   }
   /** Snake_case alias of `addRadioGroup`: adds a vertical group of mutually exclusive radio buttons for `groupName` with an optional change handler. */
   public add_radio_group(
-    groupName: string,
-    options: string[],
-    selected = "",
-    onChange?: EventCallback,
-    opts: Partial<any> = {},
+    groupNameOrOptions:
+      string | Array<string | { label: string; value?: string }>,
+    optionsOrSelected?:
+      | Array<string | { label: string; value?: string }>
+      | string
+      | EventCallback,
+    selectedOrOnChange: string | EventCallback = "",
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addRadioGroup(groupName, options, selected, onChange, opts);
+    return this.addRadioGroup.apply(this, arguments as any);
   }
 
   /** Adds a pull-down action menu control populated with selectable string options. */
   public addPullDown(
-    id: string,
-    options: string[],
-    selected = "",
-    onChange?: EventCallback,
-    opts: Partial<any> = {},
+    idOrOptions: string | Array<string | { label: string; value?: string }>,
+    optionsOrSelected?:
+      | Array<string | { label: string; value?: string }>
+      | string
+      | EventCallback,
+    selectedOrOnChange: string | EventCallback = "",
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
+    let id: string;
+    let options: Array<string | { label: string; value?: string }> = [];
+    let selected = "";
+    let onChange: EventCallback | undefined;
+    let opts: Partial<any> = {};
+    if (Array.isArray(idOrOptions)) {
+      id = this.generateUniqueId("pull_down");
+      options = idOrOptions;
+      if (typeof optionsOrSelected === "string") {
+        selected = optionsOrSelected;
+        if (typeof selectedOrOnChange === "function")
+          onChange = selectedOrOnChange;
+      } else if (typeof optionsOrSelected === "function") {
+        onChange = optionsOrSelected;
+      }
+    } else {
+      id = idOrOptions;
+      options = Array.isArray(optionsOrSelected) ? optionsOrSelected : [];
+      if (typeof selectedOrOnChange === "function") {
+        onChange = selectedOrOnChange;
+        if (onChangeOrOpts && typeof onChangeOrOpts === "object")
+          opts = onChangeOrOpts;
+      } else {
+        selected =
+          typeof selectedOrOnChange === "string" ? selectedOrOnChange : "";
+        if (typeof onChangeOrOpts === "function")
+          onChange = onChangeOrOpts as EventCallback;
+        else if (onChangeOrOpts && typeof onChangeOrOpts === "object")
+          opts = onChangeOrOpts;
+        if (maybeOpts && typeof maybeOpts === "object")
+          opts = { ...opts, ...maybeOpts };
+      }
+    }
+    if (!onChange) onChange = findTrailingCallback(arguments);
+    const firstItem = options[0];
+    const firstVal =
+      firstItem && typeof firstItem === "object"
+        ? String((firstItem as any).value ?? (firstItem as any).label ?? "")
+        : String(firstItem ?? "");
     return this.addVisualControl("pull_down", 220, 36, {
       id,
       items: options,
-      value: selected || options[0] || "",
-      onChange,
+      value: selected || firstVal,
       ...opts,
+      ...(onChange ? { onChange } : {}),
     });
   }
   /** Snake_case alias of `addPullDown`: adds a pull-down action menu control populated with selectable string options. */
   public add_pull_down(
-    id: string,
-    options: string[],
-    selected = "",
-    onChange?: EventCallback,
-    opts: Partial<any> = {},
+    idOrOptions: string | Array<string | { label: string; value?: string }>,
+    optionsOrSelected?:
+      | Array<string | { label: string; value?: string }>
+      | string
+      | EventCallback,
+    selectedOrOnChange: string | EventCallback = "",
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addPullDown(id, options, selected, onChange, opts);
+    return this.addPullDown.apply(this, arguments as any);
   }
 
   /** Adds an editable combo box combining a free-text input with a dropdown list of preset options. */
   public addComboBox(
-    id: string,
-    options: string[],
-    initialVal = "",
-    opts: Partial<any> = {},
+    idOrOptions: string | Array<string | { label: string; value?: string }>,
+    optionsOrInitial?:
+      | Array<string | { label: string; value?: string }>
+      | string
+      | EventCallback,
+    initialOrOnChange: string | EventCallback | Partial<any> = "",
+    optsOrOnChange: Partial<any> | EventCallback = {},
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
+    let id: string;
+    let options: Array<string | { label: string; value?: string }> = [];
+    let initialVal = "";
+    let onChange: EventCallback | undefined;
+    let opts: Partial<any> = {};
+    if (Array.isArray(idOrOptions)) {
+      id = this.generateUniqueId("combo_box");
+      options = idOrOptions;
+      if (typeof optionsOrInitial === "string") initialVal = optionsOrInitial;
+      else if (typeof optionsOrInitial === "function")
+        onChange = optionsOrInitial;
+      if (typeof initialOrOnChange === "function")
+        onChange = initialOrOnChange as EventCallback;
+      else if (initialOrOnChange && typeof initialOrOnChange === "object")
+        opts = initialOrOnChange;
+    } else {
+      id = idOrOptions;
+      options = Array.isArray(optionsOrInitial) ? optionsOrInitial : [];
+      if (typeof initialOrOnChange === "function") {
+        onChange = initialOrOnChange as EventCallback;
+        if (optsOrOnChange && typeof optsOrOnChange === "object")
+          opts = optsOrOnChange;
+      } else if (initialOrOnChange && typeof initialOrOnChange === "object") {
+        opts = initialOrOnChange;
+        if (typeof optsOrOnChange === "function")
+          onChange = optsOrOnChange as EventCallback;
+      } else {
+        initialVal =
+          typeof initialOrOnChange === "string" ? initialOrOnChange : "";
+        if (typeof optsOrOnChange === "function")
+          onChange = optsOrOnChange as EventCallback;
+        else if (optsOrOnChange && typeof optsOrOnChange === "object")
+          opts = optsOrOnChange;
+        if (maybeOpts && typeof maybeOpts === "object")
+          opts = { ...opts, ...maybeOpts };
+      }
+    }
+    if (!onChange) onChange = findTrailingCallback(arguments);
+    const firstItem = options[0];
+    const firstVal =
+      firstItem && typeof firstItem === "object"
+        ? String((firstItem as any).value ?? (firstItem as any).label ?? "")
+        : String(firstItem ?? "");
+    const resolvedVal = initialVal || firstVal;
     return this.addVisualControl("combo_box", 240, 38, {
       id,
       items: options,
-      text: initialVal || options[0] || "",
-      value: initialVal || options[0] || "",
+      text: resolvedVal,
+      value: resolvedVal,
       ...opts,
+      ...(onChange ? { onChange } : {}),
     });
   }
   /** Snake_case alias of `addComboBox`: adds an editable combo box combining a free-text input with a dropdown list of preset options. */
   public add_combo_box(
-    id: string,
-    options: string[],
-    initialVal = "",
-    opts: Partial<any> = {},
+    idOrOptions: string | Array<string | { label: string; value?: string }>,
+    optionsOrInitial?:
+      | Array<string | { label: string; value?: string }>
+      | string
+      | EventCallback,
+    initialOrOnChange: string | EventCallback | Partial<any> = "",
+    optsOrOnChange: Partial<any> | EventCallback = {},
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addComboBox(id, options, initialVal, opts);
+    return this.addComboBox.apply(this, arguments as any);
   }
 
   /** Adds a compact theme selection menu pre-bound to the window's active theme. */
@@ -7144,29 +7372,117 @@ export class SimpleWindow {
 
   /** Adds a multi-state mode selector (such as `["System", "Dark", "Light"]`) with change callback. */
   public addModeControl(
-    id: string,
-    modes = ["System", "Dark", "Light"],
-    selected = "Dark",
-    onChange?: EventCallback,
-    opts: Partial<any> = {},
+    idOrModes:
+      | string
+      | Array<string | { label: string; value?: string }> = "mode_control",
+    modesOrSelected:
+      | Array<string | { label: string; value?: string }>
+      | string
+      | EventCallback = ["System", "Dark", "Light"],
+    selectedOrOnChange: string | EventCallback = "Dark",
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
+    let id: string;
+    let modes: Array<string | { label: string; value?: string }> = [
+      "System",
+      "Dark",
+      "Light",
+    ];
+    let selected = "Dark";
+    let onChange: EventCallback | undefined;
+    let opts: Partial<any> = {};
+    if (Array.isArray(idOrModes)) {
+      id = this.generateUniqueId("mode_control");
+      modes = idOrModes;
+      if (typeof modesOrSelected === "string") {
+        selected = modesOrSelected;
+        if (typeof selectedOrOnChange === "function")
+          onChange = selectedOrOnChange;
+        else if (selectedOrOnChange && typeof selectedOrOnChange === "object")
+          opts = selectedOrOnChange as Partial<any>;
+        if (typeof onChangeOrOpts === "function")
+          onChange = onChange ?? (onChangeOrOpts as EventCallback);
+        else if (onChangeOrOpts && typeof onChangeOrOpts === "object")
+          opts = { ...opts, ...onChangeOrOpts };
+        if (typeof maybeOpts === "function")
+          onChange = onChange ?? (maybeOpts as EventCallback);
+        else if (maybeOpts && typeof maybeOpts === "object")
+          opts = { ...opts, ...maybeOpts };
+      } else if (typeof modesOrSelected === "function") {
+        onChange = modesOrSelected;
+        if (selectedOrOnChange && typeof selectedOrOnChange === "object")
+          opts = selectedOrOnChange as Partial<any>;
+        if (onChangeOrOpts && typeof onChangeOrOpts === "object")
+          opts = { ...opts, ...onChangeOrOpts };
+        if (maybeOpts && typeof maybeOpts === "object")
+          opts = { ...opts, ...maybeOpts };
+      } else if (
+        modesOrSelected &&
+        typeof modesOrSelected === "object" &&
+        !Array.isArray(modesOrSelected)
+      ) {
+        opts = modesOrSelected as Partial<any>;
+        if (typeof selectedOrOnChange === "function")
+          onChange = selectedOrOnChange;
+        if (typeof onChangeOrOpts === "function")
+          onChange = onChange ?? (onChangeOrOpts as EventCallback);
+        else if (onChangeOrOpts && typeof onChangeOrOpts === "object")
+          opts = { ...opts, ...onChangeOrOpts };
+      }
+    } else {
+      id = idOrModes;
+      if (Array.isArray(modesOrSelected)) modes = modesOrSelected;
+      else if (typeof modesOrSelected === "function")
+        onChange = modesOrSelected;
+      else if (modesOrSelected && typeof modesOrSelected === "object")
+        opts = modesOrSelected as Partial<any>;
+      if (typeof selectedOrOnChange === "function") {
+        onChange = selectedOrOnChange;
+        if (onChangeOrOpts && typeof onChangeOrOpts === "object")
+          opts = { ...opts, ...onChangeOrOpts };
+        if (typeof maybeOpts === "function")
+          onChange = onChange ?? (maybeOpts as EventCallback);
+        else if (maybeOpts && typeof maybeOpts === "object")
+          opts = { ...opts, ...maybeOpts };
+      } else {
+        selected =
+          typeof selectedOrOnChange === "string" ? selectedOrOnChange : "Dark";
+        if (selectedOrOnChange && typeof selectedOrOnChange === "object")
+          opts = { ...opts, ...(selectedOrOnChange as Partial<any>) };
+        if (typeof onChangeOrOpts === "function")
+          onChange = onChangeOrOpts as EventCallback;
+        else if (onChangeOrOpts && typeof onChangeOrOpts === "object")
+          opts = { ...opts, ...onChangeOrOpts };
+        if (typeof maybeOpts === "function")
+          onChange = onChange ?? (maybeOpts as EventCallback);
+        else if (maybeOpts && typeof maybeOpts === "object")
+          opts = { ...opts, ...maybeOpts };
+      }
+    }
+    if (!onChange) onChange = findTrailingCallback(arguments);
     return this.addVisualControl("mode_control", 240, 36, {
       id,
       items: modes,
       value: selected,
-      onChange,
       ...opts,
+      ...(onChange ? { onChange } : {}),
     });
   }
   /** Snake_case alias of `addModeControl`: adds a multi-state mode selector (such as `["System", "Dark", "Light"]`) with change callback. */
   public add_mode_control(
-    id: string,
-    modes = ["System", "Dark", "Light"],
-    selected = "Dark",
-    onChange?: EventCallback,
-    opts: Partial<any> = {},
+    idOrModes:
+      | string
+      | Array<string | { label: string; value?: string }> = "mode_control",
+    modesOrSelected:
+      | Array<string | { label: string; value?: string }>
+      | string
+      | EventCallback = ["System", "Dark", "Light"],
+    selectedOrOnChange: string | EventCallback = "Dark",
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addModeControl(id, modes, selected, onChange, opts);
+    return this.addModeControl.apply(this, arguments as any);
   }
 
   /** Adds a segmented control where each segment displays an icon and label. */
@@ -7203,29 +7519,76 @@ export class SimpleWindow {
 
   /** Adds a compact pill-shaped multi-option toggle switch. */
   public addPillToggle(
-    id: string,
-    options: string[] = ["On", "Off"],
-    selectedIdx = 0,
-    onChange?: EventCallback,
-    opts: Partial<any> = {},
+    idOrOptions:
+      | string
+      | Array<string | { label: string; value?: string }> = "pill_toggle",
+    optionsOrSelected:
+      | Array<string | { label: string; value?: string }>
+      | number
+      | EventCallback = ["On", "Off"],
+    selectedIdxOrOnChange: number | EventCallback = 0,
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
+    let id: string;
+    let options: Array<string | { label: string; value?: string }> = [
+      "On",
+      "Off",
+    ];
+    let selectedIdx = 0;
+    let onChange: EventCallback | undefined;
+    let opts: Partial<any> = {};
+    if (Array.isArray(idOrOptions)) {
+      id = this.generateUniqueId("pill_toggle");
+      options = idOrOptions;
+      if (typeof optionsOrSelected === "number") {
+        selectedIdx = optionsOrSelected;
+        if (typeof selectedIdxOrOnChange === "function")
+          onChange = selectedIdxOrOnChange;
+      } else if (typeof optionsOrSelected === "function") {
+        onChange = optionsOrSelected;
+      }
+    } else {
+      id = idOrOptions;
+      if (Array.isArray(optionsOrSelected)) options = optionsOrSelected;
+      if (typeof selectedIdxOrOnChange === "function") {
+        onChange = selectedIdxOrOnChange;
+        if (onChangeOrOpts && typeof onChangeOrOpts === "object")
+          opts = onChangeOrOpts;
+      } else {
+        selectedIdx =
+          typeof selectedIdxOrOnChange === "number" ? selectedIdxOrOnChange : 0;
+        if (typeof onChangeOrOpts === "function")
+          onChange = onChangeOrOpts as EventCallback;
+        else if (onChangeOrOpts && typeof onChangeOrOpts === "object")
+          opts = onChangeOrOpts;
+        if (maybeOpts && typeof maybeOpts === "object")
+          opts = { ...opts, ...maybeOpts };
+      }
+    }
+    if (!onChange) onChange = findTrailingCallback(arguments);
     return this.addVisualControl("pill_toggle", 180, 34, {
       id,
       items: options,
       value: selectedIdx,
-      onChange,
       ...opts,
+      ...(onChange ? { onChange } : {}),
     });
   }
   /** Snake_case alias of `addPillToggle`: adds a compact pill-shaped multi-option toggle switch. */
   public add_pill_toggle(
-    id: string,
-    options: string[] = ["On", "Off"],
-    selectedIdx = 0,
-    onChange?: EventCallback,
-    opts: Partial<any> = {},
+    idOrOptions:
+      | string
+      | Array<string | { label: string; value?: string }> = "pill_toggle",
+    optionsOrSelected:
+      | Array<string | { label: string; value?: string }>
+      | number
+      | EventCallback = ["On", "Off"],
+    selectedIdxOrOnChange: number | EventCallback = 0,
+    onChangeOrOpts?: EventCallback | Partial<any>,
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addPillToggle(id, options, selectedIdx, onChange, opts);
+    return this.addPillToggle.apply(this, arguments as any);
   }
 
   /** Adds an interactive cloud of selectable tag chips. */
@@ -8394,16 +8757,46 @@ export class SimpleWindow {
 
   /** Adds a terminal emulator output console pre-populated with command/output lines. */
   public addTerminalView(
-    lines: string[] = ["$ bun --version", "1.2.4", "$ ready in 12ms"],
-    width = 520,
-    height = 180,
-    opts: Partial<any> = {},
+    idOrLines: string | string[] = [
+      "$ bun --version",
+      "1.2.4",
+      "$ ready in 12ms",
+    ],
+    linesOrWidth: string[] | number = 520,
+    widthOrHeight = 180,
+    heightOrOpts: number | Partial<any> = {},
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
+    let explicitId: string | undefined;
+    let lines: string[] = ["$ bun --version", "1.2.4", "$ ready in 12ms"];
+    let width = 520;
+    let height = 180;
+    let opts: Partial<any> = {};
+    if (typeof idOrLines === "string") {
+      explicitId = idOrLines;
+      if (Array.isArray(linesOrWidth)) lines = linesOrWidth;
+      if (typeof widthOrHeight === "number" && Number.isFinite(widthOrHeight))
+        width = widthOrHeight;
+      if (typeof heightOrOpts === "number" && Number.isFinite(heightOrOpts)) {
+        height = heightOrOpts;
+        if (maybeOpts && typeof maybeOpts === "object") opts = maybeOpts;
+      } else if (heightOrOpts && typeof heightOrOpts === "object") {
+        opts = heightOrOpts;
+      }
+    } else {
+      if (Array.isArray(idOrLines)) lines = idOrLines;
+      if (typeof linesOrWidth === "number" && Number.isFinite(linesOrWidth))
+        width = linesOrWidth;
+      if (typeof widthOrHeight === "number" && Number.isFinite(widthOrHeight))
+        height = widthOrHeight;
+      if (heightOrOpts && typeof heightOrOpts === "object") opts = heightOrOpts;
+    }
     return this.addVisualControl(
       "terminal_view",
       Math.min(width, this.width - 40),
       height,
       {
+        ...(explicitId ? { id: explicitId } : {}),
         items: lines,
         text: lines.join("\n"),
         ...opts,
@@ -8412,12 +8805,19 @@ export class SimpleWindow {
   }
   /** Snake_case alias of `addTerminalView`: adds a terminal emulator output console pre-populated with command/output lines. */
   public add_terminal_view(
-    lines?: string[],
-    width = 520,
-    height = 180,
-    opts: Partial<any> = {},
+    idOrLines?: string | string[],
+    linesOrWidth: string[] | number = 520,
+    widthOrHeight = 180,
+    heightOrOpts: number | Partial<any> = {},
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
-    return this.addTerminalView(lines, width, height, opts);
+    return this.addTerminalView(
+      idOrLines,
+      linesOrWidth,
+      widthOrHeight,
+      heightOrOpts,
+      maybeOpts,
+    );
   }
 
   /** Adds an expandable interactive JSON tree inspector for arbitrary structured data. */
@@ -9412,7 +9812,8 @@ export class SimpleWindow {
     titleOrMsgOrOnConfirm?: string | EventCallback,
     msgOrOnConfirmOrIsOpen?: string | EventCallback | boolean,
     isOpenOrOnConfirmOrOpts?: boolean | EventCallback | Partial<any>,
-    optsArg: Partial<any> = {},
+    optsOrOnConfirm?: Partial<any> | EventCallback,
+    maybeOpts: Partial<any> = {},
   ): SimpleControlRef {
     let explicitId: string | undefined;
     let title = "Modal Dialog";
@@ -9438,8 +9839,12 @@ export class SimpleWindow {
         isOpenOrOnConfirmOrOpts !== null
       )
         opts = isOpenOrOnConfirmOrOpts;
-      if (typeof optsArg === "object" && optsArg !== null)
-        opts = { ...opts, ...optsArg };
+      if (typeof optsOrOnConfirm === "function")
+        onConfirm = optsOrOnConfirm as EventCallback;
+      else if (typeof optsOrOnConfirm === "object" && optsOrOnConfirm !== null)
+        opts = { ...opts, ...optsOrOnConfirm };
+      if (typeof maybeOpts === "object" && maybeOpts !== null)
+        opts = { ...opts, ...maybeOpts };
     } else if (
       typeof idOrTitleOrMsg === "string" &&
       typeof titleOrMsgOrOnConfirm === "string"
@@ -9455,6 +9860,15 @@ export class SimpleWindow {
         msgOrOnConfirmOrIsOpen !== null
       )
         opts = msgOrOnConfirmOrIsOpen;
+      if (typeof isOpenOrOnConfirmOrOpts === "function")
+        onConfirm = isOpenOrOnConfirmOrOpts as EventCallback;
+      else if (
+        typeof isOpenOrOnConfirmOrOpts === "object" &&
+        isOpenOrOnConfirmOrOpts !== null
+      )
+        opts = { ...opts, ...isOpenOrOnConfirmOrOpts };
+      if (typeof optsOrOnConfirm === "object" && optsOrOnConfirm !== null)
+        opts = { ...opts, ...optsOrOnConfirm };
     } else {
       message = idOrTitleOrMsg;
       if (typeof titleOrMsgOrOnConfirm === "function")
@@ -9465,6 +9879,7 @@ export class SimpleWindow {
       )
         opts = titleOrMsgOrOnConfirm;
     }
+    if (!onConfirm) onConfirm = findTrailingCallback(arguments);
 
     const id = explicitId || opts.id || this.generateUniqueId("modal");
     const prevY = this.currentY;
@@ -10689,7 +11104,9 @@ export class SimpleWindow {
   public setHtml(id: string, htmlContent: string): this {
     const ctrl = this.findControl(id);
     const type = ctrl ? String(ctrl.control_type || ctrl.type || "") : "";
-    const isBool = Boolean(ctrl && SimpleWindow._BOOLEAN_CONTROL_TYPES.has(type));
+    const isBool = Boolean(
+      ctrl && SimpleWindow._BOOLEAN_CONTROL_TYPES.has(type),
+    );
     if (!isBool) {
       this.formValuesStore[id] = htmlContent;
     }
@@ -11484,6 +11901,13 @@ export class SimpleWindow {
           !specItem._rawHtml
         ) {
           specItem._plainText = true;
+        }
+        if (
+          cid &&
+          (this.eventHandlersMap.has(`${cid}:oncontextmenu`) ||
+            this.eventHandlersMap.has(`${cid}:contextmenu`))
+        ) {
+          specItem.has_context_menu = true;
         }
         if (cid && /^[a-zA-Z0-9_$]+$/.test(String(cid))) {
           const evMap: Record<string, string> = {
@@ -13158,7 +13582,9 @@ export class SimpleWindow {
     const num = Math.max(0, Math.min(1, Number(opacity)));
     this._opacity = Number.isFinite(num) ? num : 1.0;
     if (this.isWindowRunning) {
-      this.evalJS(`document.body.style.opacity = ${JSON.stringify(String(this._opacity))};`);
+      this.evalJS(
+        `document.body.style.opacity = ${JSON.stringify(String(this._opacity))};`,
+      );
     }
     return this;
   }
@@ -13183,7 +13609,9 @@ export class SimpleWindow {
   public setCursor(cursorName: string): this {
     this._cursor = String(cursorName || "default");
     if (this.isWindowRunning) {
-      this.evalJS(`document.body.style.cursor = ${JSON.stringify(this._cursor)};`);
+      this.evalJS(
+        `document.body.style.cursor = ${JSON.stringify(this._cursor)};`,
+      );
     }
     return this;
   }
@@ -13570,9 +13998,7 @@ export class SimpleWindow {
       this.layoutStack[this.layoutStack.length - 1]?.type === "row";
     if (isInRow) {
       const compactW = Math.max(160, Math.ceil(title.length * 9.5) + 12);
-      this.addLabel(title)
-        .font(fontSize, headingColor, "700")
-        .width(compactW);
+      this.addLabel(title).font(fontSize, headingColor, "700").width(compactW);
       if (subtitle) {
         const sub = this.addLabel(subtitle).font(12, muted, "500");
         sub.spec.is_caption = true;
@@ -14753,26 +15179,50 @@ export class SimpleWindow {
 
   /** Ergonomic shorthand that adds a data table control (default ID `"default_table"`) from headers/rows and optional selection handler. */
   public table(
-    headersOrRows: string[] | any[][],
+    idOrHeadersOrRows: string | string[] | any[][],
+    headersOrRowsOrOnSelect?: string[] | any[][] | EventCallback,
     rowsOrOnSelect?: any[][] | EventCallback,
     maybeOnSelect?: EventCallback,
   ): SimpleControlRef {
+    let explicitId: string | undefined;
     let headers: string[] = [];
     let rows: any[][] = [];
     let onSelect: EventCallback | undefined;
-    if (
-      Array.isArray(headersOrRows) &&
-      headersOrRows.length > 0 &&
-      Array.isArray(headersOrRows[0])
+    if (typeof idOrHeadersOrRows === "string") {
+      explicitId = idOrHeadersOrRows;
+      if (
+        Array.isArray(headersOrRowsOrOnSelect) &&
+        headersOrRowsOrOnSelect.length > 0 &&
+        Array.isArray(headersOrRowsOrOnSelect[0])
+      ) {
+        rows = headersOrRowsOrOnSelect as any[][];
+        if (typeof rowsOrOnSelect === "function") onSelect = rowsOrOnSelect;
+      } else if (Array.isArray(headersOrRowsOrOnSelect)) {
+        headers = headersOrRowsOrOnSelect as string[];
+        if (Array.isArray(rowsOrOnSelect)) rows = rowsOrOnSelect;
+        if (typeof maybeOnSelect === "function") onSelect = maybeOnSelect;
+        else if (typeof rowsOrOnSelect === "function")
+          onSelect = rowsOrOnSelect;
+      }
+    } else if (
+      Array.isArray(idOrHeadersOrRows) &&
+      idOrHeadersOrRows.length > 0 &&
+      Array.isArray(idOrHeadersOrRows[0])
     ) {
-      rows = headersOrRows as any[][];
+      rows = idOrHeadersOrRows as any[][];
+      if (typeof headersOrRowsOrOnSelect === "function")
+        onSelect = headersOrRowsOrOnSelect;
+    } else if (Array.isArray(idOrHeadersOrRows)) {
+      headers = idOrHeadersOrRows as string[];
+      if (Array.isArray(headersOrRowsOrOnSelect))
+        rows = headersOrRowsOrOnSelect as any[][];
       if (typeof rowsOrOnSelect === "function") onSelect = rowsOrOnSelect;
-    } else if (Array.isArray(headersOrRows)) {
-      headers = headersOrRows as string[];
-      if (Array.isArray(rowsOrOnSelect)) rows = rowsOrOnSelect;
-      if (typeof maybeOnSelect === "function") onSelect = maybeOnSelect;
+      else if (typeof headersOrRowsOrOnSelect === "function")
+        onSelect = headersOrRowsOrOnSelect;
     }
-    const ref = this.addTable(headers, rows);
+    const ref = explicitId
+      ? this.addTable(explicitId, headers, rows)
+      : this.addTable(headers, rows);
     if (onSelect) ref.onClick(onSelect);
     return ref;
   }
@@ -15151,7 +15601,9 @@ export class SimpleWindow {
   public set_background_color(hexColor: string): this {
     this.backgroundColor = hexColor;
     if (this.isWindowRunning) {
-      this.evalJS(`document.body.style.backgroundColor = ${JSON.stringify(hexColor)};`);
+      this.evalJS(
+        `document.body.style.backgroundColor = ${JSON.stringify(hexColor)};`,
+      );
     }
     return this;
   }
@@ -16963,9 +17415,7 @@ export class SimpleWindow {
   /** Deletes the saved state file (`state.json`) for `appName` from disk and clears the in-memory `stateStore`. */
   public clearAppState(appName?: string, fileName = "state.json"): void {
     const appId = appName || this.getAppId();
-    if (!appName || appName === this.getAppId()) {
-      this.stateStore = {};
-    }
+    this.stateStore = {};
     const targetFile = getAppStateFile(appId, fileName);
     if (fs.existsSync(targetFile)) {
       try {
@@ -18233,7 +18683,8 @@ export class SimpleWindow {
     nameOrCallback: string | ((win: SimpleWindow) => void),
     maybeCallback?: (win: SimpleWindow) => void,
   ): this {
-    const title = typeof nameOrCallback === "string" ? nameOrCallback : undefined;
+    const title =
+      typeof nameOrCallback === "string" ? nameOrCallback : undefined;
     const cb =
       typeof nameOrCallback === "function" ? nameOrCallback : maybeCallback;
     this.beginCard(title);
