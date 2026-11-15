@@ -80,7 +80,7 @@ export function openUltraThemePicker(opts = {}) {
 export function formatThemeMenuBadge(t) {
   if (!t || typeof t !== "object") return "";
   const mode = t.dark === false ? "☀️ Light" : "🌙 Dark";
-  const tier = String(t.tier || "").toLowerCase();
+  const tier = String(t.hardwareTier || t.tier || "").toLowerCase();
   const fxTag =
     tier === "ultra"
       ? "🚀 Ultra"
@@ -99,9 +99,8 @@ export async function themeMenuItems() {
   const keepFxLocked = isKeepEffectsColorSwapMode();
   const keepIconsLocked = isKeepIconsOnThemeSwitchMode();
   const hist = getThemeHistoryState();
-  const standard = (value, label, shortcut) => ({
+  const standard = (value, label) => ({
     label,
-    shortcut,
     checked: !custom && s.theme === value,
     action: async () => {
       if (isKeepEffectsColorSwapMode()) {
@@ -118,9 +117,9 @@ export async function themeMenuItems() {
     },
   });
   const items = [
-    standard("auto", "Standard: follow my computer", "Auto"),
-    standard("light", "Standard light", "☀️ Light"),
-    standard("dark", "Standard dark", "🌙 Dark"),
+    standard("auto", "Standard: follow my computer"),
+    standard("light", "Standard light"),
+    standard("dark", "Standard dark"),
     { separator: true },
     {
       label:
@@ -369,7 +368,6 @@ export async function themeMenuItems() {
   const hudOpen = isTelemetryPopoutHudOpen();
   items.push(
     { separator: true },
-    { header: "Theme Studio & Gallery" },
     {
       label: "All themes…",
       icon: "🎨",

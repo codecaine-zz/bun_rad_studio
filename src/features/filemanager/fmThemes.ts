@@ -69,8 +69,14 @@ import {
   FM_BUILTIN_MASTER_THEMES,
   type HardwareTier,
 } from "./fmMasterCustomThemes";
+import {
+  DEFAULT_FAVORITE_THEMES,
+  DEFAULT_FAVORITE_THEME_IDS,
+} from "./fmSettings";
 
 export {
+  DEFAULT_FAVORITE_THEMES,
+  DEFAULT_FAVORITE_THEME_IDS,
   FM_BUILTIN_MASTER_THEME_SPECS,
   FM_BUILTIN_MASTER_THEMES,
   type HardwareTier,

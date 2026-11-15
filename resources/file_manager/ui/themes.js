@@ -9697,6 +9697,23 @@ const MAX_RECENT = 6;
 const MAX_FAVORITE = 50;
 const VALID_KEY = /^[a-z0-9_]{1,60}$/;
 
+/**
+ * Default flagship Master built-in theme keys pinned out-of-the-box in `★ Favorites`
+ * (kept in 1:1 parity with `DEFAULT_FAVORITE_THEMES` in `src/features/filemanager/fmSettings.ts`).
+ */
+export const DEFAULT_FAVORITE_THEMES = Object.freeze([
+  "ccfm_tahoe_liquid_glass_xdr",
+  "ccfm_xdr_oled_titanium_pro",
+  "ccfm_sovereign_obsidian_gold",
+  "ccfm_tokyo_cyberpunk_rain",
+  "ccfm_obsidian_carbon_studio",
+  "ccfm_xdr_oled_slate",
+  "ccfm_alpine_crystal_daylight",
+  "ccfm_cupertino_ceramic_day",
+  "ccfm_nordic_glacier_daylight",
+  "ccfm_warm_archival_vellum",
+]);
+
 function cleanKeys(list, max) {
   if (!Array.isArray(list)) return [];
   const out = [];
@@ -9714,18 +9731,22 @@ function cleanKeys(list, max) {
 
 /** The keys of the themes pinned as favorites, newest first. */
 export function favoriteKeys() {
-  const fromSettings = cleanKeys(state.settings?.favoriteThemes, MAX_FAVORITE);
-  if (fromSettings.length || Array.isArray(state.settings?.favoriteThemes))
-    return fromSettings;
+  if (Array.isArray(state.settings?.favoriteThemes))
+    return cleanKeys(state.settings.favoriteThemes, MAX_FAVORITE);
   try {
-    return cleanKeys(
-      JSON.parse(localStorage.getItem(FAVORITE_KEY) ?? "[]"),
-      MAX_FAVORITE,
-    );
+    const raw = localStorage.getItem(FAVORITE_KEY);
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return cleanKeys(parsed, MAX_FAVORITE);
+    }
   } catch {
-    return [];
+    /* storage is off */
   }
+  return [...DEFAULT_FAVORITE_THEMES];
 }
+
+/** Alias for `favoriteKeys()` returning the active favorite theme keys. */
+export const favoriteThemeKeys = favoriteKeys;
 
 export function isFavoriteTheme(key) {
   return typeof key === "string" && favoriteKeys().includes(key);
@@ -9749,6 +9770,19 @@ export async function toggleFavoriteTheme(key) {
   return pinned;
 }
 
+/** Restores `favoriteThemes` to the flagship Master defaults (`DEFAULT_FAVORITE_THEMES`) and saves settings. */
+export async function resetFavoriteThemesToDefaults() {
+  const next = [...DEFAULT_FAVORITE_THEMES];
+  if (state.settings) state.settings.favoriteThemes = next;
+  try {
+    localStorage.setItem(FAVORITE_KEY, JSON.stringify(next));
+  } catch {
+    /* storage is off */
+  }
+  await saveSettings({ favoriteThemes: next });
+  return next;
+}
+
 /** The favorite themes that still exist: [{ key, name, dark, ... }], in pinned order. */
 export async function favoriteThemes() {
   const keys = favoriteKeys();
@@ -9757,7 +9791,18 @@ export async function favoriteThemes() {
     const all = await themeList();
     return keys.map((k) => all.find((t) => t.key === k)).filter(Boolean);
   } catch {
-    return [];
+    return keys
+      .map((k) => {
+        const entry = FM_BUILTIN_MASTER_CATALOG.find((t) => t.key === k);
+        return entry
+          ? {
+              ...entry,
+              hasEffects: entry.tier !== "low",
+              description: entry.description || entry.name,
+            }
+          : null;
+      })
+      .filter(Boolean);
   }
 }
 
@@ -13725,9 +13770,29 @@ export async function showThemePicker(opts = {}) {
         : grp === "recent" && !recSet.size
           ? "No recently used themes yet. Click any theme card to try it."
           : "No theme matches. Click ↺ Reset Filters or try another Template Tier, Animation, Surface Shader, or Color Vibe.";
-    list.replaceChildren(
-      ...(sections.length ? sections : [h("p", { class: "hint" }, emptyMsg)]),
-    );
+    const emptyNode =
+      grp === "favorites" && !favSet.size
+        ? h(
+            "div",
+            { class: "theme-empty-favorites" },
+            h("p", { class: "hint" }, emptyMsg),
+            h(
+              "button",
+              {
+                type: "button",
+                class: "btn theme-restore-favorites-btn",
+                title:
+                  "Re-pin the 10 curated flagship Master built-in themes to Favorites",
+                onclick: async () => {
+                  await resetFavoriteThemesToDefaults();
+                  draw();
+                },
+              },
+              "★ Restore Master Favorites",
+            ),
+          )
+        : h("p", { class: "hint" }, emptyMsg);
+    list.replaceChildren(...(sections.length ? sections : [emptyNode]));
     const withFx = shown.filter((t) => t.hasEffects).length;
     count.textContent = `${shown.length} of ${themes.length} themes · ${withFx} with special effects ✨, ${shown.length - withFx} plain colors`;
     renderActiveFxStrip();

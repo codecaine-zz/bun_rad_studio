@@ -783,6 +783,27 @@ export const TERMINAL_HEIGHT_MAX = 1200;
 export const TERMINAL_HEIGHT_DEFAULT = 300;
 const TOOL_ID = /^[a-z][a-z0-9-]{0,24}$/;
 
+/**
+ * Curated flagship Master built-in theme keys seeded into `favoriteThemes` on fresh profiles
+ * (spanning Ultra, High, Medium, and Low hardware tiers across Dark and Light studio palettes).
+ */
+export const DEFAULT_FAVORITE_THEMES: readonly string[] = [
+  "ccfm_tahoe_liquid_glass_xdr",
+  "ccfm_xdr_oled_titanium_pro",
+  "ccfm_sovereign_obsidian_gold",
+  "ccfm_tokyo_cyberpunk_rain",
+  "ccfm_obsidian_carbon_studio",
+  "ccfm_xdr_oled_slate",
+  "ccfm_alpine_crystal_daylight",
+  "ccfm_cupertino_ceramic_day",
+  "ccfm_nordic_glacier_daylight",
+  "ccfm_warm_archival_vellum",
+] as const;
+
+/** Alias for `DEFAULT_FAVORITE_THEMES` matching `fmThemes.ts` export conventions. */
+export const DEFAULT_FAVORITE_THEME_IDS: readonly string[] =
+  DEFAULT_FAVORITE_THEMES;
+
 /** Default File Manager settings used when `file_manager.json` is absent or a field is invalid. */
 export const DEFAULT_SETTINGS: Settings = {
   favorites: [],
@@ -807,7 +828,7 @@ export const DEFAULT_SETTINGS: Settings = {
   solarDuskPalette: "",
   solarNightPalette: "",
   folderThemes: {},
-  favoriteThemes: [],
+  favoriteThemes: [...DEFAULT_FAVORITE_THEMES],
   atmosphere: "none",
   atmosphereIntensity: 60,
   atmosphereTier: "auto",
@@ -965,7 +986,10 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     }
   }
   const favoriteThemes: string[] = [];
-  for (const k of Array.isArray(r.favoriteThemes) ? r.favoriteThemes : []) {
+  const rawFavoriteThemes = Array.isArray(r.favoriteThemes)
+    ? r.favoriteThemes
+    : DEFAULT_FAVORITE_THEMES;
+  for (const k of rawFavoriteThemes) {
     if (
       typeof k === "string" &&
       /^[a-z0-9_]{1,60}$/.test(k) &&
