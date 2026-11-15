@@ -97,22 +97,39 @@ ${V}[data-fx-ambient="on"] body::before, ${V}[data-fx-ambient="on"].fx-root::bef
   content: ""; position: fixed; inset: -10%; z-index: -1; pointer-events: none;
   background: radial-gradient(var(--in-oklab) 60vmax 45vmax at 12% 8%, var(--fx-ambient-1), transparent 62%), radial-gradient(var(--in-oklab) 55vmax 40vmax at 90% 92%, var(--fx-ambient-2), transparent 60%);
 }
-${V}[data-fx-atmosphere="nebula"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere="nebula"]:not([data-fx-tier="low"]).fx-root::before {
+${V}[data-fx-atmosphere*="nebula"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere*="nebula"]:not([data-fx-tier="low"]).fx-root::before {
   content: ""; position: fixed; inset: -12%; z-index: -1; pointer-events: none;
   background: radial-gradient(var(--in-oklab) 65vmax 50vmax at 16% 14%, var(--fx-ambient-1), transparent 64%), radial-gradient(var(--in-oklab) 60vmax 45vmax at 84% 86%, var(--fx-ambient-2), transparent 62%), conic-gradient(from 140deg at 50% 50%, transparent 0deg, var(--fx-accent-soft) 120deg, transparent 260deg);
 }
-${V}[data-fx-atmosphere="grid"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere="grid"]:not([data-fx-tier="low"]).fx-root::before {
+${V}[data-fx-atmosphere*="grid"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere*="grid"]:not([data-fx-tier="low"]).fx-root::before {
   content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background-image: linear-gradient(to right, var(--fx-accent-soft) 1px, transparent 1px), linear-gradient(to bottom, var(--fx-accent-soft) 1px, transparent 1px), radial-gradient(var(--in-oklab) 60vmax 45vmax at 50% 0%, var(--fx-ambient-1), transparent 70%);
   background-size: 36px 36px, 36px 36px, 100% 100%;
 }
-${V}[data-fx-atmosphere="aurora"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere="aurora"]:not([data-fx-tier="low"]).fx-root::before {
+${V}[data-fx-atmosphere*="aurora"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere*="aurora"]:not([data-fx-tier="low"]).fx-root::before {
   content: ""; position: fixed; inset: -10%; z-index: -1; pointer-events: none;
   background: radial-gradient(var(--in-oklch) 80vmax 35vmax at 25% 5%, var(--fx-ambient-1), transparent 65%), radial-gradient(var(--in-oklch) 75vmax 38vmax at 78% 12%, var(--fx-ambient-2), transparent 68%);
 }
-${V}[data-fx-atmosphere="horizon"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere="horizon"]:not([data-fx-tier="low"]).fx-root::before {
+${V}[data-fx-atmosphere*="horizon"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere*="horizon"]:not([data-fx-tier="low"]).fx-root::before {
   content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background: radial-gradient(var(--in-oklch) 90vmax 36vmax at 50% 100%, var(--fx-ambient-1), transparent 68%), linear-gradient(var(--in-oklab) 180deg, transparent 55%, var(--fx-ambient-2) 100%);
+}
+${V}[data-fx-atmosphere*="caustics"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere*="caustics"]:not([data-fx-tier="low"]).fx-root::before {
+  content: ""; position: fixed; inset: -10%; z-index: -1; pointer-events: none;
+  background: radial-gradient(var(--in-oklch) 58vmax 42vmax at 20% 12%, var(--fx-ambient-1), transparent 62%), radial-gradient(var(--in-oklch) 52vmax 38vmax at 82% 84%, var(--fx-ambient-2), transparent 60%), radial-gradient(var(--in-oklab) 38vmax 24vmax at 52% 28%, var(--fx-accent-soft), transparent 66%);
+}
+${V}[data-fx-atmosphere*="prism"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere*="prism"]:not([data-fx-tier="low"]).fx-root::before {
+  content: ""; position: fixed; inset: -10%; z-index: -1; pointer-events: none;
+  background: radial-gradient(var(--in-oklch) 64vmax 44vmax at 14% 10%, var(--fx-ambient-1), transparent 64%), radial-gradient(var(--in-oklch) 58vmax 42vmax at 86% 88%, var(--fx-ambient-2), transparent 62%), linear-gradient(125deg, transparent 30%, var(--fx-accent-soft) 50%, transparent 70%);
+}
+${V}[data-fx-atmosphere*="sunbeams"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere*="sunbeams"]:not([data-fx-tier="low"]).fx-root::before {
+  content: ""; position: fixed; inset: -8%; z-index: -1; pointer-events: none;
+  background: conic-gradient(from 200deg at 18% -6%, transparent 0deg, var(--fx-ambient-1) 24deg, transparent 52deg, var(--fx-ambient-2) 78deg, transparent 115deg), radial-gradient(var(--in-oklab) 70vmax 48vmax at 80% 92%, var(--fx-ambient-2), transparent 65%);
+}
+${V}[data-fx-atmosphere*="reticle"]:not([data-fx-tier="low"]) body::before, ${V}[data-fx-atmosphere*="reticle"]:not([data-fx-tier="low"]).fx-root::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image: radial-gradient(circle at 50% 50%, transparent 28vmin, var(--fx-accent-soft) 28.2vmin, transparent 28.6vmin), linear-gradient(to right, var(--fx-accent-soft) 1px, transparent 1px), linear-gradient(to bottom, var(--fx-accent-soft) 1px, transparent 1px), radial-gradient(var(--in-oklab) 64vmax 46vmax at 50% 8%, var(--fx-ambient-1), transparent 68%);
+  background-size: 100% 100%, 44px 44px, 44px 44px, 100% 100%;
 }
 ${V}.fx-root { isolation: isolate; }
 ${V}.fx-root[data-fx-ambient="on"]::before { position: absolute; inset: 0; }
@@ -153,8 +170,9 @@ ${V} ${BTN}${NF}::before {
   background: radial-gradient(var(--fx-pointer-size, 180px) circle at var(--fx-pointer-x, 50%) var(--fx-pointer-y, 50%), rgba(255, 255, 255, 0.3), transparent 70%);
   transition-property: opacity; transition-duration: var(--fx-dur-fast);
 }
-${V}[data-fx-cursor="prism"] ${BTN}${NF}::before { background: radial-gradient(var(--fx-pointer-size, 180px) circle at var(--fx-pointer-x, 50%) var(--fx-pointer-y, 50%), var(--fx-ca-1), var(--fx-ca-2) 42%, transparent 72%); }
-${V}[data-fx-cursor="ripple"] ${BTN}${NF}::before { background: radial-gradient(var(--fx-pointer-size, 180px) circle at var(--fx-pointer-x, 50%) var(--fx-pointer-y, 50%), rgba(255, 255, 255, 0.36) 0%, transparent 32%, var(--fx-accent-soft) 48%, transparent 70%); }
+${V}[data-fx-cursor="prism"] ${BTN}${NF}::before { pointer-events: none; background: radial-gradient(var(--fx-pointer-size, 180px) circle at var(--fx-pointer-x, 50%) var(--fx-pointer-y, 50%), var(--fx-ca-1), var(--fx-ca-2) 42%, transparent 72%); }
+${V}[data-fx-cursor="ripple"] ${BTN}${NF}::before { pointer-events: none; background: radial-gradient(var(--fx-pointer-size, 180px) circle at var(--fx-pointer-x, 50%) var(--fx-pointer-y, 50%), rgba(255, 255, 255, 0.36) 0%, transparent 32%, var(--fx-accent-soft) 48%, transparent 70%); }
+${V}[data-fx-cursor="magnetic"] ${BTN}${NF}::before { pointer-events: none; background: radial-gradient(calc(var(--fx-pointer-size, 180px) * 0.85) circle at var(--fx-pointer-x, 50%) var(--fx-pointer-y, 50%), rgba(255, 255, 255, 0.42), var(--fx-accent-soft) 45%, transparent 72%); }
 ${V}[data-fx-cursor="none"] ${BTN}${NF}::before { display: none; }
 ${V} ${BTN}${NF}::after {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; opacity: 0;
@@ -166,7 +184,7 @@ ${V} ${BTN}${NF}:hover::before, ${V} ${BTN}${NF}:focus-visible::before { opacity
 ${V} ${BTN}${NF}:hover::after, ${V} ${BTN}${NF}:focus-visible::after { opacity: 1; }
 
 /* Inputs: a bare field cannot hold pseudo-elements, so its glow is a filter; .fx-input wraps a field for the full treatment */
-${V} ${INPUT}${NF}:focus { border-color: var(--fx-focus-color) !important; filter: drop-shadow(0 0 5px var(--fx-glow-color)); }
+${V} ${INPUT}${NF}:focus { border-color: var(--fx-focus-color) !important; box-shadow: var(--fx-focus-halo); filter: drop-shadow(0 0 5px var(--fx-glow-color)); }
 ${V} .fx-input { position: relative; display: block; isolation: isolate; }
 ${V} .fx-input > :where(input, textarea) {
   width: 100%; padding: 22px 12px 8px; color: inherit; background: var(--input-bg, var(--fx-glass-bg)); border: 1px solid var(--input-border, var(--fx-glass-border));
@@ -196,6 +214,11 @@ ${V}[data-fx-border="double"] ${SURF}${NF} { outline: 1px solid var(--fx-glass-b
 ${V}[data-fx-border="neon"] ${SURF}${NF} { box-shadow: var(--fx-glow-soft), var(--fx-shadow-2) !important; }
 ${V}[data-fx-inner-glow="on"] ${SURF}${NF} { box-shadow: inset 0 0 22px -6px var(--fx-glow-color), var(--fx-shadow-2) !important; }
 ${V}[data-fx-rim="on"] ${SURF}${NF} { box-shadow: var(--fx-specular-rim), var(--fx-shadow-2) !important; }
+${V}[data-fx-inner-glow="on"][data-fx-rim="on"] ${SURF}${NF} { box-shadow: var(--fx-specular-rim), inset 0 0 24px -8px var(--fx-glow-color), var(--fx-shadow-3) !important; }
+${V}[data-fx-border="neon"][data-fx-rim="on"] ${SURF}${NF} { box-shadow: var(--fx-specular-rim), var(--fx-glow-soft), var(--fx-shadow-3) !important; }
+${V}[data-fx-border="neon"][data-fx-inner-glow="on"][data-fx-rim="on"] ${SURF}${NF} { box-shadow: var(--fx-specular-rim), inset 0 0 22px -8px var(--fx-glow-color), var(--fx-glow-soft), var(--fx-shadow-3) !important; }
+${V}[data-fx-backdrop="oled"][data-fx-rim="on"] ${SURF}${NF} { box-shadow: var(--fx-specular-rim), var(--fx-shadow-4) !important; }
+${V}[data-fx-backdrop="oled"][data-fx-inner-glow="on"][data-fx-rim="on"] ${SURF}${NF} { box-shadow: var(--fx-specular-rim), inset 0 0 20px -8px var(--fx-glow-color), var(--fx-shadow-4) !important; }
 ${V}[data-fx-crt="on"] ${SURF}${NF} { box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.42), var(--fx-shadow-3) !important; }
 ${V}[data-fx-noise="on"] ${SURF}${NF} { background-image: var(--fx-noise) !important; }
 ${V} ${SURF}${NF}${NO_ABS} { position: relative; }
@@ -204,6 +227,10 @@ ${V} :where(fieldset[style*="border-radius:8px"])${NF} { border-radius: var(--fx
 ${V}:not([data-fx-border="flat"]) ${SURF}:not(fieldset)${NF}::after {
   content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; padding: 1px; pointer-events: none;
   background: radial-gradient(220px circle at var(--fx-pointer-x, 50%) var(--fx-pointer-y, 50%), var(--fx-glow-color), transparent 72%), var(--fx-border-gradient); ${RING_MASK}
+}
+${V}[data-fx-prism="on"]:not([data-fx-border="flat"]) ${SURF}:not(fieldset)${NF}::after {
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 6%, var(--fx-ca-1) 28%, rgba(255, 255, 255, 0.86) 50%, var(--fx-ca-2) 72%, transparent 94%), radial-gradient(240px circle at var(--fx-pointer-x, 50%) var(--fx-pointer-y, 50%), var(--fx-glow-color), transparent 72%), var(--fx-border-gradient); ${RING_MASK}
 }
 ${V} :where(.fx-card, .fx-panel)${NF}::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; box-shadow: var(--fx-shadow-4); opacity: 0; transition-property: opacity; transition-duration: var(--fx-dur-base); }
 ${V} :where(.fx-card, .fx-panel)${NF}:hover::before { opacity: 1; }
@@ -219,6 +246,7 @@ ${V} ${ROW}:hover > td { background-image: linear-gradient(var(--fx-row-hover), 
 
 /* Toolbars, menus and tab strips: glass bar, one sliding indicator */
 ${both(BAR, NF)} { background-color: var(--fx-glass-bg) !important; border-color: var(--fx-glass-border) !important; -webkit-backdrop-filter: blur(var(--fx-blur-sm)) saturate(var(--fx-saturate)); backdrop-filter: blur(var(--fx-blur-sm)) saturate(var(--fx-saturate)); }
+${V}[data-fx-rim="on"] ${BAR}${NF}, ${BAR}${V}[data-fx-rim="on"]${NF} { box-shadow: var(--fx-specular-rim), var(--fx-shadow-1); }
 ${both(PILL, `${NF}${NO_ABS}`)} { position: relative; }
 ${both(PILL, `${NF}::after`)} {
   content: ""; position: absolute; left: 0; bottom: 0; width: 1px; height: 3px; pointer-events: none; opacity: 0; transform-origin: left center;
@@ -230,6 +258,7 @@ ${V} .rad-tabs-bar[data-fx-pill] > .rad-tab-btn { border-bottom-color: transpare
 
 /* Modals and sheets: glass surface, children staggered through --fx-i */
 ${V} ${MODAL}${NF} { background-color: var(--fx-glass-bg-strong) !important; border: 1px solid var(--fx-glass-border) !important; box-shadow: var(--fx-shadow-5) !important; -webkit-backdrop-filter: blur(var(--fx-blur-lg)) saturate(var(--fx-saturate)); backdrop-filter: blur(var(--fx-blur-lg)) saturate(var(--fx-saturate)); }
+${V}[data-fx-prism="on"] ${MODAL}${NF} { box-shadow: var(--fx-specular-rim), 0 -1px 0 0 var(--fx-ca-1), 0 1px 0 0 var(--fx-ca-2), var(--fx-shadow-5) !important; }
 ${V} :where(.fx-modal, .fx-sheet)${NF} { border-radius: var(--fx-radius-xl); overflow: hidden; }
 ${V} ${MODAL} > :where(:nth-child(1)) { --fx-i: 0; }
 ${V} ${MODAL} > :where(:nth-child(2)) { --fx-i: 1; }
@@ -385,7 +414,7 @@ ${reduced(RM).replace(/^/, "")}
 @media (prefers-contrast: more) {
   [data-fx] { --fx-glass-bg: var(--fx-glass-solid); --fx-glass-bg-strong: var(--fx-glass-solid); --fx-glass-border: var(--theme-fg, currentColor);
     --fx-blur-sm: 0px; --fx-blur-md: 0px; --fx-blur-lg: 0px; --fx-saturate: 1;
-    --fx-glow-soft: 0 0 0 0 transparent; --fx-glow-med: 0 0 0 0 transparent; --fx-glow-strong: 0 0 0 0 transparent;
+    --fx-glow-soft: 0 0 0 0 transparent; --fx-glow-med: 0 0 0 0 transparent; --fx-glow-strong: 0 0 0 0 transparent; --fx-focus-halo: 0 0 0 0 transparent;
     --fx-scanline-opacity: 0; --fx-grain-opacity: 0; --fx-ca-1: transparent; --fx-ca-2: transparent; --fx-ambient-1: transparent; --fx-ambient-2: transparent; }
   ${V} body::before, ${V} body::after, ${V}::after, ${V}.fx-root::before, ${V}.fx-root::after { display: none !important; }
   ${both(SURF, NF)}, ${both(BAR, NF)}, ${V} ${MODAL}${NF} { background-image: none !important; -webkit-backdrop-filter: none; backdrop-filter: none; border: 1px solid var(--theme-fg, currentColor) !important; }
