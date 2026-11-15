@@ -1,7 +1,7 @@
 cask "codecaine-file-manager" do
   arch arm: "arm64", intel: "x64"
 
-  version "1.5.8"
+  version "1.5.9"
   sha256 arm:   "00d61ae05d0acc3af1bfacd0664f96ab929919e4110c777e640638b8904d9756",
          intel: "4167a913b916573f91018c4b7a7a8d66b0743165d4daf78012a0c8d9fe859f23"
 

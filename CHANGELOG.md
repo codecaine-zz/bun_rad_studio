@@ -1,6 +1,17 @@
 # Changelog
 
-All notable changes. Version 1.5.8 is the twenty-fifth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9, 1.5.0, 1.5.1, 1.5.2, 1.5.3, 1.5.4 and 1.5.7 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.5.9 is the twenty-sixth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9, 1.5.0, 1.5.1, 1.5.2, 1.5.3, 1.5.4, 1.5.7 and 1.5.8 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.5.9 (14 November 2026)
+
+### Fixed
+
+- **SimpleGUI `<button>` Label Updates (`setValue()` / `setText()`), Option Precedence & Overloaded Callback Capture (`src/simplegui.ts`, `index.ts`, `tests/simplegui_regressions.test.ts`).** Update `<button>` controls via plain `textContent` (never `button.value` or `innerHTML`) during `run()` and sync button/text captions before `run()` in `generateHtml()`; preserve explicit `SimpleWindow` constructor options (`fullscreen`, `theme`, `width`, `height`, `accentColor`, `responsiveLayout`) against saved `form_state.json`/`session.json` overrides; fix `SimpleControlRef.bg` auto-contrast and custom foreground preservation across `_applyTheme()`, `onRightClick` context-menu attributes, `hover()` selector escaping, `clearAppState()` store clearing, and overloaded callback forwarding across `addSplitButton`, `addModeControl`, `addRadioGroup`, `addPullDown`, `addComboBox`, `addPillToggle`, and `addModal`.
+- **HTML Attribute & Inline-JS Escaping Across SimpleGUI Controls (`index.ts`, `tests/fixtures/fx_baseline_hashes.json`).** Harden attribute, plain-text, and inline handler escaping (`safeScriptJsInner`, `safeJsInner`, `esc`, `escPlain`, `safeInlineJsStr`, `safeScriptJson`) while preserving intentional raw HTML (`browser_view`, `html_view`, `raw_html`) and refreshing FX theme baselines (`6,205` passing tests, `0` failures across `285` test files).
+
+### Improved
+
+- **TypeScript Declarations (`.d.ts`) Parity, `verbatimModuleSyntax` Support & RAD Cheat Sheets (`index.d.ts`, `simplegui.d.ts`, `scripts/build_npm_package.ts`, `CHEATSHEET.md`, `docs/cheatsheets/*`).** Sync `SimpleControlRef.id(id: string): this`, chainable builder methods, `WindowOptions`, `SimpleWindow` methods, event callback overloads, and `export type` declarations so strict TypeScript consumers (`strict: true`, `verbatimModuleSyntax: true`, `skipLibCheck: false`) compile cleanly across `dist/` and `dist/npm/`.
 
 ## 1.5.8 (14 November 2026)
 
