@@ -2,33 +2,387 @@
  * ⚡ Bun RAD Studio Demo 23: Complete Theme & All Controls Showcase Studio
  *
  * Demonstrates:
- * - Every type of SimpleGUI control rendered simultaneously on a single unified form
- * - Comprehensive support for all 30+ visual & data controls:
- *   • Title & Section Headers, Theme Selector & Badges
+ * - Dynamic discovery of every canonical theme in SIMPLEGUI_THEMES (Light, Dark, OS Heritage & FX Shaders)
+ * - Live Theme Swatch, Tier & Rendering Telemetry Strip + Interactive Filterable Theme Gallery Rail
+ * - Every type of SimpleGUI control rendered simultaneously on a single well-proportioned studio form:
+ *   • Title & Section Headers, Theme Selector, Live Swatches & Semantic Tier Badges
  *   • Single-line Text, Password, Search, Masked Input, Tag & Token Fields, Inline Editable Label, Textarea
- *   • Checkboxes, Toggles/Switches, Segmented Control, Dropdowns, Listbox, Number Stepper
- *   • Color Well, Date Picker, Time Picker, Sliders, Progress Bar, Hotkey Badges, Status Badges
- *   • Formatted Data Table, Workspace Tree View, Syntax Code View
- *   • Primary Theme-Accent Button, Secondary Button, Modal Dialog Button, Clipboard Export, Exit
- * - Instant runtime dynamic theme switching across all built-in high-quality themes
+ *   • Checkboxes, Toggles/Switches, Segmented Control, Dropdowns, Multi-ListBox, Number Stepper
+ *   • Color Well, Date Picker, Time Picker, Sliders, Progress Bars, Hotkey Badges, Status Badges
+ *   • Multi-Select Data Table, Dual Transfer List, Hierarchical TreeGrid, Workspace Tree View
+ *   • Side-by-Side Diff Viewer, Interactive Resizable Splitter, Closable Tabs, Kanban Sprint Board
+ *   • Primary Theme-Accent Button, Secondary/Ghost Modal & Export Actions, Random Theme Switcher, Danger Exit
+ * - Strict synthetic demo placeholder data throughout (zero personal, host, or local filesystem identifiers)
  */
 
 import {
   simplegui,
   SimpleWindow,
+  SIMPLEGUI_THEMES,
+  VLANG_THEME_NAMES,
   getTheme,
   autoShortThemeName,
 } from "../index.ts";
+
+export type ShowcaseThemeTier = "fx" | "os" | "light" | "dark";
+
+export interface ShowcaseThemeEntry {
+  key: string;
+  name: string;
+  shortName: string;
+  description: string;
+  isDark: boolean;
+  tier: ShowcaseThemeTier;
+  tierLabel: string;
+  bg: string;
+  cardBg: string;
+  cardBorder: string;
+  fg: string;
+  accent: string;
+  secondary: string;
+  fxSummary: string;
+}
+
+export interface ShowcaseCatalogSummary {
+  entries: ShowcaseThemeEntry[];
+  total: number;
+  darkCount: number;
+  lightCount: number;
+  osCount: number;
+  fxCount: number;
+}
+
+const OS_HERITAGE_PATTERN =
+  /\b(win95|win98|winxp|win11|windows|ubuntu|adwaita|gnome|mint|pop_os|fedora|kde|breeze|mac_os|macos|apple_|aqua|sonoma|beos|haiku|amiga|nextstep|irix|cde|solaris|gameboy|c64|commodore|dos|atari|amber_crt)\b/i;
+
+function classifyThemeTier(key: string, theme: any): {
+  tier: ShowcaseThemeTier;
+  tierLabel: string;
+  fxSummary: string;
+} {
+  if (theme && theme.fx) {
+    const parts: string[] = [];
+    if (theme.fx.backdrop && theme.fx.backdrop !== "none") {
+      parts.push(`backdrop:${theme.fx.backdrop}`);
+    }
+    if (theme.fx.glow && theme.fx.glow !== "none") {
+      parts.push(`glow:${theme.fx.glow}`);
+    }
+    if (theme.fx.motion && theme.fx.motion !== "none") {
+      parts.push(`motion:${theme.fx.motion}`);
+    }
+    if (theme.fx.chrome && theme.fx.chrome !== "none") {
+      parts.push(`chrome:${theme.fx.chrome}`);
+    }
+    return {
+      tier: "fx",
+      tierLabel: "FX Shader",
+      fxSummary: parts.length > 0 ? parts.join(" · ") : "GPU Shader Pipeline",
+    };
+  }
+  if (OS_HERITAGE_PATTERN.test(`${key} ${theme?.name || ""}`)) {
+    return {
+      tier: "os",
+      tierLabel: "OS & Heritage",
+      fxSummary: "Native Crisp CSS · Zero Shader Overhead",
+    };
+  }
+  if (!theme?.is_dark) {
+    return {
+      tier: "light",
+      tierLabel: "Studio Light",
+      fxSummary: "Daylight Calibrated · Crisp Hairline Chrome",
+    };
+  }
+  return {
+    tier: "dark",
+    tierLabel: "Studio Dark",
+    fxSummary: "Studio Low-Glare · Layered Surface Depth",
+  };
+}
+
+function escapeAttr(value: string): string {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+let cachedThemeCount = -1;
+let cachedCatalog: ShowcaseCatalogSummary | null = null;
+
+/**
+ * Dynamically builds the canonical, deduplicated catalog of all themes registered in `SIMPLEGUI_THEMES`.
+ * Preserves canonical `VLANG_THEME_NAMES` ordering first and automatically includes any additional
+ * themes registered in `SIMPLEGUI_THEMES` (deduplicated by `theme.name`).
+ */
+export function getShowcaseThemeCatalog(): ShowcaseCatalogSummary {
+  const currentKeys = Object.keys(SIMPLEGUI_THEMES);
+  if (cachedCatalog && cachedThemeCount === currentKeys.length) {
+    return cachedCatalog;
+  }
+
+  const seenNames = new Set<string>();
+  const orderedKeys: string[] = [];
+
+  for (const canonicalKey of VLANG_THEME_NAMES) {
+    const t = SIMPLEGUI_THEMES[canonicalKey];
+    if (t && !seenNames.has(t.name)) {
+      seenNames.add(t.name);
+      orderedKeys.push(canonicalKey);
+    }
+  }
+  for (const [k, t] of Object.entries(SIMPLEGUI_THEMES)) {
+    if (t && !seenNames.has(t.name)) {
+      seenNames.add(t.name);
+      orderedKeys.push(k);
+    }
+  }
+
+  let darkCount = 0;
+  let lightCount = 0;
+  let osCount = 0;
+  let fxCount = 0;
+
+  const entries: ShowcaseThemeEntry[] = orderedKeys.map((key) => {
+    const t: any = getTheme(key);
+    const { tier, tierLabel, fxSummary } = classifyThemeTier(key, t);
+    if (t.is_dark) darkCount++;
+    else lightCount++;
+    if (tier === "os") osCount++;
+    if (tier === "fx") fxCount++;
+
+    return {
+      key,
+      name: t.name,
+      shortName: t.short_name || autoShortThemeName(key) || t.name,
+      description: t.description || "",
+      isDark: Boolean(t.is_dark),
+      tier,
+      tierLabel,
+      bg: t.background_color,
+      cardBg: t.card_background || (t.is_dark ? "#1e293b" : "#ffffff"),
+      cardBorder:
+        t.card_border ||
+        (t.is_dark ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)"),
+      fg: t.font_color || t.foreground_color || (t.is_dark ? "#f1f5f9" : "#0f172a"),
+      accent: t.accent_color,
+      secondary: t.secondary_accent || t.accent_color,
+      fxSummary,
+    };
+  });
+
+  cachedThemeCount = currentKeys.length;
+  cachedCatalog = {
+    entries,
+    total: entries.length,
+    darkCount,
+    lightCount,
+    osCount,
+    fxCount,
+  };
+  return cachedCatalog;
+}
+
+function buildShowcaseGalleryHtml(
+  activeKey: string,
+  activeTheme: any,
+  catalog: ShowcaseCatalogSummary,
+): string {
+  const activeTierInfo = classifyThemeTier(activeKey, activeTheme);
+  const activeCardBg =
+    activeTheme.card_background || (activeTheme.is_dark ? "#1e293b" : "#ffffff");
+  const activeCardBorder =
+    activeTheme.card_border ||
+    (activeTheme.is_dark ? "rgba(255,255,255,0.12)" : "rgba(15,23,42,0.12)");
+  const activeSec = activeTheme.secondary_accent || activeTheme.accent_color;
+
+  const resolvedEntry =
+    catalog.entries.find(
+      (e) => e.key === activeKey || e.name === activeTheme.name,
+    ) || catalog.entries[0];
+  const canonicalActiveKey = resolvedEntry ? resolvedEntry.key : activeKey;
+
+  const swatchItems = [
+    { id: "bg", label: "Canvas", color: activeTheme.background_color },
+    { id: "card", label: "Surface", color: activeCardBg },
+    { id: "border", label: "Border", color: activeCardBorder },
+    { id: "pri", label: "Primary", color: activeTheme.accent_color },
+    { id: "sec", label: "Secondary", color: activeSec },
+    {
+      id: "fg",
+      label: "Foreground",
+      color:
+        activeTheme.font_color ||
+        activeTheme.foreground_color ||
+        (activeTheme.is_dark ? "#f1f5f9" : "#0f172a"),
+    },
+  ];
+
+  const swatchesHtml = swatchItems
+    .map(
+      (s) =>
+        `<span class="sg-sw-chip" title="${escapeAttr(s.label)}: ${escapeAttr(s.color)}">` +
+        `<span id="sg_dot_${s.id}" class="sg-sw-dot" data-no-theme="1" style="background:${escapeAttr(s.color)};"></span>` +
+        `<span class="sg-sw-lbl">${escapeAttr(s.label)}</span>` +
+        `<code id="sg_hex_${s.id}" class="sg-sw-hex">${escapeAttr(s.color)}</code>` +
+        `</span>`,
+    )
+    .join("");
+
+  const galleryPillsHtml = catalog.entries
+    .map((entry) => {
+      const isAct = entry.key === canonicalActiveKey;
+      return (
+        `<button type="button" class="sg-gal-pill${isAct ? " is-active" : ""}" data-no-theme="1" ` +
+        `data-theme-key="${escapeAttr(entry.key)}" data-tier="${entry.tier}" data-polarity="${entry.isDark ? "dark" : "light"}" ` +
+        `title="${escapeAttr(entry.name)} (${escapeAttr(entry.tierLabel)}) — ${escapeAttr(entry.description)}">` +
+        `<span class="sg-gal-dots" data-no-theme="1">` +
+        `<i data-no-theme="1" style="background:${escapeAttr(entry.bg)};"></i>` +
+        `<i data-no-theme="1" style="background:${escapeAttr(entry.accent)};"></i>` +
+        `</span>` +
+        `<span class="sg-gal-name">${escapeAttr(entry.shortName)}</span>` +
+        `</button>`
+      );
+    })
+    .join("");
+
+  const catalogClientIndex = JSON.stringify(
+    catalog.entries.map((e) => ({
+      k: e.key,
+      n: e.name,
+      t: e.tier,
+      tl: e.tierLabel,
+      fx: e.fxSummary,
+    })),
+  ).replace(/</g, "\\u003c");
+
+  return (
+    `<style id="sg-showcase-strip-style">` +
+    `.sg-showcase-strip{display:flex;flex-direction:column;gap:8px;width:100%;height:100%;padding:10px 12px;border-radius:10px;background:var(--card-bg,#1e293b);border:1px solid var(--sg-hairline-strong,var(--card-border,rgba(148,163,184,.24)));box-shadow:inset 0 1px 0 var(--sg-specular-card,rgba(255,255,255,.06)),var(--sg-shadow-sm,0 2px 8px rgba(0,0,0,.16));box-sizing:border-box;overflow:hidden}` +
+    `.sg-strip-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}` +
+    `.sg-strip-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}` +
+    `.sg-tier-pill,.sg-fx-pill,.sg-count-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em;line-height:1.3;white-space:nowrap}` +
+    `.sg-tier-pill{background:color-mix(in srgb,var(--accent,#38bdf8) 16%,transparent);color:var(--accent,#38bdf8);border:1px solid color-mix(in srgb,var(--accent,#38bdf8) 38%,transparent)}` +
+    `.sg-fx-pill{background:color-mix(in srgb,var(--secondary-accent,var(--accent,#38bdf8)) 13%,transparent);color:var(--theme-fg,#e2e8f0);border:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.25)));font-weight:600}` +
+    `.sg-count-pill{background:color-mix(in srgb,var(--theme-fg,#94a3b8) 7%,transparent);color:var(--theme-muted,#94a3b8);border:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.2)));font-weight:600}` +
+    `.sg-sw-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}` +
+    `.sg-sw-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:6px;background:var(--input-bg,rgba(15,23,42,.25));border:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.22)));font-size:11px}` +
+    `.sg-sw-dot{width:11px;height:11px;border-radius:50%;border:1px solid rgba(128,128,128,.45);flex:0 0 auto}` +
+    `.sg-sw-lbl{color:var(--theme-muted,#94a3b8);font-weight:600;font-size:10.5px}` +
+    `.sg-sw-hex{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:10.5px;color:var(--theme-fg,#e2e8f0);background:transparent;padding:0}` +
+    `.sg-strip-rail-wrap{display:flex;align-items:center;gap:6px;min-width:0}` +
+    `.sg-flt-grp{display:inline-flex;align-items:center;gap:2px;padding:2px;border-radius:7px;background:var(--input-bg,rgba(15,23,42,.22));border:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.22)));flex:0 0 auto}` +
+    `.sg-flt-btn,.sg-step-btn{border:1px solid transparent;background:transparent;color:var(--theme-muted,#94a3b8);font-size:11px;font-weight:700;padding:3px 7px;border-radius:5px;cursor:pointer;line-height:1.2;transition:background-color .14s ease,color .14s ease,border-color .14s ease}` +
+    `.sg-flt-btn:hover,.sg-step-btn:hover{color:var(--theme-fg,#e2e8f0);background:color-mix(in srgb,var(--theme-fg,#94a3b8) 10%,transparent)}` +
+    `.sg-flt-btn.is-on{background:var(--accent,#38bdf8);color:var(--btn-fg,#fff)}` +
+    `.sg-step-btn{background:var(--input-bg,rgba(15,23,42,.22));border-color:var(--sg-hairline,var(--card-border,rgba(148,163,184,.24)));color:var(--theme-fg,#e2e8f0);padding:4px 8px;flex:0 0 auto}` +
+    `.sg-gal-rail{display:flex;align-items:center;gap:5px;overflow-x:auto;overflow-y:hidden;flex:1;min-width:0;padding:2px 1px;scrollbar-width:thin}` +
+    `.sg-gal-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;border:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.24)));background:var(--input-bg,rgba(15,23,42,.2));color:var(--theme-fg,#e2e8f0);font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;flex:0 0 auto;transition:border-color .14s ease,background-color .14s ease,transform .1s ease}` +
+    `.sg-gal-pill:hover{border-color:color-mix(in srgb,var(--accent,#38bdf8) 55%,var(--card-border,transparent));background:color-mix(in srgb,var(--accent,#38bdf8) 10%,var(--input-bg,transparent))}` +
+    `.sg-gal-pill.is-active{border-color:var(--accent,#38bdf8);background:color-mix(in srgb,var(--accent,#38bdf8) 20%,var(--input-bg,transparent));color:var(--accent,#38bdf8);font-weight:700;box-shadow:0 0 0 1px color-mix(in srgb,var(--accent,#38bdf8) 32%,transparent)}` +
+    `.sg-gal-pill:focus-visible,.sg-flt-btn:focus-visible,.sg-step-btn:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}` +
+    `.sg-gal-dots{display:inline-flex;align-items:center}` +
+    `.sg-gal-dots i{width:9px;height:9px;border-radius:50%;border:1px solid rgba(128,128,128,.45);display:inline-block}` +
+    `.sg-gal-dots i+i{margin-left:-3px}` +
+    `@media (prefers-reduced-motion:reduce){.sg-gal-pill,.sg-flt-btn,.sg-step-btn{transition:none!important}}` +
+    `</style>` +
+    `<div class="sg-showcase-strip" id="sg_showcase_strip" data-active-theme="${escapeAttr(canonicalActiveKey)}">` +
+    `<div class="sg-strip-top">` +
+    `<div class="sg-strip-meta">` +
+    `<span id="sg_tier_badge" class="sg-tier-pill">✦ ${escapeAttr(activeTierInfo.tierLabel)}</span>` +
+    `<span id="sg_fx_badge" class="sg-fx-pill">${escapeAttr(activeTierInfo.fxSummary)}</span>` +
+    `<span id="sg_catalog_counts" class="sg-count-pill">${catalog.total} Themes · ${catalog.darkCount} Dark · ${catalog.lightCount} Light · ${catalog.osCount} OS · ${catalog.fxCount} FX</span>` +
+    `</div>` +
+    `<div class="sg-sw-row">${swatchesHtml}</div>` +
+    `</div>` +
+    `<div class="sg-strip-rail-wrap">` +
+    `<div class="sg-flt-grp" role="tablist" aria-label="Filter themes by tier">` +
+    `<button type="button" class="sg-flt-btn is-on" data-no-theme="1" data-filter="all">All (${catalog.total})</button>` +
+    `<button type="button" class="sg-flt-btn" data-no-theme="1" data-filter="dark">Dark (${catalog.darkCount})</button>` +
+    `<button type="button" class="sg-flt-btn" data-no-theme="1" data-filter="light">Light (${catalog.lightCount})</button>` +
+    `<button type="button" class="sg-flt-btn" data-no-theme="1" data-filter="os">OS (${catalog.osCount})</button>` +
+    `<button type="button" class="sg-flt-btn" data-no-theme="1" data-filter="fx">FX (${catalog.fxCount})</button>` +
+    `</div>` +
+    `<button type="button" class="sg-step-btn" id="sg_prev_theme" data-no-theme="1" title="Previous theme">◀</button>` +
+    `<div class="sg-gal-rail" id="sg_gal_rail">${galleryPillsHtml}</div>` +
+    `<button type="button" class="sg-step-btn" id="sg_next_theme" data-no-theme="1" title="Next theme">▶</button>` +
+    `</div>` +
+    `</div>` +
+    `<script>(function(){` +
+    `var CAT=${catalogClientIndex};` +
+    `var strip=document.getElementById("sg_showcase_strip");` +
+    `var rail=document.getElementById("sg_gal_rail");` +
+    `if(!strip||!rail)return;` +
+    `function pickTheme(key){` +
+    `var sel=document.getElementById("dd_theme_selector");` +
+    `if(sel){sel.value=key;sel.dispatchEvent(new Event("change",{bubbles:true}));}` +
+    `else if(typeof window.handleEvent==="function"){window.handleEvent("dd_theme_selector","change",key);}` +
+    `}` +
+    `function visiblePills(){` +
+    `return Array.prototype.slice.call(rail.querySelectorAll(".sg-gal-pill")).filter(function(b){return b.style.display!=="none";});` +
+    `}` +
+    `rail.addEventListener("click",function(e){` +
+    `var btn=e.target&&e.target.closest?e.target.closest(".sg-gal-pill"):null;` +
+    `if(!btn)return;` +
+    `var k=btn.getAttribute("data-theme-key");` +
+    `if(k)pickTheme(k);` +
+    `});` +
+    `Array.prototype.forEach.call(strip.querySelectorAll(".sg-flt-btn"),function(fb){` +
+    `fb.addEventListener("click",function(){` +
+    `var f=fb.getAttribute("data-filter")||"all";` +
+    `Array.prototype.forEach.call(strip.querySelectorAll(".sg-flt-btn"),function(x){x.classList.toggle("is-on",x===fb);});` +
+    `Array.prototype.forEach.call(rail.querySelectorAll(".sg-gal-pill"),function(p){` +
+    `var show=f==="all"||(f==="dark"&&p.getAttribute("data-polarity")==="dark")||(f==="light"&&p.getAttribute("data-polarity")==="light")||(p.getAttribute("data-tier")===f);` +
+    `p.style.display=show?"":"none";` +
+    `});` +
+    `});` +
+    `});` +
+    `function stepTheme(dir){` +
+    `var vis=visiblePills();if(!vis.length)return;` +
+    `var cur=strip.getAttribute("data-active-theme")||"";` +
+    `var idx=vis.findIndex(function(b){return b.getAttribute("data-theme-key")===cur;});` +
+    `var next=vis[(idx+dir+vis.length)%vis.length];` +
+    `if(next)pickTheme(next.getAttribute("data-theme-key"));` +
+    `}` +
+    `var prevBtn=document.getElementById("sg_prev_theme"),nextBtn=document.getElementById("sg_next_theme");` +
+    `if(prevBtn)prevBtn.addEventListener("click",function(){stepTheme(-1);});` +
+    `if(nextBtn)nextBtn.addEventListener("click",function(){stepTheme(1);});` +
+    `function setSwatch(id,val){` +
+    `var d=document.getElementById("sg_dot_"+id),h=document.getElementById("sg_hex_"+id);` +
+    `if(d&&val)d.style.background=val;if(h&&val)h.textContent=val;` +
+    `}` +
+    `window.__sgSyncShowcaseThemeMeta=function(m){` +
+    `if(!m)return;` +
+    `var entry=null;for(var i=0;i<CAT.length;i++){if(CAT[i].k===m.key||CAT[i].n===m.name){entry=CAT[i];break;}}` +
+    `var canon=entry?entry.k:(m.key||"");` +
+    `strip.setAttribute("data-active-theme",canon);` +
+    `setSwatch("bg",m.bg);setSwatch("card",m.cardBg);setSwatch("border",m.cardBorder);` +
+    `setSwatch("pri",m.accent);setSwatch("sec",m.secondary||m.accent);setSwatch("fg",m.fg);` +
+    `var tb=document.getElementById("sg_tier_badge"),fb=document.getElementById("sg_fx_badge");` +
+    `if(tb)tb.textContent="\u2726 "+(entry?entry.tl:(m.fx?"FX Shader":(m.isDark?"Studio Dark":"Studio Light")));` +
+    `if(fb)fb.textContent=entry?entry.fx:(m.fx?"GPU Shader Pipeline":"Native Crisp CSS \u00B7 Zero Shader Overhead");` +
+    `Array.prototype.forEach.call(rail.querySelectorAll(".sg-gal-pill"),function(p){` +
+    `var on=p.getAttribute("data-theme-key")===canon;` +
+    `p.classList.toggle("is-active",on);` +
+    `if(on&&p.scrollIntoView)p.scrollIntoView({block:"nearest",inline:"nearest"});` +
+    `});` +
+    `};` +
+    `})();<\/script>`
+  );
+}
 
 export function createThemeShowcase(
   themeName: string = "midnight",
 ): SimpleWindow {
   const themeObj = getTheme(themeName);
+  const catalog = getShowcaseThemeCatalog();
 
   const win = simplegui.createWindow(
     `⚡ Bun RAD Studio - All Controls Form Showcase [Theme: ${themeObj.name}]`,
-    1180,
-    2020,
+    1200,
+    2140,
     {
       theme: themeName,
     },
@@ -41,7 +395,7 @@ export function createThemeShowcase(
   win
     .addLabel("lbl_theme_title", `🎨 ${themeObj.name}`)
     .font(20, themeObj.accent_color, "800")
-    .width(280);
+    .width(300);
 
   win
     .addBadge(
@@ -54,25 +408,35 @@ export function createThemeShowcase(
   win
     .addBadge(`PRI ${themeObj.accent_color}`, "success")
     .id("bdg_theme_pri")
-    .width(120);
+    .width(125);
 
-  if (themeObj.secondary_accent) {
-    win
-      .addBadge(`SEC ${themeObj.secondary_accent}`, "info")
-      .id("bdg_theme_sec")
-      .width(125);
-  }
+  win
+    .addBadge(
+      `SEC ${themeObj.secondary_accent || themeObj.accent_color}`,
+      "info",
+    )
+    .id("bdg_theme_sec")
+    .width(130);
 
-  // Live interactive theme selector
-  win.addThemeSelector("dd_theme_selector", "Theme:", false, 170);
+  // Live interactive theme selector surfacing all canonical SIMPLEGUI_THEMES
+  win.addThemeSelector("dd_theme_selector", "Theme:", false, 210);
   win.endRow();
 
   win
     .addLabel(
       "lbl_theme_desc",
-      `${themeObj.description} • Unified single-form showcase with all 35+ RAD controls`,
+      `${themeObj.description} • Unified single-form showcase across ${catalog.total} built-in themes & 35+ RAD controls`,
     )
     .font(12, themeObj.is_dark ? "#94a3b8" : "#334155");
+
+  // ==========================================
+  // 1a. LIVE SWATCHES, TIER TELEMETRY & QUICK THEME GALLERY
+  // ==========================================
+  win
+    .rawHtml(buildShowcaseGalleryHtml(win.theme, themeObj, catalog))
+    .id("themeSwatchStrip")
+    .width(1140)
+    .height(94);
 
   // ==========================================
   // 1b. DESKTOP TOOLBAR & COMMAND PALETTE STRIP
@@ -102,7 +466,7 @@ export function createThemeShowcase(
         w.toast(`Toolbar - Action: ${item}`);
       },
     )
-    .width(720);
+    .width(730);
 
   win
     .addCommandPalette(
@@ -131,7 +495,7 @@ export function createThemeShowcase(
         },
         {
           id: "cmd_test",
-          label: "Test: Run Full Test Suite (168 tests)",
+          label: "Test: Run Full Verification Suite",
           category: "Test",
           shortcut: "⌘⇧T",
           icon: "🧪",
@@ -152,7 +516,7 @@ export function createThemeShowcase(
         shortcut: "⌘K",
       },
     )
-    .width(380);
+    .width(390);
   win.endRow();
 
   win.addDivider();
@@ -165,7 +529,7 @@ export function createThemeShowcase(
   // --- COLUMN 1: TEXT & INPUT CONTROLS ---
   win.beginCard(
     "Text & Data Input Controls",
-    "Comprehensive single & multi-line inputs, tags, masking & inline editing",
+    "Crisp single & multi-line inputs, token chips, masking & inline editing",
   );
 
   win.beginRow();
@@ -173,7 +537,7 @@ export function createThemeShowcase(
   win
     .addTextInput("Type user handle or email...")
     .id("txtInput")
-    .value("alex.mercer@codefreelance.net")
+    .value("alex.mercer@studio-demo.example")
     .width(390);
   win.endRow();
 
@@ -182,21 +546,21 @@ export function createThemeShowcase(
   win
     .addPasswordInput("••••••••••••")
     .id("txtPass")
-    .value("Sup3rS3cretKey!")
+    .value("DemoVault#2026!")
     .width(390);
   win.endRow();
 
   win.beginRow();
   win.addLabel("Search Field:").width(120);
   win
-    .addSearchInput("Filter symbols, files, records...")
+    .addSearchInput("Filter symbols, modules, records...")
     .id("txtSearch")
     .width(390);
   win.endRow();
 
   win.beginRow();
   win.addLabel("Masked Phone:").width(120);
-  win.addMaskedInput("inpPhone", "(999) 999-9999", "(555) 234-8901").width(390);
+  win.addMaskedInput("inpPhone", "(999) 999-9999", "(555) 019-2834").width(390);
   win.endRow();
 
   win.beginRow();
@@ -211,7 +575,7 @@ export function createThemeShowcase(
   win
     .addInlineEditableLabel(
       "lblProject",
-      "⚡ Project Alpha: Production Cluster v2.4",
+      "⚡ Project Horizon: Synthetic Demo Cluster v2.4",
     )
     .width(390);
   win.endRow();
@@ -221,7 +585,7 @@ export function createThemeShowcase(
   win
     .addTextArea(
       "txtNotes",
-      "// System configuration directives\ncluster.mode = 'distributed'\ntelemetry.enabled = true\nworkers.count = 8\nstorage.engine = 'sqlite-wal'",
+      "// Synthetic studio configuration directives\ncluster.mode = 'distributed'\ntelemetry.enabled = true\nworkers.count = 8\nstorage.engine = 'sqlite-wal'",
     )
     .width(390)
     .height(65);
@@ -232,12 +596,12 @@ export function createThemeShowcase(
   // --- COLUMN 2: SELECTORS, TOGGLES & METERS ---
   win.beginCard(
     "Selectors, Toggles & Gauges",
-    "State switches, multi-choice radios, sliders, steppers & progress",
+    "State switches, segmented tabs, dropdowns, steppers & listboxes",
   );
 
   win.beginRow();
   win.addCheckbox("Hardware Acceleration (GPU)", true).id("chkGpu").width(240);
-  win.addCheckbox("Verbose IPC Logging", false).id("chkLog").width(230);
+  win.addCheckbox("Verbose IPC Diagnostics", false).id("chkLog").width(230);
   win.endRow();
 
   win.beginRow();
@@ -258,12 +622,12 @@ export function createThemeShowcase(
   win
     .addDropdown(
       [
-        "Production Gateway (US-East)",
-        "Failover Node (EU-West)",
+        "Production Gateway (Region-Alpha)",
+        "Failover Node (Region-Beta)",
         "Development Sandbox",
-        "Edge Cluster (AP-Tokyo)",
+        "Edge Cluster (Region-Gamma)",
       ],
-      "Production Gateway (US-East)",
+      "Production Gateway (Region-Alpha)",
     )
     .id("ddServer")
     .width(370);
@@ -274,12 +638,12 @@ export function createThemeShowcase(
   win
     .addMultiListBox(
       [
-        "Worker Pool: 16 Cores Active",
-        "Memory Allocator: Mimalloc",
-        "Network Engine: POSIX Async",
-        "Compiler: Bun Native AST",
+        "Worker Pool: 16 Synthetic Cores",
+        "Memory Allocator: Arena Pool",
+        "Network Engine: Async Event Loop",
+        "Compiler: Native TypeScript AST",
       ],
-      ["Worker Pool: 16 Cores Active", "Memory Allocator: Mimalloc"],
+      ["Worker Pool: 16 Synthetic Cores", "Memory Allocator: Arena Pool"],
     )
     .id("lstWorkers")
     .width(370)
@@ -304,7 +668,7 @@ export function createThemeShowcase(
   win.beginGrid(3, 16);
 
   // Pickers Card
-  win.beginCard("Pickers & Swatches", "Color, calendar dates & 24h clock");
+  win.beginCard("Pickers & Swatches", "Color well, calendar dates & 24h clock");
   win.beginRow();
   win.addLabel("Color Well:").width(90);
   win.addColorWell(themeObj.accent_color).id("cpAccent").width(180);
@@ -322,7 +686,7 @@ export function createThemeShowcase(
   win.endCard();
 
   // Sliders & Meters Card
-  win.beginCard("Sliders & Meters", "Variable range tracking & telemetry");
+  win.beginCard("Sliders & Meters", "Smooth range tracking & progress gauges");
   win.beginRow();
   win.addLabel("Volume Slider:").width(110);
   win.addSlider(0, 100, 78).id("sldVol").width(180);
@@ -340,7 +704,7 @@ export function createThemeShowcase(
   win.endCard();
 
   // Badges & Keyboard Shortcuts Card
-  win.beginCard("Status & Hotkey Badges", "Semantic tags & key combinations");
+  win.beginCard("Status & Hotkey Badges", "Semantic pills & keycap chords");
   win.beginRow();
   win.addBadge("CONNECTED", "success").width(110);
   win.addBadge("TLS 1.3", "info").width(90);
@@ -367,7 +731,7 @@ export function createThemeShowcase(
 
   win.beginCard(
     "Multi-Select Data Table",
-    "Row checkboxes, Ctrl/Shift range & header select-all",
+    "Sticky headers, subtle zebra & hover rows, Ctrl/Shift selection",
   );
   win
     .addTable(
@@ -375,13 +739,13 @@ export function createThemeShowcase(
       [
         [101, "API Gateway Core", "HTTP/2", "8080", "0.4 ms", "Healthy"],
         [102, "Auth & Session Vault", "gRPC", "8443", "1.1 ms", "Healthy"],
-        [103, "Redis Distributed Cache", "RESP3", "6379", "0.2 ms", "Optimal"],
-        [104, "Postgres Analytics Replica", "TCP", "5432", "2.8 ms", "Syncing"],
+        [103, "Distributed Cache", "RESP3", "6379", "0.2 ms", "Optimal"],
+        [104, "Analytics Replica", "TCP", "5432", "2.8 ms", "Syncing"],
       ],
       { multiSelect: true, checkboxSelection: true },
     )
     .id("tblServices")
-    .height(130);
+    .height(135);
   win.endCard();
 
   win.beginCard(
@@ -390,9 +754,9 @@ export function createThemeShowcase(
   );
   win.addTransferList(
     "transServices",
-    ["Kafka Broker", "Elasticsearch", "Prometheus", "MinIO Storage"],
-    ["API Gateway", "Redis Cache"],
-    { height: 130 },
+    ["Stream Broker", "Search Indexer", "Metrics Collector", "Object Storage"],
+    ["API Gateway", "Distributed Cache"],
+    { height: 135 },
   );
   win.endCard();
 
@@ -406,7 +770,7 @@ export function createThemeShowcase(
       [
         {
           id: "proj_root",
-          cells: ["bun_rad_studio", "Project Root", "--", "Today", "Active"],
+          cells: ["studio-demo-app", "Workspace Root", "--", "Today", "Active"],
           icon: "📦",
           expanded: true,
           children: [
@@ -428,11 +792,11 @@ export function createThemeShowcase(
                   icon: "📄",
                 },
                 {
-                  id: "file_index",
+                  id: "file_components",
                   cells: [
-                    "index.ts",
+                    "simplegui_components.ts",
                     "TypeScript",
-                    "102 KB",
+                    "42 KB",
                     "Today",
                     "Modified",
                   ],
@@ -451,7 +815,7 @@ export function createThemeShowcase(
                   cells: [
                     "23_all_themes_all_controls_showcase.ts",
                     "TypeScript",
-                    "12 KB",
+                    "18 KB",
                     "Today",
                     "Active",
                   ],
@@ -487,7 +851,7 @@ export function createThemeShowcase(
       { multiSelect: true },
     )
     .id("treegridWorkspace")
-    .height(130);
+    .height(135);
   win.endCard();
 
   win.beginCard(
@@ -496,17 +860,18 @@ export function createThemeShowcase(
   );
   win
     .addTreeView([
-      "📦 bun_rad_studio",
+      "📦 studio-demo-app",
       " 📂 src",
       "   📄 simplegui.ts",
-      "   📄 index.ts",
+      "   📄 simplegui_components.ts",
+      "   📄 simplegui_dialogs.ts",
       " 📂 demos",
       "   📄 23_all_themes_all_controls_showcase.ts",
-      " 📂 screenshots",
+      " 📂 assets",
       "   📂 themes",
     ])
     .id("treeWorkspace")
-    .height(130);
+    .height(135);
   win.endCard();
 
   win.endGrid();
@@ -531,7 +896,7 @@ export function createThemeShowcase(
         modifiedTitle: "v2.0.0 (Current)",
       },
     )
-    .height(130);
+    .height(135);
   win.endCard();
 
   win.beginCard(
@@ -546,7 +911,7 @@ export function createThemeShowcase(
     right_content:
       "Control: DataGrid\nRows: 1,420\nSorting: Enabled ▲\nResizing: Enabled ↔",
     initialSplit: 0.35,
-    height: 130,
+    height: 135,
   });
   win.endCard();
 
@@ -576,7 +941,7 @@ export function createThemeShowcase(
         id: "todo",
         title: "To Do (2)",
         cards: [
-          { id: "c1", title: "Electron to Bun Migration", tag: "Architecture" },
+          { id: "c1", title: "Theme Token Polish", tag: "Design" },
           { id: "c2", title: "Side-by-Side Diff", tag: "Feature" },
         ],
       },
@@ -585,16 +950,20 @@ export function createThemeShowcase(
         title: "In Progress (2)",
         cards: [
           { id: "c3", title: "Command Palette (⌘K)", tag: "UI" },
-          { id: "c4", title: "Table Column Resizer", tag: "Core" },
+          { id: "c4", title: "Focus-Visible Audit", tag: "A11y" },
         ],
       },
       {
         id: "done",
         title: "Done (3)",
         cards: [
-          { id: "c5", title: "63 Themes", tag: "Design" },
-          { id: "c6", title: "TreeGrid", tag: "Components" },
-          { id: "c7", title: "Unit Tests", tag: "QA" },
+          {
+            id: "c5",
+            title: `${catalog.total} Built-in Themes`,
+            tag: "Themes",
+          },
+          { id: "c6", title: "TreeGrid & Transfer", tag: "Components" },
+          { id: "c7", title: "Reduced Motion", tag: "QA" },
         ],
       },
     ],
@@ -620,23 +989,24 @@ export function createThemeShowcase(
       );
     })
     .id("btnPrimaryAction")
-    .width(200)
+    .width(205)
     .height(38);
 
   win
     .addButton("💬 Prompt Modal Dialog", (w) => {
       w.showPrompt(
         "Enter updated workspace namespace:",
-        "DefaultNamespace",
+        "DemoStudioNamespace",
         (ans) => {
           if (ans)
             w.showAlert(`Namespace set to: ${ans}`, "Configuration Updated");
         },
       );
     })
+    .id("btnPromptDialog")
     .bg("#334155")
     .color("#f8fafc")
-    .width(190)
+    .width(195)
     .height(38);
 
   win
@@ -648,6 +1018,7 @@ export function createThemeShowcase(
         "Clipboard Export",
       );
     })
+    .id("btnCopyJson")
     .bg("#1e293b")
     .color("#38bdf8")
     .width(210)
@@ -655,72 +1026,30 @@ export function createThemeShowcase(
 
   win
     .addButton("✨ Switch Random Theme", (w) => {
-      const keys = [
-        "codefreelance",
-        "midnight",
-        "raycast_dark",
-        "linear_dark",
-        "vercel_dark",
-        "unreal_engine",
-        "arc_velvet",
-        "abyss",
-        "night_city",
-        "horizon",
-        "tailwind_dark",
-        "supabase",
-        "oled_black",
-        "titanium_slate",
-        "jetbrains_darcula",
-        "nordic_paper",
-        "sonoma_emerald",
-        "monokai_pro",
-        "tokyo_night",
-        "one_dark_pro",
-        "gruvbox_dark",
-        "rose_pine",
-        "everforest",
-        "kanagawa",
-        "cobalt2",
-        "win11_slate",
-        "ubuntu_dark",
-        "ubuntu_light",
-        "adwaita_dark",
-        "linux_mint",
-        "pop_os",
-        "apple_dark",
-        "dracula",
-        "nord",
-        "cyberpunk",
-        "apple_light",
-        "win95",
-        "gameboy",
-        "c64",
-        "matrix",
-        "synthwave",
-        "mac_os_aqua",
-        "win11_light",
-        "github_light",
-        "solarized_light",
-        "soft_pastel",
-      ];
-      const next =
-        keys[Math.floor(Math.random() * keys.length)] || "sonoma_emerald";
-      w.setTheme(next, true);
-      w.setValue("dd_theme_selector", next);
+      const allEntries = getShowcaseThemeCatalog().entries;
+      const pool = allEntries.filter((e) => e.key !== w.theme);
+      const pick =
+        (pool.length > 0
+          ? pool[Math.floor(Math.random() * pool.length)]
+          : allEntries[0]) || { key: "midnight" };
+      w.setTheme(pick.key, true);
+      w.setValue("dd_theme_selector", pick.key);
     })
+    .id("btnRandomTheme")
     .bg("#475569")
     .color("#ffffff")
-    .width(190)
+    .width(195)
     .height(38);
 
   win
     .addButton("❌ Close Window", (w) => {
       w.exit();
     })
+    .id("btnCloseWindow")
     .bg("#ef4444")
     .color("#ffffff")
     .bold()
-    .width(140)
+    .width(145)
     .height(38);
 
   win.endRow();
