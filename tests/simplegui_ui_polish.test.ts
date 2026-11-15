@@ -1,10 +1,12 @@
 import { describe, expect, test } from "bun:test";
+import { JSDOM } from "jsdom";
 import {
   createWindow,
   getTheme,
   SIMPLEGUI_THEMES,
   VLANG_THEME_NAMES,
 } from "../src/simplegui.ts";
+import { DEFAULT_FAVORITE_SIMPLEGUI_THEMES } from "../src/shared/simpleguiThemes.ts";
 import { UI_CLIENT_HTML } from "../src/simplegui_components.ts";
 import { DIALOG_CLIENT_HTML } from "../src/simplegui_dialogs.ts";
 import {
@@ -259,5 +261,74 @@ describe("SimpleGUI Studio Control Polish, Chrome & Theme Rendering", () => {
     const combinedHtml = fxHtml + "\n" + pathWin.generateHtml();
     expect(combinedHtml.toLowerCase()).not.toContain("codecaine");
     expect(combinedHtml).not.toContain("/Users/");
+  });
+
+  test("6. Showcase ★ Favorites filter rail defaults to the 12 Master themes and supports interactive star toggling", () => {
+    const catalog = getShowcaseThemeCatalog();
+    expect(catalog.favoritesCount).toBe(12);
+    expect(catalog.entries.slice(0, 12).map((e) => e.key)).toEqual(
+      DEFAULT_FAVORITE_SIMPLEGUI_THEMES,
+    );
+
+    const defaultShowcase = createThemeShowcase();
+    expect(defaultShowcase.theme).toBe(DEFAULT_FAVORITE_SIMPLEGUI_THEMES[0]!);
+    const html = defaultShowcase.generateHtml();
+    expect(html).toContain(`★ Favorites (12)`);
+
+    const dom = new JSDOM(html, {
+      runScripts: "dangerously",
+      url: "http://localhost/",
+    });
+    const doc = dom.window.document;
+
+    const favFilterBtn = doc.getElementById("sg_flt_favorites")!;
+    expect(favFilterBtn).toBeTruthy();
+    expect(favFilterBtn.classList.contains("is-on")).toBe(true);
+    expect(favFilterBtn.textContent).toBe("★ Favorites (12)");
+
+    const visibleKeys = () =>
+      [...doc.querySelectorAll<HTMLElement>("#sg_gal_rail .sg-gal-pill")]
+        .filter((el) => el.style.display !== "none")
+        .map((el) => el.getAttribute("data-theme-key")!);
+
+    // Out-of-the-box: the 12 flagship Master themes are surfaced front-and-center
+    expect(visibleKeys()).toEqual(DEFAULT_FAVORITE_SIMPLEGUI_THEMES);
+
+    // Active theme pin button reflects favorite status and toggles cleanly
+    const activeFavBtn = doc.getElementById("sg_toggle_active_fav")!;
+    expect(activeFavBtn.getAttribute("aria-pressed")).toBe("true");
+    expect(activeFavBtn.textContent).toBe("★ Favorited");
+
+    activeFavBtn.click();
+    expect(activeFavBtn.getAttribute("aria-pressed")).toBe("false");
+    expect(activeFavBtn.textContent).toBe("☆ Favorite");
+    expect(favFilterBtn.textContent).toBe("★ Favorites (11)");
+    expect(visibleKeys()).not.toContain(DEFAULT_FAVORITE_SIMPLEGUI_THEMES[0]!);
+
+    // Re-pinning restores all 12 favorites
+    activeFavBtn.click();
+    expect(favFilterBtn.textContent).toBe("★ Favorites (12)");
+    expect(visibleKeys()).toEqual(DEFAULT_FAVORITE_SIMPLEGUI_THEMES);
+
+    // Switching to All filter shows all catalog entries; clicking a chip's star pins a non-default theme
+    const allFilterBtn = doc.querySelector<HTMLElement>(
+      '.sg-flt-btn[data-filter="all"]',
+    )!;
+    allFilterBtn.click();
+    expect(visibleKeys().length).toBe(catalog.total);
+
+    const tokyoStar = doc.querySelector<HTMLElement>(
+      '.sg-gal-pill[data-theme-key="tokyo_night"] [data-fav-star]',
+    )!;
+    expect(tokyoStar.textContent).toBe("☆");
+    tokyoStar.click();
+    expect(tokyoStar.textContent).toBe("★");
+    expect(favFilterBtn.textContent).toBe("★ Favorites (13)");
+
+    favFilterBtn.click();
+    expect(visibleKeys().length).toBe(13);
+    expect(visibleKeys()).toContain("tokyo_night");
+
+    dom.window.close();
   });
 });

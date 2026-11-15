@@ -8,7 +8,10 @@
  * hardware-adaptive visual effects (FX).
  */
 
-import { SIMPLEGUI_THEMES } from "./shared/simpleguiThemes";
+import {
+  SIMPLEGUI_THEMES,
+  DEFAULT_FAVORITE_SIMPLEGUI_THEMES,
+} from "./shared/simpleguiThemes";
 export { SIMPLEGUI_THEMES } from "./shared/simpleguiThemes";
 import type { SizeHint, Webview } from "webview-bun";
 const SIZE_HINT_NONE = 0 as SizeHint;
@@ -2555,7 +2558,7 @@ export class SimpleWindow {
                         }
                         select:not([size]):hover, .simplegui-select:hover { border-color: ${colors.accent} !important; }
                         select:not([size]):focus, .simplegui-select:focus { border-color: ${colors.accent} !important; outline-color: ${colors.accent} !important; }
-                        select option {
+                        select option, select optgroup {
                             background-color: ${cardBg} !important;
                             color: ${colors.fg} !important;
                         }
@@ -5008,51 +5011,55 @@ export class SimpleWindow {
       useAutoShortNames = autoShortNames;
     }
 
-    const popularThemes = [
-      "midnight",
-      "codefreelance",
-      "raycast_dark",
-      "linear_dark",
-      "vercel_dark",
-      "unreal_engine",
-      "arc_velvet",
-      "abyss",
-      "night_city",
-      "horizon",
-      "tailwind_dark",
-      "supabase",
-      "oled_black",
-      "titanium_slate",
-      "jetbrains_darcula",
-      "nordic_paper",
-      "sonoma_emerald",
-      "monokai_pro",
-      "tokyo_night",
-      "one_dark_pro",
-      "gruvbox_dark",
-      "rose_pine",
-      "everforest",
-      "kanagawa",
-      "cobalt2",
-      "win11_slate",
-      "ubuntu_dark",
-      "adwaita_dark",
-      "linux_mint",
-      "apple_dark",
-      "dracula",
-      "nord",
-      "cyberpunk",
-      "apple_light",
-      "github_dark",
-      "win95",
-      "gameboy",
-      "commodore64",
-      "synthwave84",
-      "macintosh_system7",
-      "amber_crt",
-      "matrix_phosphor",
-      "amiga",
-    ];
+    const favoriteSet = new Set<string>(DEFAULT_FAVORITE_SIMPLEGUI_THEMES);
+    const popularThemes = Array.from(
+      new Set([
+        ...DEFAULT_FAVORITE_SIMPLEGUI_THEMES,
+        "midnight",
+        "codefreelance",
+        "raycast_dark",
+        "linear_dark",
+        "vercel_dark",
+        "unreal_engine",
+        "arc_velvet",
+        "abyss",
+        "night_city",
+        "horizon",
+        "tailwind_dark",
+        "supabase",
+        "oled_black",
+        "titanium_slate",
+        "jetbrains_darcula",
+        "nordic_paper",
+        "sonoma_emerald",
+        "monokai_pro",
+        "tokyo_night",
+        "one_dark_pro",
+        "gruvbox_dark",
+        "rose_pine",
+        "everforest",
+        "kanagawa",
+        "cobalt2",
+        "win11_slate",
+        "ubuntu_dark",
+        "adwaita_dark",
+        "linux_mint",
+        "apple_dark",
+        "dracula",
+        "nord",
+        "cyberpunk",
+        "apple_light",
+        "github_dark",
+        "win95",
+        "gameboy",
+        "commodore64",
+        "synthwave84",
+        "macintosh_system7",
+        "amber_crt",
+        "matrix_phosphor",
+        "amiga",
+      ]),
+    );
     const baseVlangKeys = VLANG_THEME_NAMES.map((k) => {
       if (k === "commodore64") return "c64";
       if (k === "matrix_phosphor") return "matrix";
@@ -5061,7 +5068,9 @@ export class SimpleWindow {
       return k;
     });
     const coveredThemeNames = new Set(
-      baseVlangKeys.map((k) => SIMPLEGUI_THEMES[k]?.name).filter(Boolean),
+      [...DEFAULT_FAVORITE_SIMPLEGUI_THEMES, ...baseVlangKeys]
+        .map((k) => SIMPLEGUI_THEMES[k]?.name)
+        .filter(Boolean),
     );
     const extraCanonicalKeys: string[] = [];
     for (const [k, t] of Object.entries(SIMPLEGUI_THEMES)) {
@@ -5072,34 +5081,50 @@ export class SimpleWindow {
     }
     const rawThemeList = popularOnly
       ? popularThemes.filter((k) => SIMPLEGUI_THEMES[k])
-      : [...baseVlangKeys, ...extraCanonicalKeys];
+      : Array.from(
+          new Set([
+            ...DEFAULT_FAVORITE_SIMPLEGUI_THEMES.filter(
+              (k) => SIMPLEGUI_THEMES[k],
+            ),
+            ...baseVlangKeys,
+            ...extraCanonicalKeys,
+          ]),
+        );
 
     const itemLabels: Record<string, string> = {};
     for (const k of rawThemeList) {
-      itemLabels[k] = useAutoShortNames
+      const baseLabel = useAutoShortNames
         ? autoShortThemeName(k)
         : SIMPLEGUI_THEMES[k]?.name || k;
+      itemLabels[k] = favoriteSet.has(k) ? `★ ${baseLabel}` : baseLabel;
     }
     for (const [alias, target] of Object.entries(SIMPLEGUI_THEMES)) {
       if (!itemLabels[alias]) {
-        itemLabels[alias] = useAutoShortNames
+        const baseLabel = useAutoShortNames
           ? autoShortThemeName(alias)
           : target?.name || alias;
+        itemLabels[alias] = favoriteSet.has(alias)
+          ? `★ ${baseLabel}`
+          : baseLabel;
       }
     }
 
-    // Deduplicate so each visible label appears exactly once
+    // Deduplicate so each visible label and canonical theme name appears at most once
     const seenLabels = new Set<string>();
+    const seenCanonNames = new Set<string>();
     const themeList: string[] = [];
     for (const k of rawThemeList) {
       const labelText = itemLabels[k] || k;
-      if (!seenLabels.has(labelText)) {
+      const canonName = SIMPLEGUI_THEMES[k]?.name || labelText;
+      if (!seenLabels.has(labelText) && !seenCanonNames.has(canonName)) {
         seenLabels.add(labelText);
+        seenCanonNames.add(canonName);
         themeList.push(k);
       }
     }
 
     // Sort themeList alphabetically by the display label shown to the user
+    // ("★ ..." Master Favorites naturally sort to the top via localeCompare)
     themeList.sort((a, b) => {
       const labelA = itemLabels[a] || a;
       const labelB = itemLabels[b] || b;
@@ -5118,6 +5143,9 @@ export class SimpleWindow {
       item_labels: itemLabels,
     });
     ref.spec.is_theme_selector = true;
+    ref.spec.favorite_themes = DEFAULT_FAVORITE_SIMPLEGUI_THEMES.filter((k) =>
+      themeList.includes(k),
+    );
     if (width > 0) {
       ref.width(width);
     }
@@ -5129,7 +5157,9 @@ export class SimpleWindow {
         if (w.autoSaveState) {
           w.saveAppFormStateOr();
         }
-        const display = useAutoShortNames ? autoShortThemeName(chosen) : chosen;
+        const display = useAutoShortNames
+          ? autoShortThemeName(chosen)
+          : SIMPLEGUI_THEMES[chosen]?.name || chosen;
         w.toast(`Theme updated to: ${display}`);
       }
     });
@@ -12201,6 +12231,11 @@ export class SimpleWindow {
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06), var(--sg-shadow-xs);
     transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease, color 150ms ease;
   }
+  select.simplegui-select optgroup {
+    background-color: var(--card-bg, #18181b);
+    color: var(--accent, #38bdf8);
+    font-weight: 700;
+  }
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="hidden"]):not([type="file"]):not(.cmd-palette-input):hover:not(:disabled):not(:focus),
   textarea:hover:not(:disabled):not(:focus),
   .search-field-wrapper:hover,
@@ -12452,6 +12487,62 @@ export class SimpleWindow {
 
     const spec = this.buildFormSpec();
     let html = generatePreviewHtml(spec);
+
+    // Group featured Master Favorites inside <optgroup> on built-in theme selectors
+    const themeSelectors: ControlSpec[] = [];
+    const collectSelectors = (items?: ControlSpec[]) => {
+      if (!Array.isArray(items)) return;
+      for (const item of items) {
+        if (
+          item &&
+          item.is_theme_selector &&
+          Array.isArray(item.favorite_themes) &&
+          item.favorite_themes.length > 0
+        ) {
+          themeSelectors.push(item);
+        }
+        if (Array.isArray((item as any)?.children)) {
+          collectSelectors((item as any).children);
+        }
+      }
+    };
+    collectSelectors(spec.controls);
+
+    for (const selCtrl of themeSelectors) {
+      const favSet = new Set<string>(selCtrl.favorite_themes as string[]);
+      const escapedSelId = String(selCtrl.id || "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (!escapedSelId) continue;
+      const selRe = new RegExp(
+        `(<select[^>]*\\bid="${escapedSelId}"[^>]*>)([\\s\\S]*?)(<\\/select>)`,
+      );
+      html = html.replace(selRe, (full, openTag, inner, closeTag) => {
+        if (inner.includes("<optgroup")) return full;
+        const optMatches = [
+          ...String(inner).matchAll(
+            /<option[^>]*value="([^"]*)"[^>]*>[\s\S]*?<\/option>/g,
+          ),
+        ];
+        if (!optMatches.length) return full;
+        const favOpts: string[] = [];
+        const otherOpts: string[] = [];
+        for (const m of optMatches) {
+          if (favSet.has(m[1]!)) favOpts.push(m[0]);
+          else otherOpts.push(m[0]);
+        }
+        if (!favOpts.length || !otherOpts.length) return full;
+        return (
+          `${openTag}` +
+          `<optgroup label="★ Featured Master Favorites">${favOpts.join("")}</optgroup>` +
+          `<optgroup label="All Studio, OS &amp; FX Themes">${otherOpts.join("")}</optgroup>` +
+          `${closeTag}`
+        );
+      });
+    }
 
     const safeScriptJson = (val: unknown): string =>
       JSON.stringify(val)

@@ -23,6 +23,9 @@ import {
   getTheme,
   autoShortThemeName,
 } from "../index.ts";
+import { DEFAULT_FAVORITE_SIMPLEGUI_THEMES } from "../src/shared/simpleguiThemes.ts";
+
+export { DEFAULT_FAVORITE_SIMPLEGUI_THEMES };
 
 export type ShowcaseThemeTier = "fx" | "os" | "light" | "dark";
 
@@ -32,6 +35,7 @@ export interface ShowcaseThemeEntry {
   shortName: string;
   description: string;
   isDark: boolean;
+  isDefaultFavorite: boolean;
   tier: ShowcaseThemeTier;
   tierLabel: string;
   bg: string;
@@ -46,6 +50,7 @@ export interface ShowcaseThemeEntry {
 export interface ShowcaseCatalogSummary {
   entries: ShowcaseThemeEntry[];
   total: number;
+  favoritesCount: number;
   darkCount: number;
   lightCount: number;
   osCount: number;
@@ -123,9 +128,17 @@ export function getShowcaseThemeCatalog(): ShowcaseCatalogSummary {
     return cachedCatalog;
   }
 
+  const defaultFavSet = new Set<string>(DEFAULT_FAVORITE_SIMPLEGUI_THEMES);
   const seenNames = new Set<string>();
   const orderedKeys: string[] = [];
 
+  for (const favKey of DEFAULT_FAVORITE_SIMPLEGUI_THEMES) {
+    const t = SIMPLEGUI_THEMES[favKey];
+    if (t && !seenNames.has(t.name)) {
+      seenNames.add(t.name);
+      orderedKeys.push(favKey);
+    }
+  }
   for (const canonicalKey of VLANG_THEME_NAMES) {
     const t = SIMPLEGUI_THEMES[canonicalKey];
     if (t && !seenNames.has(t.name)) {
@@ -140,6 +153,7 @@ export function getShowcaseThemeCatalog(): ShowcaseCatalogSummary {
     }
   }
 
+  let favoritesCount = 0;
   let darkCount = 0;
   let lightCount = 0;
   let osCount = 0;
@@ -148,6 +162,8 @@ export function getShowcaseThemeCatalog(): ShowcaseCatalogSummary {
   const entries: ShowcaseThemeEntry[] = orderedKeys.map((key) => {
     const t: any = getTheme(key);
     const { tier, tierLabel, fxSummary } = classifyThemeTier(key, t);
+    const isDefaultFavorite = defaultFavSet.has(key);
+    if (isDefaultFavorite) favoritesCount++;
     if (t.is_dark) darkCount++;
     else lightCount++;
     if (tier === "os") osCount++;
@@ -159,6 +175,7 @@ export function getShowcaseThemeCatalog(): ShowcaseCatalogSummary {
       shortName: t.short_name || autoShortThemeName(key) || t.name,
       description: t.description || "",
       isDark: Boolean(t.is_dark),
+      isDefaultFavorite,
       tier,
       tierLabel,
       bg: t.background_color,
@@ -177,6 +194,7 @@ export function getShowcaseThemeCatalog(): ShowcaseCatalogSummary {
   cachedCatalog = {
     entries,
     total: entries.length,
+    favoritesCount,
     darkCount,
     lightCount,
     osCount,
@@ -203,6 +221,7 @@ function buildShowcaseGalleryHtml(
       (e) => e.key === activeKey || e.name === activeTheme.name,
     ) || catalog.entries[0];
   const canonicalActiveKey = resolvedEntry ? resolvedEntry.key : activeKey;
+  const isActiveFav = Boolean(resolvedEntry?.isDefaultFavorite);
 
   const swatchItems = [
     { id: "bg", label: "Canvas", color: activeTheme.background_color },
@@ -234,15 +253,18 @@ function buildShowcaseGalleryHtml(
   const galleryPillsHtml = catalog.entries
     .map((entry) => {
       const isAct = entry.key === canonicalActiveKey;
+      const isFav = entry.isDefaultFavorite;
       return (
-        `<button type="button" class="sg-gal-pill${isAct ? " is-active" : ""}" data-no-theme="1" ` +
-        `data-theme-key="${escapeAttr(entry.key)}" data-tier="${entry.tier}" data-polarity="${entry.isDark ? "dark" : "light"}" ` +
+        `<button type="button" class="sg-gal-pill${isAct ? " is-active" : ""}${isFav ? " is-fav" : ""}" data-no-theme="1" ` +
+        `data-theme-key="${escapeAttr(entry.key)}" data-tier="${entry.tier}" data-polarity="${entry.isDark ? "dark" : "light"}" data-favorite="${isFav ? "1" : "0"}" ` +
+        `${isFav ? "" : 'style="display:none" '}` +
         `title="${escapeAttr(entry.name)} (${escapeAttr(entry.tierLabel)}) — ${escapeAttr(entry.description)}">` +
         `<span class="sg-gal-dots" data-no-theme="1">` +
         `<i data-no-theme="1" style="background:${escapeAttr(entry.bg)};"></i>` +
         `<i data-no-theme="1" style="background:${escapeAttr(entry.accent)};"></i>` +
         `</span>` +
         `<span class="sg-gal-name">${escapeAttr(entry.shortName)}</span>` +
+        `<span class="sg-gal-star" data-no-theme="1" data-fav-star="1" title="Toggle favorite for ${escapeAttr(entry.name)}">${isFav ? "★" : "☆"}</span>` +
         `</button>`
       );
     })
@@ -257,24 +279,30 @@ function buildShowcaseGalleryHtml(
       fx: e.fxSummary,
     })),
   ).replace(/</g, "\\u003c");
+  const defaultFavoritesJson = JSON.stringify(
+    DEFAULT_FAVORITE_SIMPLEGUI_THEMES,
+  ).replace(/</g, "\\u003c");
 
   return (
     `<style id="sg-showcase-strip-style">` +
-    `.sg-showcase-strip{display:flex;flex-direction:column;gap:8px;width:100%;height:100%;padding:10px 12px;border-radius:10px;background:var(--card-bg,#1e293b);border:1px solid var(--sg-hairline-strong,var(--card-border,rgba(148,163,184,.24)));box-shadow:inset 0 1px 0 var(--sg-specular-card,rgba(255,255,255,.06)),var(--sg-shadow-sm,0 2px 8px rgba(0,0,0,.16));box-sizing:border-box;overflow:hidden}` +
-    `.sg-strip-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}` +
-    `.sg-strip-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}` +
-    `.sg-tier-pill,.sg-fx-pill,.sg-count-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em;line-height:1.3;white-space:nowrap}` +
+    `.sg-showcase-strip{display:flex;flex-direction:column;gap:8px;width:100%;height:100%;padding:9px 12px;border-radius:10px;background:var(--card-bg,#1e293b);border:1px solid var(--sg-hairline-strong,var(--card-border,rgba(148,163,184,.24)));box-shadow:inset 0 1px 0 var(--sg-specular-card,rgba(255,255,255,.06)),var(--sg-shadow-sm,0 2px 8px rgba(0,0,0,.16));box-sizing:border-box;overflow:hidden}` +
+    `.sg-strip-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:nowrap;min-width:0}` +
+    `.sg-strip-meta{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;min-width:0;overflow:hidden}` +
+    `.sg-tier-pill,.sg-fx-pill,.sg-count-pill,.sg-fav-toggle-btn{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em;line-height:1.3;white-space:nowrap;flex:0 0 auto}` +
     `.sg-tier-pill{background:color-mix(in srgb,var(--accent,#38bdf8) 16%,transparent);color:var(--accent,#38bdf8);border:1px solid color-mix(in srgb,var(--accent,#38bdf8) 38%,transparent)}` +
-    `.sg-fx-pill{background:color-mix(in srgb,var(--secondary-accent,var(--accent,#38bdf8)) 13%,transparent);color:var(--theme-fg,#e2e8f0);border:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.25)));font-weight:600}` +
+    `.sg-fx-pill{background:color-mix(in srgb,var(--secondary-accent,var(--accent,#38bdf8)) 13%,transparent);color:var(--theme-fg,#e2e8f0);border:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.25)));font-weight:600;max-width:210px;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}` +
     `.sg-count-pill{background:color-mix(in srgb,var(--theme-fg,#94a3b8) 7%,transparent);color:var(--theme-muted,#94a3b8);border:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.2)));font-weight:600}` +
-    `.sg-sw-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}` +
-    `.sg-sw-chip{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:6px;background:var(--input-bg,rgba(15,23,42,.25));border:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.22)));font-size:11px}` +
-    `.sg-sw-dot{width:11px;height:11px;border-radius:50%;border:1px solid rgba(128,128,128,.45);flex:0 0 auto}` +
-    `.sg-sw-lbl{color:var(--theme-muted,#94a3b8);font-weight:600;font-size:10.5px}` +
-    `.sg-sw-hex{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:10.5px;color:var(--theme-fg,#e2e8f0);background:transparent;padding:0}` +
+    `.sg-fav-toggle-btn{background:color-mix(in srgb,var(--theme-fg,#94a3b8) 8%,transparent);color:var(--theme-muted,#94a3b8);border:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.24)));cursor:pointer;transition:background-color .14s ease,color .14s ease,border-color .14s ease}` +
+    `.sg-fav-toggle-btn:hover{color:var(--theme-fg,#e2e8f0);border-color:color-mix(in srgb,var(--warning,#f59e0b) 52%,var(--card-border,transparent))}` +
+    `.sg-fav-toggle-btn.is-fav{background:color-mix(in srgb,var(--warning,#f59e0b) 18%,transparent);color:var(--warning,#f59e0b);border-color:color-mix(in srgb,var(--warning,#f59e0b) 48%,transparent)}` +
+    `.sg-sw-row{display:flex;align-items:center;gap:5px;flex-wrap:nowrap;flex:0 0 auto}` +
+    `.sg-sw-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border-radius:6px;background:var(--input-bg,rgba(15,23,42,.25));border:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.22)));font-size:11px}` +
+    `.sg-sw-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(128,128,128,.45);flex:0 0 auto}` +
+    `.sg-sw-lbl{color:var(--theme-muted,#94a3b8);font-weight:600;font-size:10px}` +
+    `.sg-sw-hex{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:10px;color:var(--theme-fg,#e2e8f0);background:transparent;padding:0}` +
     `.sg-strip-rail-wrap{display:flex;align-items:center;gap:6px;min-width:0}` +
     `.sg-flt-grp{display:inline-flex;align-items:center;gap:2px;padding:2px;border-radius:7px;background:var(--input-bg,rgba(15,23,42,.22));border:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.22)));flex:0 0 auto}` +
-    `.sg-flt-btn,.sg-step-btn{border:1px solid transparent;background:transparent;color:var(--theme-muted,#94a3b8);font-size:11px;font-weight:700;padding:3px 7px;border-radius:5px;cursor:pointer;line-height:1.2;transition:background-color .14s ease,color .14s ease,border-color .14s ease}` +
+    `.sg-flt-btn,.sg-step-btn{border:1px solid transparent;background:transparent;color:var(--theme-muted,#94a3b8);font-size:11px;font-weight:700;padding:3px 7px;border-radius:5px;cursor:pointer;line-height:1.2;white-space:nowrap;transition:background-color .14s ease,color .14s ease,border-color .14s ease}` +
     `.sg-flt-btn:hover,.sg-step-btn:hover{color:var(--theme-fg,#e2e8f0);background:color-mix(in srgb,var(--theme-fg,#94a3b8) 10%,transparent)}` +
     `.sg-flt-btn.is-on{background:var(--accent,#38bdf8);color:var(--btn-fg,#fff)}` +
     `.sg-step-btn{background:var(--input-bg,rgba(15,23,42,.22));border-color:var(--sg-hairline,var(--card-border,rgba(148,163,184,.24)));color:var(--theme-fg,#e2e8f0);padding:4px 8px;flex:0 0 auto}` +
@@ -282,24 +310,30 @@ function buildShowcaseGalleryHtml(
     `.sg-gal-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;border:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.24)));background:var(--input-bg,rgba(15,23,42,.2));color:var(--theme-fg,#e2e8f0);font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;flex:0 0 auto;transition:border-color .14s ease,background-color .14s ease,transform .1s ease}` +
     `.sg-gal-pill:hover{border-color:color-mix(in srgb,var(--accent,#38bdf8) 55%,var(--card-border,transparent));background:color-mix(in srgb,var(--accent,#38bdf8) 10%,var(--input-bg,transparent))}` +
     `.sg-gal-pill.is-active{border-color:var(--accent,#38bdf8);background:color-mix(in srgb,var(--accent,#38bdf8) 20%,var(--input-bg,transparent));color:var(--accent,#38bdf8);font-weight:700;box-shadow:0 0 0 1px color-mix(in srgb,var(--accent,#38bdf8) 32%,transparent)}` +
-    `.sg-gal-pill:focus-visible,.sg-flt-btn:focus-visible,.sg-step-btn:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}` +
+    `.sg-gal-star{font-size:11px;line-height:1;opacity:.55;margin-left:1px;padding:0 1px;transition:opacity .14s ease,color .14s ease,transform .1s ease}` +
+    `.sg-gal-pill.is-fav .sg-gal-star{opacity:1;color:var(--warning,#f59e0b)}` +
+    `.sg-gal-pill:hover .sg-gal-star{opacity:.95}` +
+    `.sg-gal-star:hover{transform:scale(1.2);opacity:1!important}` +
+    `.sg-gal-pill:focus-visible,.sg-flt-btn:focus-visible,.sg-step-btn:focus-visible,.sg-fav-toggle-btn:focus-visible{outline:2px solid var(--accent,#38bdf8);outline-offset:2px}` +
     `.sg-gal-dots{display:inline-flex;align-items:center}` +
     `.sg-gal-dots i{width:9px;height:9px;border-radius:50%;border:1px solid rgba(128,128,128,.45);display:inline-block}` +
     `.sg-gal-dots i+i{margin-left:-3px}` +
-    `@media (prefers-reduced-motion:reduce){.sg-gal-pill,.sg-flt-btn,.sg-step-btn{transition:none!important}}` +
+    `@media (prefers-reduced-motion:reduce){.sg-gal-pill,.sg-flt-btn,.sg-step-btn,.sg-fav-toggle-btn,.sg-gal-star{transition:none!important}}` +
     `</style>` +
-    `<div class="sg-showcase-strip" id="sg_showcase_strip" data-active-theme="${escapeAttr(canonicalActiveKey)}">` +
+    `<div class="sg-showcase-strip" id="sg_showcase_strip" data-active-theme="${escapeAttr(canonicalActiveKey)}" data-active-filter="favorites">` +
     `<div class="sg-strip-top">` +
     `<div class="sg-strip-meta">` +
     `<span id="sg_tier_badge" class="sg-tier-pill">✦ ${escapeAttr(activeTierInfo.tierLabel)}</span>` +
     `<span id="sg_fx_badge" class="sg-fx-pill">${escapeAttr(activeTierInfo.fxSummary)}</span>` +
-    `<span id="sg_catalog_counts" class="sg-count-pill">${catalog.total} Themes · ${catalog.darkCount} Dark · ${catalog.lightCount} Light · ${catalog.osCount} OS · ${catalog.fxCount} FX</span>` +
+    `<button type="button" id="sg_toggle_active_fav" class="sg-fav-toggle-btn${isActiveFav ? " is-fav" : ""}" data-no-theme="1" aria-pressed="${isActiveFav ? "true" : "false"}" title="Star or unstar active theme in Favorites">${isActiveFav ? "★ Favorited" : "☆ Favorite"}</button>` +
+    `<span id="sg_catalog_counts" class="sg-count-pill">${catalog.total} Themes · ${catalog.favoritesCount} ★ · ${catalog.darkCount} Dark · ${catalog.lightCount} Light · ${catalog.osCount} OS · ${catalog.fxCount} FX</span>` +
     `</div>` +
     `<div class="sg-sw-row">${swatchesHtml}</div>` +
     `</div>` +
     `<div class="sg-strip-rail-wrap">` +
     `<div class="sg-flt-grp" role="tablist" aria-label="Filter themes by tier">` +
-    `<button type="button" class="sg-flt-btn is-on" data-no-theme="1" data-filter="all">All (${catalog.total})</button>` +
+    `<button type="button" class="sg-flt-btn is-fav-flt is-on" id="sg_flt_favorites" data-no-theme="1" data-filter="favorites">★ Favorites (${catalog.favoritesCount})</button>` +
+    `<button type="button" class="sg-flt-btn" data-no-theme="1" data-filter="all">All (${catalog.total})</button>` +
     `<button type="button" class="sg-flt-btn" data-no-theme="1" data-filter="dark">Dark (${catalog.darkCount})</button>` +
     `<button type="button" class="sg-flt-btn" data-no-theme="1" data-filter="light">Light (${catalog.lightCount})</button>` +
     `<button type="button" class="sg-flt-btn" data-no-theme="1" data-filter="os">OS (${catalog.osCount})</button>` +
@@ -312,9 +346,59 @@ function buildShowcaseGalleryHtml(
     `</div>` +
     `<script>(function(){` +
     `var CAT=${catalogClientIndex};` +
+    `var DEF_FAVS=${defaultFavoritesJson};` +
+    `var STORE_KEY="simplegui.showcase.favorites.v1";` +
     `var strip=document.getElementById("sg_showcase_strip");` +
     `var rail=document.getElementById("sg_gal_rail");` +
     `if(!strip||!rail)return;` +
+    `var knownKeys={};for(var ci=0;ci<CAT.length;ci++)knownKeys[CAT[ci].k]=true;` +
+    `var favMap={};` +
+    `function loadFavs(){` +
+    `var list=null;` +
+    `try{var raw=window.localStorage&&window.localStorage.getItem(STORE_KEY);if(raw){var parsed=JSON.parse(raw);if(Array.isArray(parsed)){var valid=parsed.filter(function(k){return typeof k==="string"&&knownKeys[k];});if(valid.length>0)list=valid;}}}catch(_e){}` +
+    `if(!list)list=DEF_FAVS.slice();` +
+    `favMap={};for(var fi=0;fi<list.length;fi++)favMap[list[fi]]=true;` +
+    `}` +
+    `function saveFavs(){` +
+    `try{if(window.localStorage){var keys=Object.keys(favMap).filter(function(k){return !!favMap[k];});window.localStorage.setItem(STORE_KEY,JSON.stringify(keys));}}catch(_e){}` +
+    `}` +
+    `function countFavs(){var n=0;for(var k in favMap){if(Object.prototype.hasOwnProperty.call(favMap,k)&&favMap[k])n++;}return n;}` +
+    `var activeFilter=strip.getAttribute("data-active-filter")||"favorites";` +
+    `function applyFilter(f){` +
+    `activeFilter=f||"all";` +
+    `strip.setAttribute("data-active-filter",activeFilter);` +
+    `Array.prototype.forEach.call(strip.querySelectorAll(".sg-flt-btn"),function(x){x.classList.toggle("is-on",(x.getAttribute("data-filter")||"all")===activeFilter);});` +
+    `Array.prototype.forEach.call(rail.querySelectorAll(".sg-gal-pill"),function(p){` +
+    `var k=p.getAttribute("data-theme-key")||"";` +
+    `var show=activeFilter==="all"||(activeFilter==="favorites"&&!!favMap[k])||(activeFilter==="dark"&&p.getAttribute("data-polarity")==="dark")||(activeFilter==="light"&&p.getAttribute("data-polarity")==="light")||(p.getAttribute("data-tier")===activeFilter);` +
+    `p.style.display=show?"":"none";` +
+    `});` +
+    `}` +
+    `function syncFavoritesDom(){` +
+    `var favCount=countFavs();` +
+    `var fltFav=document.getElementById("sg_flt_favorites");` +
+    `if(fltFav)fltFav.textContent="\u2605 Favorites ("+favCount+")";` +
+    `var cur=strip.getAttribute("data-active-theme")||"";` +
+    `var actFavBtn=document.getElementById("sg_toggle_active_fav");` +
+    `if(actFavBtn){var isCurFav=!!favMap[cur];actFavBtn.classList.toggle("is-fav",isCurFav);actFavBtn.setAttribute("aria-pressed",isCurFav?"true":"false");actFavBtn.textContent=isCurFav?"\u2605 Favorited":"\u2606 Favorite";}` +
+    `Array.prototype.forEach.call(rail.querySelectorAll(".sg-gal-pill"),function(p){` +
+    `var k=p.getAttribute("data-theme-key")||"";` +
+    `var isF=!!favMap[k];` +
+    `p.classList.toggle("is-fav",isF);` +
+    `p.setAttribute("data-favorite",isF?"1":"0");` +
+    `var st=p.querySelector("[data-fav-star]");` +
+    `if(st)st.textContent=isF?"\u2605":"\u2606";` +
+    `});` +
+    `applyFilter(activeFilter);` +
+    `}` +
+    `function toggleFavorite(key){` +
+    `if(!key||!knownKeys[key])return;` +
+    `if(favMap[key])delete favMap[key];else favMap[key]=true;` +
+    `saveFavs();` +
+    `syncFavoritesDom();` +
+    `}` +
+    `loadFavs();` +
+    `syncFavoritesDom();` +
     `function pickTheme(key){` +
     `var sel=document.getElementById("dd_theme_selector");` +
     `if(sel){sel.value=key;sel.dispatchEvent(new Event("change",{bubbles:true}));}` +
@@ -324,26 +408,25 @@ function buildShowcaseGalleryHtml(
     `return Array.prototype.slice.call(rail.querySelectorAll(".sg-gal-pill")).filter(function(b){return b.style.display!=="none";});` +
     `}` +
     `rail.addEventListener("click",function(e){` +
+    `var star=e.target&&e.target.closest?e.target.closest("[data-fav-star]"):null;` +
     `var btn=e.target&&e.target.closest?e.target.closest(".sg-gal-pill"):null;` +
     `if(!btn)return;` +
     `var k=btn.getAttribute("data-theme-key");` +
+    `if(star){e.stopPropagation();e.preventDefault();if(k)toggleFavorite(k);return;}` +
     `if(k)pickTheme(k);` +
     `});` +
+    `var actFavToggle=document.getElementById("sg_toggle_active_fav");` +
+    `if(actFavToggle){actFavToggle.addEventListener("click",function(){toggleFavorite(strip.getAttribute("data-active-theme")||"");});}` +
     `Array.prototype.forEach.call(strip.querySelectorAll(".sg-flt-btn"),function(fb){` +
     `fb.addEventListener("click",function(){` +
-    `var f=fb.getAttribute("data-filter")||"all";` +
-    `Array.prototype.forEach.call(strip.querySelectorAll(".sg-flt-btn"),function(x){x.classList.toggle("is-on",x===fb);});` +
-    `Array.prototype.forEach.call(rail.querySelectorAll(".sg-gal-pill"),function(p){` +
-    `var show=f==="all"||(f==="dark"&&p.getAttribute("data-polarity")==="dark")||(f==="light"&&p.getAttribute("data-polarity")==="light")||(p.getAttribute("data-tier")===f);` +
-    `p.style.display=show?"":"none";` +
-    `});` +
+    `applyFilter(fb.getAttribute("data-filter")||"all");` +
     `});` +
     `});` +
     `function stepTheme(dir){` +
     `var vis=visiblePills();if(!vis.length)return;` +
     `var cur=strip.getAttribute("data-active-theme")||"";` +
     `var idx=vis.findIndex(function(b){return b.getAttribute("data-theme-key")===cur;});` +
-    `var next=vis[(idx+dir+vis.length)%vis.length];` +
+    `var next=idx<0?vis[dir>0?0:vis.length-1]:vis[(idx+dir+vis.length)%vis.length];` +
     `if(next)pickTheme(next.getAttribute("data-theme-key"));` +
     `}` +
     `var prevBtn=document.getElementById("sg_prev_theme"),nextBtn=document.getElementById("sg_next_theme");` +
@@ -363,10 +446,12 @@ function buildShowcaseGalleryHtml(
     `var tb=document.getElementById("sg_tier_badge"),fb=document.getElementById("sg_fx_badge");` +
     `if(tb)tb.textContent="\u2726 "+(entry?entry.tl:(m.fx?"FX Shader":(m.isDark?"Studio Dark":"Studio Light")));` +
     `if(fb)fb.textContent=entry?entry.fx:(m.fx?"GPU Shader Pipeline":"Native Crisp CSS \u00B7 Zero Shader Overhead");` +
+    `var actFavBtn=document.getElementById("sg_toggle_active_fav");` +
+    `if(actFavBtn){var isCurFav=!!favMap[canon];actFavBtn.classList.toggle("is-fav",isCurFav);actFavBtn.setAttribute("aria-pressed",isCurFav?"true":"false");actFavBtn.textContent=isCurFav?"\u2605 Favorited":"\u2606 Favorite";}` +
     `Array.prototype.forEach.call(rail.querySelectorAll(".sg-gal-pill"),function(p){` +
     `var on=p.getAttribute("data-theme-key")===canon;` +
     `p.classList.toggle("is-active",on);` +
-    `if(on&&p.scrollIntoView)p.scrollIntoView({block:"nearest",inline:"nearest"});` +
+    `if(on&&p.style.display!=="none"&&p.scrollIntoView)p.scrollIntoView({block:"nearest",inline:"nearest"});` +
     `});` +
     `};` +
     `})();<\/script>`
@@ -374,7 +459,7 @@ function buildShowcaseGalleryHtml(
 }
 
 export function createThemeShowcase(
-  themeName: string = "midnight",
+  themeName: string = DEFAULT_FAVORITE_SIMPLEGUI_THEMES[0] || "oled_obsidian_pro",
 ): SimpleWindow {
   const themeObj = getTheme(themeName);
   const catalog = getShowcaseThemeCatalog();
@@ -1062,7 +1147,10 @@ if (import.meta.main) {
   console.log(
     "⚡ Launching Bun RAD Studio Demo 23: Complete All Controls & Theme Studio...",
   );
-  const defaultTheme = process.argv[2] || "midnight";
+  const defaultTheme =
+    process.argv[2] ||
+    DEFAULT_FAVORITE_SIMPLEGUI_THEMES[0] ||
+    "oled_obsidian_pro";
   const app = createThemeShowcase(defaultTheme);
   app.run();
 }

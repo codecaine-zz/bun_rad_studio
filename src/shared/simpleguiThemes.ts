@@ -2048,3 +2048,22 @@ export const MASTER_THEME_KEYS: string[] = [
   "alabaster_studio_light",
   "studio_graphite_pro",
 ].sort();
+
+/**
+ * Curated default favorite flagship Studio Master themes surfaced out-of-the-box in SimpleGUI
+ * selectors and the Theme Showcase (7 Dark + 5 Light across FX Shader & Matte Studio designs).
+ */
+export const DEFAULT_FAVORITE_SIMPLEGUI_THEMES: string[] = [
+  "oled_obsidian_pro",
+  "liquid_glass_noir",
+  "sovereign_gold_pro",
+  "cyberdeck_pro",
+  "solaris_aurora_pro",
+  "kyoto_matcha_studio",
+  "studio_graphite_pro",
+  "liquid_glass_studio",
+  "nordic_daylight_studio",
+  "warm_paper_editorial",
+  "kyoto_washi_daylight",
+  "alabaster_studio_light",
+];
