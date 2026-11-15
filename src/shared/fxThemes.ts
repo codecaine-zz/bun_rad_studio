@@ -7461,6 +7461,376 @@ export const FX_FALLBACK_THEMES: Record<string, string> = {
   holographic_holodeck_continuum: "tokyo_night",
   hyperborean_aether_sanctum_day: "apple_light",
   eden_solarpunk_archology_3000: "nordic_paper",
+  liquid_glass_studio: "alabaster_studio_light",
+  liquid_glass_noir: "studio_graphite_pro",
+  oled_obsidian_pro: "oled_black",
+  nordic_daylight_studio: "nordic_paper",
+  kyoto_matcha_studio: "forest_green",
+  kyoto_washi_daylight: "nordic_paper",
+  sovereign_gold_pro: "ventura_amber",
+  cyberdeck_pro: "night_city",
+  warm_paper_editorial: "gruvbox_light",
+  solaris_aurora_pro: "abyss",
+};
+
+/**
+ * Flagship studio-grade "Master" FX themes registered in `SIMPLEGUI_THEMES` covering both
+ * dark and light design excellence with strict WCAG AAA text contrast and hardware-safe fallbacks.
+ */
+export const FX_MASTER_THEMES: Record<string, SimpleGUITheme> = {
+  liquid_glass_studio: {
+    name: "Liquid Glass Studio",
+    short_name: "Liquid Glass",
+    background_color: "#edf3fa",
+    font_color: "#0b1220",
+    accent_color: "#0b57d0",
+    secondary_accent: "#6941c6",
+    card_background: "#ffffff",
+    card_border: "#5c7089",
+    description:
+      "Flagship spatial refractive crystal glass studio with sapphire cobalt, royal iris, prismatic edges, and fluid spring optics",
+    is_dark: false,
+    fx: {
+      glow: "bloom",
+      glowColor: "#0b57d0",
+      glowColor2: "#6941c6",
+      blur: 24,
+      glass: 0.72,
+      grain: "none",
+      scanlines: "none",
+      sheen: true,
+      radius: "squircle",
+      border: "iridescent",
+      motion: "spring",
+      ambient: true,
+      atmosphere: "liquid_glass_caustics+prism_spectrum",
+      backdropStyle: "liquid",
+      cursorEffect: "prism",
+      vignette: "subtle",
+      prismEdge: true,
+      innerGlow: true,
+      frostedRim: true,
+    },
+  },
+  liquid_glass_noir: {
+    name: "Liquid Glass Noir",
+    short_name: "Glass Noir",
+    background_color: "#060913",
+    font_color: "#f2f7ff",
+    accent_color: "#4cc9f0",
+    secondary_accent: "#c77dff",
+    card_background: "#0e1526",
+    card_border: "#6880a8",
+    description:
+      "Dark spatial obsidian liquid glass with refractive sky-cyan, prism orchid highlights, and specular crystal rims",
+    is_dark: true,
+    fx: {
+      glow: "bloom",
+      glowColor: "#4cc9f0",
+      glowColor2: "#c77dff",
+      blur: 26,
+      glass: 0.68,
+      grain: "none",
+      scanlines: "none",
+      sheen: true,
+      radius: "squircle",
+      border: "iridescent",
+      motion: "spring",
+      ambient: true,
+      atmosphere: "liquid_glass_caustics+aurora",
+      backdropStyle: "liquid",
+      cursorEffect: "prism",
+      vignette: "ambient",
+      prismEdge: true,
+      innerGlow: true,
+      frostedRim: true,
+    },
+  },
+  oled_obsidian_pro: {
+    name: "OLED Obsidian Pro",
+    short_name: "OLED Pro",
+    background_color: "#000000",
+    font_color: "#f5f8fc",
+    accent_color: "#34ebb2",
+    secondary_accent: "#7aa2ff",
+    card_background: "#0b0e14",
+    card_border: "#697c92",
+    description:
+      "Reference zero-nit XDR OLED studio workspace with anodized carbon cards, machined titanium rims, and P3 emerald-mint precision",
+    is_dark: true,
+    fx: {
+      glow: "soft",
+      glowColor: "#34ebb2",
+      glowColor2: "#7aa2ff",
+      blur: 18,
+      glass: 0.48,
+      grain: "none",
+      scanlines: "none",
+      sheen: true,
+      noise: true,
+      radius: "round",
+      border: "metal",
+      motion: "spring",
+      ambient: true,
+      atmosphere: "m4_raytrace_prism+starlight_velvet",
+      backdropStyle: "oled",
+      cursorEffect: "spotlight",
+      vignette: "subtle",
+      innerGlow: true,
+      frostedRim: true,
+    },
+  },
+  nordic_daylight_studio: {
+    name: "Nordic Daylight Studio",
+    short_name: "Nordic Studio",
+    background_color: "#eef2f6",
+    font_color: "#0f172a",
+    accent_color: "#15589c",
+    secondary_accent: "#1f6f63",
+    card_background: "#ffffff",
+    card_border: "#617287",
+    description:
+      "Architectural Scandinavian daylight workspace with frosted mineral glass, fjord cobalt, and calm Baltic pine balance",
+    is_dark: false,
+    fx: {
+      glow: "soft",
+      glowColor: "#15589c",
+      glowColor2: "#1f6f63",
+      blur: 18,
+      glass: 0.62,
+      grain: "none",
+      scanlines: "none",
+      sheen: false,
+      radius: "round",
+      border: "bevel",
+      motion: "calm",
+      ambient: true,
+      atmosphere: "aurora",
+      backdropStyle: "frosted",
+      cursorEffect: "spotlight",
+      vignette: "none",
+      innerGlow: true,
+      frostedRim: true,
+    },
+  },
+  kyoto_matcha_studio: {
+    name: "Kyoto Matcha Studio",
+    short_name: "Kyoto Matcha",
+    background_color: "#08110c",
+    font_color: "#edf7f0",
+    accent_color: "#6ee798",
+    secondary_accent: "#f0b865",
+    card_background: "#101e17",
+    card_border: "#628e76",
+    description:
+      "Botanical Kyoto evening tea-house studio with hinoki shadow, cedar-moss mica glass, ceremonial Uji matcha, and warm yuzu amber",
+    is_dark: true,
+    fx: {
+      glow: "aurora",
+      glowColor: "#6ee798",
+      glowColor2: "#f0b865",
+      blur: 20,
+      glass: 0.58,
+      grain: "subtle",
+      scanlines: "none",
+      sheen: true,
+      noise: true,
+      radius: "round",
+      border: "gradient",
+      motion: "calm",
+      ambient: true,
+      atmosphere: "forest_canopy+sunbeams",
+      backdropStyle: "mica",
+      cursorEffect: "spotlight",
+      vignette: "ambient",
+      innerGlow: true,
+      frostedRim: true,
+    },
+  },
+  kyoto_washi_daylight: {
+    name: "Kyoto Washi Daylight",
+    short_name: "Kyoto Washi",
+    background_color: "#f2f4ec",
+    font_color: "#162119",
+    accent_color: "#1f6844",
+    secondary_accent: "#9c4a1a",
+    card_background: "#fcfdf9",
+    card_border: "#637869",
+    description:
+      "Sunlit Kyoto shoji & handmade kozo paper studio with celadon mica translucency, deep matcha ink, and persimmon lacquer",
+    is_dark: false,
+    fx: {
+      glow: "soft",
+      glowColor: "#1f6844",
+      glowColor2: "#9c4a1a",
+      blur: 16,
+      glass: 0.52,
+      grain: "subtle",
+      scanlines: "none",
+      sheen: false,
+      radius: "soft",
+      border: "bevel",
+      motion: "calm",
+      ambient: true,
+      atmosphere: "forest_canopy+sunbeams",
+      backdropStyle: "mica",
+      cursorEffect: "spotlight",
+      vignette: "none",
+      frostedRim: true,
+    },
+  },
+  sovereign_gold_pro: {
+    name: "Sovereign Gold Pro",
+    short_name: "Sovereign Gold",
+    background_color: "#090806",
+    font_color: "#faf6ee",
+    accent_color: "#f5c451",
+    secondary_accent: "#ee9670",
+    card_background: "#15120d",
+    card_border: "#8d7652",
+    description:
+      "Haute-horlogerie onyx & brushed 24k sovereign gold executive studio with champagne ivory typography and rose-copper bevels",
+    is_dark: true,
+    fx: {
+      glow: "ember",
+      glowColor: "#f5c451",
+      glowColor2: "#ee9670",
+      blur: 18,
+      glass: 0.5,
+      grain: "subtle",
+      scanlines: "none",
+      sheen: true,
+      noise: true,
+      radius: "round",
+      border: "metal",
+      motion: "cinematic",
+      ambient: true,
+      atmosphere: "dust_motes+embers",
+      backdropStyle: "oled",
+      cursorEffect: "spotlight",
+      vignette: "cinema",
+      innerGlow: true,
+      frostedRim: true,
+    },
+  },
+  cyberdeck_pro: {
+    name: "Cyberdeck Pro",
+    short_name: "Cyberdeck Pro",
+    background_color: "#050811",
+    font_color: "#eef6ff",
+    accent_color: "#00f0ff",
+    secondary_accent: "#ff5c9e",
+    card_background: "#0c1324",
+    card_border: "#5580b8",
+    description:
+      "Next-generation tactical neural cyberdeck HUD with ballistic navy glass, laser cyan telemetry, hyper-magenta pulses, and holo reticle",
+    is_dark: true,
+    fx: {
+      glow: "laser",
+      glowColor: "#00f0ff",
+      glowColor2: "#ff5c9e",
+      blur: 20,
+      glass: 0.64,
+      grain: "none",
+      scanlines: "subtle",
+      sheen: true,
+      chromatic: true,
+      radius: "sharp",
+      border: "neon",
+      motion: "snappy",
+      ambient: true,
+      atmosphere: "hud_reticle+hex_shield+laser_show",
+      backdropStyle: "glass",
+      cursorEffect: "magnetic",
+      vignette: "cinema",
+      prismEdge: true,
+      innerGlow: true,
+      frostedRim: true,
+      neonPulse: true,
+    },
+  },
+  warm_paper_editorial: {
+    name: "Warm Paper Editorial",
+    short_name: "Warm Paper",
+    background_color: "#f4efe4",
+    font_color: "#1c1712",
+    accent_color: "#9e351e",
+    secondary_accent: "#245c60",
+    card_background: "#fffdf8",
+    card_border: "#786b5a",
+    description:
+      "Archival cotton-rag letterpress & Swiss typographic editorial studio with iron-gall ink, vermilion press marks, and mineral verdigris",
+    is_dark: false,
+    fx: {
+      glow: "none",
+      glowColor: "#9e351e",
+      glowColor2: "#245c60",
+      blur: 0,
+      glass: 0,
+      grain: "subtle",
+      scanlines: "none",
+      sheen: false,
+      radius: "soft",
+      border: "flat",
+      motion: "calm",
+      ambient: false,
+      backdropStyle: "matte",
+      cursorEffect: "none",
+      vignette: "none",
+    },
+  },
+  solaris_aurora_pro: {
+    name: "Solaris Aurora Pro",
+    short_name: "Solaris Aurora",
+    background_color: "#070a17",
+    font_color: "#f1f5ff",
+    accent_color: "#4ef2c8",
+    secondary_accent: "#b78cff",
+    card_background: "#10162b",
+    card_border: "#687cb2",
+    description:
+      "Deep-space astral indigo flagship studio with borealis mint & ultraviolet liquid-crystal aurora refraction",
+    is_dark: true,
+    fx: {
+      glow: "aurora",
+      glowColor: "#4ef2c8",
+      glowColor2: "#b78cff",
+      blur: 24,
+      glass: 0.66,
+      grain: "none",
+      scanlines: "none",
+      sheen: true,
+      radius: "pill",
+      border: "iridescent",
+      motion: "spring",
+      ambient: true,
+      atmosphere: "aurora+northern_pillars",
+      backdropStyle: "liquid",
+      cursorEffect: "prism",
+      vignette: "ambient",
+      prismEdge: true,
+      innerGlow: true,
+      frostedRim: true,
+    },
+  },
+};
+
+/** Sorted canonical keys of flagship `FX_MASTER_THEMES`. */
+export const FX_MASTER_THEME_KEYS: string[] =
+  Object.keys(FX_MASTER_THEMES).sort();
+
+/** Shorthand snake_case aliases for flagship `FX_MASTER_THEMES`. */
+export const FX_MASTER_THEME_ALIASES: Record<string, string> = {
+  liquid_glass: "liquid_glass_studio",
+  obsidian_glass_pro: "liquid_glass_noir",
+  oled_pro: "oled_obsidian_pro",
+  nordic_daylight: "nordic_daylight_studio",
+  kyoto_matcha: "kyoto_matcha_studio",
+  kyoto_washi: "kyoto_washi_daylight",
+  sovereign_gold: "sovereign_gold_pro",
+  cyberdeck_master: "cyberdeck_pro",
+  warm_paper: "warm_paper_editorial",
+  solaris_aurora: "solaris_aurora_pro",
 };
 
 const keyOf = (s: string) =>
@@ -7476,9 +7846,17 @@ export function findFxTheme(
   if (!nameOrKey) return undefined;
   const key = keyOf(String(nameOrKey));
   if (FX_THEMES[key]) return FX_THEMES[key];
+  if (FX_MASTER_THEMES[key]) return FX_MASTER_THEMES[key];
   const aliased = FX_THEME_ALIASES[key];
   if (aliased && FX_THEMES[aliased]) return FX_THEMES[aliased];
+  const masterAliased = FX_MASTER_THEME_ALIASES[key];
+  if (masterAliased && FX_MASTER_THEMES[masterAliased])
+    return FX_MASTER_THEMES[masterAliased];
   for (const t of Object.values(FX_THEMES)) {
+    if (keyOf(t.name) === key || (t.short_name && keyOf(t.short_name) === key))
+      return t;
+  }
+  for (const t of Object.values(FX_MASTER_THEMES)) {
     if (keyOf(t.name) === key || (t.short_name && keyOf(t.short_name) === key))
       return t;
   }
@@ -7492,9 +7870,16 @@ export function resolveFxThemeKey(
   if (!nameOrKey) return undefined;
   const key = keyOf(String(nameOrKey));
   if (FX_THEMES[key]) return key;
+  if (FX_MASTER_THEMES[key]) return key;
   const aliased = FX_THEME_ALIASES[key];
   if (aliased && FX_THEMES[aliased]) return aliased;
+  const masterAliased = FX_MASTER_THEME_ALIASES[key];
+  if (masterAliased && FX_MASTER_THEMES[masterAliased]) return masterAliased;
   for (const [k, t] of Object.entries(FX_THEMES)) {
+    if (keyOf(t.name) === key || (t.short_name && keyOf(t.short_name) === key))
+      return k;
+  }
+  for (const [k, t] of Object.entries(FX_MASTER_THEMES)) {
     if (keyOf(t.name) === key || (t.short_name && keyOf(t.short_name) === key))
       return k;
   }
