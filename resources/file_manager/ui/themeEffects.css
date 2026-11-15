@@ -10427,3 +10427,262 @@ html[data-vision-mode="high_contrast_aaa"]
     color: HighlightText !important;
   }
 }
+
+
+/* ============================================================================
+ * 💎 MASTER-LEVEL STUDIO GLASSMORPHISM, SPECULAR FOLDER HIGHLIGHTS & 120FPS GPU FX
+ * ============================================================================ */
+
+/* 1. Refractive Specular Glass Framing on Floating Surfaces (Dialogs, Menus, Selection Bar, Quick Look)
+ *    Scoped strictly to floating overlays so structural panes (#sidebar, #body) never trap fixed children. */
+@media (prefers-reduced-transparency: no-preference) {
+  :root[data-fx]:is(
+      [data-fx-backdrop="glass"],
+      [data-fx-backdrop="frosted"],
+      [data-fx-backdrop="acrylic"]
+    ):not([data-fx-tier="low"])
+    :is(.dialog, .menu, .selection-bar, .ql) {
+    backdrop-filter: blur(var(--fx-blur, 18px)) saturate(155%);
+    -webkit-backdrop-filter: blur(var(--fx-blur, 18px)) saturate(155%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.2),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.16),
+      var(--fx-glow-soft, var(--shadow));
+  }
+
+  :root[data-fx][data-fx-backdrop="liquid"]:not([data-fx-tier="low"])
+    :is(.dialog, .menu, .selection-bar, .ql) {
+    backdrop-filter: blur(calc(var(--fx-blur, 20px) * 1.15)) saturate(175%)
+      contrast(1.03);
+    -webkit-backdrop-filter: blur(calc(var(--fx-blur, 20px) * 1.15))
+      saturate(175%) contrast(1.03);
+    background-image: linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.02) 42%,
+      color-mix(in oklab, var(--fx-glow-color, var(--accent)) 8%, transparent)
+        100%
+    );
+    box-shadow:
+      inset 0 1.5px 0 rgba(255, 255, 255, 0.28),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      var(--fx-glow-med, var(--shadow));
+  }
+
+  :root[data-fx][data-fx-backdrop="mica"]:not([data-fx-tier="low"])
+    :is(.dialog, .menu, .selection-bar) {
+    backdrop-filter: blur(28px) saturate(135%);
+    -webkit-backdrop-filter: blur(28px) saturate(135%);
+    background-image: radial-gradient(
+      120% 90% at 15% 0%,
+      color-mix(in oklab, var(--fx-glow-color, var(--accent)) 10%, transparent),
+      transparent 70%
+    );
+  }
+}
+
+/* OLED Pure Black Backdrop Guard: crisp luminous hairline, zero murky blur wash */
+:root[data-fx][data-fx-backdrop="oled"] :is(.dialog, .menu, .selection-bar, .ql) {
+  background-color: #030407;
+  border-color: color-mix(in oklab, var(--accent) 42%, #1e293b);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, var(--accent) 26%, transparent),
+    0 18px 44px rgba(0, 0, 0, 0.85);
+}
+
+/* 2. Bespoke Specular Rim Highlights on Folders & Cards in High / Ultra Tiers
+ *    Strictly excludes .selected / [aria-selected="true"] so selection contrast stays unmistakable. */
+:root[data-fx]:not([data-fx-tier="low"])
+  .row.is-folder:not(.selected):not([aria-selected="true"]) {
+  box-shadow: inset 0 1px 0
+    color-mix(in oklab, #ffffff 12%, transparent);
+}
+
+:root[data-fx]:is([data-fx-tier="high"], [data-fx-tier="ultra"])
+  #list.view-icons
+  .row.is-folder:not(.selected):not([aria-selected="true"]),
+:root[data-fx]:is([data-fx-tier="high"], [data-fx-tier="ultra"])
+  #dual-list.view-icons
+  .row.is-folder:not(.selected):not([aria-selected="true"]) {
+  background: linear-gradient(
+    165deg,
+    color-mix(in oklab, var(--fx-glow-color, var(--accent)) 10%, var(--panel))
+      0%,
+    color-mix(in oklab, var(--panel) 86%, transparent) 100%
+  );
+  border-color: color-mix(
+    in oklab,
+    var(--fx-glow-color, var(--accent)) 26%,
+    var(--border)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 4px 14px -4px
+      color-mix(
+        in oklab,
+        var(--fx-glow-color, var(--accent)) 22%,
+        rgba(0, 0, 0, 0.24)
+      );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-fx]:is([data-fx-tier="high"], [data-fx-tier="ultra"]):not(
+      [data-zero-watt-paused="true"]
+    )
+    #list.view-icons
+    .row:hover,
+  :root[data-fx]:is([data-fx-tier="high"], [data-fx-tier="ultra"]):not(
+      [data-zero-watt-paused="true"]
+    )
+    #dual-list.view-icons
+    .row:hover {
+    transform: translate3d(0, -1.5px, 0);
+    transition:
+      transform 130ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 130ms ease,
+      border-color 130ms ease;
+  }
+}
+
+/* 3. Subtle Studio Ambient Rim Catch on Chrome Bars (Zero-Repaint Static Gradients) */
+:root[data-fx][data-fx-ambient="on"]:not([data-fx-tier="low"]) #toolbar {
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--fx-glow-color, var(--accent)) 9%, transparent) 0%,
+    transparent 38%,
+    color-mix(
+        in oklab,
+        var(--fx-glow-color-2, var(--accent)) 8%,
+        transparent
+      )
+      100%
+  );
+}
+
+/* 4. Theme Editor Pro Template Browser & Multi-Stop Palette Swatches */
+[data-editor-template-card] {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+[data-editor-template-card]:hover {
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--border)) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklab, #ffffff 14%, transparent),
+    0 6px 16px -4px rgba(0, 0, 0, 0.2);
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-editor-template-card]:hover {
+    transform: translate3d(0, -1px, 0);
+  }
+}
+[data-editor-template-card].is-selected-template {
+  border-color: var(--accent) !important;
+  box-shadow:
+    0 0 0 1.5px var(--accent),
+    0 6px 16px -3px color-mix(in oklab, var(--accent) 30%, transparent) !important;
+}
+.tpl-swatch-window {
+  display: grid;
+  grid-template-columns: 28% 1fr;
+  width: 100%;
+  height: 2.05rem;
+  border-radius: 0.42rem;
+  overflow: hidden;
+  border: 1px solid rgba(128, 128, 128, 0.32);
+  position: relative;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.tpl-swatch-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 5px;
+  border-right: 1px solid rgba(128, 128, 128, 0.24);
+}
+.tpl-swatch-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 6px 7px;
+}
+.tpl-swatch-ribbon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+}
+.tpl-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+.tpl-meta-pill {
+  font-size: 0.66rem;
+  font-weight: 650;
+  line-height: 1.2;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--bg) 72%, transparent);
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  color: var(--muted);
+}
+.tpl-meta-pill.is-fx {
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 38%, var(--border));
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+
+/* 5. Strict Featherweight Tier, Zero-Watt Pause & Reduced-Motion / Reduced-Transparency Guards */
+@media (prefers-reduced-transparency: reduce) {
+  .menu,
+  .modal-backdrop,
+  .ql-backdrop,
+  .selection-bar,
+  .dialog,
+  .ql {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .menu,
+  .dialog {
+    background: var(--bg) !important;
+  }
+  .selection-bar {
+    background: var(--panel) !important;
+  }
+}
+
+:root[data-fx-tier="low"] :is(.dialog, .menu, .selection-bar, .ql),
+html[data-zero-watt-paused="true"] :is(.dialog, .menu, .selection-bar, .ql) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(
+      .tool,
+      .btn,
+      .vb-btn,
+      .side-item,
+      .crumb,
+      .theme-card,
+      .home-tile,
+      .fm-tab,
+      [data-editor-template-card],
+      #list.view-icons .row,
+      #dual-list.view-icons .row
+    ) {
+    transition: none !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}
