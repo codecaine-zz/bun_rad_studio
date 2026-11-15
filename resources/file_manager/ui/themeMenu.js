@@ -33,6 +33,49 @@ import {
 } from "./themes.js";
 import { emit, state } from "./state.js";
 
+/** Open the Theme Gallery pre-filtered to Ultra-tier flagship themes without modifying themes.js. */
+export function openUltraThemePicker(opts = {}) {
+  const emitEvent = typeof opts.emitFn === "function" ? opts.emitFn : emit;
+  const doc =
+    opts.doc !== undefined
+      ? opts.doc
+      : typeof document !== "undefined"
+        ? document
+        : null;
+  emitEvent("theme-picker", { filter: "fx" });
+  if (!doc || typeof doc.querySelector !== "function") return;
+  let attempts = 0;
+  const maxAttempts = 30;
+  const applyUltraTierFilter = () => {
+    const tierSelect = doc.querySelector(
+      '.dialog select[aria-label="Filter templates by tier"]',
+    );
+    const ultraPill = doc.querySelector('.dialog [data-tier-pill="ultra"]');
+    if (tierSelect) {
+      tierSelect.value = "ultra";
+      if (
+        typeof Event === "function" &&
+        typeof tierSelect.dispatchEvent === "function"
+      ) {
+        tierSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      if (ultraPill && ultraPill.getAttribute?.("aria-pressed") !== "true") {
+        ultraPill.click?.();
+      }
+      return;
+    }
+    if (ultraPill) {
+      ultraPill.click?.();
+      return;
+    }
+    attempts += 1;
+    if (attempts < maxAttempts) {
+      setTimeout(applyUltraTierFilter, 20);
+    }
+  };
+  setTimeout(applyUltraTierFilter, 15);
+}
+
 /** Format a compact mode + tier/FX studio badge for Favorites and Recent menu items. */
 export function formatThemeMenuBadge(t) {
   if (!t || typeof t !== "object") return "";
@@ -346,7 +389,7 @@ export async function themeMenuItems() {
       icon: "🚀",
       shortcut: "Ultra",
       tip: "Browse flagship High & Ultra tier studio themes engineered for 60-120fps GPU compositing.",
-      action: () => emit("theme-picker", { filter: "ultra" }),
+      action: () => openUltraThemePicker(),
     },
     {
       label: hudOpen

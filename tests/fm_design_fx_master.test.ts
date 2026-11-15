@@ -203,7 +203,56 @@ describe("Codecaine File Manager Master Design, Chrome & Shader/FX Suite", () =>
     expect(shortcuts).toContain("⌥P");
     expect(shortcuts).toContain("⌥U");
     expect(themeMenuSrc).toContain('emit("theme-picker", { filter: "fx" })');
-    expect(themeMenuSrc).toContain('emit("theme-picker", { filter: "ultra" })');
+    expect(themeMenuSrc).toContain(
+      '.dialog select[aria-label="Filter templates by tier"]',
+    );
+    expect(typeof menuMod.openUltraThemePicker).toBe("function");
+
+    // Verify openUltraThemePicker emits theme-picker and sets the mounted dialog's tier select & pill to "ultra"
+    let emittedEvent = "";
+    let emittedDetail: any = null;
+    let changed = false;
+    const mockSelect: any = {
+      value: "all",
+      dispatchEvent: (ev: any) => {
+        if (ev?.type === "change") changed = true;
+        return true;
+      },
+    };
+    const mockPill: any = {
+      pressed: "false",
+      getAttribute(attr: string) {
+        return attr === "aria-pressed" ? this.pressed : null;
+      },
+      click() {
+        this.pressed = "true";
+      },
+    };
+    const mockDoc = {
+      querySelector: (sel: string) => {
+        if (sel === '.dialog select[aria-label="Filter templates by tier"]')
+          return mockSelect;
+        if (sel === '.dialog [data-tier-pill="ultra"]') return mockPill;
+        return null;
+      },
+    };
+    const ultraItem = items.find(
+      (i: any) => i.label === "Ultra & XDR Flagship themes…",
+    );
+    expect(ultraItem).toBeDefined();
+    menuMod.openUltraThemePicker({
+      doc: mockDoc,
+      emitFn: (ev: string, detail: any) => {
+        emittedEvent = ev;
+        emittedDetail = detail;
+      },
+    });
+    await new Promise((r) => setTimeout(r, 35));
+    expect(emittedEvent).toBe("theme-picker");
+    expect(emittedDetail).toEqual({ filter: "fx" });
+    expect(mockSelect.value).toBe("ultra");
+    expect(changed).toBe(true);
+    expect(mockPill.pressed).toBe("true");
   });
 
   test("6. Theme Editor Multi-Stop Template Browser & Tier/Mode Badges (themeEditor.js)", () => {
