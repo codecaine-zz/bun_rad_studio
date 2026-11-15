@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import fs from "node:fs";
+import path from "node:path";
 import { newSimpleWindow } from "../src/simplegui";
 import { newSimpleCLI } from "../src/simplecli/index.ts";
 import { rad } from "../src/features/rad/index.ts";
@@ -297,5 +299,189 @@ describe("RAD Cheatsheets, Full Studio Workspace Template & Cross-Platform QA", 
     });
     expect(validRes.valid).toBe(true);
     expect(validRes.errors).toEqual({});
+  });
+});
+
+describe("Documented Cheatsheet Docs & Ergonomic Patterns", () => {
+  const ROOT_DIR = path.resolve(import.meta.dir, "..");
+  const DOC_CHEATSHEETS = [
+    "docs/cheatsheets/index.md",
+    "docs/cheatsheets/simplegui-cheatsheet.md",
+    "docs/cheatsheets/simplecli-cheatsheet.md",
+    "docs/cheatsheets/rad-modules-cheatsheet.md",
+    "docs/cheatsheets/studios-cli-and-troubleshooting-cheatsheet.md",
+  ];
+  const ALL_CHEATSHEETS = [...DOC_CHEATSHEETS, "CHEATSHEET.md"];
+
+  function inspectMarkdownStructure(markdown: string) {
+    let fenceMarker: string | null = null;
+    const h1Headings: string[] = [];
+    for (const line of markdown.split("\n")) {
+      const fenceMatch = /^\s*(```+|~~~+)/.exec(line);
+      if (fenceMatch) {
+        const marker = fenceMatch[1]![0]!.repeat(3);
+        if (!fenceMarker) fenceMarker = marker;
+        else if (line.trim().startsWith(fenceMarker)) fenceMarker = null;
+        continue;
+      }
+      if (fenceMarker) continue;
+      if (/^#\s+/.test(line)) h1Headings.push(line.trim());
+    }
+    return { h1Headings, unclosedFence: fenceMarker !== null };
+  }
+
+  test("all 5 docs/cheatsheets/*.md files and CHEATSHEET.md exist with valid structure", () => {
+    for (const relPath of ALL_CHEATSHEETS) {
+      const absPath = path.join(ROOT_DIR, relPath);
+      expect(fs.existsSync(absPath)).toBe(true);
+      const raw = fs.readFileSync(absPath, "utf8");
+      const { h1Headings, unclosedFence } = inspectMarkdownStructure(raw);
+      expect(unclosedFence).toBe(false);
+      if (relPath.startsWith("docs/")) {
+        expect(h1Headings.length).toBe(1);
+      }
+    }
+
+    const navRaw = JSON.parse(
+      fs.readFileSync(path.join(ROOT_DIR, "docs/nav.json"), "utf8"),
+    ) as { sections: { title: string; pages?: { path: string }[] }[] };
+    const cheatsheetSection = navRaw.sections.find(
+      (s) => s.title === "RAD development cheatsheets",
+    );
+    expect(cheatsheetSection).toBeDefined();
+    expect(
+      cheatsheetSection!.pages!.some(
+        (p) => p.path === "cheatsheets/studios-cli-and-troubleshooting-cheatsheet.md",
+      ),
+    ).toBe(true);
+  });
+
+  test("SimpleWindow scoped layout helpers (row, card, grid) and win.values() round-trip", () => {
+    const win = newSimpleWindow("Ergonomic Layout Test", 800, 560);
+
+    win
+      .card("Account Profile", (w) => {
+        w.row((r) => {
+          r.addLabel("Username:");
+          r.addTextInput("Enter username").id("txtUser");
+        });
+        w.grid(2, 12, (g) => {
+          g.addCheckbox("Active", false).id("chkActive");
+          g.addComboBox("cmbRole", ["Admin", "Viewer"], "Viewer");
+        });
+      })
+      .values({
+        txtUser: "ada.lovelace",
+        chkActive: true,
+        cmbRole: "Admin",
+      });
+
+    const snapshot = win.values();
+    expect(snapshot.txtUser).toBe("ada.lovelace");
+    expect(snapshot.chkActive).toBe(true);
+    expect(snapshot.cmbRole).toBe("Admin");
+  });
+
+  test("rad.sqliteutils FTS5 full-text indexing, searchFts, and searchFtsRanked", () => {
+    const db = rad.sqliteutils.openDb(":memory:");
+    try {
+      rad.sqliteutils.createFtsTable(db, "docs_fts", ["title", "body"]);
+      rad.sqliteutils.indexFts(db, "docs_fts", {
+        title: "Codecaine File Manager",
+        body: "Dual pane commander synced terminal and rip graveyard recovery",
+      });
+      rad.sqliteutils.indexFts(db, "docs_fts", {
+        title: "Database Workbench",
+        body: "SQLite Postgres MySQL workbench with rollback and QBE queries",
+      });
+
+      const matches = rad.sqliteutils.searchFts<{ title: string; body: string }>(
+        db,
+        "docs_fts",
+        "graveyard",
+        10,
+      );
+      expect(matches.length).toBe(1);
+      expect(matches[0]!.title).toBe("Codecaine File Manager");
+
+      const ranked = rad.sqliteutils.searchFtsRanked<{ title: string }>(
+        db,
+        "docs_fts",
+        "workbench",
+        10,
+      );
+      expect(ranked.length).toBe(1);
+      expect(ranked[0]!.title).toBe("Database Workbench");
+      expect(typeof ranked[0]!.rank).toBe("number");
+    } finally {
+      rad.sqliteutils.closeDb(db);
+    }
+  });
+
+  test("rad.flowutils RateLimiter, CircuitBreaker, retry, debounce, and throttle", async () => {
+    const limiter = new rad.flowutils.RateLimiter(2, 0.001);
+    expect(limiter.allow()).toBe(true);
+    expect(limiter.allow()).toBe(true);
+    expect(limiter.allow()).toBe(false);
+
+    const breaker = new rad.flowutils.CircuitBreaker(2, 60_000);
+    expect(breaker.getState()).toBe("CLOSED");
+    await expect(
+      breaker.execute(async () => {
+        throw new Error("boom-1");
+      }),
+    ).rejects.toThrow("boom-1");
+    await expect(
+      breaker.execute(async () => {
+        throw new Error("boom-2");
+      }),
+    ).rejects.toThrow("boom-2");
+    expect(breaker.getState()).toBe("OPEN");
+    expect(breaker.canExecute()).toBe(false);
+
+    let attempts = 0;
+    const result = await rad.flowutils.retry(
+      async () => {
+        attempts++;
+        if (attempts < 2) throw new Error("transient");
+        return "recovered";
+      },
+      3,
+      1,
+      1,
+      5,
+    );
+    expect(result).toBe("recovered");
+    expect(attempts).toBe(2);
+
+    let debouncedCount = 0;
+    const debounced = rad.flowutils.debounce(() => {
+      debouncedCount++;
+    }, 25);
+    debounced();
+    debounced.cancel();
+
+    let throttledCount = 0;
+    const throttled = rad.flowutils.throttle(() => {
+      throttledCount++;
+    }, 50);
+    throttled();
+    throttled.cancel();
+    expect(debouncedCount).toBe(0);
+    expect(throttledCount).toBe(1);
+  });
+
+  test("SimpleCLI.parseArgs parses typed flags and positional arguments without process exit", () => {
+    const cli = newSimpleCLI("rad-demo", "1.0.0", "Demo CLI")
+      .addFlagString("env", "e", "dev", "Target environment")
+      .addFlagInt("port", "p", 8080, "Port number")
+      .addFlagBool("json", "j", false, "JSON output");
+
+    const ok = cli.parseArgs(["--env", "staging", "-p", "9090", "--json", "deploy", "api"]);
+    expect(ok).toBe(true);
+    expect(cli.getFlagString("env")).toBe("staging");
+    expect(cli.getFlagInt("port")).toBe(9090);
+    expect(cli.getFlagBool("json")).toBe(true);
+    expect(cli.getPositionalArgs()).toEqual(["deploy", "api"]);
   });
 });

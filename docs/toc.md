@@ -19,6 +19,7 @@ Generated from [nav.json](nav.json): a page that is not listed there is reported
 - [SimpleGUI desktop RAD cheat sheet](cheatsheets/simplegui-cheatsheet.md)
 - [SimpleCLI console and backend RAD cheat sheet](cheatsheets/simplecli-cheatsheet.md)
 - [45 RAD utility modules and 10 system tools cheat sheet](cheatsheets/rad-modules-cheatsheet.md)
+- [Studios, codecaine CLI, databases, packaging and FAQ cheat sheet](cheatsheets/studios-cli-and-troubleshooting-cheatsheet.md)
 
 ## Databases (MySQL, PostgreSQL, SQLite)
 

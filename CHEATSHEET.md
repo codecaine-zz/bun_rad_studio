@@ -6,7 +6,7 @@ A step-by-step, copy-paste reference for **Rapid Application Development (RAD)**
 
 ## 📑 Table of Contents
 
-1. [🧭 Ecosystem Architecture & Quick Imports](#1-ecosystem-architecture--quick-imports)
+1. [🧭 Ecosystem Architecture, Beginner Quick-Start & 3 Import Scenarios](#1-ecosystem-architecture--quick-imports)
 2. [🪟 Part 1: Step-by-Step SimpleGUI Desktop RAD Cheat Sheet](#2-part-1-step-by-step-simplegui-desktop-rad-cheat-sheet)
    - [Step 1: Window Creation, Options & Lifecycle](#step-1-window-creation-options--lifecycle)
    - [Step 2: Layout & Container Systems (Rows, Grids, Cards, Splits)](#step-2-layout--container-systems-rows-grids-cards-splits)
@@ -27,6 +27,7 @@ A step-by-step, copy-paste reference for **Rapid Application Development (RAD)**
    - [Step 5: `sys` Subprocess, Hardware Telemetry, Network & OS Helpers](#cli-step-5-sys-subprocess-hardware-telemetry-network--os-helpers)
    - [Step 6: `ApiClient` REST CRUD, Safe `try*` Calls & Namespaced Redis](#cli-step-6-apiclient-rest-crud-safe-try-calls--namespaced-redis)
 4. [🧰 Part 3: 45 `rad` Utility Modules & 10 System Tools Cheat Sheet](#4-part-3-45-rad-utility-modules--10-system-tools-cheat-sheet)
+   - [Confusing Pairs Explained (Which Module Should I Pick?)](#confusing-pairs-explained)
    - [Domain 1: File, SQLite (WAL + FTS5), TOML, Archives & State (8 Modules)](#domain-1-file-sqlite-wal--fts5-toml-archives--state-8-modules)
    - [Domain 2: Arrays, Objects, Data Structures, Stats, Math & Graphs (8 Modules)](#domain-2-arrays-objects-data-structures-stats-math--graphs-8-modules)
    - [Domain 3: Strings, Regex, Templates, Colors, HTML & Diffs (6 Modules)](#domain-3-strings-regex-templates-colors-html--diffs-6-modules)
@@ -34,7 +35,7 @@ A step-by-step, copy-paste reference for **Rapid Application Development (RAD)**
    - [Domain 5: Network, HTTP, `Bun.serve` Router, URL, JWT, Crypto & `Bun.hash` (7 Modules)](#domain-5-network-http-bunserve-router-url-jwt-crypto--bunhash-7-modules)
    - [Domain 6: Async Concurrency, Flow Resilience, Functional, Events, Validation, Mock & Time (7 Modules)](#domain-6-async-concurrency-flow-resilience-functional-events-validation-mock--time-7-modules)
    - [10 System Utilities as Plain TypeScript Functions (`fd`, `sd`, `rip`, `procs`, `watchexec`, `tokei`, `gdu`, `ipinfo`, `subfinder`, `doggo`)](#10-system-utilities-as-plain-typescript-functions)
-5. [🎨 Part 4: Visual Form Designer (IDE), Shortcuts & Single-Binary Build](#5-part-4-visual-form-designer-ide-shortcuts--single-binary-build)
+5. [🎨 Part 4: Visual Form Designer (IDE), `codecaine` CLI, Workbenches & Packaging](#5-part-4-visual-form-designer-ide-shortcuts--single-binary-build)
 6. [💡 Part 5: Pro RAD Tips, Tricks & Power Patterns](#6-part-5-pro-rad-tips-tricks--power-patterns)
    - [SimpleGUI Desktop UI, Layout & Performance Tricks](#simplegui-desktop-ui-layout--performance-tricks)
    - [SimpleCLI Terminal, Piping & Backend Tricks](#simplecli-terminal-piping--backend-tricks)
@@ -44,12 +45,14 @@ A step-by-step, copy-paste reference for **Rapid Application Development (RAD)**
    - [Template 1: Full-Featured SimpleGUI Studio Workspace (Tabs + Live Search + Charts + SQLite + Dialogs)](#template-1-full-featured-simplegui-studio-workspace)
    - [Template 2: Full-Featured SimpleCLI + `rad` DevOps Automation Tool](#template-2-full-featured-simplecli--rad-devops-automation-tool)
 8. [📚 Part 7: Complete Main Documentation Reference Map](#8-part-7-complete-main-documentation-reference-map)
+   - [Focused Companion Cheat Sheet: Studios, `codecaine` CLI & Troubleshooting](docs/cheatsheets/studios-cli-and-troubleshooting-cheatsheet.md)
+9. [🩺 Part 8: Master Troubleshooting & "No Questions Left" FAQ](#9-part-8-master-troubleshooting--no-questions-left-faq)
 
 ---
 
 <a id="1-ecosystem-architecture--quick-imports"></a>
 
-## 1. 🧭 Ecosystem Architecture & Quick Imports
+## 1. 🧭 Ecosystem Architecture, Beginner Quick-Start & 3 Import Scenarios
 
 ### What is Bun RAD Studio? (In Plain English)
 
@@ -58,10 +61,10 @@ A step-by-step, copy-paste reference for **Rapid Application Development (RAD)**
 Everything is organized into **3 simple building blocks** that work together:
 
 1. **🪟 `SimpleGUI` (`./src/simplegui`)** — **For Desktop Windows.** You write plain TypeScript like `win.addHeading(...)`, `win.addTextInput(...)`, `win.addTable(...)`, and `win.addButton(...)`. SimpleGUI opens a native OS window and handles all the HTML, CSS, themes, and events for you automatically.
-2. **⌨️ `SimpleCLI` (`./src/simplecli`)** — **For Terminal & Backend Scripts.** When you don't need a desktop window, `SimpleCLI` gives you command-line `--flags`, colored tables, progress bars, interactive terminal questions (`prompt`, `select`, `confirm`), system checks (`sys`), and an HTTP client (`ApiClient`).
+2. **⌨️ `SimpleCLI` (`./src/simplecli`)** — **For Terminal & Backend Scripts.** When you don't need a desktop window, `SimpleCLI` gives you command-line `--flags`, colored tables, progress bars, interactive terminal questions (`prompt`, `select`, `confirm`), system checks (`sys`), and an HTTP client (`createApiClient`).
 3. **🧰 `45 rad Modules` + `10 System Tools` (`./src/features/rad/`)** — **Your Built-in Batteries.** One import (`rad`) gives you ready-to-use helpers for SQLite databases (`rad.sqliteutils`), JSON/CSV/ZIP files (`rad.fileutils`, `rad.archiveutils`), arrays/objects (`rad.arrutils`, `rad.objutils`), passwords/hashing (`rad.cryptoutils`), and fast file/code search (`fd`, `tokei`, `procs`, `doggo`).
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                           ⚡ BUN RAD STUDIO STACK                            │
 ├────────────────────────┬───────────────────────────┬─────────────────────────┤
@@ -69,31 +72,60 @@ Everything is organized into **3 simple building blocks** that work together:
 │  • 100+ Desktop Widgets│  • Flags & Subcommands    │  • fileutils / sqlite   │
 │  • 35 Enterprise Comps │  • Tables, Charts, Trees  │  • arrutils / objutils  │
 │  • Tabs, Search, Charts│  • Prompts, Fuzzy, Wizard │  • strutils / cryptoutils│
-│  • 133 Themes + 12 FX  │  • Pipelines & Benchmarks │  • glob / shell / serve │
+│  • 310 Themes (167 FX) │  • Pipelines & Benchmarks │  • glob / shell / serve │
 │  • Reactive State + IPC│  • sys + ApiClient + Redis│  • 10 System CLI Tools  │
 └────────────────────────┴───────────────────────────┴─────────────────────────┘
 ```
 
-### Standard Imports (Copy-Paste What You Need)
+### Beginner 60-Second Quick-Start & OS Prerequisites
+
+**Required software:** [Bun](https://bun.sh) (`bun --version`; handbook baseline tested on Bun 1.4.2 / 1.4.4) and `git` (for cloning). Terminal CLI tools need **no** window library; native GUI windows depend on your OS WebView runtime:
+
+| OS | Native Desktop Window Prerequisite | Verification & Key Notes |
+| :--- | :--- | :--- |
+| **macOS** | Built-in Apple **WKWebView** (nothing extra to install) | **Verified** on macOS Apple silicon for handbook commands. For downloaded unsigned `.app` or binary releases, inspect checksums then clear quarantine with `xattr -dr com.apple.quarantine "/Applications/Codecaine File Manager.app"`. |
+| **Linux** | **GTK 4** + **WebKitGTK 6.0** (`sudo apt install libgtk-4-1 libwebkitgtk-6.0-4`), plus `xclip` / `wl-copy` for clipboard buttons | **CI-verified** with `xvfb` on `ubuntu-latest`; a real desktop window was **not** hand-opened for the handbook. On Ubuntu 24.04+, AppArmor may block WebKit namespaces (`bwrap: setting up uid map: Permission denied`): run `sh install.sh --apparmor` in a release folder, or pass `--server` for browser mode. |
+| **Windows** | **Microsoft Edge WebView2** + **Visual C++ 2015–2022 x64 Redistributable** | Native Windows GUI was **not** hand-verified for the handbook. Even on **Windows ARM64**, the `webview-bun` native DLL is **x64**—install the x64 VC++ runtime (and use x64 Bun for `webview-bun` tests). Avoid running from Parallels/VMware UNC shares (`\\Mac\...`); use a local drive (`C:\...`). |
+
+**Clone, install, and run your first desktop app in 4 commands:**
+
+```bash
+git clone https://github.com/codecaine-zz/bun_rad_studio.git
+cd bun_rad_studio
+bun install
+
+# Run the built-in quickstart tutorial OR create app.ts at repo root and run it:
+bun run examples/rad_tutorial/01_quickstart.ts
+bun run app.ts
+```
+
+### 3 Import Scenarios (Pick the One Matching Your File Location)
+
+Import paths change depending on whether you installed `bun-rad-studio` as a package, placed `app.ts` at the repository root, or wrote a file inside a subfolder like `examples/rad_tutorial/`:
 
 ```typescript
-// 1. SimpleGUI — Import this when building a Desktop Window app
+// ---------------------------------------------------------------------------
+// SCENARIO A: External Project (installed via `bun add bun-rad-studio` / npm)
+// ---------------------------------------------------------------------------
+// Full unified barrel (SimpleGUI + SimpleCLI + 45 rad modules)
+import { simplegui, newSimpleWindow, newApp, sys, rad } from "bun-rad-studio";
+// Lightweight GUI-only subpath (lazy-loads webview-bun without pulling CLI modules)
+import { createWindow, type SimpleWindow } from "bun-rad-studio/simplegui";
+
+// ---------------------------------------------------------------------------
+// SCENARIO B: Repository Root File (e.g. `app.ts` next to `package.json`)
+// ---------------------------------------------------------------------------
+import { simplegui, newSimpleWindow, newApp, sys, rad } from "./src";
+// Or import submodules directly at repo root:
 import {
-  simplegui,
   createWindow,
-  newSimpleWindow,
   getThemeNames,
   getSavedTheme,
   saveTheme,
-  type SimpleWindow,
   type SimpleControlRef,
 } from "./src/simplegui";
-
-// 2. SimpleCLI — Import this when building a Terminal / CLI tool or Backend script
 import SimpleCLI, {
-  newApp,
   createApp,
-  sys,
   stdlib,
   createApiClient,
   LogLevel,
@@ -103,12 +135,23 @@ import SimpleCLI, {
   PathMode,
   TreeNode,
 } from "./src/simplecli";
-
-// 3. 45 RAD Utility Modules — Import this in ANY app (GUI or CLI) for SQLite, files, arrays, crypto, etc.
 import { rad } from "./src/features/rad/index.ts";
+
+// ---------------------------------------------------------------------------
+// SCENARIO C: Repository Subfolder (e.g. `examples/rad_tutorial/01_quickstart.ts`)
+// ---------------------------------------------------------------------------
+import { newSimpleWindow, type SimpleWindow } from "../../src/simplegui";
+import { newApp, sys, stdlib, createApiClient } from "../../src/simplecli";
+import { rad } from "../../src/features/rad/index.ts";
 ```
 
-> 📖 **Deep-Dive Reference (Optional):** [Handbook Home (`docs/index.md`)](docs/index.md) · [Install & First Launch (`docs/getting-started/install-and-first-launch.md`)](docs/getting-started/install-and-first-launch.md) · [Architecture (`docs/developer/architecture.md`)](docs/developer/architecture.md) · [Task Index ("I want to...") (`docs/reference/task-index.md`)](docs/reference/task-index.md) · [Cheatsheet Hub (`docs/cheatsheets/index.md`)](docs/cheatsheets/index.md)
+> [!NOTE]
+> **`D-027` Symbol Disambiguation (`"bun-rad-studio"` / `"./src"` Top-Level Barrel):**
+> Two symbol groups share names across `SimpleCLI`, `SimpleGUI`, and `rad`. The top-level barrel explicitly pins these exports (`src/index.ts`) so there is never an ambiguous re-export:
+> - `LRUCache`, `Logger`, `LogLevel`, and `TreeNode` exported directly from `"bun-rad-studio"` / `"./src"` come from **`SimpleCLI`**. The `rad` versions stay cleanly under **`rad.cacheutils.LRUCache`** and **`rad.logutils.Logger`** / **`rad.logutils.LogLevel`**.
+> - `writeFileAtomic` exported directly from `"bun-rad-studio"` / `"./src"` comes from **`SimpleGUI`** and is **synchronous** (`writeFileAtomic(path, data)`). Use **`await rad.fileutils.writeFileAtomic(path, data)`** when you want the **async** `Promise<void>` version!
+
+> 📖 **Deep-Dive Reference (Optional):** [Handbook Home (`docs/index.md`)](docs/index.md) · [Requirements (`docs/getting-started/requirements.md`)](docs/getting-started/requirements.md) · [Install & First Launch (`docs/getting-started/install-and-first-launch.md`)](docs/getting-started/install-and-first-launch.md) · [Architecture (`docs/developer/architecture.md`)](docs/developer/architecture.md) · [Task Index ("I want to...") (`docs/reference/task-index.md`)](docs/reference/task-index.md) · [Cheatsheet Hub (`docs/cheatsheets/index.md`)](docs/cheatsheets/index.md)
 
 ---
 
@@ -125,7 +168,7 @@ Before reading the steps below, here is the entire mental model of SimpleGUI:
 3. **Give interactive controls an `.id("name")` so you can read or change them later:**
    - **To read a text box or dropdown:** `win.getText("txtName")` (returns a `string`).
    - **To change a text box, label, or badge:** `win.setText("lblResult", "Saved!")`.
-   - **To read a checkbox, switch, or slider:** `win.getBool("chkAgree")` (`boolean`) or `win.getNumber("sldVolume")` (`number`).
+   - **To read a checkbox, switch, or slider:** `win.getBool("chkAgree")` (`boolean`) or `win.getInt("sldVolume")` / `win.getFloat("sldVolume")` (`number`).
    - **To react when a user clicks or types:** Pass a callback function `(w, value) => { ... }`. The first parameter `w` is always your `SimpleWindow` instance, and `value` is the latest value of that control!
 4. **Open the window at the very end:** Call `win.run()` on the last line of your file.
 
@@ -135,23 +178,36 @@ Before reading the steps below, here is the entire mental model of SimpleGUI:
 
 ### Step 1: Window Creation, Options & Lifecycle
 
-**Plain-English Summary:** `newSimpleWindow(title, width, height, options)` creates your desktop window. If you set `autoSaveState: true` and give your app a unique `appId`, SimpleGUI will automatically remember the user's window size, chosen color theme, and typed form inputs the next time they open the app!
+**Plain-English Summary:** `newSimpleWindow`, `createWindow`, `newWindow`, and `new_simple_window` are equivalent factories that accept either a positional `(title, width, height, options)` signature or a single `{ title, width, height, ... }` config object.
+
+**Important defaults & session precedence rules (`src/simplegui.ts`):**
+- **Fullscreen default:** If you pass **neither `width` nor `height`** (e.g. `createWindow("Dashboard")` or `createWindow("Dashboard", { appId: "dash" })`), the window opens **fullscreen by default (`fullscreen: true`)**. Passing either `width` or `height` sets `fullscreen: false` unless you also pass `fullscreen: true`.
+- **Explicit options always win over saved sessions:** When `autoSaveState: true` loads `session.json`, `form_state.json`, or global `~/.config/simplegui/theme.txt`, any **explicit `{ theme, fullscreen }` or explicit `width` / `height`** you passed in code wins and is **not** overwritten by disk state (while saved control inputs in `form_state.json` still restore cleanly!).
 
 > 📖 **Deep-Dive Reference (Optional):** [Window Creation & Configuration (`docs/SIMPLEGUI_API.md#window-creation`)](docs/SIMPLEGUI_API.md#window-creation) · [Window Options Table (`#window-options-table`)](docs/SIMPLEGUI_API.md#window-options-table) · [Window State Methods (`#window-state-methods`)](docs/SIMPLEGUI_API.md#window-state-methods) · [Lifecycle & Exit (`docs/API.md#-window-lifecycle--process-exit-methods`)](docs/API.md#-window-lifecycle--process-exit-methods)
 
-```typescript
-import { newSimpleWindow } from "./src/simplegui";
+| Factory Call Form | Resulting `width` / `height` / `fullscreen` | Typical Use Case |
+| :--- | :--- | :--- |
+| `createWindow("Dashboard")` | Fullscreen (`fullscreen: true`) | Full-screen workspace studios |
+| `createWindow("App", { theme: "apple_dark", appId: "my_app" })` | Fullscreen (`fullscreen: true`) + named app state folder | Full-screen app with saved preferences |
+| `newSimpleWindow("Studio Pro", 1040, 720, { ... })` | Windowed `1040×720` (`fullscreen: false`) | Standard desktop dialog / studio window |
+| `createWindow({ title: "Compact", width: 520, height: 360 })` | Windowed `520×360` (`fullscreen: false`) | Single-object declarative options style |
+| `createWindow("App", 900, 600, { autoSaveState: true, theme: "nord" })` | Starts at `900×600` & `"nord"`, ignoring saved `session.json` overrides | Pinning fixed dimensions/theme while keeping saved inputs |
 
-// 1. Create a 1040×720 desktop window with custom options
+```typescript
+import { newSimpleWindow, createWindow } from "./src/simplegui";
+
+// 1. Equivalent Window Factory Overloads:
+//    createWindow(options) | createWindow(title, options) | createWindow(title, width, height, options)
 const win = newSimpleWindow("Studio Pro", 1040, 720, {
-  theme: "apple_dark", // Starting color theme (choose from 133 built-in themes)
+  theme: "apple_dark", // Explicit theme wins over saved session/global theme (310 built-in themes)
   padding: 20, // Empty space around the outer edges of the window (in pixels)
   spacing: 12, // Vertical gap between stacked rows and cards (in pixels)
   alwaysOnTop: false, // Set true to keep this window floating above all other apps
-  fullscreen: false, // Set true to launch in fullscreen mode immediately
+  fullscreen: false, // Omit width & height to default to fullscreen: true, or force explicitly
   responsive: true, // Automatically wrap rows/grids nicely when the window is resized
-  autoSaveState: true, // Automatically save & restore theme + form inputs on close/reopen
-  appId: "studio_pro_v1", // Unique name used to save settings in your OS user config folder
+  autoSaveState: true, // Save & restore form inputs (+ non-overridden theme/window geometry)
+  appId: "studio_pro_v1", // Unique name used to save settings in your OS user state folder
   effects: "full", // Visual shader effects: "full" | "reduced" | "off"
 });
 
@@ -160,7 +216,7 @@ win.setTheme("tokyo_night"); // Change the entire app's color theme instantly (n
 win.setEffects("reduced"); // Turn down background animations for low-power laptops
 win.setAlwaysOnTop(true); // Pin or unpin the window above other windows
 win.toggleFullscreen(); // Enter or exit native fullscreen mode
-win.minimize(); // Minimize the window to the OS dock/taskbar
+win.center(); // Center the window on the display (also win.setMinimizable(true))
 win.setSize(1200, 800); // Resize the window to 1200px wide by 800px tall
 win.addStatusBar("Ready"); // Add a thin info bar at the very bottom of the window
 win.setStatusBarText("Working…"); // Change the text shown in the bottom status bar
@@ -176,15 +232,22 @@ win.run();
 
 ### Step 2: Layout & Container Systems (Rows, Grids, Cards, Splits)
 
-**Plain-English Summary:** You never need to write CSS flexbox or calculate `X`/`Y` pixel coordinates. SimpleGUI gives you **4 easy layout containers**:
+**Plain-English Summary:** You never need to write CSS flexbox or calculate `X`/`Y` pixel coordinates. SimpleGUI gives you **both** classic `begin*`/`end*` pairs **and** modern **scoped callback helpers** (`win.row`, `win.grid`, `win.card`, `win.section`, `win.groupBox`) that automatically close in a `try/finally` block—so an error inside your builder never leaves a container unclosed!
 
-- **Default (No container):** Controls stack **top-to-bottom**, one per line.
-- **`win.beginRow()` ... `win.endRow()`:** Places everything inside **left-to-right** on a single horizontal line.
-- **`win.beginGrid(columns, gapPx)` ... `win.endGrid()`:** Places controls into **equal-width columns** (for example, `beginGrid(3, 16)` makes a 3-column layout where the 4th item automatically wraps to the next row).
-- **`win.beginCard("Title", "Subtitle")` ... `win.endCard()`:** Wraps controls inside a **rounded, bordered box** with a header title—great for grouping related settings or forms.
+```text
+Default Stack (no container)     win.row(cb)                 win.grid(3, 16, cb)
+┌───────────────────────────┐   ┌───────────────────────┐   ┌────────┬────────┬────────┐
+│ [ Heading               ] │   │ [Lbl] [Input] [Btn]   │   │ Cell 1 │ Cell 2 │ Cell 3 │
+│ [ Control 2             ] │   └───────────────────────┘   ├────────┼────────┴────────┤
+│ [ Control 3             ] │                               │ Cell 4 (auto-wraps)    │
+└───────────────────────────┘   win.card("Title", cb)       └──────────────────────────┘
+                                ┌── Title ─────────────────────────────────────────────┐
+                                │  Controls inside share a framed card surface         │
+                                └──────────────────────────────────────────────────────┘
+```
 
-> [!IMPORTANT]
-> Always close every `beginRow()` with `endRow()`, every `beginGrid()` with `endGrid()`, and every `beginCard()` with `endCard()`.
+> [!TIP]
+> **Prefer Scoped Callbacks for Clean Nesting:** `win.row(cb)` / `win.card(title, cb)` / `win.grid(cols, gap, cb)` wrap `begin*()` and `end*()` in `try/finally` automatically. If you use `beginRow()`, `beginGrid()`, or `beginCard()` manually, always pair each call with `endRow()`, `endGrid()`, or `endCard()`.
 
 > 📖 **Deep-Dive Reference (Optional):** [Layout & Container Systems (`docs/SIMPLEGUI_API.md#layout-systems`)](docs/SIMPLEGUI_API.md#layout-systems) · [Horizontal Rows (`#layout-row`)](docs/SIMPLEGUI_API.md#layout-row) · [Multi-Column Grids (`#layout-grid`)](docs/SIMPLEGUI_API.md#layout-grid) · [Container Cards (`#layout-card`)](docs/SIMPLEGUI_API.md#layout-card) · [Absolute Placement (`#layout-absolute`)](docs/SIMPLEGUI_API.md#layout-absolute)
 
@@ -195,32 +258,44 @@ win.addSubheading("Cluster Overview"); // Medium section header
 win.addCaption("All metrics refresh automatically."); // Small muted helper text
 win.addDivider(); // Horizontal separator line
 
-// 2. Horizontal Row — Places Label + Search Box + Button side-by-side on one line
-win.beginRow();
-win.addLabel("Search:").width(70);
-win.addSearchInput("Filter items...").id("txtSearch").width(280);
-win.addButton("🔍 Search", (w) => {
-  // w.getText("txtSearch") reads whatever the user typed into the search box
-  w.toast(`Searching for: ${w.getText("txtSearch")}`);
+// 2. Scoped Horizontal Row — Automatically closes even if an exception occurs!
+//    Signatures: win.row(cb) | win.row("rowId", cb)
+win.row((w) => {
+  w.addLabel("Search:").width(70);
+  w.addSearchInput("Filter items...").id("txtSearch").width(280);
+  w.addButton("🔍 Search", (ctx) => {
+    ctx.toast(`Searching for: ${ctx.getText("txtSearch")}`);
+  });
 });
-win.endRow(); // <-- Closes the horizontal row
 
-// 3. Multi-Column Grid — 3 equal-width columns with a 16px gap between them
-win.beginGrid(3, 16);
-win.addTextInput("First Name").id("txtFirst"); // Row 1, Column 1
-win.addTextInput("Middle Name").id("txtMid"); // Row 1, Column 2
-win.addTextInput("Last Name").id("txtLast"); // Row 1, Column 3
-win.addSwitch("Active Account", true).id("swtActive"); // Automatically wraps to Row 2, Column 1!
-win.endGrid(); // <-- Closes the grid
+// 3. Scoped Multi-Column Grid — 3 equal-width columns with 16px gap (gap defaults to win.spacing)
+//    Signatures: win.grid(cols, cb) | win.grid(cols, gapPx, cb)
+win.grid(3, 16, (w) => {
+  w.addTextInput("First Name").id("txtFirst"); // Row 1, Column 1
+  w.addTextInput("Middle Name").id("txtMid"); // Row 1, Column 2
+  w.addTextInput("Last Name").id("txtLast"); // Row 1, Column 3
+  w.addSwitch("Active Account", true).id("swtActive"); // Auto-wraps to Row 2, Column 1!
+});
 
-// 4. Visual Container Card — Draws a clean framed card box around the controls inside
-win.beginCard("👤 Account Profile", "Public workspace settings");
-win.addFormField("Display Name:", "txtDisplay", "Ada Lovelace");
-win.addFormField("Email:", "txtEmail", "ada@analytical.engine");
-win.endCard(); // <-- Closes the card
+// 4. Scoped Framed Card / Section / GroupBox (section & groupBox are aliases of card)
+//    Signatures: win.card(title, cb) | win.card(cb) | win.section(title, cb) | win.groupBox(title, cb)
+win.card("👤 Account Profile", (w) => {
+  w.addFormField("Display Name:", "txtDisplay", "Ada Lovelace");
+  w.addFormField("Email:", "txtEmail", "ada@analytical.engine");
+});
+
+// Classic begin* / end* form is equally supported whenever you want imperative blocks (e.g. for .id() on cards)
+win.beginCard("📦 Legacy Begin/End Style", "Optional subtitle").id("cardLegacy");
+win.beginRow();
+win.addLabel("Note:").width(60);
+win.addTextInput("Works identically").id("txtNote");
+win.endRow();
+win.endCard();
 
 // 5. Dual-Pane Split View — Left and right resizable panels (like an IDE sidebar + editor)
-win.addSplitPane("splitMain", 880, 220, {
+win.addSplitPane("splitMain", {
+  width: 880,
+  height: 220,
   left_title: "Navigator",
   left_content: "src/\n  index.ts\n  simplegui.ts",
   right_title: "Inspector",
@@ -266,15 +341,18 @@ win
 
 #### Quick Reference: What You Can Chain onto Any Control
 
-| What You Want to Do                     | Chainable Methods on `SimpleControlRef`                                                                               | Plain-English Meaning                                                         |
-| :-------------------------------------- | :-------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------- |
-| **Give it a name & read/set its value** | `.id("myId")`, `.bindState("key")`, `.getValue()`, `.setValue(v)`, `.getText()`, `.setText(t)`                        | `.id()` names the control; `.bindState()` auto-syncs it with a state variable |
-| **Change its size or position**         | `.width(px)`, `.height(px)`, `.size(w, h)`, `.at(x, y)`, `.expandFill(true)`                                          | Set pixel dimensions or stretch to fill a row                                 |
-| **Style colors & fonts**                | `.bg("#hex")`, `.color("#hex")`, `.font(size, color?, weight?)`, `.bold()`, `.italic()`, `.align(dir)`                | Customize colors, font size, bold/italic, and alignment                       |
-| **Add hints, limits & focus**           | `.placeholder("hint")`, `.tooltip("hover text")`, `.readOnly(true)`, `.min(0)`, `.max(100)`, `.focus()`, `.flash()`   | Add placeholder text, numeric min/max bounds, or focus/flash the control      |
-| **Show, hide, enable, or disable**      | `.show()`, `.hide()`, `.visible(bool)`, `.enable()`, `.disable()`, `.enabled(bool)`                                   | Toggle whether the user can see or interact with the control                  |
-| **Power helpers for Tabs & Tables**     | `.bindViews(viewsMap)`, `.filterTable(tableId)`, `.bindDetail(fieldIds)`, `.debounceChange(ms, cb)`                   | 1-line helpers for tab switching, live table filtering, and debounced search  |
-| **Listen to clicks, typing & keys**     | `.onClick(cb)`, `.onDoubleClick(cb)`, `.onRightClick(cb)`, `.onChange(cb)`, `.onEnter(cb)`, `.contextMenu(items, cb)` | Run a function when clicked, typed into, `Enter` pressed, or right-clicked    |
+| What You Want to Do | Chainable Methods on `SimpleControlRef` | Plain-English Meaning |
+| :--- | :--- | :--- |
+| **Give it a name & read/set its value** | `.id("myId")`, `.bindState("key")`, `.value()` / `.value(v)`, `.text()` / `.text(t)`, `.checked()` / `.checked(b)`, `.clear()` | `.id()` names the control (and promotes an un-set input arg to placeholder); zero-arg `.value()`/`.text()`/`.checked()` read the value, one-arg forms update it |
+| **Change its size or position** | `.width(px)`, `.height(px)`, `.size(w, h)`, `.at(x, y)`, `.expandFill(true)` | Set pixel dimensions or stretch to fill a row |
+| **Style colors & fonts** | `.bg("#hex")`, `.color("#hex")`, `.font(size, color?, weight?)`, `.bold()`, `.italic()`, `.align(dir)` | Customize colors, font size, bold/italic, and alignment — custom `.bg()`/`.color()` **survive `win.setTheme()`** |
+| **Add hints, limits & focus** | `.placeholder("hint")`, `.tooltip("hover text")`, `.readOnly(true)`, `.min(0)`, `.max(100)`, `.focus()`, `.flash()` | Add placeholder text, numeric min/max bounds, or focus/flash the control |
+| **Show, hide, enable, or disable** | `.show()`, `.hide()`, `.visible(bool)`, `.toggleVisible()`, `.isVisible()`, `.enable()`, `.disable()`, `.enabled(bool)`, `.toggleEnabled()`, `.isEnabled()` | Query or toggle whether the user can see or interact with the control |
+| **Power helpers for Tabs & Tables** | `.bindViews(viewsMap)`, `.filterTable(tableId, rowsOrFn, opts?)`, `.bindDetail(colMap, cb)` | 1-line helpers for tab switching, live table filtering, and master-detail row click binding |
+| **Listen to clicks, typing & keys** | `.onClick(cb)`, `.onDoubleClick(cb)`, `.onRightClick(cb)`, `.onChange(cb)`, `.onEnter(cb)`, `.contextMenu(items, cb)` | Run a function when clicked, typed into (wrap `cb` in `rad.flowutils.debounce` if querying DB/HTTP), `Enter` pressed, or right-clicked |
+
+> [!TIP]
+> **`.id()` Placeholder Promotion:** Writing `win.addInput("Enter username").id("txtUser")` or `win.addTextInput("Enter username").id("txtUser")` automatically promotes `"Enter username"` into the input's **placeholder** (unless `.placeholder(...)` was set explicitly) and migrates any stored value or listeners to `"txtUser"`.
 
 ---
 
@@ -284,18 +362,27 @@ win
 
 **Plain-English Summary:** SimpleGUI gives you **two ways** to add form inputs:
 
-1. **Standard Controls (`win.addTextInput`, `win.addDropdown`, `win.addSwitch`, etc.):** Adds just the control itself. Use these when placing several controls inside a custom `beginRow()` or `beginGrid()`.
+1. **Standard Controls (`win.addTextInput`, `win.addDropdown`, `win.addSwitch`, etc.):** Adds just the control itself. Use these when placing several controls inside a custom `win.row(...)` or `win.grid(...)`.
 2. **Compound Labeled Form Builders (`win.addFormField`, `win.addFormDropdown`, `win.addFormSwitch`, etc.):** Adds **both the text label on the left AND the input control on the right** in a single clean line! Note that `addForm*` methods take `(label, id, defaultValue)` so you don't even need to chain `.id()`.
 
-#### How to Read & Write Control Values by ID
+#### How to Read & Update Any Control (Without Surprises)
 
-| Control Type                                  | How to Read Current Value                                  | How to Change Value from Code                        |
-| :-------------------------------------------- | :--------------------------------------------------------- | :--------------------------------------------------- |
-| **Text Input / Search / TextArea / Dropdown** | `const text = win.getText("txtUser");` (`string`)          | `win.setText("txtUser", "new text");`                |
-| **Checkbox / Switch**                         | `const isOn = win.getBool("swtDark");` (`boolean`)         | `win.setValue("swtDark", true);`                     |
-| **Slider / Stepper / Number / Progress**      | `const num = win.getNumber("sldVol");` (`number`)          | `win.setValue("sldVol", 85);`                        |
-| **Dropdown Option List (Change choices)**     | `const picked = win.getText("cmbEnv");`                    | `win.setOptions("cmbEnv", ["Dev", "Prod"], "Prod");` |
-| **Read ALL Form Controls at Once**            | `const obj = win.getFormValues();` (`Record<string, any>`) | `win.setAll({ txtUser: "ada", sldVol: 90 });`        |
+- **`win.control(id)` vs `win.getControl(id)`:** `win.control(id)` (alias `win.ref(id)`) returns a `SimpleControlRef` handle and **throws a descriptive error** if `id` does not exist — great for catching typos immediately. `win.getControl(id)` returns `null` when missing.
+- **`getText` / `setText` vs `setValue` vs `setHtml`:**
+  - `setText(id, text)` and `setValue(id, val)` **safely escape plain text** (`textContent` on `<button>`, `.rad-btn-caption` inside badge buttons, `.text`/`.caption` on checkbox/switch/label, `.value`/`.checked` on inputs/selects/checkboxes).
+  - **Important for checkboxes & switches:** `getText(id)` / `setText(id, caption)` read/update the **label caption** without changing the checked boolean state; use `getBool(id)` / `setValue(id, true)` (or `.checked(true)`) for checked state!
+  - `setHtml(id, rawHtml)` explicitly writes raw `innerHTML` when you intentionally render HTML markup (never pass untrusted user input to `setHtml`).
+- **Batch Reads, Batch Writes & Resets:** Use `win.values()` / `win.getValues(ids?)` / `win.getAllValues()` / `win.getFormValues(ids?)` to read multiple fields into an object, `win.values(map)` / `win.setValues(map)` / `win.setFormValues(map)` / `win.setManyTexts(map)` to update many controls at once, and `win.resetForm(defaultsOrIds?)` / `win.clearForm()` to restore defaults or empty inputs.
+
+| What You Need | Single-Control Method (`win.*`) | Fluent Handle (`win.control("id").*`) | Batch Form / Table Method |
+| :--- | :--- | :--- | :--- |
+| **Text Input / Search / Dropdown** | `win.getText("txtUser")` · `win.setText("txtUser", "ada")` | `.text()` · `.text("ada")` · `.clear()` | `win.values(["txtUser"])` · `win.setValues({ txtUser: "ada" })` |
+| **Checkbox / Switch (checked state)** | `win.getBool("swtDark")` · `win.setValue("swtDark", true)` | `.checked()` · `.checked(true)` | `win.setManyChecked({ swtDark: true })` |
+| **Checkbox / Switch (label text only)** | `win.getText("swtDark")` · `win.setText("swtDark", "Night Mode")` | `.text()` · `.text("Night Mode")` | `win.setManyTexts({ swtDark: "Night Mode" })` |
+| **Slider / Stepper / Number / Progress** | `win.getInt("sldVol")` · `win.getFloat("sldVol")` · `win.setValue("sldVol", 85)` | `.value()` · `.value(85)` | `win.setManyNumbers({ sldVol: 85 })` |
+| **Raw HTML Markup (trusted only)** | `win.setHtml("lblPreview", "<b>Ready</b>")` | — | — |
+| **Visibility & Enabled Toggles** | `win.setControlVisible("id", false)` · `win.showControls(["id"])` / `hideControls(["id"])` | `.toggleVisible()` · `.toggleEnabled()` | `win.setManyVisibility(map)` · `win.setManyEnabled(map)` |
+| **Dropdown Choices / Reset Form** | `win.setListItems("cmbEnv", ["Dev", "Prod"]).setValue("cmbEnv", "Prod")` | `.options(["Dev", "Prod"])` | `win.resetForm({ txtUser: "" })` · `win.clearForm()` |
 
 > 📖 **Deep-Dive Reference (Optional):** [Standard Controls Reference (`docs/SIMPLEGUI_API.md#controls-reference`)](docs/SIMPLEGUI_API.md#controls-reference) · [Compound Labeled Form Field Builders (`#compound-form-fields`)](docs/SIMPLEGUI_API.md#compound-form-fields) · [Supported Component Reference (`docs/API.md#3-supported-component-reference`)](docs/API.md#3-supported-component-reference)
 
@@ -363,7 +450,7 @@ win.addBadge("HEALTHY", "success").id("bdgHealth");
 win.addCodeView("const x: number = 42;", "typescript").id("codePreview");
 win.addMarkdownView(
   "mdDoc",
-  "# Release v1.5\n- Zero-config SQLite\n- 133 Themes",
+  "# Release v1.5\n- Zero-config SQLite\n- 310 Themes (167 FX)",
   140,
 );
 win
@@ -713,7 +800,14 @@ win.addTimer(
 
 ### Step 8: VLang Parity, Studio Extended & 35 Enterprise Widgets
 
-**Plain-English Summary:** Need advanced UI components like an **Autocomplete box**, **Multi-level Cascader**, **@Mentions input**, **Rich Text Editor**, **Signature Pad**, **Copy-to-Clipboard button**, **Delete Confirmation Popover (`popconfirm`)**, **Kanban Board**, or **Slide-out Sidebar Drawer**? They are all built directly into `win.*` with zero external libraries!
+**Plain-English Summary:** Need advanced UI components like an **Autocomplete box**, **Multi-level Cascader**, **@Mentions input**, **Rich Text Editor**, **Signature Pad**, **Copy-to-Clipboard button**, **Delete Confirmation Popover (`popconfirm`)**, **Kanban Board**, or **Slide-out Sidebar Drawer**? They are all built directly into `win.*` with zero external libraries! Every enterprise widget returns a `SimpleControlRef` and can also be constructed via `win.ui("<type>", cfg)` or driven dynamically via `win.uiCall(id, method, ...args)`.
+
+| Group | `win.*` Enterprise Helpers (`src/simplegui.ts`) | What They Do (Plain English) |
+| :--- | :--- | :--- |
+| **Feedback & Surfaces** | `skeleton`, `paper`, `emptyState`, `result`, `backdrop` (+`showBackdrop`/`hideBackdrop`) | Loading shimmer placeholders, elevated surface cards, zero-data states, status result banners, and full-window blocking backdrops |
+| **Navigation & Overlays** | `appBar`, `bottomNav`, `fab`, `speedDial`, `backToTop`, `scrollProgress`, `drawer` (+`openDrawer`/`closeDrawer`/`toggleDrawer`), `popover`, `hoverCard`, `popconfirm`, `tour` (+`startTour`/`stopTour`), `anchorLinks` | App top/bottom bars, floating action buttons & speed dials, scroll indicators, slide-out navigation drawers, click/hover popovers, inline delete confirmations (`popconfirm`), guided UI onboarding tours, and smooth anchor jump links |
+| **Advanced Inputs** | `autocomplete` (multi / free-solo / groups), `cascader`, `treeSelect`, `mentions`, `signaturePad`, `richText`, `copyButton`, `loadingButton` (+`setLoading`) | Searchable tag/combo dropdowns, hierarchical region pickers, collapsible tree selectors, `@mention` textareas, mouse/touch signature canvases (outputs PNG data URL), WYSIWYG HTML editors, one-click clipboard copy buttons, and spinner buttons |
+| **Data Display** | `chips`, `avatarGroup`, `descriptions`, `statistic`, `countdown`, `watermark`, `masonry`, `imageCompare`, `marquee`, `typography`, `virtualList` | Interactive pill chips, stacked "+N" avatars, key/value description grids, animated KPI counters, live countdown timers, repeating watermarks, Pinterest masonry grids, before/after image sliders, tickers, themed headings, and 100k+ row windowed lists |
 
 > 📖 **Deep-Dive Reference (Optional):** [VLang SimpleGUI Control Parity (`docs/SIMPLEGUI_API.md#-vlang-simplegui-control-parity-55-controls--nameless-shorthands`)](docs/SIMPLEGUI_API.md#-vlang-simplegui-control-parity-55-controls--nameless-shorthands) · [Enterprise Components (`docs/SIMPLEGUI_API.md#enterprise-components-muiant-style-only-what-simplegui-did-not-already-have`)](docs/SIMPLEGUI_API.md#enterprise-components-muiant-style-only-what-simplegui-did-not-already-have) · [Visual Components (`docs/API.md#visual-components`)](docs/API.md#visual-components)
 
@@ -766,10 +860,11 @@ win.signaturePad({ width: 380, height: 150, saveButton: true });
 
 // --- 2. Smart Action Buttons & Popovers ---
 // CopyButton: Copies text to OS clipboard and shows a "Copied!" checkmark automatically
-win.copyButton("Copy Token", "rad-token-2026", { width: 150 });
+win.copyButton("Copy Token", "placeholder-token-2026", { width: 150 });
 
-// LoadingButton: Automatically shows a spinner for 1500ms when clicked
+// LoadingButton: Automatically shows a spinner when clicked, or toggle manually with win.setLoading(id, bool)
 win.loadingButton("Run Migration", {
+  id: "btnMigrate",
   autoLoadingMs: 1500,
   color: "success",
   width: 160,
@@ -823,7 +918,7 @@ win.addKanbanBoard("kanbanSprint", [
   {
     id: "done",
     title: "Done",
-    cards: [{ id: "2", title: "Ship 133 Themes", tag: "UI" }],
+    cards: [{ id: "2", title: "Ship 310 Themes", tag: "UI" }],
   },
 ]);
 win.drawer("Workspace Menu", {
@@ -835,6 +930,7 @@ win.drawer("Workspace Menu", {
     { label: "Settings", icon: "settings", value: "settings" },
   ],
 });
+// Runtime imperative calls: win.openDrawer("mainDrawer"), win.startTour("tourId"), win.uiCall("cmpId", "reset", 60)
 ```
 
 ---
@@ -846,8 +942,31 @@ win.drawer("Workspace Menu", {
 **Plain-English Summary:**
 
 - **What is `.bindState("key")`?** It links a UI control directly to a named variable inside `win`. If the user types into the box, `win.getState("key")` updates automatically. If your code calls `win.setState("key", "new value")`, the UI box on screen updates automatically!
-- **What is `validateForm`?** Instead of writing 20 lines of `if (!email.includes("@"))`, pass a rules object (`required`, `minLength`, `min`, `max`, `email`, `pattern`) to `win.validateForm(...)`. If anything is invalid, it highlights the bad field in red, flashes it, and tells you what failed.
-- **How do I save user settings to disk?** Call `win.saveAppFormState()` (saves to your OS user config folder) or `win.saveValuesToFile("./my_settings.json")` (saves all form inputs to a JSON file).
+- **What is `validateForm`?** Pass a rules object (`required`, `minLength`, `maxLength`, `min`, `max`, `pattern`, `validate`, `message`, `label`, or a validator function `(val, win) => boolean | string`) to `win.validateForm(rules, opts?)`. For emails, use `pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/` or `validate: (v) => rad.validutils.isEmail(v) || "Invalid email"`. It returns `{ valid, errors, firstErrorId, firstInvalidId, firstErrorMessage }`.
+- **How do I save user settings to disk?** Pass `{ autoSaveState: true, appId: "my_app" }` (or call `win.enableAutoSave()` with zero args) to auto-save `session.json` + `form_state.json`, call `win.enableAutoSaveState("my_app")` to auto-save `stateStore`, or use `win.saveValuesToFile("./my_settings.json")`.
+
+#### `validateForm(rules, opts?)` Rule Keys & Options (`src/simplegui.ts`)
+
+| Rule Key / Option | Type / Purpose | Example |
+| :--- | :--- | :--- |
+| **`required`** | `boolean` — rejects empty strings or empty selections | `{ required: true, label: "Workspace" }` |
+| **`minLength` / `maxLength`** | `number` — enforces trimmed string length bounds | `{ minLength: 3, maxLength: 64 }` |
+| **`min` / `max`** | `number` — parses finite numbers and checks inclusive bounds | `{ min: 1, max: 65535, label: "Port" }` |
+| **`pattern`** | `RegExp` — validates text against a regex pattern | `{ pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter valid email" }` |
+| **`validate`** | `(val, win) => boolean \| string` (or pass the function directly as the rule) | `validate: (v, w) => v === w.getText("txtPass") \|\| "Passwords must match"` |
+| **`label` / `message`** | Custom display name or override error message | `{ required: true, label: "API URL" }` |
+| **2nd arg `opts`** | `{ highlight?: boolean; focusFirst?: boolean; toastOnError?: boolean }` | Highlights invalid inputs, focuses `firstInvalidId`, optional error toast |
+
+#### Exact OS Persistence Directory Paths (`src/simplegui.ts`)
+
+| Helper / File | macOS Path | Linux Path | Windows Path |
+| :--- | :--- | :--- | :--- |
+| **`getAppStateDir(app)`** (`session.json`, `form_state.json`, `enableAutoSave()`) | `~/Library/Application Support/<app>` | `$XDG_STATE_HOME/<app>` (or `~/.local/state/<app>`) | `%LOCALAPPDATA%\<app>` |
+| **`getAppConfigDir(app)`** | `$XDG_CONFIG_HOME/<app>` (or `~/.config/<app>`) | `$XDG_CONFIG_HOME/<app>` (or `~/.config/<app>`) | `%APPDATA%\<app>` |
+| **`getAppDataDir(app)`** | `~/Library/Application Support/<app>` | `$XDG_DATA_HOME/<app>` (or `~/.local/share/<app>`) | `%LOCALAPPDATA%\<app>` |
+| **`getAppCacheDir(app)`** | `~/Library/Caches/<app>` | `$XDG_CACHE_HOME/<app>` (or `~/.cache/<app>`) | `%LOCALAPPDATA%\<app>\Cache` |
+| **`getAppLogDir(app)`** | `~/Library/Logs/<app>` | `<stateDir>/log` | `%LOCALAPPDATA%\<app>\Logs` |
+| **Global Theme (`saveTheme` / `getSavedTheme`)** | `~/.config/simplegui/theme.txt` | `~/.config/simplegui/theme.txt` | `%USERPROFILE%\.config\simplegui\theme.txt` |
 
 > 📖 **Deep-Dive Reference (Optional):** [Form State, Serialization & Bulk Operations (`docs/SIMPLEGUI_API.md#form-state-serialization`)](docs/SIMPLEGUI_API.md#form-state-serialization) · [Reactive State Store (`#reactive-state-store`)](docs/SIMPLEGUI_API.md#reactive-state-store) · [Two-Way Data & Event Binding (`#data-event-binding`)](docs/SIMPLEGUI_API.md#data-event-binding) · [App State & OS Directories (`#app-state-persistence`)](docs/SIMPLEGUI_API.md#app-state-persistence) · [Data & Files Reference (`docs/reference/data-and-files.md`)](docs/reference/data-and-files.md)
 
@@ -879,28 +998,36 @@ win.setState("org_name", "Cyberdyne Systems");
 win.setStateInt("quota_pct", 85);
 
 // 2. Read, Fill, or Reset an Entire Form in 1 Line
-const allValues = win.getFormValues(); // Returns { txtOrg: "Cyberdyne Systems", sldQuota: 85, ... }
-const subset = win.getFormValues(["txtOrg", "sldQuota"]); // Read only specific control IDs
-win.setAll({ txtOrg: "Globex", sldQuota: 60 }); // Fill multiple controls at once
+const allValues = win.getFormValues(); // Or win.values() -> { txtOrg: "Cyberdyne Systems", sldQuota: 85, ... }
+const subset = win.values(["txtOrg", "sldQuota"]); // Read only specific control IDs
+win.setValues({ txtOrg: "Globex", sldQuota: 60 }); // Update multiple controls cleanly
 win.resetForm({ txtOrg: "Acme Corp", sldQuota: 50 }); // Reset form back to default values
 win.disableControls(["txtOrg", "sldQuota"]); // Grey out / lock multiple controls
 win.enableControls(["txtOrg", "sldQuota"]); // Re-enable them
 
-// 3. 1-Line Form Validation (Checks rules, shows red error border, and returns errors)
-const validation = win.validateForm({
-  txtOrg: { required: true, minLength: 2, label: "Organization" },
-  sldQuota: { min: 10, max: 100, label: "Quota (%)" },
-});
+// 3. 1-Line Form Validation (Checks rules, highlights errors, and focuses first broken field)
+const validation = win.validateForm(
+  {
+    txtOrg: { required: true, minLength: 2, label: "Organization" },
+    txtEmail: {
+      required: true,
+      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      message: "Enter a valid contact email",
+    },
+    sldQuota: { min: 10, max: 100, label: "Quota (%)" },
+  },
+  { highlight: true, focusFirst: true },
+);
 if (!validation.valid) {
-  win.focus(validation.firstInvalidId!); // Jump cursor straight to the first broken field
   win.warn("Validation Error", Object.values(validation.errors).join("\n"));
 }
 
-// 4. Save & Load Settings on Disk (macOS Application Support / Linux ~/.config / Windows AppData)
-win.saveAppFormState(); // Auto-save form inputs, window size & theme
-win.restoreAppFormState(); // Restore saved form inputs
-win.saveAppState("my_studio_app"); // Save reactive state store to OS app folder
-win.loadAppState("my_studio_app"); // Load reactive state store from OS app folder
+// 4. Save & Load Settings on Disk (using appId + OS-native state folders)
+win.enableAutoSave(); // Zero-arg helper: saves form inputs, geometry & theme on close
+win.saveAppFormState(); // Save form inputs & session immediately
+win.restoreAppFormState(); // Restore saved form inputs (respects explicit constructor options)
+win.saveAppState("my_studio_app"); // Save reactive state store to OS state folder
+win.loadAppState("my_studio_app"); // Load reactive state store from OS state folder
 win.saveValuesToFile("./workspace_backup.json"); // Save all form values to any JSON file
 win.loadValuesFromFile("./workspace_backup.json"); // Load form values back from a JSON file
 ```
@@ -1054,7 +1181,7 @@ win
 
 ### Step 11: 133 Visual Themes & 12 Futuristic FX Shader Themes
 
-**Plain-English Summary:** SimpleGUI ships with **133 ready-made color themes** (including macOS Dark/Light, Tokyo Night, Catppuccin, Nord, Dracula, Windows 11, Ubuntu, Retro Win95/Mac Classic, and **12 animated GPU-style FX shader themes**). Drop `win.addThemeSelector("dd_theme", "Theme:")` into any window to give your users a live theme dropdown that automatically remembers their favorite theme!
+**Plain-English Summary:** SimpleGUI ships with **310 ready-made color themes** (`getThemeNames()`, `385` total theme keys via `getThemeKeys()` — see [`docs/THEMES.md`](docs/THEMES.md)), spanning classic developer palettes, OS heritage themes (macOS Dark/Light, Windows 11/95, Ubuntu, Retro Mac Classic), and **167 futuristic FX shader themes** (including the 12 core FX flagship presets). Drop `win.addThemeSelector("dd_theme", "Theme:")` into any window to give users a live theme dropdown that automatically remembers their favorite theme!
 
 > 📖 **Deep-Dive Reference (Optional):** [Complete Themes Catalog (`docs/THEMES.md`)](docs/THEMES.md) · [Futuristic FX Themes & Motion Layer (`docs/developer/fx-themes.md`)](docs/developer/fx-themes.md) · [SimpleGUI Visual Themes (`docs/SIMPLEGUI_API.md#visual-themes`)](docs/SIMPLEGUI_API.md#visual-themes) · [Themes & Atmospheric Shaders Tutorial (`docs/userguides/file-manager-themes-complete-tutorial.md`)](docs/userguides/file-manager-themes-complete-tutorial.md)
 
@@ -1062,21 +1189,21 @@ win
 // Option A (Easiest): 1-line theme selector dropdown that switches & saves themes automatically
 win.addThemeSelector("dd_theme", "Theme:");
 
-// Option B: Build your own dropdown with all 133 theme names
+// Option B: Build your own dropdown with all 310 registered theme names
 const themes = getThemeNames();
 win
   .addDropdown(themes, "apple_dark", (w, name) => w.setTheme(String(name)))
   .width(240);
 ```
 
-| Theme Category                | Popular Theme Names You Can Pass to `theme` or `win.setTheme(...)`                                                                                                                                                   |
-| :---------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **macOS & Apple Pro**         | `apple_dark`, `apple_light`, `midnight`, `sonoma_emerald`, `ventura_amber`, `apple_sunset`, `titanium_slate`                                                                                                         |
-| **Developer Flagships**       | `codefreelance`, `tokyo_night`, `catppuccin`, `nord`, `dracula`, `one_dark_pro`, `monokai_pro`, `jetbrains_darcula`, `github_dark`, `github_light`, `rose_pine`, `everforest`, `kanagawa`, `gruvbox_dark`, `cobalt2` |
-| **Modern SaaS & Cloud**       | `linear_dark`, `raycast_dark`, `vercel_dark`, `supabase`, `tailwind_dark`, `arc_velvet`, `unreal_engine`, `oled_black`                                                                                               |
-| **Windows 11 & Linux**        | `win11_slate`, `win11_light`, `ubuntu_dark`, `ubuntu_light`, `adwaita_dark`, `adwaita_light`, `pop_os`, `linux_mint`, `fedora_dark`                                                                                  |
-| **12 Futuristic FX Themes**   | `cyberpunk_hologram`, `neon_hud`, `quantum_obsidian`, `deep_space`, `liquid_metal`, `titanium_aurora`, `liquid_metal_light`, `neo_tokyo_dark`, `synthetic_solar`, `neo_tokyo_day`, `aurora_glass`, `plasma_violet`   |
-| **Retro & Vintage Computing** | `win95`, `mac_classic`, `mac_os_aqua`, `nextstep`, `amiga`, `c64`, `gameboy`, `amber_crt`, `matrix`, `synthwave`, `playstation`                                                                                      |
+| Theme Category | Popular Theme Names You Can Pass to `theme` or `win.setTheme(...)` |
+| :--- | :--- |
+| **macOS & Apple Pro** | `apple_dark`, `apple_light`, `midnight`, `sonoma_emerald`, `ventura_amber`, `apple_sunset`, `titanium_slate` |
+| **Developer Flagships** | `codefreelance`, `tokyo_night`, `catppuccin`, `nord`, `dracula`, `one_dark_pro`, `monokai_pro`, `jetbrains_darcula`, `github_dark`, `github_light`, `rose_pine`, `everforest`, `kanagawa`, `gruvbox_dark`, `cobalt2` |
+| **Modern SaaS & Cloud** | `linear_dark`, `raycast_dark`, `vercel_dark`, `supabase`, `tailwind_dark`, `arc_velvet`, `unreal_engine`, `oled_black` |
+| **Windows 11 & Linux** | `win11_slate`, `win11_light`, `ubuntu_dark`, `ubuntu_light`, `adwaita_dark`, `adwaita_light`, `pop_os`, `linux_mint`, `fedora_dark` |
+| **Core Futuristic FX Flagships (167 total FX themes)** | `cyberpunk_hologram`, `neon_hud`, `quantum_obsidian`, `deep_space`, `liquid_metal`, `titanium_aurora`, `liquid_metal_light`, `neo_tokyo_dark`, `synthetic_solar`, `neo_tokyo_day`, `aurora_glass`, `plasma_violet` |
+| **Retro & Vintage Computing** | `win95`, `mac_classic`, `mac_os_aqua`, `nextstep`, `amiga`, `c64`, `gameboy`, `amber_crt`, `matrix`, `synthwave`, `playstation` |
 
 ---
 
@@ -1089,69 +1216,85 @@ win
 When you want to build a **terminal tool, build script, DevOps runner, or backend service** (without opening a GUI window), use `SimpleCLI`:
 
 1. **Create the CLI app:** `const app = newApp("tool-name", "1.0.0")`.
-2. **Add command-line flags:** Chain `.addFlagString("env", "e", "staging", "Help text")`, `.addFlagInt(...)`, or `.addFlagBool(...)`. This automatically gives your tool `-e` / `--env`, `--help`, `--version`, and typo suggestions!
-3. **Parse the arguments:** Call `if (!app.parseCli()) process.exit(0);` (or `app.parseArgs(argv)` in unit tests). Then read values with `app.getFlagString("env")`.
-4. **Use built-in terminal UI & system helpers:** Print tables (`app.table`), ask interactive questions (`await app.select(...)`), run shell commands (`sys.execSafe(...)`), or call REST APIs (`createApiClient(...)`).
+2. **Add command-line flags:** Chain `.addFlagString("env", "e", "staging", "Help text")`, `.addFlagInt(...)`, or `.addFlagBool(...)`. This automatically gives your tool `-e` / `--env`, `--help`, `--version`, `--completion <shell>`, and typo suggestions!
+3. **Parse arguments (`parseCli()` vs `parseArgs(argv)`):** Use `app.parseCli()` in production (`process.argv.slice(2)` when no array is passed), or **`app.parseArgs(argv)` in `bun test` unit tests** with an explicit string array `["--env", "prod"]`. Call `await app.run()` to dispatch subcommands or default `.action(...)`.
+4. **Use built-in terminal UI & system helpers:** Print tables (`app.table`) or TTY/JSON auto-output (`app.output`), ask interactive questions (`await app.select(...)`), run commands (`sys.exec` / `rad.sysutils.execSafe`), or call REST APIs (`createApiClient(...)`).
 
 > 📖 **Deep-Dive Reference (Optional):** [SimpleCLI API Guide (`docs/CLI_API.md`)](docs/CLI_API.md) · [SimpleCLI Cheat Sheet (`docs/cheatsheets/simplecli-cheatsheet.md`)](docs/cheatsheets/simplecli-cheatsheet.md) · [System Utilities & Standard Library (`docs/SYSTEM_UTILITIES_API.md`)](docs/SYSTEM_UTILITIES_API.md)
 
 <a id="cli-step-1-app-setup-flags-subcommands--auto-suggestions"></a>
 
-### Step 1: App Setup, Flags, Subcommands & Auto-Suggestions
+### Step 1: App Setup, Flags, Subcommands & Headless `parseArgs` Testing
 
-**Plain-English Summary:** Every `addFlag*` method takes **`(longName, shortAlias, defaultValue, description, allowedChoices?)`**. For example, `.addFlagString("env", "e", "staging", "Target environment", ["dev", "staging", "prod"])` lets users run `bun my_cli.ts --env prod` or `bun my_cli.ts -e prod`, and automatically rejects invalid values!
+**Plain-English Summary:** Every `addFlag*` method takes **`(longName, shortAlias, defaultValue, description, allowedChoices?)`**. For example, `.addFlagString("env", "e", "staging", "Target environment", ["dev", "staging", "prod"])` lets users run `--env prod` or `-e prod`, rejects invalid choices, and handles `--help`, `--version`, and `--completion bash|zsh|fish` automatically!
+
+| Parsing Method | Reads From | Best For | Return Value |
+| :--- | :--- | :--- | :--- |
+| **`app.parseCli(rawArgs?)`** | `process.argv.slice(2)` unless `rawArgs` is passed | Production CLI entrypoints | `false` on `--help`, `--version`, `--completion`, or invalid flags/subcommand; otherwise `true` |
+| **`app.parseArgs(argv)`** | Explicit `string[]` only (never touches `process.argv`) | **Headless `bun test` unit testing** | `false` on meta-flags or validation errors; otherwise `true` |
+| **`await app.run(rawArgs?)`** | Calls `parseArgs`, dispatches matching subcommand or `.action()` | Full subcommand routing | `Promise<boolean>` |
 
 > 📖 **Deep-Dive Reference (Optional):** [Architecture & Application Lifecycle (`docs/CLI_API.md#1-architecture--application-lifecycle`)](docs/CLI_API.md#1-architecture--application-lifecycle) · [CLI Flags & Argument Parsing (`docs/CLI_API.md#2-cli-flags--argument-parsing`)](docs/CLI_API.md#2-cli-flags--argument-parsing) · [Shell Completions & Man Pages (`docs/CLI_API.md#21-shell-completions-man-pages--single-binary-compilation`)](docs/CLI_API.md#21-shell-completions-man-pages--single-binary-compilation)
 
 ```typescript
 import { newApp, LogLevel } from "./src/simplecli";
 
-// 1. Define your CLI app name, version, and --flags
-const app = newApp("deploy-pilot", "2.1.0")
-  .setAuthor("Platform Team")
-  .setDescription("Zero-downtime deployment & diagnostics CLI")
-  .setLogLevel(LogLevel.INFO)
-  .handleErrors() // Catches unexpected errors and prints a clean red alert box instead of a raw stack trace
-  // addFlagString(name, shortFlag, defaultVal, description, allowedValues?)
-  .addFlagString("env", "e", "staging", "Target environment", [
-    "dev",
-    "staging",
-    "prod",
-  ])
-  // addFlagInt(name, shortFlag, defaultVal, description)
-  .addFlagInt("concurrency", "c", 4, "Parallel worker count")
-  // addFlagBool(name, shortFlag, defaultVal, description)
-  .addFlagBool("dry-run", "d", false, "Simulate without mutating state")
-  // addFlagArray(name, shortFlag, defaultVal, description) — can be passed multiple times: -t v1 -t latest
-  .addFlagArray("tag", "t", [], "Repeatable build tags");
+// 1. Export a factory so bun test can test parsing & actions headlessly!
+export function buildDeployCli() {
+  const app = newApp("deploy-pilot", "2.1.0")
+    .setAuthor("Platform Team")
+    .setDescription("Zero-downtime deployment & diagnostics CLI")
+    .setLogLevel(LogLevel.INFO)
+    .handleErrors() // Catches unexpected errors and prints a clean red alert box
+    // addFlagString(name, shortFlag, defaultVal, description, allowedValues?)
+    .addFlagString("env", "e", "staging", "Target environment", [
+      "dev",
+      "staging",
+      "prod",
+    ])
+    .addFlagInt("concurrency", "c", 4, "Parallel worker count")
+    .addFlagBool("dry-run", "d", false, "Simulate without mutating state")
+    .addFlagBool("json", "j", false, "Emit machine-readable JSON")
+    // Repeatable array flag: `-t v1 -t latest`
+    .addFlagArray("tag", "t", [], "Repeatable build tags");
 
-// 2. Optional: Add Git-style subcommands (e.g. `deploy-pilot rollout api --force`)
-app.command("rollout", "Roll out service to target cluster", (sub) => {
-  sub.addFlagBool("force", "f", false, "Bypass preflight checks");
-  sub.action(async (flags, positionalArgs) => {
-    sub.success(
-      `Rolling out (${positionalArgs.join(", ") || "all"}) with force=${flags.force}`,
-    );
+  // 2. Optional: Add Git-style subcommands (e.g. `deploy-pilot rollout api --force`)
+  app.command("rollout", "Roll out service to target cluster", (sub) => {
+    sub.addFlagBool("force", "f", false, "Bypass preflight checks");
+    sub.action(async (flags, positionalArgs) => {
+      sub.success(
+        `Rolling out (${positionalArgs.join(", ") || "all"}) with force=${flags.force}`,
+      );
+    });
   });
-});
 
-// 3. Parse command-line arguments (automatically prints --help or --version and exits if requested)
-if (!app.parseCli()) process.exit(0);
+  return app;
+}
 
-// 4. Read the parsed flag values with full TypeScript types
-const env = app.getFlagString("env"); // string ("dev" | "staging" | "prod")
-const workers = app.getFlagInt("concurrency"); // number (4)
-const dryRun = app.getFlagBool("dry-run"); // boolean (false)
-await app.run(); // Dispatches subcommands if one was matched
+if (import.meta.main) {
+  const app = buildDeployCli();
+  if (!app.parseCli()) process.exit(0);
+  const env = app.getFlagString("env"); // "dev" | "staging" | "prod"
+  const workers = app.getFlagInt("concurrency"); // number
+  const dryRun = app.getFlagBool("dry-run"); // boolean
+  await app.run(); // Dispatches subcommands if matched
+}
+
+// 3. Headless Unit Test Pattern (`bun test`):
+// const cli = buildDeployCli();
+// expect(cli.parseArgs(["--env", "prod", "-dc", "8", "-t", "v1"])).toBe(true);
+// expect(cli.getFlagString("env")).toBe("prod");
+// expect(cli.getFlagInt("concurrency")).toBe(8);
+// expect(cli.getFlagBool("dry-run")).toBe(true);
 ```
 
 ---
 
 <a id="cli-step-2-terminal-ansi-ui-tables-sparklines-charts-trees--diffs"></a>
 
-### Step 2: Terminal ANSI UI, Tables, Sparklines, Charts, Trees & Diffs
+### Step 2: Terminal ANSI UI, TTY vs `--json` Output, Sparklines, Charts, Trees & Diffs
 
-**Plain-English Summary:** Turn boring `console.log` output into a polished terminal dashboard. Use `app.banner(...)` for headers, `app.printKv(...)` for aligned `Key: Value` pairs, `app.table(headers, rows)` for Unicode box tables, and `app.output(objects)` when you want a table in the terminal that **automatically switches to JSON** when piped into another command like `jq`!
+**Plain-English Summary:** Turn plain `console.log` output into a dual-mode dashboard. `app.output(data, { format, title })` checks **both `--json` (`getFlagBool("json")`) and `!process.stdout.isTTY`**: human terminals see Unicode tables (`app.table`) or aligned key-value pairs (`app.printKv`), while piped CI commands (`my-cli | jq`) or `--json` runs automatically emit clean pretty-printed JSON!
 
 > 📖 **Deep-Dive Reference (Optional):** [Console UI & RAD Components (`docs/CLI_API.md#3-console-ui--rad-components`)](docs/CLI_API.md#3-console-ui--rad-components) · [Tables & Smart Output (`#key-value-pairs-formatted-tables--smart-output`)](docs/CLI_API.md#key-value-pairs-formatted-tables--smart-output) · [Sparklines, Bar Charts, Gauges, Trees & Diffs (`#unicode-sparklines`)](docs/CLI_API.md#unicode-sparklines)
 
@@ -1168,7 +1311,7 @@ app.printKv({
   Latency: app.green("4.2 ms"), // Color helpers: app.green(), app.red(), app.cyan(), app.yellow(), app.bold()
 });
 
-// 2. Formatted Unicode Tables (Pass column headers + array of string rows)
+// 2. Formatted Unicode Tables & Object Conversion
 app.table(
   ["Service", "Version", "Latency", "Status"],
   [
@@ -1176,8 +1319,14 @@ app.table(
     ["search-db", "v2.0.8", "11.8 ms", app.yellow("WARMING")],
   ],
 );
+const jsonRows = app.tableToJson(
+  ["Service", "Version"],
+  [["auth-api", "v2.1.0"]],
+);
 
-// 3. Smart Output: Prints a pretty table for humans, OR raw JSON when piped (`my-cli | jq`)!
+// 3. TTY vs `--json` / Piped CI Output:
+//    • On interactive TTY without `--json`: prints Unicode table (arrays) or key-value view (objects).
+//    • When `--json` flag is set OR `!process.stdout.isTTY` (unless format is "text" | "markdown"): emits JSON!
 app.output([{ service: "auth-api", healthy: true, latencyMs: 4.2 }], {
   title: "Nodes",
 });
@@ -1312,25 +1461,37 @@ app.info(
 
 <a id="cli-step-5-sys-subprocess-hardware-telemetry-network--os-helpers"></a>
 
-### Step 5: `sys` Subprocess, Hardware Telemetry, Network & OS Helpers
+### Step 5: `sys` Subprocess, Hardware Telemetry, Network, OS Helpers & `stdlib`
 
-**Plain-English Summary:** The `sys` object is your cross-platform OS Swiss Army knife:
+**Plain-English Summary:** The `sys` object is your cross-platform OS Swiss Army knife, while `stdlib` (`Stdlib`) covers crypto, hashing, validation, formatting, statistics, and collections:
 
-- **Run commands:** `sys.execSafe(["git", "status"])` (safest, no shell) or `sys.execOr("git branch --show-current", "main")`.
+- **Run commands safely:** Use `await rad.sysutils.execSafe("git", ["status", "--short"])` (takes `cmd` + `args[]`, spawns **without** a shell to prevent shell injection!) when passing user input, or `sys.exec("git status")` / `sys.execOr("git branch --show-current", "main")` for trusted shell one-liners.
 - **Check hardware:** `sys.cpuCount()`, `sys.ramPercent()`, `sys.diskStats("/")`.
 - **Wait for servers/databases to boot:** `await sys.waitForPort("127.0.0.1", 5432, 5000)` or `await sys.waitForHttp("http://localhost:3000/health", 5000)`.
 - **Interact with the desktop OS:** `sys.notify("Title", "Message")`, `sys.clipboardCopy("text")`, `await sys.writeJson("~/out.json", data)`.
 
+#### Subprocess Return Shapes (`sys` vs `rad.sysutils`)
+
+| Function | Runs via Shell? | Arguments | Return Shape |
+| :--- | :--- | :--- | :--- |
+| **`sys.exec(cmd, cwd?)`** | Yes (`shell: true`) | Single command string | `[output: string, exitCode: number]` (sync tuple) |
+| **`sys.execOr(cmd, fallback?, cwd?)`** | Yes (`shell: true`) | Command string + fallback | `string` (stdout on exit 0, else `fallback`) |
+| **`await sys.execTimeout(cmd, ms?, cwd?)`** | Yes (`shell: true`) | Command string + timeout ms | `Promise<{ output, exitCode, durationMs, timedOut, attempts }>` |
+| **`await rad.sysutils.execSafe(cmd, args?, opts?)`** | **No** (safe `Bun.spawn`) | `(cmd: string, args?: string[], { cwd?, env? })` | `Promise<{ stdout: string, stderr: string, exitCode: number }>` |
+
 > 📖 **Deep-Dive Reference (Optional):** [Safe Process Execution (`docs/CLI_API.md#9-safe-process-execution--subprocess-control`)](docs/CLI_API.md#9-safe-process-execution--subprocess-control) · [Hardware Telemetry (`#10-hardware-telemetry--resource-probing`)](docs/CLI_API.md#10-hardware-telemetry--resource-probing) · [OS Directories & File System (`#11-standard-os-directory-resolution--file-system`)](docs/CLI_API.md#11-standard-os-directory-resolution--file-system) · [Network & Port Diagnostics (`#12-network-wi-fi--tcp-port-diagnostics`)](docs/CLI_API.md#12-network-wi-fi--tcp-port-diagnostics) · [Notifications, Speech & Clipboard (`#13-desktop-notifications-speech--audio-utilities`)](docs/CLI_API.md#13-desktop-notifications-speech--audio-utilities)
 
+> **Warning – Keep encryption keys and user arguments separate from commands:** Always pass untrusted filenames or flags via `rad.sysutils.execSafe(cmd, [arg1, arg2])` instead of string-interpolating into `sys.exec(...)`, and never hardcode production passphrases when using `stdlib.aesEncrypt` / `aesDecrypt`.
+
 ```typescript
-import { sys } from "./src/simplecli";
+import { rad } from "./src";
+import { stdlib, sys } from "./src/simplecli";
 
 // 1. Run Terminal Commands Safely
-const [stdout, exitCode] = sys.exec("git status --short"); // Returns [outputText, exitCode]
-const branch = sys.execOr("git rev-parse --abbrev-ref HEAD", "main"); // Returns fallback "main" if command fails
-const safe = await sys.execSafe(["git", "log", "-n", "1"], { timeoutMs: 3000 }); // Argument array (no shell injection!)
-const timed = await sys.execTimeout("bun --version", 3000); // Kills command if it takes > 3 seconds
+const [stdout, exitCode] = sys.exec("git status --short"); // Tuple: [outputText, exitCode]
+const branch = sys.execOr("git rev-parse --abbrev-ref HEAD", "main"); // Fallback "main" on error
+const safe = await rad.sysutils.execSafe("git", ["log", "-n", "1"]); // No shell! { stdout, stderr, exitCode }
+const timed = await sys.execTimeout("bun --version", 3000); // { output, exitCode, durationMs, timedOut, attempts }
 const retried = await sys.execRetry("curl -sf https://example.com", 3, 400); // Retries up to 3 times
 const parallel = await sys.execParallel(["echo a", "echo b", "echo c"], 2); // Runs 2 commands at a time
 
@@ -1339,7 +1500,7 @@ const info = {
   cpu: `${sys.cpuModel()} (${sys.cpuCount()} cores)`,
   load: sys.cpuLoad(), // [1min, 5min, 15min] load averages
   ramPct: sys.ramPercent(), // RAM used %, e.g. 62.4
-  disk: sys.diskStats("/"), // { total, used, available, percent }
+  disk: sys.diskStats("/"), // { totalBytes, freeBytes, usedBytes, percent }
   battery: sys.batteryPercent(), // Laptop battery % (or 100 on desktop)
 };
 
@@ -1353,32 +1514,51 @@ const apiReady = await sys.waitForHttp("http://127.0.0.1:3000/health", 5000); //
 sys.notify("Build Finished", "All checks passed!", true);
 sys.clipboardCopy("Copied from SimpleCLI");
 await sys.writeJson("~/report.json", info);
+
+// 5. Stdlib Highlights: Crypto, Validation, Formatting & Statistics
+const hash = stdlib.sha256("hello");
+const cipher = stdlib.aesEncrypt("sensitive payload", process.env.APP_KEY || "placeholder-secret-key");
+const plain = stdlib.aesDecrypt(cipher, process.env.APP_KEY || "placeholder-secret-key");
+const valid = stdlib.isEmail("ada@example.com") && stdlib.isPort(8080) && stdlib.isSemver("1.4.0");
+const p95 = stdlib.percentile([12, 18, 25, 42, 95], 95); // Also: sum, mean, median, variance, humanSize, LRUCache
 ```
 
 ---
 
 <a id="cli-step-6-apiclient-rest-crud-safe-try-calls--namespaced-redis"></a>
 
-### Step 6: `ApiClient` REST CRUD, Safe `try*` Calls & Namespaced Redis
+### Step 6: `ApiClient` REST CRUD, Safe `try*` Calls, Mock Servers & Namespaced Redis
 
-**Plain-English Summary:** Calling external HTTP APIs with raw `fetch()` requires writing boilerplate for timeouts, retries, auth headers, and `try/catch` blocks. `createApiClient(baseUrl)` handles all of that automatically:
+**Plain-English Summary:** Calling external HTTP APIs with raw `fetch()` requires writing boilerplate for timeouts, retries, auth headers, and `try/catch` blocks. `createApiClient(baseUrl)` handles all of that automatically—plus you can spin up a zero-config local mock JSON server (`sys.serveJson`) to run fast headless integration tests without hitting real APIs:
 
 - **Use `api.tryGet` / `api.tryPost`:** Instead of throwing exceptions on network errors or 500 responses, it returns `{ ok, statusCode, data, error }` so you can handle errors cleanly with `if (res.ok)`.
+- **Use interceptors, `.scope()`, & `.toCurl()`:** Attach auth/trace headers globally via `useRequestInterceptor`, inspect/transform responses with `useResponseInterceptor`, fork child clients with `.scope("/admin")`, and generate safe debug curl snippets with `.toCurl(..., { redactSecrets: true })`.
 - **Use `api.resource<T>("/users")`:** Gives you `.list()`, `.get(id)`, `.create(body)`, `.patch(id, body)`, and `.remove(id)` automatically.
-- **Use `app.redis("prefix", { fallbackToMemory: true })`:** Connects to Redis if available, or seamlessly falls back to an in-memory Map during local development so your app works offline!
+- **Use `app.redis("prefix", { fallbackToMemory: true })`:** Connects to Redis if available, or seamlessly falls back to an in-memory Map (`inMemory: true` forces offline mode) during local development and tests!
 
 > 📖 **Deep-Dive Reference (Optional):** [HTTP Client, Micro Server & REST APIs (`docs/CLI_API.md#15-http-client-micro-server--rest-apis`)](docs/CLI_API.md#15-http-client-micro-server--rest-apis) · [Non-Throwing `try*` Calls (`#unwrapped-data-fallbacks--non-throwing-try-calls`)](docs/CLI_API.md#unwrapped-data-fallbacks--non-throwing-try-calls) · [CRUD Resource Client (`#zero-boilerplate-crud-resource-client-apiresource`)](docs/CLI_API.md#zero-boilerplate-crud-resource-client-apiresource) · [Reactive State & Namespaced Redis (`#8-reactive-state-store-config--namespaced-redis`)](docs/CLI_API.md#8-reactive-state-store-config--namespaced-redis)
 
 ```typescript
-import { createApiClient } from "./src/simplecli";
+import { createApiClient, newApp, sys } from "./src/simplecli";
 
-// 1. Configure an HTTP Client with Bearer token, 8s timeout, 3 automatic retries, and a 30s response cache
+const app = newApp("deploy_pilot", "1.0.0");
+
+// 1. Configure an HTTP Client with Bearer token, 8s timeout, 3 retries, cache & interceptors
 const api = createApiClient("https://api.example.com/v1")
-  .withBearer("my-api-key")
+  .withBearer("your-api-token")
   .setTimeout(8000)
   .setRetries(3, 200)
   .enableCache(30_000, 128)
-  .setRateLimit(50, 1000);
+  .setRateLimit(50, 1000)
+  .useRequestInterceptor((req) => {
+    req.headers["X-Trace-Id"] = crypto.randomUUID();
+    return req;
+  })
+  .useResponseInterceptor((res) => res)
+  .onError((err) => app.warn(`HTTP failure: ${err.message}`));
+
+const adminApi = api.scope("/admin"); // Inherits auth, headers, retries & interceptors
+const curlDebug = api.toCurl("POST", "/users", { body: { name: "Ada" }, redactSecrets: true });
 
 // 2. Non-Throwing `tryGet` Call — Never crashes your script if the server is down!
 const res = await api.tryGet<{ status: string }>("/health");
@@ -1398,7 +1578,16 @@ const users = api.resource<User, number>("/users");
 // await users.patch(1, { role: "principal" });   -> PATCH /users/1
 // await users.remove(1);                         -> DELETE /users/1
 
-// 4. Namespaced Redis Cache (Automatically falls back to in-memory cache if Redis isn't running!)
+// 4. Ephemeral Local Mock Server (`port = 0` lets OS pick a free port — ideal for `bun test`)
+const mockServer = sys.serveJson({
+  "/health": { status: "ok" },
+  "POST /users": async (req: Request) => new Response(JSON.stringify({ id: 99, ...(await req.json()) }), { status: 201 }),
+}, 0);
+const localApi = createApiClient(`http://127.0.0.1:${mockServer.port}`);
+const localHealth = await localApi.tryGet<{ status: string }>("/health");
+mockServer.stop(true);
+
+// 5. Namespaced Redis Cache (Automatically falls back to in-memory store if Redis isn't running!)
 const cache = app.redis("deploy_pilot", { fallbackToMemory: true });
 await cache.connect();
 const summary = await cache.getOrSet(
@@ -1432,6 +1621,21 @@ Instead of installing dozens of third-party npm packages (`lodash`, `uuid`, `cha
 
 > 📖 **Deep-Dive Reference (Optional):** [45 RAD Modules Reference (`src/features/rad/README.md`)](src/features/rad/README.md) · [RAD Modules Cheat Sheet (`docs/cheatsheets/rad-modules-cheatsheet.md`)](docs/cheatsheets/rad-modules-cheatsheet.md) · [10 System Utilities Cookbook (`docs/SYSTEM_UTILITIES_API.md`)](docs/SYSTEM_UTILITIES_API.md)
 
+<a id="confusing-pairs-explained"></a>
+
+### Confusing Pairs Explained (Which Module Should I Pick?)
+
+Several `rad` modules and built-in tools sound similar at first glance. Use this cheat-comparison table to pick the right one in 5 seconds:
+
+| Confusing Pair / Group | Pick This One When... | Key Difference |
+| :--- | :--- | :--- |
+| **`fileutils`** vs **`sqliteutils`** vs **`stateutils`** vs **`cacheutils`** | **`fileutils`**: Config/export files (JSON, JSONL, CSV, text).<br>**`sqliteutils`**: Queryable tables, concurrent reads (`WAL`), FTS5 search, persistent KV/docs.<br>**`stateutils`**: Reactive in-memory app state store (`AppStateStore` + `persistState` JSON).<br>**`cacheutils`**: Ephemeral RAM-only `LRUCache` / `TTLCache` (lost when process exits). | `fileutils.writeFileAtomic` saves whole files safely; `sqliteutils` gives SQL + indexes; `stateutils` triggers UI/store listeners; `cacheutils` auto-evicts hot keys in memory. |
+| **`sysutils`** vs **`shellutils`** | **`sysutils`**: Cross-platform OS metadata + **safe** arg-array spawning (`execSafe(cmd, args)` — **no shell**).<br>**`shellutils`**: Trusted shell scripts/pipelines via `Bun.$` (`execCmd`, `whichCmd`, `escapeArg`). | Always prefer `rad.sysutils.execSafe("git", [userArg])` when arguments come from users; `shellutils.execCmd` runs inside a shell. |
+| **`cryptoutils`** vs **`hashutils`** vs **`jwtutils`** | **`cryptoutils`**: Security-critical hashing (`sha256`, `hmac`), `uuidV4`, `randomToken`, password hashing (`hashPassword`).<br>**`hashutils`**: Non-cryptographic fast hashes (`wyhash`, `crc32`, `BloomFilter`).<br>**`jwtutils`**: Stateless HS256 auth tokens (`signJwt`, `verifyJwt`). | **Never** use `hashutils` (`wyhash`/`crc32`) for passwords or signatures; use `cryptoutils` / `jwtutils`. |
+| **`archiveutils`** vs **`tarutils`** vs **`compressutils`** | **`archiveutils`**: Standard `.zip` files (`zipDir`, `unzipToDir`).<br>**`tarutils`**: Unix `.tar` / `.tar.gz` tarballs (`packTarBytes`, `unpackTarBytes`).<br>**`compressutils`**: Single-buffer/string compression (`gzip`, `brotli`, `zstd`, `deflate`). | `.zip` and `.tar` bundle **multiple files & folders**; `compressutils` shrinks a single byte buffer or string. |
+| **`globutils`** vs **`fd` (`searchFiles`)** | **`globutils`**: Fast wildcard matching inside your code (`findFiles("**/*.ts", "./src")`, `globMatch`).<br>**`fd` (`searchFiles`)**: Full CLI/GUI studio search with depth, hidden, size, type & extension filters (`src/features/fd/fdCoordinator.ts`). | `globutils` wraps `Bun.Glob`; `fd` adds `.gitignore`-aware project file discovery & GUI/CLI controls. |
+| **`asyncutils`** vs **`flowutils`** vs **`fnutils`** | **`asyncutils`**: Concurrency over lists/promises (`parallelMap`, `parallelFilter`, `timeoutPromise`, `WorkerPool`).<br>**`flowutils`**: Resilience & rate shaping (`retry`, `CircuitBreaker`, `RateLimiter`, `debounce`, `throttle`).<br>**`fnutils`**: Pure function helpers (`pipe`, `memoize`, `once`). | Remember: `retry`, `CircuitBreaker`, and `RateLimiter` live inside **`rad.flowutils`**, while bounded concurrency (`parallelMap`) lives inside **`rad.asyncutils`**. |
+
 <a id="domain-1-file-sqlite-wal--fts5-toml-archives--state-8-modules"></a>
 
 ### Domain 1: File, SQLite (WAL + FTS5), TOML, Archives & State (8 Modules)
@@ -1441,7 +1645,7 @@ Instead of installing dozens of third-party npm packages (`lodash`, `uuid`, `cha
 | Module                                                            | What It Does (Plain English)                                                                                                        | Most Common Functions & Copy-Paste Examples                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | :---------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [**`fileutils`**](src/features/rad/README.md#1-fileutils)         | Read & write JSON, JSONL, CSV, and text files safely (atomic writes prevent corrupted files on crash).                              | `await rad.fileutils.saveJson("cfg.json", { port: 8080 })`<br>`const cfg = await rad.fileutils.loadJson("cfg.json", { port: 3000 })`<br>`await rad.fileutils.writeCsvObjects("users.csv", rows)`<br>`await rad.fileutils.walkFiles("./src", (p) => p.endsWith(".ts"))`                                                                                                                                                                                                                                                                             |
-| [**`sqliteutils`**](src/features/rad/README.md#2-sqliteutils)     | Zero-setup SQLite database (`:memory:` or file) with 1-line helpers for tables, Key-Value storage, JSON documents, and FTS5 search. | **Open DB:** `const db = rad.sqliteutils.openDb("app.sqlite")`<br>**CRUD:** `insertRow(db, "tasks", row)` · `insertMany(db, "tasks", rows)` · `selectRows(db, "tasks", "status = ?", ["Done"])` · `updateRows(db, "tasks", { status: "Done" }, "id = ?", [1])` · `deleteRows(db, "tasks", "id = ?", [1])`<br>**Key-Value:** `createKvTable(db, "kv")` · `setKv(db, "kv", "theme", "nord")` · `getKvOr(db, "kv", "theme", "dark")`<br>**Full-Text Search:** `createFtsTable(db, "fts", ["title", "body"])` · `searchFtsRanked(db, "fts", "sqlite")` |
+| [**`sqliteutils`**](src/features/rad/README.md#2-sqliteutils)     | Zero-setup SQLite database (`:memory:` or file) with 1-line helpers for tables, Key-Value storage, JSON documents, and FTS5 search. | **Open DB:** `const db = rad.sqliteutils.openDb("app.sqlite")`<br>**CRUD:** `insertRow(db, "tasks", row)` · `insertMany(db, "tasks", rows)` · `selectRows(db, "tasks", ["*"], "status = ?", ["Done"])` · `updateRows(db, "tasks", { status: "Done" }, "id = ?", [1])` · `deleteRows(db, "tasks", "id = ?", [1])`<br>**Key-Value:** `createKvTable(db, "kv")` · `setKv(db, "kv", "theme", "nord")` · `getKvOr(db, "kv", "theme", "dark")`<br>**Full-Text Search:** `createFtsTable(db, "fts", ["title", "body"])` · `searchFtsRanked(db, "fts", "sqlite")` |
 | [**`tomlutils`**](src/features/rad/README.md#3-tomlutils)         | Parse, edit, and merge `.toml` configuration files with dot-path getters (`"server.port"`).                                         | `const doc = rad.tomlutils.parseToml(tomlStr)`<br>`const port = rad.tomlutils.getInt(doc, "server.port", 3000)`<br>`rad.tomlutils.setTomlPath(doc, "server.tls.enabled", true)`                                                                                                                                                                                                                                                                                                                                                                    |
 | [**`archiveutils`**](src/features/rad/README.md#4-archiveutils)   | Create and extract `.zip` archives in memory or on disk (with automatic zip-slip security checks).                                  | `const zipBytes = rad.archiveutils.zipFiles([{ name: "a.txt", data: "hi" }])`<br>`await rad.archiveutils.zipDir("./src", "./src.zip")`<br>`await rad.archiveutils.unzipToDir("./src.zip", "./out")`                                                                                                                                                                                                                                                                                                                                                |
 | [**`compressutils`**](src/features/rad/README.md#5-compressutils) | Compress and decompress strings or bytes using Gzip, Brotli, Zstd, or Deflate.                                                      | `const b64 = rad.compressutils.gzipCompressString("large text")`<br>`const text = rad.compressutils.gzipDecompressString(b64)`<br>`rad.compressutils.compress(bytes, "zstd")`                                                                                                                                                                                                                                                                                                                                                                      |
@@ -1471,6 +1675,7 @@ rad.sqliteutils.insertMany(db, "users", [
 const admins = rad.sqliteutils.selectRows<{ id: number; name: string }>(
   db,
   "users",
+  ["id", "name"],
   "role = ?",
   ["Admin"],
 );
@@ -1509,7 +1714,7 @@ console.log("Total users:", rad.sqliteutils.countRows(db, "users")); // 2
 | [**`templateutils`**](src/features/rad/README.md#18-templateutils) | Fill `{{variable \| default}}` text templates and render Markdown in the terminal.                    | `rad.templateutils.renderTemplate("Hi {{user.name \| Guest}}!", { user: { name: "Ada" } })`                                                                                                           |
 | [**`colorutils`**](src/features/rad/README.md#19-colorutils)       | Convert HEX/RGB/HSL colors, lighten/darken colors, and check WCAG contrast readability.               | `const rgb = rad.colorutils.hexToRgb("#38bdf8")` · `lighten(rgb, 0.15)` · `isAccessible(fgRgb, bgRgb, "AA")`                                                                                          |
 | [**`htmlutils`**](src/features/rad/README.md#20-htmlutils)         | Escape untrusted HTML, strip HTML tags to plain text, or extract all links (`<a href>`).              | `rad.htmlutils.escapeHtml(untrusted)` · `stripTags("<p>Hi <b>Bun</b></p>")` (`"Hi Bun"`) · `extractLinks(html)`                                                                                       |
-| [**`diffutils`**](src/features/rad/README.md#21-diffutils)         | Compare two strings line-by-line and generate Git-style unified or colored diffs.                     | `rad.diffutils.unifiedDiff(oldText, newText, "old", "new", 3)` · `renderColoredDiff(oldText, newText)`                                                                                                |
+| [**`diffutils`**](src/features/rad/README.md#21-diffutils)         | Compare two strings line-by-line and generate Git-style unified or colored diffs.                     | `rad.diffutils.unifiedDiff(oldText, newText, "old.txt")` · `renderColoredDiff(patch)`                                                                                                                 |
 
 <a id="domain-4-system-cli-env-bun-shell-glob-transpiler-cron--semver-9-modules"></a>
 
@@ -1519,7 +1724,7 @@ console.log("Total users:", rad.sqliteutils.countRows(db, "users")); // 2
 
 | Module                                                               | What It Does (Plain English)                                                                           | Most Common Functions & Copy-Paste Examples                                                                                   |
 | :------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
-| [**`sysutils`**](src/features/rad/README.md#22-sysutils)             | Get OS/CPU/RAM info, user home/temp folders, clipboard access, and safe command execution.             | `rad.sysutils.getSystemInfo()` · `getHomeDir()` · `getTempDir()` · `await execSafe(["bun", "--version"])`                     |
+| [**`sysutils`**](src/features/rad/README.md#22-sysutils)             | Get OS/CPU/RAM info, user home/temp folders, clipboard access, and safe command execution.             | `rad.sysutils.getSystemInfo()` · `getHomeDir()` · `getTempDir()` · `await execSafe("bun", ["--version"])`                     |
 | [**`cliutils`**](src/features/rad/README.md#23-cliutils)             | Return formatted strings for sparklines, progress bars, bar charts, gauges, and ASCII tables.          | `rad.cliutils.renderSparkline([1, 4, 8, 3, 9])` (`"▁▄▇▃█"`) · `formatProgressBar(45, 100, 30)` · `formatTable(headers, rows)` |
 | [**`envutils`**](src/features/rad/README.md#24-envutils)             | Read environment variables as typed numbers/booleans with defaults, or parse `.env` files.             | `rad.envutils.getInt("PORT", 3000)` · `getBool("DEBUG", false)` · `requireEnv("API_URL")` · `loadEnv(".env")`                 |
 | [**`shellutils`**](src/features/rad/README.md#25-shellutils)         | Run shell commands via native `Bun.$`, check if a program is installed (`whichCmd`), or pipe commands. | `rad.shellutils.whichCmd("git")` · `await rad.shellutils.execCmd("ls -la")` · `escapeArg(untrustedStr)`                       |
@@ -1540,7 +1745,7 @@ console.log("Total users:", rad.sqliteutils.countRows(db, "users")); // 2
 | [**`netutils`**](src/features/rad/README.md#31-netutils)       | Get local/public IP addresses, ping TCP ports, resolve DNS hostnames, and check internet connectivity. | `rad.netutils.getLocalIp()` · `await rad.netutils.tcpPing("127.0.0.1", 5432)` · `await rad.netutils.isOnline()`                                       |
 | [**`httputils`**](src/features/rad/README.md#32-httputils)     | One-line JSON/text `fetch` helpers with automatic retries and query string builders.                   | `await rad.httputils.getJson("https://api.example.com/items")` · `await rad.httputils.postJson(url, body)` · `buildQuery({ q: "bun" })`               |
 | [**`serverutils`**](src/features/rad/README.md#33-serverutils) | Build HTTP servers, REST routers, static file servers, and WebSocket hubs on native `Bun.serve`.       | `const r = rad.serverutils.createRouter(); r.get("/health", () => Response.json({ ok: true })); rad.serverutils.serveHttp({ port: 3000, router: r })` |
-| [**`urlutils`**](src/features/rad/README.md#34-urlutils)       | Safely join URL paths without double slashes, edit query params, and hide passwords in DB URLs.        | `rad.urlutils.joinUrl("https://api.io/v1/", "/users/", "42")` · `redactCredentials("postgres://u:secret@host/db")`                                    |
+| [**`urlutils`**](src/features/rad/README.md#34-urlutils)       | Safely join URL paths without double slashes, edit query params, and hide passwords in DB URLs.        | `rad.urlutils.joinUrl("https://api.io/v1/", "/users/", "42")` · `redactCredentials("postgres://u:placeholder@host/db")`                                    |
 | [**`jwtutils`**](src/features/rad/README.md#35-jwtutils)       | Sign and verify JSON Web Tokens (HS256) with expiration timestamps.                                    | `const token = rad.jwtutils.signJwt({ userId: 1 }, secret, 3600)` · `rad.jwtutils.verifyJwt(token, secret)`                                           |
 | [**`cryptoutils`**](src/features/rad/README.md#36-cryptoutils) | SHA-256/HMAC hashing, UUID v4/v7 generation, random tokens, and Argon2/bcrypt password hashing.        | `rad.cryptoutils.uuidV4()` · `sha256("data")` · `randomToken(32)` · `await hashPassword(pw)` / `await verifyPassword(pw, hash)`                       |
 | [**`hashutils`**](src/features/rad/README.md#37-hashutils)     | Ultra-fast non-cryptographic hashes (`wyhash`, `crc32`) and memory-efficient `BloomFilter` sets.       | `rad.hashutils.wyhash("cache-key")` · `crc32("data")` · `const bf = rad.hashutils.createBloomFilter(1000, 0.01)`                                      |
@@ -1598,7 +1803,7 @@ import {
   readManifest,
 } from "./src/features/rip/ripDoers.ts";
 import { getProcesses } from "./src/features/procs/procsCoordinator.ts";
-import { shouldTrigger } from "./src/features/watchexec/watchexecCoordinator.ts";
+import { shouldTrigger } from "./src/features/watchexec/watchexecDoers.ts"; // Also startWatcher in watchexecCoordinator.ts
 import { computeCodeStats } from "./src/features/tokei/tokeiCoordinator.ts";
 import { analyzeDirectory } from "./src/features/gdu/gduCoordinator.ts";
 import { formatBytes } from "./src/features/gdu/gduDoers.ts";
@@ -1668,24 +1873,53 @@ const dns = await lookupDomain("example.com", "A");
 
 <a id="5-part-4-visual-form-designer-ide-shortcuts--single-binary-build"></a>
 
-## 5. 🎨 Part 4: Visual Form Designer (IDE), Shortcuts & Single-Binary Build
+## 5. 🎨 Part 4: Visual Form Designer, `codecaine` CLI, Studios, Paths & Single-Binary Build
 
-> 📖 **Deep-Dive Reference (Optional):** [Visual Form Designer Guide (`docs/visual-designer/index.md`)](docs/visual-designer/index.md) · [Generated Applications (`docs/generated-applications/index.md`)](docs/generated-applications/index.md) · [Designer FormSpec API (`docs/API.md`)](docs/API.md) · [Database Workbench (`docs/databases/workbench.md`)](docs/databases/workbench.md) · [Testing & Verification (`docs/testing/index.md`)](docs/testing/index.md) · [Single-Binary Releasing (`docs/developer/releasing.md`)](docs/developer/releasing.md)
+> 📖 **Deep-Dive Reference (Optional):** [Visual Form Designer Guide (`docs/visual-designer/index.md`)](docs/visual-designer/index.md) · [File Manager Guide (`docs/userguides/43_file_manager.md`)](docs/userguides/43_file_manager.md) · [Database Workbench (`docs/databases/workbench.md`)](docs/databases/workbench.md) · [Saved Data & Files (`docs/reference/data-and-files.md`)](docs/reference/data-and-files.md) · [Studios, CLI & Troubleshooting Cheat Sheet (`docs/cheatsheets/studios-cli-and-troubleshooting-cheatsheet.md`)](docs/cheatsheets/studios-cli-and-troubleshooting-cheatsheet.md) · [Single-Binary Releasing (`docs/developer/releasing.md`)](docs/developer/releasing.md)
 
-### Launching the Visual Form Designer & Workbenches
+### Launching the Visual Form Designer, Workbenches & Master `codecaine` CLI
 
 ```bash
-# Launch the Delphi/VB-style Visual Form Designer (101 controls, 6 code generators)
-bun run start
+# 1. Visual Form Designer (IDE), Application Launcher & File Manager
+bun run start                 # Delphi/VB-style Form Designer (rebuild src/ide/ assets via bun run ide:build)
+bun run app:launcher          # Unified GUI Launcher Studio (desktop studios, CLIs & demos)
+bun run cli:launcher --list   # Print all available studios, CLIs, and demos
+bun run app:files             # Codecaine File Manager Studio (--reset-window, --server, --browser)
 
-# Launch the Application Launcher Studio (67 GUI Studios, 79 CLI Tools, 27 Demos)
-bun run app:launcher
-bun run cli:launcher --list
+# 2. Databases: Unified Workbench vs Dedicated Studios
+bun run workbench             # Database Workbench (SQLite/PostgreSQL/MySQL over loopback; WORKBENCH_PORT env)
+bun run app:sqlite            # SQLite Studio Pro (QBE filters, Cloning, Macros, Staging Wizard)
+bun run app:postgres          # PostgreSQL Studio (also app:mysql, app:redis)
 
-# Launch the Database Workbench (SQLite, PostgreSQL, MySQL)
-bun run app:sqlite
-bun run workbench
+# 3. Master `codecaine` Suite CLI (cli_apps/codecaine_suite_cli.ts)
+bun run codecaine             # Opens GUI Launcher Studio when called with no subcommand
+bun run codecaine doctor      # Verifies Bun runtime, repo root, Homebrew status & saved config paths
+bun run codecaine list --json # Filterable inventory (--apps, --cli, --demos, --category <name>, --search <term>)
+bun run codecaine search json # Fuzzy search across GUI studios, CLIs, and demos
+bun run codecaine run app:fd  # Run any studio/CLI/demo directly (`app`, `cli`, `demo`, `info <tool>`)
+bun run codecaine brew status # Homebrew tap/cask helpers: status, doctor, check, install-deps, cask, link, unlink
 ```
+
+> **Designer Verification Status (`docs/visual-designer/index.md`):** Browser checks verified `Form1` (`800x600`), **95 visual + 6 non-visual palette controls**, **6 live code tabs** (`TypeScript`, `Full bun.ts`, `V Code`, `HTML/CSS`, `JSON`, `SQLite`), Audit/Auto-Fix, Import JSON, and Undo/Redo. Native **Run** / **Export** button clicks, **Keys** dialog, right-click menu, drag move/resize, and Windows/Linux native windows were **not hand-verified**, and Database controls (`DB Grid`, `DB Navigator`, etc.) plus the Database Wizard are UI placeholders (**`D-002`**) — wire real databases with `rad.sqliteutils`, `bun run workbench`, or `bun run app:sqlite`. Designer state auto-saves to `~/.bun_rad_studio/designer_draft.json`, previews from `.rad_preview/`, and exports to `exported_project/`.
+
+### File Manager & Database Workbench Essentials
+
+> **Warning – Encryption keys and destructive SQL have no undo backdoor:** `RADENC` (`bun run cli:vault`) and `RADSEC` (`file_manager_secrets.radsec`) encrypt locally with **Argon2id + HKDF-SHA-256 + AES-256-GCM**—lost passphrases without your offline 160-bit recovery key cannot be recovered. In Database Workbench, toggling off **`READ ONLY`** requires a one-time confirmation token (2-minute expiry) for destructive SQL or production writes, and Workbench SQLite edits modify the **original database file** directly (whereas legacy `bun run app:sqlite` works on a `.sqlite_uploads/` copy).
+
+- **File Manager Flags (`bun run app:files`):** Pass `--reset-window` to clear corrupted/offscreen bounds (`file_manager_window.json`) and reopen in screen-filling mode (with `1280x820` un-maximized default), `--server` to host loopback `127.0.0.1:<port>` for Chrome/Brave (great on Linux VMs), `--browser` to open the default browser, `--port <n>`, `--path <dir>`, `--width <n> --height <n>`, `--home`, or `--data-dir <dir>`.
+- **File Manager Workstation Shortcuts:** `Alt+5` Dual-Pane Commander (`Tab` switches panes, `F5` copies, `F6` moves), `Space` Quick Look preview (EXIF/GPS scrubber & code viewer), `Cmd/Ctrl+J` synced terminal drawer, `F2` Bulk Rename, `Alt+Delete` Rip Graveyard bury (one-click `Ctrl/Cmd+Z` undo), `Ctrl/Cmd+Alt+L` encrypt/decrypt via `RADENC`.
+- **Database Workbench (`bun run workbench`):** Stores profiles in `~/.bun_rad_studio/connections.json` (`0600` permissions; override folder via `STUDIO_DB_PROFILE_DIR` for isolated tests) and stores passwords in the OS keychain via `Bun.secrets` (service `bun-rad-studio.database`). Supports `POST /api/v2/sqlite/backup` (`VACUUM INTO`), SQL execution with rollback, and read-only safety guards. *(SSH tunnels and Workbench CSV/file import are not implemented yet — use the 5-step Staging Import Wizard inside `app:sqlite` / `app:postgres` / `app:mysql`.)*
+
+### OS Config, State & Studio Data Paths
+
+| What Is Saved | macOS | Linux | Windows |
+| :--- | :--- | :--- | :--- |
+| **Global SimpleGUI theme** | `~/.config/simplegui/theme.txt` | `~/.config/simplegui/theme.txt` | `%USERPROFILE%\.config\simplegui\theme.txt` |
+| **App config (`getAppConfigDir`)** | `~/.config/<app>` (`$XDG_CONFIG_HOME`) | `~/.config/<app>` (`$XDG_CONFIG_HOME`) | `%APPDATA%\<app>` |
+| **App state (`session.json`, `form_state.json`)** | `~/Library/Application Support/<app>` | `~/.local/state/<app>` (`$XDG_STATE_HOME`) | `%LOCALAPPDATA%\<app>` |
+| **Studio, File Manager & Workbench data** | `~/.bun_rad_studio/` | `~/.bun_rad_studio/` | `%USERPROFILE%\.bun_rad_studio\` |
+| **Rip Graveyard (`rip` / `Alt+Delete`)** | `$GRAVEYARD` or `~/.local/share/rip/graveyard/` | `$GRAVEYARD` or `~/.local/share/rip/graveyard/` | `$GRAVEYARD` or `%USERPROFILE%\.local\share\rip\graveyard\` |
+| **Synthetic sample DBs (`BUNRAD_SAMPLE_DIR`)** | `~/bun_rad_samples` | `~/bun_rad_samples` | `%USERPROFILE%\bun_rad_samples` |
 
 ### Universal Desktop Window Keyboard Shortcuts
 
@@ -1702,12 +1936,12 @@ bun run workbench
 ### Custom Keyboard Shortcuts & Headless UI Testing (`bun test`)
 
 ```typescript
-// 1. Register Custom Keyboard Shortcuts (normalized across macOS Cmd & Windows/Linux Ctrl)
-win.onShortcut((w, combo) => {
-  if (combo === "ctrl+s" || combo === "meta+s")
-    w.toast("Workspace saved!", 1500, "success");
-  else if (combo === "ctrl+k" || combo === "meta+k") w.focus("txtSearch");
-});
+// 1. Register Custom Keyboard Shortcuts (`onShortcut` takes exact key string + callback)
+const saveWorkspace = (w: SimpleWindow) => w.toast("Workspace saved!", 1500, "success");
+win.onShortcut("ctrl+s", saveWorkspace);
+win.onShortcut("meta+s", saveWorkspace); // macOS Cmd+S
+win.onShortcut("ctrl+k", (w) => w.focus("txtSearch"));
+win.onShortcut("meta+k", (w) => w.focus("txtSearch"));
 
 // 2. Programmatic Event Triggers for Headless Unit Tests (No WebView needed!)
 await win.triggerChange("txtSearch", "WAL");
@@ -1715,19 +1949,28 @@ await win.triggerClick("btnAddTask");
 await win.triggerChange("workspaceTabs", "📊 Telemetry & Charts");
 ```
 
-### Single-Binary Compilation (`bun build --compile`)
+### Single-Binary Compilation & Cross-Platform Release Notes
 
 > 📖 **Learn More:** [Standalone Binary Compilation Engine (`docs/SYSTEM_UTILITIES_API.md#14-standalone-binary-compilation-engine`)](docs/SYSTEM_UTILITIES_API.md#14-standalone-binary-compilation-engine) · [CLI Single-Binary Compilation (`docs/CLI_API.md#21-shell-completions-man-pages--single-binary-compilation`)](docs/CLI_API.md#21-shell-completions-man-pages--single-binary-compilation) · [Releasing & Cross-Platform Packaging (`docs/developer/releasing.md`)](docs/developer/releasing.md)
 
-Turn any SimpleGUI desktop app or SimpleCLI script into a self-contained native executable:
+Turn any SimpleGUI desktop app or SimpleCLI script into a self-contained native executable, or package shared-runtime distributions (`runtime/bun` + `BUN_BE_BUN=1` + `apps/*.js`, `cli/*.js`):
 
 ```bash
-# Compile a SimpleGUI desktop app into a standalone binary
+# 1. Compile your own standalone SimpleGUI or SimpleCLI executable
 bun build --compile examples/rad_tutorial/07_contacts.ts --outfile contacts-studio
-
-# Compile a SimpleCLI tool into a standalone binary
 bun build --compile cli_apps/tokei_cli.ts --outfile tokei-bun
+
+# 2. Workspace packaging & release scripts
+bun run build                 # Library build (dist/)
+bun run build:binary          # Compiled binary build
+bun run build:mac-apps        # macOS .app bundles
+bun run release:build         # Cross-platform shared-runtime archive build (docs/developer/releasing.md)
+bun run npm:build             # Build publishable npm package (dist/npm/)
 ```
+
+- **macOS downloaded archives:** Gatekeeper may quarantine unsigned `.app` / binaries as *"damaged"* — verify the release checksum first, then run `xattr -cr /path/to/App.app` (or `xattr -dr com.apple.quarantine ./codecaine-file-manager`).
+- **Ubuntu 24.04+ Linux:** AppArmor may block WebKitGTK's sandbox (`bwrap: setting up uid map: Permission denied`). Run `sh install.sh --apparmor` from an extracted release folder, or use `--server` in Chrome/Brave.
+- **Windows (incl. ARM64) & Parallels/VMware:** Always clone/extract to local NTFS (`C:\Users\<you>\...`, never `\\Mac\...` UNC paths), and ensure Edge WebView2 + Microsoft Visual C++ **x64** Redistributable (`vc_redist.x64.exe`) + **x64 Bun** are installed.
 
 ---
 
@@ -1740,73 +1983,75 @@ bun build --compile cli_apps/tokei_cli.ts --outfile tokei-bun
 ### SimpleGUI Desktop UI, Layout & Performance Tricks
 
 1. **Zero-Boilerplate Multi-Tab & Sidebar Navigation (`bindViews`)**:
-   Instead of writing manual `showControls` / `hideControls` loops for every tab or sidebar menu, chain `.bindViews({ "Tab A": ["card1", "tbl1"], "Tab B": ["card2"] })` right onto `win.addTabs(...)` or `win.addNavigationMenu(...)`. It automatically toggles visibility on initialization and every tab switch.
-2. **Instant Live-Search Table Filtering (`filterTable` + `debounceChange`)**:
-   Bind a search input directly to any table in one line: `win.addSearchInput("Search...").filterTable("tblUsers", (visible, total) => win.setText("bdgCount", `${visible}/${total}`))`. If your search queries an external API or heavy SQLite query instead, chain `.debounceChange(200, (w, q) => ...)` to prevent UI stutter on fast keystrokes.
-3. **1-IPC Batch Updates for High-Frequency Dashboards (`batchUpdate` & `patchState`)**:
-   When a timer or background worker updates 5+ controls at once (charts, sparklines, gauges, badges, table rows), wrap them in `win.batchUpdate((w) => { ... })` or call `win.patchState({ ... })`. SimpleGUI coalesces all mutations into a single WebView IPC evaluation frame.
+   Instead of writing manual `showControls` / `hideControls` loops for every tab or sidebar menu, chain `.bindViews({ "Tab A": ["card1", "tbl1"], "Tab B": ["card2"] })` right onto `win.addTabs(...)`, `win.addTabPills(...)`, `win.addSidebar(...)`, or `win.addNavRail(...)`. It automatically toggles visibility on initialization and every selection change.
+2. **Instant Live-Search Table Filtering (`filterTable` + `rad.flowutils.debounce`)**:
+   Bind a search input directly to any in-memory table in one call: `win.addSearchInput("Search...").filterTable("tblUsers", () => allUsers, { countControlId: "bdgCount" })`. If your search hits an external API or heavy SQLite query instead, wrap the `.onChange(...)` handler with `rad.flowutils.debounce((w, q) => ..., 180)` to prevent UI stutter on fast keystrokes.
+3. **Coalesced Multi-Control Updates (`values`, `setManyTexts`, `setManyVisibility`)**:
+   When a timer or background worker refreshes 5+ controls at once (labels, badges, inputs, panel visibility), batch them with `win.values({ lblCpu: "42%", ... })`, `win.setManyTexts({ bdgCount: "12 matches", lblStatus: "Ready" })`, and `win.setManyVisibility({ pnlLoading: false, tblLogs: true })`.
 4. **Prevent Double-Clicks on Long Async Operations (`withBusyState`)**:
-   Wrap network fetches, database migrations, or CLI subprocesses inside `await win.withBusyState(["btnRun", "btnExport"], "⏳ Processing...", async (ctx) => { ... })`. It automatically disables the buttons, updates the status bar, and restores UI interactivity in a `finally` block—even if an exception is thrown.
+   Wrap network fetches, database migrations, or CLI subprocesses inside `await win.withBusyState(["btnRun", "btnExport"], "⏳ Processing...", async (w) => { ... })`. It disables the target controls, updates the window status text, and restores interactivity in a `finally` block—even if an exception throws.
 5. **Declarative Form Validation with Auto-Focus (`validateForm`)**:
-   Skip repetitive `if (!w.getText(...))` checks. Call `const res = win.validateForm({ txtEmail: { required: true, email: true, label: "Email" }, txtPort: { min: 1, max: 65535 } })`. When invalid, `res.firstInvalidId` gives you the exact control ID to pass to `win.focus(res.firstInvalidId!)`.
+   Skip repetitive `if (!w.getText(...))` checks. Call `const res = win.validateForm({ txtEmail: { required: true, pattern: /^[^@\s]+@[^@\s]+\.[^@\s]+$/, label: "Email" }, txtPort: { min: 1, max: 65535 } })`. When invalid, `res.firstInvalidId` gives you the exact control ID to pass to `win.focus(res.firstInvalidId!)`.
 6. **Table Export & Object Hydration (`getTableObjects` / `exportTableCsv` / `exportTableJson`)**:
-   Convert any `addTable` into typed row objects keyed by header names with `win.getTableObjects("tblUsers")`, or export directly to disk/clipboard with `win.exportTableCsv("tblUsers")` and `win.exportTableJson("tblUsers")`.
+   Convert any `addTable` into typed row objects keyed by header names with `win.getTableObjects("tblUsers")`, or export directly with `win.exportTableCsv("tblUsers", "users.csv")` and `win.exportTableJson("tblUsers", "users.json")`.
 7. **Auto-Persist Form Inputs & Theme Across Restarts (`enableAutoSave`)**:
-   Call `win.enableAutoSave("~/.config/my_app_session.json")` during window setup. Every form input and theme change is persisted automatically on window close and restored on next launch.
+   Pass `{ autoSaveState: true, appId: "my_app" }` to `newSimpleWindow(...)` or call `win.enableAutoSave()` (zero arguments) during window setup. Every form input and window bound is saved on close (`session.json` + `form_state.json`) and restored on launch unless overridden by explicit window options.
 
 ```typescript
-// Power Pattern: Debounced SQLite Search + Batch Telemetry + Form Validation
-win
-  .addSearchInput("Search logs...")
-  .id("txtLogQuery")
-  .debounceChange(180, (w, query) => {
-    const rows = rad.sqliteutils.queryAll<any>(
-      db,
-      "SELECT id, level, msg FROM logs WHERE msg LIKE ?",
-      [`%${query}%`],
-    );
-    w.batchUpdate((ctx) => {
-      ctx.setTableRows(
-        "tblLogs",
-        rows.map((r) => [String(r.id), r.level, r.msg]),
-      );
-      ctx.setText("bdgCount", `${rows.length} matches`);
-    });
+import { rad } from "./src/features/rad/index.ts";
+
+// Power Pattern: Debounced SQLite Search + Batch Text Updates
+const debouncedQuery = rad.flowutils.debounce((w, query: string) => {
+  const rows = rad.sqliteutils.queryAll<any>(
+    db,
+    "SELECT id, level, msg FROM logs WHERE msg LIKE ?",
+    [`%${query}%`],
+  );
+  w.setTableRows(
+    "tblLogs",
+    rows.map((r) => [String(r.id), r.level, r.msg]),
+  );
+  w.setManyTexts({
+    bdgCount: `${rows.length} matches`,
+    lblStatus: "Search updated",
   });
+}, 180);
+
+win.addSearchInput("Search logs...").id("txtLogQuery").onChange(debouncedQuery);
 ```
 
 ### SimpleCLI Terminal, Piping & Backend Tricks
 
-1. **Dual-Mode Interactive / CI-Friendly CLI Apps (`isTty` + `--json`)**:
-   Always pair interactive prompts or tables with non-interactive flags. Check `app.isTty()` or `app.getFlagBool("json")`: when piped in CI (`my-cli --json | jq`), call `app.printJson(data)` or `app.smartOutput(rows, headers)` which automatically outputs clean TSV/JSON when `stdout` is not a TTY.
-2. **Non-Throwing Network & Subprocess Calls (`tryGetJson` / `execSafe`)**:
-   Avoid deeply nested `try / catch` blocks in CLI scripts. Use `const res = await app.tryGetJson<Release>("https://...")` (check `res.ok`) and `const proc = await sys.execSafe(["git", "status", "--porcelain"])` (never invokes a shell, immune to command injection, and supports `timeoutMs`).
-3. **Interactive Object Table Picker (`selectFromObjects`)**:
-   Instead of manually formatting string labels and mapping indices back to objects, pass your array of objects directly to `const chosen = await app.selectFromObjects("Select deployment target:", servers, ["name", "region", "ip"])`. It renders an aligned table prompt and returns the selected `T` object.
-4. **Live Progress Loop with ETA (`forEachWithProgress`)**:
-   Process arrays with an automatic terminal progress bar and item counter using `await app.forEachWithProgress(files, "Compressing assets", async (file, idx) => { ... })`.
-5. **Instant Shell Autocompletions & Man Pages (`enableCompletions`)**:
-   Call `app.enableCompletions()` before `app.parseArgs()`. Users automatically get `--completions bash|zsh|fish|powershell` and `--man` flags with zero extra code.
+1. **Dual-Mode Interactive / CI-Friendly CLI Apps (`app.output` + `--json`)**:
+   Always pair interactive prompts or tables with non-interactive flags. Gate interactive prompts on `process.stdin.isTTY` (plus a `--yes` flag), and render results via `app.output(rows, { title: "Results" })` — SimpleCLI automatically prints a styled table/KV box in terminals (`process.stdout.isTTY`) and clean machine-readable JSON whenever stdout is piped (`my-cli | jq`) or `--json` is passed.
+2. **Non-Throwing Network & Subprocess Calls (`createApiClient().tryGet` / `rad.sysutils.execSafe`)**:
+   Avoid nested `try / catch` boilerplate in CLI scripts. Use `const res = await createApiClient(baseUrl).tryGet<Release>("/latest")` (check `res.ok`, or `await app.httpGetJson<Release>(url)` for quick URLs) and `const proc = await rad.sysutils.execSafe("git", ["status", "--porcelain"])` (spawns `Bun.spawn` directly without a shell — immune to command injection).
+3. **Interactive Fuzzy & Choice Pickers (`fuzzySelect` / `select`)**:
+   Format aligned label strings (`servers.map((s) => `${s.name} (${s.region}) — ${s.ip}`)`) and let users type-to-filter with `const picked = await app.fuzzySelect("Select deployment target:", labels)` (or `app.select(...)` for numbered menus).
+4. **Live Progress Bars & Multi-Step Pipelines (`progressBar` / `newPipeline`)**:
+   Render live progress updates inside loops with `app.progressBar(i + 1, files.length, 30, "Compressing")`, or track multi-stage operations with automatic step timing via `const pipe = app.newPipeline("Build"); pipe.addStep(...); await pipe.run();`.
+5. **Instant Shell Completions & Man Pages (`--completion` / `generateCompletions` / `generateManPage`)**:
+   `app.parseCli()` and `app.parseArgs(argv)` automatically handle `--completion <zsh|bash|fish>` and `completion <shell>` out of the box! You can also export them programmatically via `app.generateCompletions("zsh")` and `app.generateManPage()`.
 
 ### 45 `rad` Modules, SQLite & Native Bun Superpower Tricks
 
 1. **Always Use Parameterized SQL & Transactions in `rad.sqliteutils`**:
-   `rad.sqliteutils.openDb(path)` automatically enables `PRAGMA journal_mode = WAL` for concurrent reads. When inserting or updating hundreds of rows, use `rad.sqliteutils.insertMany(db, "events", rows)` or `rad.sqliteutils.withTransaction(db, () => { ... })` for **50x–100x faster** write throughput than individual inserts.
+   `rad.sqliteutils.openDb(path)` automatically enables `PRAGMA journal_mode = WAL` for concurrent reads. When inserting or updating hundreds of rows, use `rad.sqliteutils.insertMany(db, "events", rows)` or wrap custom queries inside `rad.sqliteutils.transaction(db, () => { ... })` for **50x–100x faster** write throughput than individual auto-committed inserts.
 2. **Hardware-Accelerated Hashing & Globbing (`Bun.hash.wyhash` & `Bun.Glob`)**:
-   Prefer `rad.hashutils.wyhash(data)` for ultra-fast non-cryptographic checksums/deduplication and `await rad.globutils.findFiles("**/*.ts", dir)` (powered by native `Bun.Glob`) instead of recursive `fs.readdir` loops.
-3. **Composable Reliability (`rad.retry` + `rad.circuitbreaker` + `rad.ratelimit`)**:
-   Wrap flaky external APIs with `rad.circuitbreaker.createBreaker` and `rad.retry.retryAsync(fn, { attempts: 3, delayMs: 200 })`, and protect outbound concurrency with `await rad.asyncutils.mapLimit(urls, 6, fetchUrl)`.
-4. **Reuse the 10 System Utility Coordinators inside GUI & CLI Apps**:
-   Never shell out to external `fd`, `tokei`, `procs`, or `doggo` binaries when building studios—import their TypeScript coordinators directly (`searchEntries`, `computeCodeStats`, `collectProcesses`, `lookupDomain`) from `src/features/<tool>/<tool>Coordinator.ts` for typed, cross-platform data structures.
+   Prefer `rad.hashutils.wyhash(data)` for ultra-fast non-cryptographic checksums/deduplication and `await rad.globutils.findFiles("**/*.ts", dir)` (powered by native `Bun.Glob`) instead of manual recursive `fs.readdir` loops.
+3. **Composable Resilience (`rad.flowutils` + `rad.asyncutils`)**:
+   Protect flaky external APIs with `const breaker = new rad.flowutils.CircuitBreaker(5, 10_000)` (`await breaker.execute(fn)`), `const limiter = new rad.flowutils.RateLimiter(20, 10)` (`await limiter.wait()`), and `await rad.flowutils.retry(fn, 3, 200)` — then cap outbound concurrency cleanly with `await rad.asyncutils.parallelMap(urls, 6, fetchUrl)`.
+4. **Reuse the 10 System Utility Coordinators Inside GUI & CLI Apps**:
+   Never shell out to external `fd`, `tokei`, `procs`, or `doggo` binaries when building studios—import their TypeScript coordinators directly (`searchFiles`, `computeCodeStats`, `getProcesses`, `lookupDomain`) from `src/features/<tool>/<tool>Coordinator.ts` for typed, cross-platform data structures.
 
 ### Cross-Platform Portability & Headless Unit Testing Tricks
 
 1. **Export a Window Factory Function for Instant Headless `bun test` Verification**:
    Structure your SimpleGUI apps as `export function createMyStudio(dbPath = ":memory:"): SimpleWindow { ... }` and guard the event loop with `if (import.meta.main) createMyStudio().run();`. In `bun test`, instantiate `const win = createMyStudio(":memory:")` and drive the entire UI headlessly in milliseconds using `await win.triggerClick("btnAdd")`, `await win.triggerChange("txtSearch", "query")`, and `expect(win.getTableRows("tbl")).toHaveLength(1)`.
 2. **Cross-Platform Keyboard Shortcut Normalization (`onShortcut`)**:
-   When binding keyboard shortcuts in `win.onShortcut((w, combo) => ...)`, match both `ctrl+<key>` (Windows/Linux) and `meta+<key>` (macOS `Cmd`), or use standard menu accelerators.
+   Register both `ctrl+<key>` (Windows/Linux) and `meta+<key>` (macOS `Cmd`) with `win.onShortcut("ctrl+s", onSave)` and `win.onShortcut("meta+s", onSave)`, or bind standard menu bar accelerators.
 3. **Never Hardcode `/tmp` or Path Separators**:
-   Use `sys.tempDir()`, `sys.configDir("app-name")`, `sys.expandPath("~/...")`, and `rad.pathutils.joinPath(...)` so paths resolve cleanly on macOS, Linux, and Windows.
+   Use `import { join } from "node:path"`, `sys.tempDir()`, `rad.stateutils.resolveConfigDir("app-name")`, and `Prompts.expandPath("~/...")` (or `rad.sysutils.getHomeDir()`) so paths resolve cleanly on macOS, Linux, and Windows.
 
 ---
 
@@ -2372,14 +2617,60 @@ Use this master reference directory to jump straight from any cheat sheet sectio
 
 | Domain / Topic                           | Primary Reference Document                                                       | Focused Deep-Dive Guides                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | :--------------------------------------- | :------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Documentation Home & Search**          | **[`docs/index.md`](docs/index.md)**                                             | [Task-Oriented Index (`docs/reference/task-index.md`)](docs/reference/task-index.md) · [Requirements (`docs/getting-started/requirements.md`)](docs/getting-started/requirements.md) · [Install & First Launch (`docs/getting-started/install-and-first-launch.md`)](docs/getting-started/install-and-first-launch.md)                                                                                                                                                                                                                                                                                |
-| **Focused Cheat Sheets**                 | **[`docs/cheatsheets/index.md`](docs/cheatsheets/index.md)**                     | [SimpleGUI Cheat Sheet (`docs/cheatsheets/simplegui-cheatsheet.md`)](docs/cheatsheets/simplegui-cheatsheet.md) · [SimpleCLI Cheat Sheet (`docs/cheatsheets/simplecli-cheatsheet.md`)](docs/cheatsheets/simplecli-cheatsheet.md) · [45 `rad` Modules Cheat Sheet (`docs/cheatsheets/rad-modules-cheatsheet.md`)](docs/cheatsheets/rad-modules-cheatsheet.md)                                                                                                                                                                                                                                           |
+| **Documentation Home & Search**          | **[`docs/index.md`](docs/index.md)**                                             | [Task-Oriented Index (`docs/reference/task-index.md`)](docs/reference/task-index.md) · [Requirements (`docs/getting-started/requirements.md`)](docs/getting-started/requirements.md) · [Install & First Launch (`docs/getting-started/install-and-first-launch.md`)](docs/getting-started/install-and-first-launch.md) · [Saved Data & Files (`docs/reference/data-and-files.md`)](docs/reference/data-and-files.md)                                                                                                                                                                                 |
+| **Focused Cheat Sheets**                 | **[`docs/cheatsheets/index.md`](docs/cheatsheets/index.md)**                     | [SimpleGUI Cheat Sheet (`docs/cheatsheets/simplegui-cheatsheet.md`)](docs/cheatsheets/simplegui-cheatsheet.md) · [SimpleCLI Cheat Sheet (`docs/cheatsheets/simplecli-cheatsheet.md`)](docs/cheatsheets/simplecli-cheatsheet.md) · [45 `rad` Modules Cheat Sheet (`docs/cheatsheets/rad-modules-cheatsheet.md`)](docs/cheatsheets/rad-modules-cheatsheet.md) · [Studios, CLI & Troubleshooting (`docs/cheatsheets/studios-cli-and-troubleshooting-cheatsheet.md`)](docs/cheatsheets/studios-cli-and-troubleshooting-cheatsheet.md)                                                              |
 | **SimpleGUI Desktop Framework**          | **[`docs/SIMPLEGUI_API.md`](docs/SIMPLEGUI_API.md)**                             | [Quick Start (`docs/SIMPLEGUI_API.md#quick-start`)](docs/SIMPLEGUI_API.md#quick-start) · [Controls Reference (`docs/SIMPLEGUI_API.md#controls-reference`)](docs/SIMPLEGUI_API.md#controls-reference) · [Layouts (`docs/SIMPLEGUI_API.md#layout-systems`)](docs/SIMPLEGUI_API.md#layout-systems) · [Enterprise & Rich Dialogs (`docs/SIMPLEGUI_API.md#dialogs-sweetalert2-style`)](docs/SIMPLEGUI_API.md#dialogs-sweetalert2-style)                                                                                                                                                                    |
 | **SimpleCLI Terminal & Backend**         | **[`docs/CLI_API.md`](docs/CLI_API.md)**                                         | [CLI Flags (`docs/CLI_API.md#2-cli-flags--argument-parsing`)](docs/CLI_API.md#2-cli-flags--argument-parsing) · [Prompts & Wizards (`docs/CLI_API.md#4-interactive-prompts-menus--input-validation`)](docs/CLI_API.md#4-interactive-prompts-menus--input-validation) · [REST & Micro-Server (`docs/CLI_API.md#15-http-client-micro-server--rest-apis`)](docs/CLI_API.md#15-http-client-micro-server--rest-apis)                                                                                                                                                                                        |
 | **45 `rad` Utility Modules**             | **[`src/features/rad/README.md`](src/features/rad/README.md)**                   | [File & Storage (`src/features/rad/README.md#1-file--storage-8-modules`)](src/features/rad/README.md#1-file--storage-8-modules) · [Collections (`src/features/rad/README.md#2-data-structures--collections-8-modules`)](src/features/rad/README.md#2-data-structures--collections-8-modules) · [Concurrency (`src/features/rad/README.md#6-concurrency-flow-control--logic-7-modules`)](src/features/rad/README.md#6-concurrency-flow-control--logic-7-modules)                                                                                                                                       |
 | **10 System Utilities (`fd`..`doggo`)**  | **[`docs/SYSTEM_UTILITIES_API.md`](docs/SYSTEM_UTILITIES_API.md)**               | [User Guides Master Hub (`docs/userguides/README.md`)](docs/userguides/README.md) · [`fd` (`src/features/fd/README.md`)](src/features/fd/README.md) · [`tokei` (`src/features/tokei/README.md`)](src/features/tokei/README.md) · [`procs` (`src/features/procs/README.md`)](src/features/procs/README.md)                                                                                                                                                                                                                                                                                             |
 | **Databases (SQLite, PG, MySQL, Redis)** | **[`docs/databases/index.md`](docs/databases/index.md)**                         | [Complete Databases Guide (`docs/databases/complete-databases-guide.md`)](docs/databases/complete-databases-guide.md) · [Database Workbench (`docs/databases/workbench.md`)](docs/databases/workbench.md) · [SQLite Studio (`docs/userguides/01_sqlite_studio.md`)](docs/userguides/01_sqlite_studio.md) · [Postgres Studio (`docs/userguides/42_postgres_studio.md`)](docs/userguides/42_postgres_studio.md) · [MySQL Studio (`docs/userguides/41_mysql_studio.md`)](docs/userguides/41_mysql_studio.md) · [Redis Studio (`docs/userguides/40_redis_studio.md`)](docs/userguides/40_redis_studio.md) |
 | **Visual Form Designer & `FormSpec`**    | **[`docs/visual-designer/index.md`](docs/visual-designer/index.md)**             | [FormSpec & Runtime API (`docs/API.md`)](docs/API.md) · [Generated Applications (`docs/generated-applications/index.md`)](docs/generated-applications/index.md) · [Declarative Module (`docs/API.md#10-simplegui-declarative-module-reference`)](docs/API.md#10-simplegui-declarative-module-reference)                                                                                                                                                                                                                                                                                               |
-| **133 Themes & 12 FX Shaders**           | **[`docs/THEMES.md`](docs/THEMES.md)**                                           | [Futuristic FX Shaders (`docs/developer/fx-themes.md`)](docs/developer/fx-themes.md) · [Universal Theme Persistence (`docs/SIMPLEGUI_API.md#universal-theme-persistence`)](docs/SIMPLEGUI_API.md#universal-theme-persistence)                                                                                                                                                                                                                                                                                                                                                                         |
-| **Built-In Studios, Scripts & Guides**   | **[`docs/reference/application-index.md`](docs/reference/application-index.md)** | [Script Index (`docs/reference/script-index.md`)](docs/reference/script-index.md) · [Launcher Studio (`docs/userguides/00_launcher_studio.md`)](docs/userguides/00_launcher_studio.md) · [AI & Enhancements Tutorial (`docs/AI_AND_ENHANCEMENTS_COMPLETE_TUTORIAL.md`)](docs/AI_AND_ENHANCEMENTS_COMPLETE_TUTORIAL.md)                                                                                                                                                                                                                                                                                |
+| **310 Themes (167 FX Shaders)**          | **[`docs/THEMES.md`](docs/THEMES.md)**                                           | [Futuristic FX Shaders (`docs/developer/fx-themes.md`)](docs/developer/fx-themes.md) · [Universal Theme Persistence (`docs/SIMPLEGUI_API.md#universal-theme-persistence`)](docs/SIMPLEGUI_API.md#universal-theme-persistence)                                                                                                                                                                                                                                                                                                                                                                         |
+| **Built-In Studios, Scripts & Guides**   | **[`docs/reference/application-index.md`](docs/reference/application-index.md)** | [Script Index (`docs/reference/script-index.md`)](docs/reference/script-index.md) · [Launcher Studio (`docs/userguides/00_launcher_studio.md`)](docs/userguides/00_launcher_studio.md) · [File Manager (`docs/userguides/43_file_manager.md`)](docs/userguides/43_file_manager.md) · [AI & Enhancements Tutorial (`docs/AI_AND_ENHANCEMENTS_COMPLETE_TUTORIAL.md`)](docs/AI_AND_ENHANCEMENTS_COMPLETE_TUTORIAL.md)                                                                                                                                                                                     |
 | **Architecture, Testing & Packaging**    | **[`docs/developer/handbook.md`](docs/developer/handbook.md)**                   | [Architecture (`docs/developer/architecture.md`)](docs/developer/architecture.md) · [Testing Guide (`docs/testing/index.md`)](docs/testing/index.md) · [Releasing Binaries (`docs/developer/releasing.md`)](docs/developer/releasing.md) · [Security (`docs/security.md`)](docs/security.md) · [Troubleshooting (`docs/troubleshooting.md`)](docs/troubleshooting.md)                                                                                                                                                                                                                                 |
+
+---
+
+<a id="9-part-8-master-troubleshooting--no-questions-left-faq"></a>
+
+## 9. 🩺 Part 8: Master Troubleshooting & "No Questions Left" FAQ
+
+### Symptom -> Cause -> 10-Second Fix Table
+
+| Symptom / Error | Root Cause | 10-Second Fix |
+| :--- | :--- | :--- |
+| **Script exits immediately with no window** | Missing `win.run()` (or forgot `if (import.meta.main) win.run()`). | Add `win.run()` on the final line of your entrypoint script. |
+| **`getText("txtUser")` returns `""` or `setText` does nothing** | Control wasn't chained with `.id("txtUser")` (got an auto-ID instead). | Chain `.id("txtUser")` onto the control builder, e.g. `win.addInput("Username").id("txtUser")`. |
+| **Window opens fullscreen or ignores `width` / `height`** | `newSimpleWindow` defaults to `fullscreen: true` when `width`, `height`, and `fullscreen` are omitted (`src/simplegui.ts`), or explicit `fullscreen: true` overrides width/height. | Pass explicit numbers: `newSimpleWindow("My App", 1000, 700)` or `{ width: 1000, height: 700, fullscreen: false }`. |
+| **Code changes to `width` / `theme` seem ignored on launch** | Stale `session.json` bounds/theme are restored when `{ width, theme, fullscreen }` weren't explicitly set in options. | Pass `{ width, height, theme, fullscreen }` explicitly in `SimpleWindowOptions` (explicit options override `session.json`), or launch File Manager with `--reset-window`. |
+| **`setText("lbl", "<b>OK</b>")` shows raw `<b>` tags** | `setText()` escapes HTML intentionally to block accidental DOM injection. | Use `win.setHtml("lbl", "<b>OK</b>")` only for trusted markup (sanitize user strings first). |
+| **`Cannot find module "bun-rad-studio"` / `"./src/simplegui"`** | Wrong import specifier for your file's location (npm install vs repo root vs subfolder). | Use `"bun-rad-studio/simplegui"` (npm), `"./src/simplegui"` (repo root), or `"../../src/simplegui"` (`examples/rad_tutorial/`, `applications/`). |
+| **Duplicate symbol (`writeFileAtomic`, `LRUCache`, `Logger`) from barrel import** | Top-level barrel combines SimpleGUI (sync), SimpleCLI, and `rad.*` (async) exports (`D-027`). | Use `rad.fileutils.writeFileAtomic` (async) vs `SimpleGUI` sync helper, `rad.cacheutils.LRUCache` vs `SimpleCLI`, package exports `"bun-rad-studio"` / `"bun-rad-studio/simplegui"`, or source paths `"./src/simplecli"` / `"./src/features/rad/index.ts"`. |
+| **Live search or timer updates lag** | Running SQL/HTTP calls on every keystroke or issuing 10+ separate DOM evaluations. | Use `.filterTable("tbl", () => rows)` for in-memory filtering, wrap SQL/HTTP calls in `rad.flowutils.debounce(fn, 180)`, and batch updates with `values({...})`, `setManyTexts({...})`, or `setManyVisibility({...})`. |
+| **Inserting 1,000+ SQLite rows is very slow** | Separate `db.run("INSERT ...")` statements flush disk transactions per row. | Use `rad.sqliteutils.insertMany(db, table, rows)` or `rad.sqliteutils.transaction(db, () => { ... })`. |
+| **CLI hangs in GitHub Actions or breaks piped `jq`** | Interactive prompts hang without a TTY, or ANSI tables corrupt piped stdout. | Gate prompts on `process.stdin.isTTY` (add `--yes`), and print results with `app.output(data)` which switches cleanly to JSON when piped or `--json` is passed. |
+| **`TypeError: sys.execSafe is not a function`** | `execSafe` lives on `rad.sysutils`, not `sys`. | Import `rad` and call `await rad.sysutils.execSafe("git", ["status", "--short"])` (takes command + args array, no shell!). |
+| **`src/ide/` edits don't appear in Visual Form Designer** | `bun run start` serves the bundled `src/ide.html` artifact. | Rebuild designer assets with `bun run ide:build`. |
+| **Visual Designer DB controls / Run / Export behave unexpectedly** | DB controls (`DB Grid`, `DB Navigator`, etc.) & DB Wizard are placeholders (`D-002`); native Run/Export clicks aren't hand-verified (`docs/visual-designer/index.md`). | Copy generated TypeScript/SQLite tabs and build real database logic with `rad.sqliteutils`, `bun run workbench`, or `bun run app:sqlite`. |
+| **macOS says extracted release `.app` is `"damaged"`** | Unsigned archive downloaded from browser retains `com.apple.quarantine`. | Verify the release checksum first, then run `xattr -cr /path/to/App.app` or `xattr -dr com.apple.quarantine ./codecaine-file-manager`. |
+| **Ubuntu 24.04+ WebKit crashes (`bwrap: setting up uid map: Permission denied`)** | AppArmor blocks unprivileged user namespaces for WebKitGTK. | Run `sh install.sh --apparmor` in the extracted release folder, or start File Manager with `--server` and open in Chrome/Brave. |
+| **Windows DLL load error or Parallels `\\Mac\...` failure** | ARM64 DLL mismatch or UNC path rejected by `cmd.exe` / WebView2. | Move/extract to local NTFS (`C:\Users\...`), install Edge WebView2 + **x64** Microsoft VC++ Redistributable (`vc_redist.x64.exe`) + **x64** Bun. |
+| **`EADDRINUSE` or `403 Forbidden` on File Manager / Workbench** | Port already bound (`8995–9005`), or `localGuard.ts` blocked a non-loopback origin. | Pass `--port 9020` / set `WORKBENCH_PORT=9100`, and open `http://127.0.0.1:<port>` locally (or via SSH local tunnel). |
+| **`app:sqlite` / `app:postgres` / `app:mysql` ignores `.env` from File Manager** | File Manager intentionally strips inherited DB env vars when spawning child studios to prevent secret leaks. | Save a connection profile in Workbench / File Manager (`~/.bun_rad_studio/connections.json`), or launch directly from your workspace (`bun run app:postgres`). |
+| **`bun run docs:check` fails on secret scanner or `bun run <cmd>`** | Password-like example string `>= 8` chars without safe prefix, or unknown script name. | Prefix example secrets with `placeholder-`, `your-`, `my-`, or `example-` (e.g. `"placeholder-secret"`, `"postgres://user:placeholder@localhost:5432/appdb"`), and use only scripts listed in `package.json` or real `.ts` files. |
+
+### Plain-English "No Questions Left" FAQ
+
+- **Do I need React, Electron, Vite, or a bundler just to start?**
+  No. Bun runs TypeScript directly with zero config: `SimpleGUI` drives a native OS WebView (`webview-bun`), `SimpleCLI` prints pure ANSI/JSON to stdout, and `rad` provides 45 zero-dependency utility modules.
+- **Can I combine `SimpleGUI`, `SimpleCLI`, and `rad` in the same app?**
+  Yes — in fact that's the recommended pattern: build your desktop window with `SimpleGUI`, store local data with `rad.sqliteutils`, call REST APIs with `createApiClient`, and run shell-free subprocesses with `rad.sysutils.execSafe`.
+- **When should I call `win.setText(...)` vs `win.setValue(...)` vs `win.setHtml(...)`?**
+  - `win.setText(id, str)`: sets **escaped plain text** (`labels`, `badges`, `buttons`, `textInputs`, `textAreas`).
+  - `win.setValue(id, val)`: sets **raw data values** (`slider`, `stepper`, `progressBar`, `checkbox`, `switch`, `dropdown`, `codeView`).
+  - `win.setHtml(id, html)`: sets **live HTML markup** inside `addHtmlView` (never pass unescaped user input!).
+- **How do I test a SimpleGUI or SimpleCLI app in `bun test` without popping up windows or waiting on prompts?**
+  - **GUI:** Export `createMyApp(dbPath = ":memory:")`, skip `win.run()` unless `import.meta.main`, and drive everything headlessly via `await win.triggerClick(id)`, `await win.triggerChange(id, val)`, `win.values()`, and `win.getTableRows(id)`.
+  - **CLI:** Pass an argv array synchronously to `app.parseArgs(["--env", "prod", "--json"])` (or dispatch subcommands with `await app.run(["deploy", "--env", "prod", "--json"])`), mock HTTP endpoints on an ephemeral port via `sys.serveJson(routes, 0)`, and pass `{ inMemory: true }` to `app.redis(...)`.
+- **Where are all my saved themes, studio drafts, DB profiles, and backups stored?**
+  See [OS Config, State & Studio Data Paths](#5-part-4-visual-form-designer-ide-shortcuts--single-binary-build) above and [`docs/reference/data-and-files.md`](docs/reference/data-and-files.md) for exact macOS, Linux, and Windows locations (`~/.bun_rad_studio/`, `~/.config/simplegui/theme.txt`, `STUDIO_DB_PROFILE_DIR`, `$GRAVEYARD`, `~/bun_rad_samples`).
