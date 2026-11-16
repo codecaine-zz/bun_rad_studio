@@ -2640,6 +2640,9 @@ describe("Quick Look and copy to the clipboard", () => {
           (b: any) => b.textContent.trim() === "Copy text",
         )?.hidden,
       ).toBe(false);
+      await waitFor(() =>
+        [...doc.querySelectorAll(".ql .copy-bar")].some((b: any) => !b.hidden),
+      );
       expect(
         [...doc.querySelectorAll(".ql .copy-bar")].some((b: any) => !b.hidden),
       ).toBe(true);
@@ -3211,7 +3214,15 @@ describe("the Themes button in the ribbon", () => {
     expect(labels().join("|")).toContain("All themes…");
     expect(labels().join("|")).toContain("Make my own theme…");
     item("Standard dark").click();
-    await sleep(250);
+    for (
+      let i = 0;
+      i < 60 &&
+      ((await stateNow()).settings.theme !== "dark" ||
+        doc.documentElement.dataset.theme !== "dark");
+      i++
+    ) {
+      await sleep(50);
+    }
     const st = await stateNow();
     expect(st.settings.theme).toBe("dark");
     expect(st.settings.palette).toBe("");
@@ -3222,7 +3233,13 @@ describe("the Themes button in the ribbon", () => {
         item("Standard dark").className,
     ).toBeTruthy();
     item("Standard: follow my computer").click();
-    await sleep(250);
+    for (
+      let i = 0;
+      i < 60 && (await stateNow()).settings.theme !== "auto";
+      i++
+    ) {
+      await sleep(50);
+    }
     expect((await stateNow()).settings.theme).toBe("auto");
   });
 
