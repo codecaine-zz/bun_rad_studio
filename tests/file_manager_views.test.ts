@@ -4333,7 +4333,7 @@ describe("download folders open inside the File Manager by default", () => {
 
       manager.get(item.id)!.folder = join(folder, "missing");
       power.openPower("downloads");
-      await sleep(100);
+      await sleep(500);
       button("Open folder").click();
       await until(() => $("#toasts").textContent.includes("exist"));
       expect(ws()).toBe("tools");
