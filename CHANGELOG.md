@@ -17,6 +17,7 @@ All notable changes. Version 1.6.0 is the twenty-seventh release (1.0.0, 1.1.0, 
 
 ### Fixed
 
+- **Windows Hidden Helper Consoles, WebView Foreground Activation & Offscreen Desktop Detection (`applications/file_manager_studio.ts`, `applications/launcher_studio.ts`, `cli_apps/tts_cli.ts`, `scripts/fix_windows_webview_runtime.ts`, `scripts/release/build_file_manager.ts`, `src/windowNative.ts`, `src/localGuard.ts`, `src/features/filemanager/*`).** Pass `windowsHide: true` across Windows background child/helper spawns (`powershell.exe`, `tasklist.exe`, `clip`, `tar`, `ollama`, File Manager server, Watcher, and Phonon helpers) to prevent transient black console windows from flashing in GUI apps, strengthen Win32 `windowNative.focus()` / `AllowSetForegroundWindow` foreground window activation, and detect sandboxed offscreen Win32 thread desktops (`GetThreadDesktop` / `UOI_NAME` != `Default`) with clear guidance.
 - **Cross-Platform CI Test Isolation & Read-Along FFmpeg Timeout Hardening (`tests/simplegui_regressions.test.ts`, `tests/file_manager_views.test.ts`, `tests/file_manager_phonon.test.ts`).** Remove `dist/` pre-build coupling from SimpleGUI `.d.ts` regression tests, isolate Windows `APPDATA`/`LOCALAPPDATA` inside `withIsolatedHome`, poll ribbon theme state deterministically, and increase real `ffmpeg` Read-Along MP4 export test timeout on Linux CI runners.
 
 ## 1.5.9 (14 November 2026)
