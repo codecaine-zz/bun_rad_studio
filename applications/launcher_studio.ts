@@ -950,15 +950,20 @@ export interface RunningProcessInfo {
 export function getRunningProcesses(): RunningProcessInfo[] {
   try {
     if (process.platform === "win32") {
-      const proc = Bun.spawnSync([
-        "powershell.exe",
-        "-NoProfile",
-        "-NonInteractive",
-        "-Command",
-        'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId)`t$($_.Name)`t$($_.CommandLine)" }',
-      ]);
+      const proc = Bun.spawnSync(
+        [
+          "powershell.exe",
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          'Get-CimInstance Win32_Process | ForEach-Object { "$($_.ProcessId)`t$($_.Name)`t$($_.CommandLine)" }',
+        ],
+        { windowsHide: true },
+      );
       if (proc.exitCode !== 0) {
-        const tl = Bun.spawnSync(["tasklist.exe", "/fo", "csv", "/nh"]);
+        const tl = Bun.spawnSync(["tasklist.exe", "/fo", "csv", "/nh"], {
+          windowsHide: true,
+        });
         if (tl.exitCode !== 0) return [];
         const lines = tl.stdout.toString().split("\n");
         const result: RunningProcessInfo[] = [];

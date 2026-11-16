@@ -112,6 +112,7 @@ export function writeClipboardSync(text: string): boolean {
         const clip = Bun.spawnSync(["clip"], {
           stdin: inputBuf,
           timeout: 3000,
+          windowsHide: true,
         });
         if (clip.exitCode === 0) return true;
       }
@@ -128,12 +129,14 @@ export function writeClipboardSync(text: string): boolean {
         {
           stdin: Buffer.from(inputBuf.toString("base64"), "ascii"),
           timeout: 3000,
+          windowsHide: true,
         },
       );
       if (ps.exitCode === 0) return true;
       const clip = Bun.spawnSync(["clip"], {
         stdin: Buffer.from(`\ufeff${text}`, "utf16le"),
         timeout: 3000,
+        windowsHide: true,
       });
       return clip.exitCode === 0;
     } else {
@@ -175,7 +178,7 @@ export function readClipboardTextSync(): string | null {
           "-Command",
           "[Console]::OutputEncoding = [Text.Encoding]::UTF8; $t = Get-Clipboard -Raw; if ($null -ne $t) { [Console]::Out.Write($t) }",
         ],
-        { timeout: 3000 },
+        { timeout: 3000, windowsHide: true },
       );
       if (proc.exitCode === 0)
         return proc.stdout.toString().replace(/\r\n/g, "\n");

@@ -388,6 +388,7 @@ export async function runProgram(
       stdin: "ignore",
       stdout: "pipe",
       stderr: "pipe",
+      windowsHide: true,
       env,
     });
   } catch {

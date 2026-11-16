@@ -211,7 +211,7 @@ async function fail(error: unknown, exitCode = 1): Promise<never> {
     else if (Bun.which("kdialog")) command = ["kdialog", "--error", text];
     else if (Bun.which("xmessage")) command = ["xmessage", "-center", text];
     if (command) {
-      const notice = Bun.spawn(command, { env: { ...process.env, FM_START_ERROR: text }, stdout: "ignore", stderr: "inherit" });
+      const notice = Bun.spawn(command, { env: { ...process.env, FM_START_ERROR: text }, stdout: "ignore", stderr: "inherit", windowsHide: true });
       const code = await notice.exited;
       if (code !== 0) console.error("Could not show the startup error dialog (exit " + code + ").");
     }

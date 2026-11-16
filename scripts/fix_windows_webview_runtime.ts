@@ -283,7 +283,7 @@ function verifyMicrosoftAuthenticode(filePath: string): boolean {
       "-Command",
       `$sig = Get-AuthenticodeSignature -LiteralPath '${escaped}'; if ($sig -and $sig.Status -eq 'Valid' -and $sig.SignerCertificate.Subject -match 'Microsoft') { exit 0 } else { exit 1 }`,
     ],
-    { stdout: "ignore", stderr: "ignore" },
+    { stdout: "ignore", stderr: "ignore", windowsHide: true },
   );
   return ps.exitCode === 0;
 }
@@ -294,6 +294,7 @@ function extractZipOnWindows(zipPath: string, destDir: string): boolean {
     {
       stdout: "ignore",
       stderr: "ignore",
+      windowsHide: true,
     },
   );
   if (tar.exitCode === 0) return true;
@@ -305,7 +306,7 @@ function extractZipOnWindows(zipPath: string, destDir: string): boolean {
       "-Command",
       `Expand-Archive -LiteralPath '${zipPath.replace(/'/g, "''")}' -DestinationPath '${destDir.replace(/'/g, "''")}' -Force`,
     ],
-    { stdout: "ignore", stderr: "ignore" },
+    { stdout: "ignore", stderr: "ignore", windowsHide: true },
   );
   return ps.exitCode === 0;
 }
@@ -455,6 +456,7 @@ function isRunnableWindowsX64Bun(candidate: string): boolean {
     const res = Bun.spawnSync([candidate, "--version"], {
       stdout: "ignore",
       stderr: "ignore",
+      windowsHide: true,
     });
     return res.exitCode === 0;
   } catch {
@@ -596,6 +598,61 @@ export async function initWindowsComSta(): Promise<boolean> {
     return hr === 0 || hr === 1;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Returns the Win32 desktop name (`UOI_NAME`) attached to the current thread (e.g. `"Default"` on the interactive
+ * user desktop, or `"exebox-..."` when launched from a sandboxed IDE terminal session).
+ */
+export async function getWindowsThreadDesktopName(): Promise<string | null> {
+  if (process.platform !== "win32") return null;
+  try {
+    const { dlopen, FFIType, ptr } = await import("bun:ffi");
+    const k32 = dlopen("kernel32.dll", {
+      GetCurrentThreadId: { args: [], returns: FFIType.u32 },
+    });
+    const u32 = dlopen("user32.dll", {
+      GetThreadDesktop: { args: [FFIType.u32], returns: FFIType.pointer },
+      GetUserObjectInformationW: {
+        args: [
+          FFIType.pointer,
+          FFIType.i32,
+          FFIType.pointer,
+          FFIType.u32,
+          FFIType.pointer,
+        ],
+        returns: FFIType.bool,
+      },
+    });
+    try {
+      const tid = k32.symbols.GetCurrentThreadId();
+      const hDesk = u32.symbols.GetThreadDesktop(tid);
+      if (!hDesk) return null;
+      const buf = new Uint8Array(512);
+      const needed = new Uint32Array(1);
+      // UOI_NAME = 2
+      if (
+        !u32.symbols.GetUserObjectInformationW(
+          hDesk,
+          2,
+          ptr(buf),
+          buf.byteLength,
+          ptr(needed),
+        )
+      ) {
+        return null;
+      }
+      const byteLen = Math.max(0, Math.min(buf.byteLength, needed[0] ?? 0));
+      return Buffer.from(buf.buffer, 0, byteLen)
+        .toString("utf16le")
+        .replace(/\0+$/, "");
+    } finally {
+      u32.close();
+      k32.close();
+    }
+  } catch {
+    return null;
   }
 }
 

@@ -603,6 +603,7 @@ export async function resolveOllamaCleanerModel(
       const proc = Bun.spawnSync([ollamaExe, "list"], {
         stdout: "pipe",
         stderr: "pipe",
+        windowsHide: true,
       });
       if (proc.exitCode === 0) {
         const lines = proc.stdout.toString("utf8").split(/\r?\n/).slice(1);
@@ -1078,6 +1079,7 @@ export async function playAudioFileOnSpeaker(filePath: string): Promise<{
       {
         stdout: "ignore",
         stderr: "ignore",
+        windowsHide: true,
         env: { ...process.env, TTS_WAV_PATH: abs },
       },
     );
@@ -1089,7 +1091,7 @@ export async function playAudioFileOnSpeaker(filePath: string): Promise<{
   if (ffplay) {
     const proc = Bun.spawn(
       [ffplay, "-nodisp", "-autoexit", "-loglevel", "quiet", "-i", abs],
-      { stdout: "ignore", stderr: "ignore" },
+      { stdout: "ignore", stderr: "ignore", windowsHide: true },
     );
     const code = await proc.exited;
     return { played: code === 0, player: "ffplay" };

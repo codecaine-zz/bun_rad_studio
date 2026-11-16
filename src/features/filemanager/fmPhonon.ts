@@ -2825,6 +2825,7 @@ async function runExternalTextExtractor(
         stdout: "pipe",
         stderr: "pipe",
         timeout: 60_000,
+        windowsHide: true,
       });
       const out = res.stdout.toString("utf8").trim();
       if (res.exitCode === 0 && out) {
@@ -2852,6 +2853,7 @@ async function runExternalTextExtractor(
           stdout: "pipe",
           stderr: "pipe",
           timeout: 60_000,
+          windowsHide: true,
         },
       );
       const out = res.stdout.toString("utf8").trim();
@@ -2875,6 +2877,7 @@ async function runExternalTextExtractor(
         stdout: "pipe",
         stderr: "pipe",
         timeout: 60_000,
+        windowsHide: true,
       });
       const out = res.stdout.toString("utf8").trim();
       if (res.exitCode === 0 && out) {
@@ -2910,7 +2913,7 @@ async function runExternalTextExtractor(
     if (pandoc) {
       const res = Bun.spawnSync(
         [pandoc, "--wrap=none", "-t", "plain", "--", filePath],
-        { stdout: "pipe", stderr: "pipe", timeout: 60_000 },
+        { stdout: "pipe", stderr: "pipe", timeout: 60_000, windowsHide: true },
       );
       const out = res.stdout.toString("utf8").trim();
       if (res.exitCode === 0 && out) {
@@ -2938,6 +2941,7 @@ async function runExternalTextExtractor(
           stdout: "pipe",
           stderr: "pipe",
           timeout: 90_000,
+          windowsHide: true,
         });
         if (res.exitCode === 0 && existsSync(tmpTxt)) {
           const out = (await fsp.readFile(tmpTxt, "utf8")).trim();
@@ -2980,6 +2984,7 @@ async function runExternalTextExtractor(
             stdout: "pipe",
             stderr: "pipe",
             timeout: 90_000,
+            windowsHide: true,
           },
         );
         if (res.exitCode === 0) {
@@ -3549,6 +3554,7 @@ async function runOllamaCommand(
       stdout: "pipe",
       stderr: "pipe",
       stdin: "ignore",
+      windowsHide: true,
       env,
     });
     let timedOut = false;
@@ -3595,6 +3601,7 @@ export async function ensureOllamaDaemon(
       stdout: "ignore",
       stderr: "ignore",
       stdin: "ignore",
+      windowsHide: true,
       env,
     });
     proc.unref?.();
@@ -8445,7 +8452,7 @@ export async function synthesizeCrossPlatformTtsChunkWav(
               "--write-subtitles",
               tmpVtt,
             ],
-            { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
+            { stdout: "ignore", stderr: "ignore", stdin: "ignore", windowsHide: true, env },
           );
           if ((await p1.exited) !== 0 || !existsSync(tmpMp3)) {
             p1 = Bun.spawn(
@@ -8458,7 +8465,7 @@ export async function synthesizeCrossPlatformTtsChunkWav(
                 "--write-media",
                 tmpMp3,
               ],
-              { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
+              { stdout: "ignore", stderr: "ignore", stdin: "ignore", windowsHide: true, env },
             );
             await p1.exited;
           }
@@ -8480,7 +8487,7 @@ export async function synthesizeCrossPlatformTtsChunkWav(
               "pcm_s16le",
               tmpWav,
             ],
-            { stdout: "ignore", stderr: "ignore", stdin: "ignore", env },
+            { stdout: "ignore", stderr: "ignore", stdin: "ignore", windowsHide: true, env },
           );
           if ((await p2.exited) === 0 && existsSync(tmpWav)) {
             const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
@@ -8956,6 +8963,7 @@ export async function synthesizePhononChunkWav(
       stdin: new TextEncoder().encode(payload),
       stdout: "pipe",
       stderr: "pipe",
+      windowsHide: true,
       env,
     });
 
@@ -12992,6 +13000,7 @@ export async function synthesizeAndExportAudioFile(
         stdout: "pipe",
         stderr: "pipe",
         stdin: "ignore",
+        windowsHide: true,
         env,
       });
       const onAbort = () => {

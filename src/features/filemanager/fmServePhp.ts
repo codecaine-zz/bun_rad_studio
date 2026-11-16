@@ -351,6 +351,7 @@ export function killTree(pid: number, signal: "SIGTERM" | "SIGKILL"): void {
         stderr: "ignore",
         stdin: "ignore",
         timeout: 3000,
+        windowsHide: true,
       });
     } catch {}
     try {

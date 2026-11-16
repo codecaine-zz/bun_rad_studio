@@ -34,6 +34,7 @@ async function run(
       stdin: "ignore",
       stdout: "ignore",
       stderr: "ignore",
+      windowsHide: true,
       env: { ...process.env, ...env },
     });
     const timer = setTimeout(() => {

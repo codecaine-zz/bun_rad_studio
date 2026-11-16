@@ -1477,6 +1477,7 @@ export async function runCliUtil(
     stdin: "ignore",
     stdout: "pipe",
     stderr: "pipe",
+    windowsHide: true,
   });
 
   const timer = setTimeout(() => {

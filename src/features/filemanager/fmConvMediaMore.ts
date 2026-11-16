@@ -679,7 +679,7 @@ export async function probeSecondsAsync(
         "csv=p=0",
         `file:${file}`,
       ],
-      { stdin: "ignore", stdout: "pipe", stderr: "ignore" },
+      { stdin: "ignore", stdout: "pipe", stderr: "ignore", windowsHide: true },
     );
     const timedOut = new Promise<null>((resolve) => {
       timer = setTimeout(() => {
@@ -731,7 +731,7 @@ export function probeSeconds(c: BuildContext, file: string): number | null {
         "csv=p=0",
         `file:${file}`,
       ],
-      { stdout: "pipe", stderr: "ignore", timeout: FFPROBE_TIMEOUT_MS },
+      { stdout: "pipe", stderr: "ignore", timeout: FFPROBE_TIMEOUT_MS, windowsHide: true },
     );
     const n = parseFloat(r.stdout.toString());
     return Number.isFinite(n) && n > 0 ? n : null;

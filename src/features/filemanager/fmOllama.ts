@@ -310,7 +310,7 @@ export function inspectOllamaHardware(
               "-Command",
               "(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory",
             ],
-            { stdout: "pipe", stderr: "ignore" },
+            { stdout: "pipe", stderr: "ignore", windowsHide: true },
           )
             .stdout.toString()
             .trim();
@@ -5412,6 +5412,7 @@ function spawnOsSpeakerPlayback(
       Bun.spawn([...ctx.ollama.playAudioCommand, wavFilePath], {
         stdout: "ignore",
         stderr: "ignore",
+        windowsHide: true,
       });
       return {
         playedOnOsSpeaker: true,
@@ -5465,6 +5466,7 @@ function spawnOsSpeakerPlayback(
         {
           stdout: "ignore",
           stderr: "ignore",
+          windowsHide: true,
           env: { ...process.env, FM_WAV_PATH: wavFilePath },
         },
       );

@@ -49,6 +49,7 @@ import {
   ensureValidWindowsWebViewLoader,
   ensureWindowsX64Bun,
   ensureWindowsX64VcRuntimeAndWebViewLoader,
+  getWindowsThreadDesktopName,
   initWindowsComSta,
   isPeX64,
 } from "../scripts/fix_windows_webview_runtime";
@@ -169,6 +170,20 @@ export function createFileManagerStudio(
                 FM_NATIVE_BUN_EXEC: process.execPath,
               },
             });
+            try {
+              const { dlopen, FFIType } = await import("bun:ffi");
+              const user32 = dlopen("user32.dll", {
+                AllowSetForegroundWindow: {
+                  args: [FFIType.u32],
+                  returns: FFIType.bool,
+                },
+              });
+              try {
+                user32.symbols.AllowSetForegroundWindow(reexec.pid);
+              } finally {
+                user32.close();
+              }
+            } catch {}
             const forwardStop = () => {
               try {
                 reexec.kill();
@@ -222,6 +237,7 @@ export function createFileManagerStudio(
             child = Bun.spawn(serverCommand(options), {
               stdout: "pipe",
               stderr: "inherit",
+              windowsHide: true,
             });
             // Allow up to 30s on first launch (e.g. cold Windows Defender scan right after `bun install`).
             port = await readyPort(
@@ -289,6 +305,7 @@ export function createFileManagerStudio(
           const browser = Bun.spawn([cmd.command, ...cmd.args], {
             stdout: "ignore",
             stderr: "pipe",
+            windowsHide: true,
           });
           const [code, stderr] = await Promise.all([
             browser.exited,
@@ -383,6 +400,17 @@ export function createFileManagerStudio(
           stop();
         });
         webview.navigate(app.url);
+        if (process.platform === "win32") {
+          const desktopName = await getWindowsThreadDesktopName();
+          if (desktopName && desktopName.toLowerCase() !== "default") {
+            console.warn(
+              `⚠️  Windows desktop notice: this terminal is running on an isolated offscreen desktop ("${desktopName}") instead of "Default" (e.g. an IDE sandboxed terminal).`,
+            );
+            console.warn(
+              `   Windows hides native GUI windows created on "${desktopName}". To see the native window, run "bun run app:files" in an external Windows PowerShell / Windows Terminal window, or open ${app.url} in your browser.`,
+            );
+          }
+        }
         console.log(
           "📁 Window open. Press Ctrl+W (Cmd+W on a Mac) or close the window to quit.",
         );

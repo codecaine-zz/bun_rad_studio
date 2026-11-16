@@ -265,6 +265,7 @@ export async function runCommands(
         stdin: "ignore",
         stdout: "pipe",
         stderr: "pipe",
+        windowsHide: true,
         env: o.env,
         cwd: o.cwd,
       });

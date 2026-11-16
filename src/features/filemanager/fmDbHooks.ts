@@ -215,7 +215,7 @@ function killTree(pid: number, signal: "SIGTERM" | "SIGKILL") {
           "/T",
           ...(signal === "SIGKILL" ? ["/F"] : []),
         ],
-        { stdout: "ignore", stderr: "ignore" },
+        { stdout: "ignore", stderr: "ignore", windowsHide: true },
       );
     } catch {}
     return;
@@ -246,6 +246,7 @@ export function defaultDatabasesHooks(): DatabasesHooks {
         stdin: "ignore",
         stdout: "pipe",
         stderr: "pipe",
+        windowsHide: true,
         detached: process.platform !== "win32",
       });
       return {

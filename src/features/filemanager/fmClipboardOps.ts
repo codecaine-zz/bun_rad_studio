@@ -369,6 +369,7 @@ export async function pasteClipboardImageToFile(
       {
         stdio: "ignore",
         timeout: 6000,
+        windowsHide: true,
         env: { ...process.env, FM_CLIP_OUT: targetPath },
       },
     );

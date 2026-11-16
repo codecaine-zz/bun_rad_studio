@@ -591,7 +591,16 @@ function getUser32() {
         args: [FFIType.u32, FFIType.u32, FFIType.bool],
         returns: FFIType.bool,
       },
+      IsIconic: { args: [P], returns: FFIType.bool },
       IsZoomed: { args: [P], returns: FFIType.bool },
+      SwitchToThisWindow: {
+        args: [P, FFIType.bool],
+        returns: FFIType.void,
+      },
+      keybd_event: {
+        args: [FFIType.u8, FFIType.u8, FFIType.u32, FFIType.u64],
+        returns: FFIType.void,
+      },
       SetWindowPos: {
         args: [
           P,
@@ -630,7 +639,15 @@ function getUser32() {
     GetForegroundWindow: () => Pointer;
     GetWindowThreadProcessId: (h: Pointer, p: Pointer | null) => number;
     AttachThreadInput: (a: number, b: number, f: boolean) => boolean;
+    IsIconic: (h: Pointer) => boolean;
     IsZoomed: (h: Pointer) => boolean;
+    SwitchToThisWindow: (h: Pointer, fAltTab: boolean) => void;
+    keybd_event: (
+      bVk: number,
+      bScan: number,
+      dwFlags: number,
+      dwExtraInfo: bigint,
+    ) => void;
     SetWindowPos: (
       h: Pointer,
       after: Pointer | null | number,
@@ -746,7 +763,21 @@ function windowsNative(wv: Webview): WindowNative {
       try {
         const u = user32();
         const window = hwnd();
-        u.ShowWindow(window, 5);
+        const wasTopmost =
+          (BigInt(u.GetWindowLongPtrW(window, -20)) & 0x8n) !== 0n;
+        if (u.IsIconic(window)) {
+          u.ShowWindow(window, 9);
+        } else if (u.IsZoomed(window)) {
+          u.ShowWindow(window, 3);
+        } else {
+          u.ShowWindow(window, 5);
+        }
+        // Raise above existing windows (e.g. a maximized terminal/IDE) without leaving WS_EX_TOPMOST set unless requested.
+        const raiseFlags = 0x0001 | 0x0002 | 0x0040; // SWP_NOSIZE | SWP_NOMOVE | SWP_SHOWWINDOW
+        u.SetWindowPos(window, -1 as Pointer, 0, 0, 0, 0, raiseFlags);
+        if (!wasTopmost) {
+          u.SetWindowPos(window, -2 as Pointer, 0, 0, 0, 0, raiseFlags);
+        }
         u.BringWindowToTop(window);
         if (u.SetForegroundWindow(window)) return;
         const foreground = u.GetForegroundWindow();
@@ -777,6 +808,13 @@ function windowsNative(wv: Webview): WindowNative {
         } finally {
           kernel32.close();
         }
+        try {
+          u.keybd_event(0, 0, 0x0002, 0n);
+          u.BringWindowToTop(window);
+          if (u.SetForegroundWindow(window)) return;
+          u.SwitchToThisWindow(window, true);
+          if (u.GetForegroundWindow() === window) return;
+        } catch {}
         console.warn(
           "Windows declined the request to bring the window to the foreground. Select it from the taskbar.",
         );

@@ -252,6 +252,7 @@ export class Watcher {
           stdin: "ignore",
           stdout: "pipe",
           stderr: "pipe",
+          windowsHide: true,
           ...(isCmd ? { windowsVerbatimArguments: true } : {}),
         },
       );

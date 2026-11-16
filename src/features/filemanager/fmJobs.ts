@@ -332,6 +332,7 @@ export function createJobHub(maxRunning = 2, hooks: JobHooks = {}): JobHub {
             stdin: "ignore",
             stdout: "pipe",
             stderr: "pipe",
+            windowsHide: true,
             env: step.env,
             cwd: step.cwd,
           });
