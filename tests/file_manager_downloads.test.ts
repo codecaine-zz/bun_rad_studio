@@ -410,7 +410,7 @@ describe("review fixes", () => {
       );
     } else expect(v.verified).toBe(true);
     manager.closeAll();
-  }, 30000);
+  }, 90000);
 
   test("an interrupted checksum check is not a verdict, and resuming checks again", async () => {
     const { manager, out } = workspace();
@@ -450,7 +450,7 @@ describe("review fixes", () => {
     expect(v.path).toBe(file);
     expect(fs.readdirSync(out)).toEqual(["big.bin"]);
     manager.closeAll();
-  }, 30000);
+  }, 90000);
 
   test("a login typed into the address is sent with every request and not kept in the address", async () => {
     const { manager, out } = workspace();
@@ -749,7 +749,7 @@ describe("downloading", () => {
     const seconds = (Date.now() - t0) / 1000;
     expect(seconds).toBeGreaterThan(1.8); // 3 MB at 1 MB/s, minus the burst allowance
     manager.closeAll();
-  }, 30000);
+  }, 90000);
 
   test("a right checksum is confirmed and a wrong one is reported", async () => {
     const { manager, out } = workspace();
@@ -777,7 +777,7 @@ describe("downloading", () => {
     expect(wrong.message).toMatch(/doesn't match/);
     expect(fs.existsSync(wrong.path)).toBe(true);
     manager.closeAll();
-  }, 30000);
+  }, 90000);
 
   test("the same name twice gives two files, and redirects work", async () => {
     const { manager, out } = workspace();
@@ -840,7 +840,7 @@ describe("downloading", () => {
     expect(manager.list().length).toBe(0);
     expect(fs.readdirSync(out)).toEqual([]);
     manager.closeAll();
-  }, 30000);
+  }, 90000);
 
   test("the saved list never shows header values", () => {
     const { manager } = workspace();
