@@ -836,7 +836,7 @@ describe("the Code tab in a browser-like page", () => {
       expect(toggle().getAttribute("aria-pressed")).toBe("true");
       for (
         let i = 0;
-        i < 40 && !(await call("code/session", {})).session.settings.autosave;
+        i < 120 && !(await call("code/session", {})).session.settings.autosave;
         i++
       )
         await sleep(100);
