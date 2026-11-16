@@ -609,7 +609,7 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
     );
     expect(listThemesArr).toEqual(sortedListThemes);
 
-    // 4. Demo 25 theme dropdown has exactly 310 unique themes with zero duplicates
+    // 4. Demo 25 theme dropdown has all 322 unique themes (310 canonical + 12 Master Favorites) with zero duplicates
     const demo25Win = createVlangShowcase();
     const demo25Html = demo25Win.getHtml();
     const themeMatch = demo25Html.match(
@@ -621,10 +621,10 @@ describe("👑 Vlang Webview RAD Studio Complete Parity Suite", () => {
         /<option[^>]*value="([^"]*)"[^>]*>([^<]*)<\/option>/g,
       ),
     ].map((x) => ({ val: x[1], text: x[2] }));
-    expect(demo25Options.length).toBe(310);
+    expect(demo25Options.length).toBe(322);
     const uniqueValues = new Set(demo25Options.map((o) => o.val));
     const uniqueTexts = new Set(demo25Options.map((o) => o.text));
-    expect(uniqueValues.size).toBe(310);
-    expect(uniqueTexts.size).toBe(310);
+    expect(uniqueValues.size).toBe(322);
+    expect(uniqueTexts.size).toBe(322);
   });
 });

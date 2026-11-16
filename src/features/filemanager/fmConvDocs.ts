@@ -223,7 +223,11 @@ const gsPages = (o: OptionValues) => (o.pages ? [`-sPageList=${o.pages}`] : []);
 export function ghostscriptProfile(gsExe: string): string | null {
   let text = "";
   try {
-    const r = Bun.spawnSync([gsExe, "-h"], { stdout: "pipe", stderr: "pipe", windowsHide: true });
+    const r = Bun.spawnSync([gsExe, "-h"], {
+      stdout: "pipe",
+      stderr: "pipe",
+      windowsHide: true,
+    });
     text = `${r.stdout.toString()}\n${r.stderr.toString()}`;
   } catch {
     return null;

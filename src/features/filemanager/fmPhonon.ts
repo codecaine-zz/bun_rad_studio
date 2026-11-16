@@ -8452,7 +8452,13 @@ export async function synthesizeCrossPlatformTtsChunkWav(
               "--write-subtitles",
               tmpVtt,
             ],
-            { stdout: "ignore", stderr: "ignore", stdin: "ignore", windowsHide: true, env },
+            {
+              stdout: "ignore",
+              stderr: "ignore",
+              stdin: "ignore",
+              windowsHide: true,
+              env,
+            },
           );
           if ((await p1.exited) !== 0 || !existsSync(tmpMp3)) {
             p1 = Bun.spawn(
@@ -8465,7 +8471,13 @@ export async function synthesizeCrossPlatformTtsChunkWav(
                 "--write-media",
                 tmpMp3,
               ],
-              { stdout: "ignore", stderr: "ignore", stdin: "ignore", windowsHide: true, env },
+              {
+                stdout: "ignore",
+                stderr: "ignore",
+                stdin: "ignore",
+                windowsHide: true,
+                env,
+              },
             );
             await p1.exited;
           }
@@ -8487,7 +8499,13 @@ export async function synthesizeCrossPlatformTtsChunkWav(
               "pcm_s16le",
               tmpWav,
             ],
-            { stdout: "ignore", stderr: "ignore", stdin: "ignore", windowsHide: true, env },
+            {
+              stdout: "ignore",
+              stderr: "ignore",
+              stdin: "ignore",
+              windowsHide: true,
+              env,
+            },
           );
           if ((await p2.exited) === 0 && existsSync(tmpWav)) {
             const wav = normalizeWavTo24k(await fsp.readFile(tmpWav));
