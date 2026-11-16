@@ -2,8 +2,8 @@ cask "codecaine-file-manager" do
   arch arm: "arm64", intel: "x64"
 
   version "1.6.0"
-  sha256 arm:   "a75ab1bd78fc9d2736dc7f11557c53905dc8d7e9aec1a0c49daac4d3a1b3e9a4",
-         intel: "d15f8e65fd5794db40a9ec9c768f2b4e3815f7f2726ede1001e17a5a8a264369"
+  sha256 arm:   "291bb48c7ae1a4539a91efff21c204346390b6a6fc3c1e9655037dc06b3282f2",
+         intel: "fd1428ad554794183364cba18c3c938e36b21c9a01e2ef60afe58d1ab79d4046"
 
   url "https://github.com/codecaine-zz/bun_rad_studio/releases/download/v#{version}/Codecaine-File-Manager-v#{version}-macos-#{arch}.zip"
   name "Codecaine File Manager"
