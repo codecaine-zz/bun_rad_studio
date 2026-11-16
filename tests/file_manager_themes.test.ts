@@ -3398,12 +3398,22 @@ describe("the theme editor in the page", () => {
       '[data-active-fx-strip="true"]',
     ) as any;
     expect(activeFxStrip).toBeTruthy();
+    const fxPillsListBefore = activeFxStrip.querySelector(
+      '[data-active-fx-pills-list="true"]',
+    ) as any;
+    const stripTextBefore = fxPillsListBefore?.textContent || "";
     const rollRandomFxBtn = activeFxStrip.querySelector(
       '[data-picker-roll-random-fx="true"]',
     ) as any;
     expect(rollRandomFxBtn).toBeTruthy();
     rollRandomFxBtn.click();
-    await sleep(220);
+    for (let i = 0; i < 120; i++) {
+      await sleep(25);
+      const curText =
+        activeFxStrip.querySelector('[data-active-fx-pills-list="true"]')
+          ?.textContent || "";
+      if (curText && curText !== stripTextBefore) break;
+    }
 
     // Verify active effects are detected and can be individually removed in 1 click
     await themes.applyPalette("omega_point_singularity");

@@ -3161,9 +3161,16 @@ describe("the Themes button in the ribbon", () => {
     [...doc.querySelectorAll(".menu .menu-item")].find((i: any) =>
       i.textContent.includes(text),
     );
+  const waitForMenu = async (timeoutMs = 3000) => {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (labels().length > 0) return;
+      await sleep(25);
+    }
+  };
   const open = async () => {
     $("#tool-themes").click();
-    await sleep(150);
+    await waitForMenu();
   };
   const stateNow = async () =>
     (await import("../resources/file_manager/ui/state.js")).state;
@@ -3184,7 +3191,7 @@ describe("the Themes button in the ribbon", () => {
     expect(vbBtn.querySelector(".vb-icon").textContent).toBe("🎨");
     expect(vbBtn.querySelector(".vb-label").textContent).toBe("Themes");
     vbBtn.click();
-    await sleep(150);
+    await waitForMenu();
     expect(labels().join("|")).toContain("All themes…");
     key(doc.activeElement ?? doc.body, "Escape");
     await sleep(60);
