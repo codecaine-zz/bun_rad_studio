@@ -390,13 +390,18 @@ describe("the Crypto tab in a browser-like page", () => {
     field("Passphrase").value = PASS;
     field("Text to lock, or locked text to unlock").value = PLAIN;
     await click("Lock (encrypt)");
+    await waitFor(() => /^[0-9a-f]{32}:/.test(output("Lock or unlock result")));
     expect(output("Lock or unlock result")).toMatch(/^[0-9a-f]{32}:/);
     await click("Move result up");
     field("Passphrase").value = "not-the-passphrase";
     await click("Unlock (decrypt)");
+    await waitFor(() =>
+      /passphrase is wrong|looks like nonsense/.test(statuses()),
+    );
     expect(statuses()).toMatch(/passphrase is wrong|looks like nonsense/);
     field("Passphrase").value = PASS;
     await click("Unlock (decrypt)");
+    await waitFor(() => output("Lock or unlock result") === PLAIN);
     expect(output("Lock or unlock result")).toBe(PLAIN);
   });
 
