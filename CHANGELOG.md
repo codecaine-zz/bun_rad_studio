@@ -1,6 +1,12 @@
 # Changelog
 
-All notable changes. Version 1.6.0 is the twenty-seventh release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9, 1.5.0, 1.5.1, 1.5.2, 1.5.3, 1.5.4, 1.5.7, 1.5.8 and 1.5.9 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.6.1 is the twenty-eighth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9, 1.5.0, 1.5.1, 1.5.2, 1.5.3, 1.5.4, 1.5.7, 1.5.8, 1.5.9 and 1.6.0 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.6.1 (15 November 2026)
+
+### Fixed
+
+- **Windows Hidden Helper Consoles, WebView Foreground Activation & Offscreen Desktop Detection (`applications/file_manager_studio.ts`, `applications/launcher_studio.ts`, `cli_apps/tts_cli.ts`, `scripts/fix_windows_webview_runtime.ts`, `scripts/release/build_file_manager.ts`, `src/windowNative.ts`, `src/localGuard.ts`, `src/features/filemanager/*`).** Pass `windowsHide: true` across Windows background child/helper spawns (`powershell.exe`, `tasklist.exe`, `clip`, `tar`, `ollama`, File Manager server, Watcher, and Phonon helpers) to prevent transient black console windows from flashing in GUI apps, strengthen Win32 `windowNative.focus()` / `AllowSetForegroundWindow` foreground window activation, and detect sandboxed offscreen Win32 thread desktops (`GetThreadDesktop` / `UOI_NAME` != `Default`) with clear guidance.
 
 ## 1.6.0 (15 November 2026)
 
@@ -17,7 +23,6 @@ All notable changes. Version 1.6.0 is the twenty-seventh release (1.0.0, 1.1.0, 
 
 ### Fixed
 
-- **Windows Hidden Helper Consoles, WebView Foreground Activation & Offscreen Desktop Detection (`applications/file_manager_studio.ts`, `applications/launcher_studio.ts`, `cli_apps/tts_cli.ts`, `scripts/fix_windows_webview_runtime.ts`, `scripts/release/build_file_manager.ts`, `src/windowNative.ts`, `src/localGuard.ts`, `src/features/filemanager/*`).** Pass `windowsHide: true` across Windows background child/helper spawns (`powershell.exe`, `tasklist.exe`, `clip`, `tar`, `ollama`, File Manager server, Watcher, and Phonon helpers) to prevent transient black console windows from flashing in GUI apps, strengthen Win32 `windowNative.focus()` / `AllowSetForegroundWindow` foreground window activation, and detect sandboxed offscreen Win32 thread desktops (`GetThreadDesktop` / `UOI_NAME` != `Default`) with clear guidance.
 - **Cross-Platform CI Test Isolation & Read-Along FFmpeg Timeout Hardening (`tests/simplegui_regressions.test.ts`, `tests/file_manager_views.test.ts`, `tests/file_manager_phonon.test.ts`).** Remove `dist/` pre-build coupling from SimpleGUI `.d.ts` regression tests, isolate Windows `APPDATA`/`LOCALAPPDATA` inside `withIsolatedHome`, poll ribbon theme state deterministically, and increase real `ffmpeg` Read-Along MP4 export test timeout on Linux CI runners.
 
 ## 1.5.9 (14 November 2026)
