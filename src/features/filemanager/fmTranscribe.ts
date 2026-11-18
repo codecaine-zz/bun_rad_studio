@@ -389,7 +389,11 @@ async function runProcess(
 }> {
   let proc: ReturnType<typeof Bun.spawn>;
   try {
-    proc = Bun.spawn(argv, {
+    const spawnArgv =
+      process.platform === "win32" && /\.(cmd|bat)$/i.test(argv[0] ?? "")
+        ? ["cmd.exe", "/d", "/s", "/c", ...argv]
+        : argv;
+    proc = Bun.spawn(spawnArgv, {
       stdin: "ignore",
       stdout: "pipe",
       stderr: "pipe",
@@ -1041,6 +1045,7 @@ function pythonBinaryInEnv(
     platform === "win32"
       ? [
           nodePath.win32.join(envDir, "Scripts", "python.exe"),
+          nodePath.win32.join(envDir, "Scripts", "python.cmd"),
           nodePath.posix.join(envDir, "bin", "python3"),
           nodePath.posix.join(envDir, "bin", "python"),
         ]

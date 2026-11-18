@@ -7,6 +7,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createContext } from "../src/features/filemanager/fmCore";
 import {
@@ -72,7 +73,7 @@ describe("Codecaine File Manager — AI Audio-to-Text & Subtitle Engine Backend"
     prevAsrBaseUrl = process.env.FM_ASR_BASE_URL;
     prevOllamaHost = process.env.OLLAMA_HOST;
 
-    tempRoot = `/tmp/fm_transcribe_test_${Date.now()}`;
+    tempRoot = join(tmpdir(), `fm_transcribe_test_${Date.now()}`);
     homeDir = join(tempRoot, "home");
     docsDir = join(homeDir, "docs");
     dataDir = join(tempRoot, "data");
@@ -489,20 +490,29 @@ describe("Codecaine File Manager — AI Audio-to-Text & Subtitle Engine Backend"
       process.env.FM_ASR_BASE_URL = prevAsr;
     }
 
-    // Tier 2: python-whisper via ctx.dataDir/asr-env/bin/python3
-    const asrEnvBin = join(tierData, "asr-env", "bin");
-    mkdirSync(asrEnvBin, { recursive: true });
-    const mockPy = join(asrEnvBin, "python3");
-    writeFileSync(
-      mockPy,
-      `#!/bin/sh
+    // Tier 2: python-whisper via ctx.dataDir/asr-env/bin/python3 (or Scripts/python.cmd on Windows)
+    if (process.platform === "win32") {
+      const asrEnvScripts = join(tierData, "asr-env", "Scripts");
+      mkdirSync(asrEnvScripts, { recursive: true });
+      writeFileSync(
+        join(asrEnvScripts, "python.cmd"),
+        `@echo off\r\nif "%~1"=="-c" exit /b 0\r\necho @@FM_ASR_JSON@@{"ok":true,"engine":"python-whisper:faster-whisper","model":"openai/whisper-base","language":"en","durationSec":1.2,"text":"Mock Python Whisper output.","segments":[{"start":0,"end":1.2,"text":"Mock Python Whisper output."}]}\r\n`,
+      );
+    } else {
+      const asrEnvBin = join(tierData, "asr-env", "bin");
+      mkdirSync(asrEnvBin, { recursive: true });
+      const mockPy = join(asrEnvBin, "python3");
+      writeFileSync(
+        mockPy,
+        `#!/bin/sh
 if [ "$1" = "-c" ]; then
   exit 0
 fi
 echo '@@FM_ASR_JSON@@{"ok":true,"engine":"python-whisper:faster-whisper","model":"openai/whisper-base","language":"en","durationSec":1.2,"text":"Mock Python Whisper output.","segments":[{"start":0,"end":1.2,"text":"Mock Python Whisper output."}]}'
 `,
-    );
-    chmodSync(mockPy, 0o755);
+      );
+      chmodSync(mockPy, 0o755);
+    }
 
     const pyCtx = createContext({
       home: tierHome,
@@ -523,10 +533,16 @@ echo '@@FM_ASR_JSON@@{"ok":true,"engine":"python-whisper:faster-whisper","model"
     expect(bionicRes.engine).toContain("python-whisper");
 
     // Tier 1: whisper-cli mock executable in toolDirs
-    const mockWhisperCli = join(tierBin, "whisper-cli");
-    writeFileSync(
-      mockWhisperCli,
-      `#!/bin/sh
+    if (process.platform === "win32") {
+      writeFileSync(
+        join(tierBin, "whisper-cli.cmd"),
+        `@echo off\r\nset "OUT_PREFIX="\r\n:loop\r\nif "%~1"=="" goto done\r\nif "%~1"=="-of" (\r\n  set "OUT_PREFIX=%~2"\r\n  shift\r\n  shift\r\n  goto loop\r\n)\r\nshift\r\ngoto loop\r\n:done\r\n> "%OUT_PREFIX%.json" echo {"result":{"language":"en"},"transcription":[{"offsets":{"from":0,"to":1200},"text":"Whisper CLI mock result."}]}\r\n`,
+      );
+    } else {
+      const mockWhisperCli = join(tierBin, "whisper-cli");
+      writeFileSync(
+        mockWhisperCli,
+        `#!/bin/sh
 OUT_PREFIX=""
 while [ $# -gt 0 ]; do
   if [ "$1" = "-of" ]; then
@@ -538,8 +554,9 @@ while [ $# -gt 0 ]; do
 done
 echo '{"result":{"language":"en"},"transcription":[{"offsets":{"from":0,"to":1200},"text":"Whisper CLI mock result."}]}' > "$OUT_PREFIX.json"
 `,
-    );
-    chmodSync(mockWhisperCli, 0o755);
+      );
+      chmodSync(mockWhisperCli, 0o755);
+    }
     const cliCtx = createContext({
       home: tierHome,
       sandboxRoot: tierHome,
@@ -734,10 +751,16 @@ echo '{"result":{"language":"en"},"transcription":[{"offsets":{"from":0,"to":120
     const installData = join(installRoot, "data");
     mkdirSync(installBin, { recursive: true });
     mkdirSync(installData, { recursive: true });
-    const fakeSysPy = join(installBin, "python3");
-    writeFileSync(
-      fakeSysPy,
-      `#!/bin/sh
+    if (process.platform === "win32") {
+      writeFileSync(
+        join(installBin, "python.cmd"),
+        `@echo off\r\nif "%~1"=="-m" if "%~2"=="venv" (\r\n  mkdir "%~3\\Scripts" 2>nul\r\n  > "%~3\\Scripts\\python.cmd" echo @echo off\r\n  >> "%~3\\Scripts\\python.cmd" echo exit /b 0\r\n)\r\nexit /b 0\r\n`,
+      );
+    } else {
+      const fakeSysPy = join(installBin, "python3");
+      writeFileSync(
+        fakeSysPy,
+        `#!/bin/sh
 if [ "$1" = "-m" ] && [ "$2" = "venv" ]; then
   /bin/mkdir -p "$3/bin"
   printf '#!/bin/sh\nexit 0\n' > "$3/bin/python3"
@@ -745,8 +768,9 @@ if [ "$1" = "-m" ] && [ "$2" = "venv" ]; then
 fi
 exit 0
 `,
-    );
-    chmodSync(fakeSysPy, 0o755);
+      );
+      chmodSync(fakeSysPy, 0o755);
+    }
 
     const installCtx = createContext({
       home: installRoot,
