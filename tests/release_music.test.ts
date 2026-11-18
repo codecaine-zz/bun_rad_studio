@@ -49,7 +49,7 @@ test.skipIf(
           "powershell.exe",
           "-NoProfile",
           "-Command",
-          "$ErrorActionPreference = 'Stop'; Expand-Archive -LiteralPath $env:TEST_ARCHIVE -DestinationPath $env:TEST_OUT",
+          "$ErrorActionPreference = 'Stop'; Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory($env:TEST_ARCHIVE, $env:TEST_OUT)",
         ],
         { env: { TEST_ARCHIVE: archive, TEST_OUT: out } },
       );

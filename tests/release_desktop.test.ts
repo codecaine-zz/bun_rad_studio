@@ -211,7 +211,7 @@ describe("platform launchers", () => {
             "powershell.exe",
             "-NoProfile",
             "-Command",
-            "$ErrorActionPreference = 'Stop'; Expand-Archive -LiteralPath $env:TEST_ZIP -DestinationPath $env:TEST_OUT",
+            "$ErrorActionPreference = 'Stop'; Add-Type -AssemblyName System.IO.Compression.FileSystem; [System.IO.Compression.ZipFile]::ExtractToDirectory($env:TEST_ZIP, $env:TEST_OUT)",
           ],
           { env: { ...process.env, TEST_ZIP: zip, TEST_OUT: out } },
         );
