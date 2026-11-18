@@ -2413,6 +2413,11 @@ export class SimpleWindow {
                         document.documentElement.classList.add('rad-macos');
                         document.documentElement.setAttribute('data-platform', 'macos');
                     }
+                    document.documentElement.dataset.theme = ${JSON.stringify(isLight ? "light" : "dark")};
+                    window.currentTheme = ${JSON.stringify(themeName)};
+                    if (document.body && document.body.classList) {
+                        document.body.classList.toggle('light-theme', ${isLight});
+                    }
                     document.documentElement.style.setProperty('--accent', '${colors.accent}');
                     document.documentElement.style.setProperty('--accent-secondary', '${secAccent}');
                     document.documentElement.style.setProperty('--btn-bg', '${btnBg}');
@@ -2527,22 +2532,22 @@ export class SimpleWindow {
                         html.rad-windows, html.rad-windows *, html.rad-windows *::before, html.rad-windows *::after,
                         html.rad-macos, html.rad-macos *, html.rad-macos *::before, html.rad-macos *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 
-                        input:not([type="checkbox"]):not([type="radio"]):not([data-custom-bg]), textarea:not([data-custom-bg]), select:not([data-custom-bg]) {
+                        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([data-custom-bg]), textarea:not([data-custom-bg]), select:not([data-custom-bg]) {
                             background-color: ${inputBg} !important;
                             border-color: ${inputBorder} !important;
                             color-scheme: ${isLight ? "light" : "dark"} !important;
                         }
-                        input:not([type="checkbox"]):not([type="radio"]):not([data-custom-color]), textarea:not([data-custom-color]), select:not([data-custom-color]) {
+                        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([data-custom-color]), textarea:not([data-custom-color]), select:not([data-custom-color]) {
                             color: ${colors.fg} !important;
                         }
-                        input:not([type="checkbox"]):not([type="radio"]):focus, textarea:focus, select:focus {
+                        input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):focus, textarea:focus, select:focus {
                             border-color: ${colors.accent} !important;
                             outline-color: ${colors.accent} !important;
                         }
                         input[type=range]::-webkit-slider-thumb {
                             background: ${colors.accent} !important;
                         }
-                        select:not([size]):not([data-custom-bg]), .simplegui-select:not([data-custom-bg]) {
+                        select:not([size]):not([multiple]):not([data-custom-bg]), .simplegui-select:not([data-custom-bg]) {
                             background-color: ${inputBg} !important;
                             border-color: ${inputBorder} !important;
                             color-scheme: ${isLight ? "light" : "dark"} !important;
@@ -2553,11 +2558,11 @@ export class SimpleWindow {
                             padding-right: 30px !important;
                             cursor: pointer !important;
                         }
-                        select:not([size]):not([data-custom-color]), .simplegui-select:not([data-custom-color]) {
+                        select:not([size]):not([multiple]):not([data-custom-color]), .simplegui-select:not([data-custom-color]) {
                             color: ${colors.fg} !important;
                         }
-                        select:not([size]):hover, .simplegui-select:hover { border-color: ${colors.accent} !important; }
-                        select:not([size]):focus, .simplegui-select:focus { border-color: ${colors.accent} !important; outline-color: ${colors.accent} !important; }
+                        select:not([size]):not([multiple]):hover, .simplegui-select:hover { border-color: ${colors.accent} !important; }
+                        select:not([size]):not([multiple]):focus, .simplegui-select:focus { border-color: ${colors.accent} !important; outline-color: ${colors.accent} !important; }
                         select option, select optgroup {
                             background-color: ${cardBg} !important;
                             color: ${colors.fg} !important;
@@ -13086,6 +13091,7 @@ export class SimpleWindow {
                         }
                         .rad-grid-container {
                             display: grid !important;
+                            grid-template-columns: repeat(var(--rad-grid-cols, 2), minmax(0, 1fr)) !important;
                             width: 100% !important;
                             box-sizing: border-box !important;
                             align-items: stretch !important;
@@ -13093,6 +13099,24 @@ export class SimpleWindow {
                         @media (max-width: 768px) {
                             .rad-grid-container {
                                 grid-template-columns: 1fr !important;
+                            }
+                        }
+                        @media (max-width: 640px) {
+                            #rad_responsive_root {
+                                padding: 10px 12px !important;
+                            }
+                            .rad-row label,
+                            .rad-row span:not(.stepper-val):not(.sw-thumb):not(.sw-track),
+                            .rad-row .rad-label {
+                                white-space: normal !important;
+                                max-width: 100% !important;
+                            }
+                            .rad-row > button,
+                            .rad-header-right > button,
+                            .rad-card > button,
+                            #rad_responsive_root > button {
+                                white-space: normal !important;
+                                text-align: center !important;
                             }
                         }
                         .rad-switch-label {
@@ -13308,7 +13332,8 @@ export class SimpleWindow {
                             gridDiv.className = "rad-grid-container";
                             const cols = sec.cols || 2;
                             const gap = sec.gap !== undefined ? sec.gap : 16;
-                            gridDiv.style.cssText = "display: grid !important; grid-template-columns: repeat(" + cols + ", minmax(0, 1fr)) !important; gap: " + gap + "px !important; width: 100% !important; align-items: stretch !important;";
+                            gridDiv.style.setProperty("--rad-grid-cols", String(cols));
+                            gridDiv.style.gap = gap + "px";
                             for (const cardSec of (sec.cards || [])) {
                                 gridDiv.appendChild(renderCard(cardSec));
                             }
@@ -15060,12 +15085,15 @@ export class SimpleWindow {
                     }
                     const headers = ${headersJson};
                     const rows = ${tableJson};
-                    const isLight = document.body.classList.contains("light-theme") || (window.currentTheme && window.currentTheme.includes("light"));
+                    const docEl = document.documentElement;
+                    const isLight = (docEl && docEl.dataset && docEl.dataset.theme === "light") ||
+                        (document.body && document.body.classList && document.body.classList.contains("light-theme")) ||
+                        (window.currentTheme && /light|paper|pastel|win95|win31|winxp|yosemite|snow_leopard/i.test(window.currentTheme));
                     const selBg = isLight ? 'rgba(2,132,199,0.18)' : 'rgba(56,189,248,0.22)';
                     const hoverBg = isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)';
-                    const border = 'rgba(128,128,128,0.2)';
-                    const accent = isLight ? '#0284c7' : '#38bdf8';
-                    const color = isLight ? '#0f172a' : '#f8fafc';
+                    const border = 'var(--card-border, rgba(128,128,128,0.2))';
+                    const accent = 'var(--accent, ' + (isLight ? '#0284c7' : '#38bdf8') + ')';
+                    const color = 'var(--theme-fg, ' + (isLight ? '#0f172a' : '#f8fafc') + ')';
                     table.style.color = color;
 
                     function esc(str) {

@@ -59,6 +59,11 @@ export function startSystemStudioServer(options: ServerOptions = {}) {
         });
       }
 
+      // Route: Favicon (prevent browser 404 console/network errors)
+      if (url.pathname === "/favicon.ico") {
+        return new Response(null, { status: 204, headers: corsHeaders });
+      }
+
       // Route: Fullscreen Toggle Notification
       if (url.pathname === "/api/fullscreen") {
         return Response.json(

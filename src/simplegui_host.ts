@@ -336,6 +336,14 @@ function clientScript(names: string[], wsUrl: string): string {
     var border = cleanCssVal(v.border, scheme === "light" ? "#cbd5e1" : "#384252");
     var accent = cleanCssVal(v.accent, "#38bdf8");
     var hover = cleanCssVal(v.hover, panel);
+    function hexBright(c) {
+      var m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c || "");
+      if (!m) return false;
+      var h = m[1].length === 3 ? m[1][0]+m[1][0]+m[1][1]+m[1][1]+m[1][2]+m[1][2] : m[1];
+      var r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+      return (0.299 * r + 0.587 * g + 0.114 * b) > 165;
+    }
+    var accentBtnFg = hexBright(accent) ? "#0f172a" : "#ffffff";
     var r = document.documentElement;
     r.dataset.theme = scheme;
     r.dataset.palette = typeof t.palette === "string" ? t.palette.slice(0, 64) : "";
@@ -349,7 +357,7 @@ function clientScript(names: string[], wsUrl: string): string {
     r.style.setProperty("--accent", accent);
     r.style.setProperty("--accent-secondary", cleanCssVal(v.selected, accent));
     r.style.setProperty("--btn-bg", panel);
-    r.style.setProperty("--btn-fg", text);
+    r.style.setProperty("--btn-fg", accentBtnFg);
     r.style.setProperty("--card-bg", panel);
     r.style.setProperty("--card-border", border);
     r.style.setProperty("--theme-fg", text);
@@ -368,9 +376,9 @@ function clientScript(names: string[], wsUrl: string): string {
         "fieldset, .simplegui-card, .sg-card { background: " + panel + " !important; border-color: " + border + " !important; color: " + text + " !important; }\\n" +
         "legend { color: " + accent + " !important; }\\n" +
         "label, .rad-label, span, p, td, th { color: " + text + "; }\\n" +
-        "input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']), select, textarea { background: " + sunken + " !important; color: " + text + " !important; border-color: " + border + " !important; }\\n" +
-        "button { background: " + panel + " !important; color: " + text + " !important; border-color: " + border + " !important; }\\n" +
-        "button:hover:not(:disabled) { background: " + hover + " !important; border-color: " + accent + " !important; }\\n" +
+        "input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']), select, textarea { background: " + sunken + " !important; color: " + text + " !important; border-color: " + border + " !important; }\\n" +
+        "button:not([data-no-theme]):not(.sgd-btn) { background: " + panel + " !important; color: " + text + " !important; border-color: " + border + " !important; }\\n" +
+        "button:not([data-no-theme]):not(.sgd-btn):hover:not(:disabled) { background: " + hover + " !important; border-color: " + accent + " !important; }\\n" +
         "table, th, td { border-color: " + border + " !important; }\\n" +
         "th { background: " + panel + " !important; color: " + text + " !important; }";
     }

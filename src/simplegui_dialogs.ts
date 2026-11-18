@@ -336,6 +336,7 @@ select.sgd-input option,select.sgd-input optgroup{color:var(--sgd-fg,#e2e8f0);ba
 @keyframes sgdToastIn{from{opacity:0;transform:translateX(24px) scale(.96)}to{opacity:1;transform:none}}
 @keyframes sgdToastOut{from{opacity:1}to{opacity:0;transform:translateX(24px) scale(.96)}}
 @media (prefers-reduced-motion:reduce){.sgd-popup,.sgd-toast,.sgd-icon,.sgd-container,.sgd-draw,.sgd-input.sgd-invalid,.sgd-popup.sgd-shake{animation-duration:.01ms!important;animation-iteration-count:1!important}.sgd-btn,.sgd-close,.sgd-eye,.sgd-input,.sgd-fp-place,.sgd-fp-ibtn,.sgd-fp-row{transition-duration:.01ms!important;transform:none!important}}
+@media (max-width:600px){.sgd-container{padding:8px}.sgd-popup{padding:18px 14px}.sgd-fp{flex-direction:column;height:auto;max-height:66vh}.sgd-fp-side{width:100%;flex-direction:row;overflow-x:auto;padding:0 0 8px;border-right:0;border-bottom:1px solid var(--sgd-border)}.sgd-fp-bar{flex-wrap:wrap}.sgd-fp-list{min-height:180px}}
 `;
 
 const DIALOG_CLIENT_JS = String.raw`
@@ -836,7 +837,7 @@ const DIALOG_CLIENT_JS = String.raw`
     root.appendChild(side); root.appendChild(main);
 
     function setMsg(t, warn) { msg.textContent = t || ''; msg.className = 'sgd-fp-msg' + (warn ? ' warn' : ''); }
-    function join(d, n) { var s = (d.indexOf('\\') >= 0 && d.indexOf('/') < 0) ? '\\' : '/'; return d.replace(/[\\\/]+$/, '') + s + n; }
+    function join(d, n) { var s = (d.indexOf('\\') >= 0 || st.sep === '\\') ? '\\' : '/'; return d.replace(/[\\\/]+$/, '') + s + n; }
     function entryOf(p) { for (var i = 0; i < st.entries.length; i++) if (st.entries[i].path === p) return st.entries[i]; return null; }
     function updateInfo() {
       if (nameIn) return;
@@ -1092,6 +1093,7 @@ function runNative(mode: FileDialogMode, o: FileDialogOptions): NativeResult {
           `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Add-Type -AssemblyName System.Windows.Forms; ${body}`,
         ],
         {
+          windowsHide: true,
           env: {
             ...process.env,
             RAD_DLG_TITLE: title,

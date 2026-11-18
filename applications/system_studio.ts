@@ -743,6 +743,213 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
   },
 };
 
+// -------------------------------------------------------------------------------------------------
+// Privacy Masking & Sanitization for SCREENSHOT_MODE=1
+// -------------------------------------------------------------------------------------------------
+
+function getScreenshotIdentityTokens() {
+  let username = "";
+  try {
+    username = os.userInfo().username || "";
+  } catch {}
+  if (!username) {
+    username = process.env.USER || process.env.USERNAME || "";
+  }
+  const home =
+    os.homedir() || process.env.HOME || process.env.USERPROFILE || "";
+  const host = os.hostname() || "";
+  const shortHost = host.split(".")[0] || "";
+  const escaped = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const userRegex =
+    username.length >= 2
+      ? new RegExp(`\\b${escaped(username)}\\b`, "gi")
+      : null;
+  const hostRegex = host.length >= 3 ? new RegExp(escaped(host), "gi") : null;
+  const shortHostRegex =
+    shortHost.length >= 3
+      ? new RegExp(`\\b${escaped(shortHost)}\\b`, "gi")
+      : null;
+  return {
+    username,
+    home,
+    host,
+    shortHost,
+    userRegex,
+    hostRegex,
+    shortHostRegex,
+  };
+}
+
+function sanitizeStringForScreenshot(
+  raw: string,
+  tokens: ReturnType<typeof getScreenshotIdentityTokens>,
+): string {
+  let s = String(raw);
+  if (!s) return s;
+  if (tokens.home && tokens.home.length > 2) {
+    const safeHome =
+      process.platform === "win32"
+        ? "C:\\Users\\developer"
+        : "/Users/developer";
+    s = s.split(tokens.home).join(safeHome);
+  }
+  s = s.replace(/\/Users\/[^/\s"']+/g, "/Users/developer");
+  s = s.replace(/\/home\/[^/\s"']+/g, "/home/developer");
+  s = s.replace(/[A-Za-z]:\\Users\\[^\\\s"']+/gi, "C:\\Users\\developer");
+  if (tokens.hostRegex)
+    s = s.replace(tokens.hostRegex, "studio-workstation.local");
+  if (tokens.shortHostRegex)
+    s = s.replace(tokens.shortHostRegex, "studio-workstation");
+  if (tokens.userRegex) s = s.replace(tokens.userRegex, "developer");
+  // Mask RFC4122 UUIDs
+  s = s.replace(
+    /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
+    "🔒 [Protected / Masked]",
+  );
+  // Mask MAC addresses (keep all-zero loopback MAC)
+  s = s.replace(/\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\b/gi, (m) =>
+    /^0{2}([:-]0{2}){5}$/.test(m) ? m : "🔒 [Protected / Masked]",
+  );
+  // Mask possessive personal names in device labels (e.g. "Alice’s iPhone")
+  s = s.replace(/^[^\s'’]{2,28}[’']s\s+/i, "Studio ");
+  return s;
+}
+
+/**
+ * Recursively masks personal usernames, home directories, hostnames, serials,
+ * UUIDs, MAC addresses, and local/public IPs from `systeminformation` payloads
+ * when `SCREENSHOT_MODE=1` is active.
+ */
+export function sanitizeTelemetryForScreenshot<T = any>(
+  methodName: string,
+  payload: T,
+): T {
+  const tokens = getScreenshotIdentityTokens();
+  const seen = new WeakSet<object>();
+
+  const walk = (val: any, keyPath: string, keyName: string): any => {
+    if (val === null || val === undefined) return val;
+
+    if (typeof val === "string") {
+      if (
+        /^(serial|serialnum|assettag|hardware)$/i.test(keyName) &&
+        val.trim() !== "" &&
+        !/^unknown$/i.test(val.trim())
+      ) {
+        return "🔒 [Protected / Masked]";
+      }
+      if (
+        /^(uuid|systemuuid)$/i.test(keyName) ||
+        (keyName === "os" && keyPath === "uuid.os") ||
+        /^uuid\.(os|disks)$/i.test(keyPath)
+      ) {
+        return val.trim() ? "🔒 [Protected / Masked]" : val;
+      }
+      if (
+        /^(mac|macdevice|machost|bssid)$/i.test(keyName) ||
+        /^uuid\.macs/i.test(keyPath)
+      ) {
+        if (!val.trim() || /^0{2}([:-]0{2}){5}$/.test(val.trim())) return val;
+        return "🔒 [Protected / Masked]";
+      }
+      if (/^(hostname|fqdn)$/i.test(keyName)) {
+        return "studio-workstation.local";
+      }
+      if (keyName === "domain" && val.trim() !== "") {
+        return "studio.local";
+      }
+      if (/^(ssid)$/i.test(keyName)) {
+        return val.trim() ? "Studio-Mesh-5G" : val;
+      }
+      if (/^(user|username)$/i.test(keyName)) {
+        const t = val.trim();
+        if (
+          !t ||
+          /^(root|system|nobody|daemon)$/i.test(t) ||
+          t.startsWith("_")
+        ) {
+          return val;
+        }
+        return "developer";
+      }
+      if (
+        /^(ip4|ip|gateway|netgateway|localaddress|peeraddress|externalip)$/i.test(
+          keyName,
+        ) ||
+        methodName === "networkGatewayDefault"
+      ) {
+        const t = val.trim();
+        if (
+          !t ||
+          t === "127.0.0.1" ||
+          t === ["0", "0", "0", "0"].join(".") ||
+          t === "*"
+        )
+          return val;
+        if (methodName === "inetPublicIp") return "203.0.113.*** (Masked)";
+        return "192.168.1.*** (Masked)";
+      }
+      if (/^ip6$/i.test(keyName)) {
+        const t = val.trim();
+        if (!t || t === "::1" || t === "::") return val;
+        if (methodName === "inetPublicIp") return "2001:db8::*** (Masked)";
+        return "fe80::*** (Masked)";
+      }
+      if (keyName === "manufacturer" && /[’']s$/i.test(val.trim())) {
+        return "Studio Peripheral";
+      }
+      let out = sanitizeStringForScreenshot(val, tokens);
+      if (
+        /^(command|params|path|mount)$/i.test(keyName) ||
+        methodName === "networkConnections" ||
+        methodName === "processes"
+      ) {
+        out = out.replace(
+          /\b(?!127\.0\.0\.1\b)(?!0\.0\.0\.0\b)(?!255\.)(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|1?\d?\d)){3}\b/g,
+          "192.168.1.***",
+        );
+      }
+      return out;
+    }
+
+    if (typeof val !== "object") return val;
+    if (seen.has(val)) return val;
+    seen.add(val);
+
+    if (Array.isArray(val)) {
+      return val.map((item, idx) => walk(item, `${keyPath}[${idx}]`, keyName));
+    }
+
+    const outObj: Record<string, any> = {};
+    for (const [k, v] of Object.entries(val)) {
+      const nextPath = keyPath ? `${keyPath}.${k}` : k;
+      outObj[k] = walk(v, nextPath, k);
+    }
+    return outObj;
+  };
+
+  return walk(payload, "", methodName);
+}
+
+export function sanitizeKpisForScreenshot<T extends Record<string, any>>(
+  kpis: T,
+): T {
+  const tokens = getScreenshotIdentityTokens();
+  const cleanIface = kpis.netIface
+    ? sanitizeStringForScreenshot(String(kpis.netIface), tokens)
+    : "en0";
+  return {
+    ...kpis,
+    netIface: cleanIface.includes("Protected")
+      ? cleanIface
+      : `${cleanIface} (Protected)`,
+    netGateway: "192.168.1.*** (Masked)",
+    osDistro: kpis.osDistro
+      ? sanitizeStringForScreenshot(String(kpis.osDistro), tokens)
+      : "Studio OS",
+  };
+}
+
 /**
  * Execute any systeminformation method with timing and error isolation.
  */
@@ -769,9 +976,55 @@ export async function executeSiMethod(
     };
   }
 
+  const isShot = process.env.SCREENSHOT_MODE === "1";
   const t0 = performance.now();
   try {
-    const res = await meta.execute(param);
+    let res: any;
+    if (isShot && methodName === "inetPublicIp") {
+      res = {
+        ip4: "203.0.113.*** (Masked)",
+        ip6: "2001:db8::*** (Masked)",
+        ms: 12,
+      };
+    } else if (isShot && methodName === "wifiNetworks") {
+      res = [
+        {
+          ssid: "Studio-Mesh-5G",
+          bssid: "🔒 [Protected / Masked]",
+          mode: "Infrastructure",
+          channel: 36,
+          frequency: 5180,
+          signalLevel: -48,
+          quality: 92,
+          security: ["WPA3"],
+          wpaFlags: [],
+          rsnFlags: ["CCMP"],
+        },
+      ];
+    } else if (isShot && methodName === "wifiConnections") {
+      res = [
+        {
+          id: "en0",
+          iface: "en0",
+          model: "Studio Wi-Fi",
+          ssid: "Studio-Mesh-5G",
+          bssid: "🔒 [Protected / Masked]",
+          mode: "station",
+          channel: 36,
+          frequency: 5180,
+          type: "802.11ax",
+          security: "WPA3",
+          signalLevel: -48,
+          quality: 92,
+          txRate: 1200,
+        },
+      ];
+    } else {
+      res = await meta.execute(param);
+      if (isShot) {
+        res = sanitizeTelemetryForScreenshot(methodName, res);
+      }
+    }
     const elapsed = parseFloat((performance.now() - t0).toFixed(2));
     return {
       success: true,
@@ -852,9 +1105,9 @@ export function formatDataSummary(method: string, data: any): string {
 export async function fetchTelemetryKpis() {
   const [cpu, load, mem, netIface, netGateway, battery] = await Promise.all([
     si.cpu().catch(() => ({
-      manufacturer: "Apple",
-      brand: "Apple Silicon",
-      speed: 2.4,
+      manufacturer: "",
+      brand: "Processor",
+      speed: 0,
       cores: os.cpus().length,
     })),
     si.currentLoad().catch(() => ({ currentLoad: 0 })),
@@ -864,7 +1117,7 @@ export async function fetchTelemetryKpis() {
       free: os.freemem(),
     })),
     si.networkInterfaceDefault().catch(() => "en0"),
-    si.networkGatewayDefault().catch(() => "192.168.1.1"),
+    si.networkGatewayDefault().catch(() => "127.0.0.1"),
     si.battery().catch(() => [] as any[]),
   ]);
 
@@ -886,11 +1139,11 @@ export async function fetchTelemetryKpis() {
     ? battery.length > 0
     : Boolean((battery as any)?.hasBattery);
 
-  return {
+  const kpis = {
     cpuBrand: `${cpu.manufacturer || ""} ${cpu.brand || "CPU"}`.trim(),
     cpuCores: cpu.cores || os.cpus().length,
-    cpuSpeed: `${cpu.speed || 2.4} GHz`,
-    cpuLoadPct: (load.currentLoad || 0).toFixed(1),
+    cpuSpeed: cpu.speed ? `${cpu.speed} GHz` : "Active",
+    cpuLoadPct: (Number(load.currentLoad) || 0).toFixed(1),
     memUsedGb: usedGb,
     memTotalGb: totalGb,
     memPct: memPct,
@@ -902,6 +1155,11 @@ export async function fetchTelemetryKpis() {
     osDistro: `${os.type()} ${os.release()} (${os.arch()})`,
     uptimeHours: (os.uptime() / 3600).toFixed(1),
   };
+
+  if (process.env.SCREENSHOT_MODE === "1") {
+    return sanitizeKpisForScreenshot(kpis);
+  }
+  return kpis;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -921,12 +1179,21 @@ export function generateEnterpriseAppHtml(): string {
   );
 
   const categoriesJson = JSON.stringify(SI_CATEGORIES);
+  const initialPlatformLabel =
+    process.platform === "darwin"
+      ? `macOS (${os.arch()})`
+      : process.platform === "win32"
+        ? `Windows (${os.arch()})`
+        : process.platform === "linux"
+          ? `Linux (${os.arch()})`
+          : `${os.type()} (${os.arch()})`;
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E⚡%3C/text%3E%3C/svg%3E">
   <title>System Information Studio Pro</title>
   <style>
     :root {
@@ -934,7 +1201,21 @@ export function generateEnterpriseAppHtml(): string {
       --bg-surface: #0e1526;
       --bg-card: rgba(15, 23, 42, 0.85);
       --bg-glass: rgba(30, 41, 59, 0.6);
+      --bg-header: rgba(8, 12, 20, 0.92);
+      --bg-kpi-bar: rgba(11, 17, 32, 0.6);
+      --bg-sidebar: rgba(10, 15, 28, 0.98);
+      --bg-tabs: rgba(11, 17, 32, 0.8);
+      --bg-param: rgba(0, 0, 0, 0.35);
+      --bg-code: #090d16;
+      --bg-console: #060912;
+      --bg-footer: #060912;
+      --bg-toast: rgba(15, 23, 42, 0.96);
+      --bg-table-th: rgba(30, 41, 59, 0.85);
+      --bg-input: rgba(255, 255, 255, 0.05);
+      --surface-pill: rgba(255, 255, 255, 0.04);
+      --surface-hover: rgba(255, 255, 255, 0.12);
       --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-inner: rgba(255, 255, 255, 0.06);
       --border-focus: #38bdf8;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
@@ -946,6 +1227,14 @@ export function generateEnterpriseAppHtml(): string {
       --purple: #c084fc;
       --amber: #fbbf24;
       --rose: #f43f5e;
+      --json-key: #38bdf8;
+      --json-str: #34d399;
+      --json-num: #fbbf24;
+      --json-bool: #c084fc;
+      --json-null: #f43f5e;
+      --audit-hero-bg: linear-gradient(135deg, rgba(14, 21, 38, 0.95), rgba(30, 41, 59, 0.75));
+      --audit-hero-border: rgba(56, 189, 248, 0.35);
+      --audit-metric-bg: rgba(8, 12, 20, 0.65);
       --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
       --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Monaco, Consolas, monospace;
     }
@@ -968,7 +1257,7 @@ export function generateEnterpriseAppHtml(): string {
     /* Header */
     header {
       height: 56px;
-      background: rgba(8, 12, 20, 0.92);
+      background: var(--bg-header);
       backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border-subtle);
       display: flex;
@@ -977,12 +1266,14 @@ export function generateEnterpriseAppHtml(): string {
       padding: 0 20px;
       flex-shrink: 0;
       z-index: 100;
+      gap: 10px;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 12px;
+      min-width: 0;
     }
 
     .brand-logo {
@@ -995,6 +1286,7 @@ export function generateEnterpriseAppHtml(): string {
       justify-content: center;
       box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
       font-size: 16px;
+      flex-shrink: 0;
     }
 
     .brand-title {
@@ -1004,6 +1296,7 @@ export function generateEnterpriseAppHtml(): string {
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
     .brand-badge {
@@ -1019,14 +1312,16 @@ export function generateEnterpriseAppHtml(): string {
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
     }
 
     .btn {
       background: var(--bg-glass);
       color: var(--text-main);
       border: 1px solid var(--border-subtle);
-      padding: 6px 14px;
+      padding: 6px 12px;
       border-radius: 6px;
       font-size: 12px;
       font-weight: 600;
@@ -1040,8 +1335,8 @@ export function generateEnterpriseAppHtml(): string {
     }
 
     .btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.25);
+      background: var(--surface-hover);
+      border-color: var(--cyan);
     }
 
     .btn:active {
@@ -1055,13 +1350,28 @@ export function generateEnterpriseAppHtml(): string {
 
     .btn-primary {
       background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #ffffff;
       border-color: rgba(56, 189, 248, 0.5);
       box-shadow: 0 2px 10px var(--cyan-glow);
     }
 
     .btn-primary:hover {
       background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+      color: #ffffff;
       box-shadow: 0 4px 14px rgba(56, 189, 248, 0.45);
+    }
+
+    .btn:focus-visible,
+    .cat-header:focus-visible,
+    .method-btn:focus-visible,
+    .tab-btn:focus-visible,
+    .cat-pill-btn:focus-visible,
+    .sidebar-mini-btn:focus-visible,
+    .chip:focus-visible,
+    .search-input:focus-visible,
+    .param-input:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
     }
 
     .status-pill {
@@ -1070,10 +1380,11 @@ export function generateEnterpriseAppHtml(): string {
       gap: 6px;
       font-size: 11px;
       color: var(--text-muted);
-      background: rgba(255, 255, 255, 0.04);
+      background: var(--surface-pill);
       padding: 4px 10px;
       border-radius: 20px;
       border: 1px solid var(--border-subtle);
+      white-space: nowrap;
     }
 
     .status-dot {
@@ -1113,11 +1424,11 @@ export function generateEnterpriseAppHtml(): string {
     /* KPI Summary Row */
     .kpi-row {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 12px;
       padding: 12px 20px;
       flex-shrink: 0;
-      background: rgba(11, 17, 32, 0.6);
+      background: var(--bg-kpi-bar);
       border-bottom: 1px solid var(--border-subtle);
     }
 
@@ -1163,7 +1474,7 @@ export function generateEnterpriseAppHtml(): string {
     .kpi-bar {
       width: 100%;
       height: 4px;
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--surface-pill);
       border-radius: 2px;
       overflow: hidden;
       margin-top: 3px;
@@ -1190,7 +1501,7 @@ export function generateEnterpriseAppHtml(): string {
       width: 380px;
       min-width: 280px;
       max-width: 650px;
-      background: rgba(10, 15, 28, 0.98);
+      background: var(--bg-sidebar);
       border-right: 1px solid var(--border-subtle);
       display: flex;
       flex-direction: column;
@@ -1233,7 +1544,7 @@ export function generateEnterpriseAppHtml(): string {
 
     .search-input {
       width: 100%;
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--bg-input);
       border: 1px solid var(--border-subtle);
       border-radius: 6px;
       padding: 7px 10px 7px 30px;
@@ -1252,6 +1563,7 @@ export function generateEnterpriseAppHtml(): string {
       left: 10px;
       color: var(--text-dim);
       font-size: 12px;
+      pointer-events: none;
     }
 
     /* Sidebar Sub-Toolbar */
@@ -1266,7 +1578,7 @@ export function generateEnterpriseAppHtml(): string {
     .sidebar-mini-btn {
       font-size: 10px;
       padding: 2px 7px;
-      background: rgba(255, 255, 255, 0.04);
+      background: var(--surface-pill);
       border: 1px solid var(--border-subtle);
       border-radius: 4px;
       color: var(--text-dim);
@@ -1296,7 +1608,7 @@ export function generateEnterpriseAppHtml(): string {
     .cat-pill-btn {
       font-size: 10px;
       padding: 3px 8px;
-      background: rgba(255, 255, 255, 0.04);
+      background: var(--surface-pill);
       border: 1px solid var(--border-subtle);
       border-radius: 12px;
       color: var(--text-muted);
@@ -1306,7 +1618,7 @@ export function generateEnterpriseAppHtml(): string {
     }
 
     .cat-pill-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--surface-hover);
       color: var(--text-main);
     }
 
@@ -1331,30 +1643,30 @@ export function generateEnterpriseAppHtml(): string {
       scrollbar-gutter: stable;
     }
 
-    /* Modern sleek dark scrollbars across entire studio */
+    /* Modern sleek scrollbars across entire studio */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
     }
 
     ::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.15);
+      background: transparent;
     }
 
     ::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.18);
+      background: rgba(148, 163, 184, 0.35);
       border-radius: 4px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: rgba(56, 189, 248, 0.5);
+      background: rgba(56, 189, 248, 0.6);
     }
 
     .cat-group {
       border-radius: 6px;
       overflow: hidden;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.04);
+      background: var(--surface-pill);
+      border: 1px solid var(--border-subtle);
       flex-shrink: 0;
       min-width: 100%;
       box-sizing: border-box;
@@ -1377,7 +1689,7 @@ export function generateEnterpriseAppHtml(): string {
     }
 
     .cat-header:hover {
-      background: rgba(255, 255, 255, 0.06);
+      background: var(--surface-hover);
       color: var(--text-main);
     }
 
@@ -1394,7 +1706,7 @@ export function generateEnterpriseAppHtml(): string {
       color: var(--text-dim);
       transition: transform 0.15s ease;
       flex-shrink: 0;
-      width: 12px;
+      width: 14px;
       display: inline-block;
       text-align: center;
     }
@@ -1409,7 +1721,7 @@ export function generateEnterpriseAppHtml(): string {
 
     .cat-count-badge {
       font-size: 9px;
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--bg-glass);
       padding: 1px 6px;
       border-radius: 10px;
       color: var(--text-dim);
@@ -1443,7 +1755,7 @@ export function generateEnterpriseAppHtml(): string {
     }
 
     .method-btn:hover {
-      background: rgba(56, 189, 248, 0.08);
+      background: rgba(56, 189, 248, 0.1);
       color: var(--cyan);
     }
 
@@ -1465,6 +1777,7 @@ export function generateEnterpriseAppHtml(): string {
     /* Main Area */
     main {
       flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -1485,12 +1798,16 @@ export function generateEnterpriseAppHtml(): string {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .method-title-group {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
+      flex-wrap: wrap;
+      min-width: 0;
     }
 
     .method-title {
@@ -1498,6 +1815,7 @@ export function generateEnterpriseAppHtml(): string {
       font-weight: 800;
       font-family: var(--font-mono);
       color: var(--cyan);
+      word-break: break-word;
     }
 
     .method-cat-tag {
@@ -1525,10 +1843,11 @@ export function generateEnterpriseAppHtml(): string {
       display: flex;
       align-items: center;
       gap: 10px;
-      background: rgba(0, 0, 0, 0.35);
+      background: var(--bg-param);
       padding: 8px 12px;
       border-radius: 6px;
       border: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
     }
 
     .param-label {
@@ -1540,6 +1859,7 @@ export function generateEnterpriseAppHtml(): string {
 
     .param-input {
       flex: 1;
+      min-width: 140px;
       background: transparent;
       border: none;
       outline: none;
@@ -1560,10 +1880,11 @@ export function generateEnterpriseAppHtml(): string {
       display: flex;
       align-items: center;
       gap: 2px;
-      background: rgba(11, 17, 32, 0.8);
+      background: var(--bg-tabs);
       padding: 6px 20px 0 20px;
       border-bottom: 1px solid var(--border-subtle);
       flex-shrink: 0;
+      overflow-x: auto;
     }
 
     .tab-btn {
@@ -1574,6 +1895,7 @@ export function generateEnterpriseAppHtml(): string {
       border-bottom: 2px solid transparent;
       cursor: pointer;
       transition: all 0.15s;
+      white-space: nowrap;
     }
 
     .tab-btn:hover {
@@ -1590,6 +1912,7 @@ export function generateEnterpriseAppHtml(): string {
       overflow-y: auto;
       padding: 16px 20px;
       position: relative;
+      user-select: text;
     }
 
     /* Visual Grid */
@@ -1607,6 +1930,7 @@ export function generateEnterpriseAppHtml(): string {
       display: flex;
       flex-direction: column;
       gap: 8px;
+      min-width: 0;
     }
 
     .data-card-header {
@@ -1614,10 +1938,12 @@ export function generateEnterpriseAppHtml(): string {
       font-weight: 700;
       text-transform: uppercase;
       color: var(--cyan);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid var(--border-inner);
       padding-bottom: 6px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      gap: 8px;
     }
 
     .kv-list {
@@ -1631,6 +1957,7 @@ export function generateEnterpriseAppHtml(): string {
       justify-content: space-between;
       font-size: 12px;
       gap: 10px;
+      min-width: 0;
     }
 
     .kv-k {
@@ -1644,7 +1971,45 @@ export function generateEnterpriseAppHtml(): string {
       color: var(--text-main);
       font-weight: 500;
       text-align: right;
-      word-break: break-all;
+      word-break: break-word;
+      min-width: 0;
+    }
+
+    /* Hardware Audit Hero Card */
+    .audit-hero-card {
+      grid-column: 1 / -1;
+      background: var(--audit-hero-bg);
+      border: 1px solid var(--audit-hero-border);
+      padding: 18px 22px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    }
+
+    .audit-hero-title {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.3px;
+    }
+
+    .audit-hero-tag {
+      font-size: 11px;
+      background: var(--surface-pill);
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+
+    .audit-hero-tag strong {
+      color: var(--text-main);
+    }
+
+    .audit-metric-box {
+      background: var(--audit-metric-bg);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-width: 0;
     }
 
     /* Process Table */
@@ -1652,7 +2017,8 @@ export function generateEnterpriseAppHtml(): string {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
       border-radius: 10px;
-      overflow: hidden;
+      overflow-x: auto;
+      overflow-y: hidden;
       width: 100%;
     }
 
@@ -1664,29 +2030,30 @@ export function generateEnterpriseAppHtml(): string {
     }
 
     table.data-table th {
-      background: rgba(30, 41, 59, 0.85);
+      background: var(--bg-table-th);
       padding: 8px 12px;
       font-size: 11px;
       font-weight: 700;
       color: var(--text-muted);
       border-bottom: 1px solid var(--border-subtle);
+      white-space: nowrap;
     }
 
     table.data-table td {
       padding: 7px 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid var(--border-inner);
       color: var(--text-main);
       font-family: var(--font-mono);
       font-size: 11px;
     }
 
     table.data-table tr:hover td {
-      background: rgba(56, 189, 248, 0.05);
+      background: rgba(56, 189, 248, 0.06);
     }
 
     /* JSON Inspector */
     .json-inspector {
-      background: #090d16;
+      background: var(--bg-code);
       border: 1px solid var(--border-subtle);
       border-radius: 10px;
       padding: 16px;
@@ -1695,19 +2062,20 @@ export function generateEnterpriseAppHtml(): string {
       line-height: 1.5;
       overflow: auto;
       white-space: pre-wrap;
-      color: #94a3b8;
+      word-break: break-word;
+      color: var(--text-muted);
       max-height: 100%;
     }
 
-    .json-key { color: #38bdf8; }
-    .json-str { color: #34d399; }
-    .json-num { color: #fbbf24; }
-    .json-bool { color: #c084fc; }
-    .json-null { color: #f43f5e; }
+    .json-key { color: var(--json-key); }
+    .json-str { color: var(--json-str); }
+    .json-num { color: var(--json-num); }
+    .json-bool { color: var(--json-bool); }
+    .json-null { color: var(--json-null); }
 
     /* Console */
     .console-box {
-      background: #060912;
+      background: var(--bg-console);
       border: 1px solid var(--border-subtle);
       border-radius: 10px;
       padding: 14px;
@@ -1715,16 +2083,18 @@ export function generateEnterpriseAppHtml(): string {
       font-size: 11px;
       line-height: 1.6;
       height: 100%;
+      min-height: 180px;
       overflow-y: auto;
-      color: #cbd5e1;
+      color: var(--text-main);
     }
 
     .log-line {
       display: flex;
       gap: 8px;
+      word-break: break-word;
     }
 
-    .log-time { color: var(--text-dim); }
+    .log-time { color: var(--text-dim); flex-shrink: 0; }
     .log-ok { color: var(--emerald); }
     .log-info { color: var(--cyan); }
     .log-err { color: var(--rose); }
@@ -1732,7 +2102,7 @@ export function generateEnterpriseAppHtml(): string {
     /* Footer */
     footer {
       height: 28px;
-      background: #060912;
+      background: var(--bg-footer);
       border-top: 1px solid var(--border-subtle);
       display: flex;
       align-items: center;
@@ -1746,7 +2116,8 @@ export function generateEnterpriseAppHtml(): string {
     .footer-left {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     /* Toast */
@@ -1754,9 +2125,9 @@ export function generateEnterpriseAppHtml(): string {
       position: fixed;
       bottom: 38px;
       right: 20px;
-      background: rgba(15, 23, 42, 0.96);
+      background: var(--bg-toast);
       border: 1px solid var(--cyan);
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
       color: var(--text-main);
       padding: 8px 16px;
       border-radius: 8px;
@@ -1777,29 +2148,201 @@ export function generateEnterpriseAppHtml(): string {
     }
   </style>
   ${SYSTEM_STUDIO_EXTRA_CSS}
+  <style id="sysLightAndResponsiveCss">
+    html.light {
+      --bg-header: rgba(255, 255, 255, 0.94);
+      --bg-kpi-bar: #f8fafc;
+      --bg-sidebar: #f8fafc;
+      --bg-tabs: #f8fafc;
+      --bg-param: #f1f5f9;
+      --bg-code: #f8fafc;
+      --bg-console: #f8fafc;
+      --bg-footer: #ffffff;
+      --bg-toast: #ffffff;
+      --bg-table-th: #e2e8f0;
+      --bg-input: #ffffff;
+      --surface-pill: rgba(15, 23, 42, 0.05);
+      --surface-hover: rgba(15, 23, 42, 0.09);
+      --border-inner: rgba(15, 23, 42, 0.08);
+      --purple: #7e22ce;
+      --amber: #b45309;
+      --emerald: #047857;
+      --rose: #be123c;
+      --json-key: #0369a1;
+      --json-str: #047857;
+      --json-num: #b45309;
+      --json-bool: #7e22ce;
+      --json-null: #be123c;
+      --audit-hero-bg: linear-gradient(135deg, #ffffff, #e0f2fe);
+      --audit-hero-border: rgba(2, 132, 199, 0.35);
+      --audit-metric-bg: rgba(255, 255, 255, 0.9);
+    }
+
+    html.light .brand-badge {
+      background: rgba(2, 132, 199, 0.12);
+      border-color: rgba(2, 132, 199, 0.3);
+    }
+
+    html.light .method-cat-tag {
+      background: rgba(126, 34, 206, 0.1);
+      border-color: rgba(126, 34, 206, 0.28);
+    }
+
+    @media (max-width: 960px) {
+      body {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      header {
+        height: auto;
+        min-height: 52px;
+        flex-wrap: wrap;
+        padding: 10px 14px;
+      }
+
+      .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .kpi-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding: 10px 14px;
+      }
+
+      .workspace {
+        flex-direction: column;
+        overflow: visible;
+      }
+
+      aside {
+        width: 100% !important;
+        min-width: 0;
+        max-width: none;
+        max-height: none;
+        border-right: none;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .cat-list {
+        flex: none;
+        height: auto;
+        min-height: 110px;
+        max-height: 220px;
+      }
+
+      .sidebar-resizer,
+      .sidebar-width-controls {
+        display: none !important;
+      }
+
+      main {
+        overflow: visible;
+      }
+
+      .tab-content {
+        overflow-y: visible;
+      }
+
+      footer {
+        height: auto;
+        min-height: 28px;
+        padding: 6px 14px;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      header {
+        padding: 8px 12px;
+      }
+
+      .btn {
+        padding: 5px 9px;
+        font-size: 11px;
+      }
+
+      .kpi-row {
+        gap: 8px;
+        padding: 8px 12px;
+      }
+
+      .kpi-card {
+        padding: 8px 10px;
+      }
+
+      .kpi-value {
+        font-size: 14px;
+      }
+
+      .quick-bar {
+        padding: 8px 12px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+
+      .quick-chips {
+        flex: none;
+        width: 100%;
+        min-width: 0;
+      }
+
+      .quick-settings {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 8px 12px;
+      }
+
+      .action-banner,
+      .tab-content {
+        padding: 12px;
+      }
+
+      .view-tabs {
+        padding: 6px 12px 0 12px;
+      }
+
+      .visual-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .kv-item {
+        flex-wrap: wrap;
+      }
+
+      .kv-v {
+        text-align: left;
+      }
+    }
+  </style>
 </head>
 <body spellcheck="false" autocapitalize="none" autocorrect="off" oncontextmenu="return false;">
 
   <!-- Header -->
   <header>
     <div class="brand">
-      <div class="brand-logo">⚡</div>
+      <div class="brand-logo" aria-hidden="true">⚡</div>
       <div class="brand-title">
         System Studio Pro
         <span class="brand-badge">All 76 APIs</span>
       </div>
       <div class="status-pill">
-        <div class="status-dot"></div>
-        <span id="pillPlatform">macOS (arm64)</span>
+        <div class="status-dot" aria-hidden="true"></div>
+        <span id="pillPlatform">${initialPlatformLabel}</span>
       </div>
     </div>
 
     <div class="header-actions">
-      <button class="btn" onclick="triggerPreset('getAllData')">⚡ Full System Audit</button>
-      <button class="btn" onclick="triggerPreset('getStaticData')">🏛️ Static Hardware</button>
-      <button class="btn" onclick="triggerPreset('getDynamicData')">📈 Dynamic Telemetry</button>
-      <button class="btn" onclick="refreshKpiCards()">🔄 Refresh KPIs</button>
-      <button class="btn" id="btnFullscreen" onclick="window.doToggleFullscreen ? window.doToggleFullscreen() : (window.toggleFullscreen && window.toggleFullscreen())" title="Toggle Fullscreen (Fn+F / F / F11 / Cmd+Ctrl+F)">⛶ Fullscreen</button>${SYSTEM_STUDIO_EXTRA_HEADER_HTML}
+      <button class="btn" type="button" onclick="triggerPreset('getAllData')">⚡ Full System Audit</button>
+      <button class="btn" type="button" onclick="triggerPreset('getStaticData')">🏛️ Static Hardware</button>
+      <button class="btn" type="button" onclick="triggerPreset('getDynamicData')">📈 Dynamic Telemetry</button>
+      <button class="btn" type="button" onclick="refreshKpiCards()">🔄 Refresh KPIs</button>
+      <button class="btn" type="button" id="btnFullscreen" onclick="window.doToggleFullscreen ? window.doToggleFullscreen() : (window.toggleFullscreen && window.toggleFullscreen())" title="Toggle Fullscreen (Fn+F / F / F11 / Cmd+Ctrl+F)">⛶ Fullscreen</button>${SYSTEM_STUDIO_EXTRA_HEADER_HTML}
     </div>
   </header>
 
@@ -1807,11 +2350,11 @@ export function generateEnterpriseAppHtml(): string {
   <div class="top-progress-bar" id="loadingBar"></div>
 
   <!-- Top Real-Time KPI Cards -->
-  <section class="kpi-row">
+  <section class="kpi-row" aria-label="System telemetry summary">
     <div class="kpi-card">
       <div class="kpi-title">
         <span>CPU Processor</span>
-        <span>⚡</span>
+        <span aria-hidden="true">⚡</span>
       </div>
       <div class="kpi-value" id="kpiCpuValue">Loading...</div>
       <div class="kpi-sub" id="kpiCpuSub">Core Count & Speed</div>
@@ -1841,7 +2384,7 @@ export function generateEnterpriseAppHtml(): string {
     <div class="kpi-card">
       <div class="kpi-title">
         <span>Primary Gateway</span>
-        <span>🌐</span>
+        <span aria-hidden="true">🌐</span>
       </div>
       <div class="kpi-value" id="kpiNetValue">Detecting...</div>
       <div class="kpi-sub" id="kpiNetSub">Interface Route</div>
@@ -1851,7 +2394,7 @@ export function generateEnterpriseAppHtml(): string {
     <div class="kpi-card">
       <div class="kpi-title">
         <span>Battery / Power</span>
-        <span>🔋</span>
+        <span aria-hidden="true">🔋</span>
       </div>
       <div class="kpi-value" id="kpiPowerValue">Checking...</div>
       <div class="kpi-sub" id="kpiPowerSub">Power State</div>
@@ -1863,40 +2406,40 @@ ${SYSTEM_STUDIO_EXTRA_QUICKBAR_HTML}
   <!-- Workspace -->
   <div class="workspace">
     <!-- Left Navigation Sidebar: Adjustable Width with Smooth Scrolling & Zero Cutoff -->
-    <aside id="mainSidebar">
+    <aside id="mainSidebar" aria-label="API Explorer">
       <div class="search-box">
         <div class="search-input-wrap">
-          <span class="search-icon">🔍</span>
-          <input type="text" class="search-input" id="searchApis" placeholder="Filter 76 APIs (e.g. cpu, gpu, npu, docker, wifi)..." oninput="filterMethods(this.value)">
+          <span class="search-icon" aria-hidden="true">🔍</span>
+          <input type="text" class="search-input" id="searchApis" aria-label="Filter 76 systeminformation APIs" placeholder="Filter 76 APIs (e.g. cpu, gpu, npu, docker, wifi)..." oninput="filterMethods(this.value)">
         </div>
 
         <!-- Sidebar Tools: Expand/Collapse & Width Controls -->
         <div class="sidebar-subbar">
-          <button class="sidebar-mini-btn" id="btnToggleAllCats" onclick="toggleAllCategories()" title="Expand or Collapse All Categories">📁 Collapse All</button>
-          <div style="display: flex; gap: 4px; align-items: center;">
-            <button class="sidebar-mini-btn" onclick="adjustSidebarWidth(-30)" title="Shrink sidebar width">◀</button>
-            <button class="sidebar-mini-btn" onclick="toggleSidebarWidth()" title="Toggle standard / wide layout">↔ Width</button>
-            <button class="sidebar-mini-btn" onclick="adjustSidebarWidth(30)" title="Expand sidebar width">▶</button>
+          <button type="button" class="sidebar-mini-btn" id="btnToggleAllCats" onclick="toggleAllCategories()" title="Expand or Collapse All Categories">📁 Collapse All</button>
+          <div class="sidebar-width-controls" style="display: flex; gap: 4px; align-items: center;">
+            <button type="button" class="sidebar-mini-btn" onclick="adjustSidebarWidth(-30)" title="Shrink sidebar width" aria-label="Shrink sidebar width">◀</button>
+            <button type="button" class="sidebar-mini-btn" onclick="toggleSidebarWidth()" title="Toggle standard / wide layout">↔ Width</button>
+            <button type="button" class="sidebar-mini-btn" onclick="adjustSidebarWidth(30)" title="Expand sidebar width" aria-label="Expand sidebar width">▶</button>
           </div>
         </div>
 
         <!-- Category Filter Pills -->
-        <div class="cat-filter-scroll" id="catFilterBar">
-          <button class="cat-pill-btn active" onclick="filterByCategory('ALL')">All (76)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Hardware & Baseboard')">Hardware (8)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('OS & Software Environment')">OS (8)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('CPU, Load & Thermals')">CPU (9)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Memory & Power / Battery')">Memory (3)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Graphics & Displays')">GPU (2)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Disks & Filesystems')">Storage (7)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Network, Sockets & Wi-Fi')">Network (13)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Processes & Services')">Processes (5)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Peripherals & Audio')">Peripherals (8)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Virtualization, Docker & Batch')">Virtualization (13)</button>
+        <div class="cat-filter-scroll" id="catFilterBar" role="group" aria-label="Filter APIs by category">
+          <button type="button" class="cat-pill-btn active" data-cat="ALL" aria-pressed="true" onclick="filterByCategory('ALL')">All (76)</button>
+          <button type="button" class="cat-pill-btn" data-cat="Hardware & Baseboard" aria-pressed="false" onclick="filterByCategory('Hardware & Baseboard')">Hardware (8)</button>
+          <button type="button" class="cat-pill-btn" data-cat="OS & Software Environment" aria-pressed="false" onclick="filterByCategory('OS & Software Environment')">OS (8)</button>
+          <button type="button" class="cat-pill-btn" data-cat="CPU, Load & Thermals" aria-pressed="false" onclick="filterByCategory('CPU, Load & Thermals')">CPU (9)</button>
+          <button type="button" class="cat-pill-btn" data-cat="Memory & Power / Battery" aria-pressed="false" onclick="filterByCategory('Memory & Power / Battery')">Memory (3)</button>
+          <button type="button" class="cat-pill-btn" data-cat="Graphics & Displays" aria-pressed="false" onclick="filterByCategory('Graphics & Displays')">GPU (2)</button>
+          <button type="button" class="cat-pill-btn" data-cat="Disks & Filesystems" aria-pressed="false" onclick="filterByCategory('Disks & Filesystems')">Storage (7)</button>
+          <button type="button" class="cat-pill-btn" data-cat="Network, Sockets & Wi-Fi" aria-pressed="false" onclick="filterByCategory('Network, Sockets & Wi-Fi')">Network (13)</button>
+          <button type="button" class="cat-pill-btn" data-cat="Processes & Services" aria-pressed="false" onclick="filterByCategory('Processes & Services')">Processes (5)</button>
+          <button type="button" class="cat-pill-btn" data-cat="Peripherals & Audio" aria-pressed="false" onclick="filterByCategory('Peripherals & Audio')">Peripherals (8)</button>
+          <button type="button" class="cat-pill-btn" data-cat="Virtualization, Docker & Batch" aria-pressed="false" onclick="filterByCategory('Virtualization, Docker & Batch')">Virtualization (13)</button>
         </div>
       </div>
 
-      <div class="cat-list" id="catListContainer">
+      <div class="cat-list" id="catListContainer" role="navigation" aria-label="Systeminformation API categories">
         <!-- Rendered dynamically -->
       </div>
     </aside>
@@ -1919,44 +2462,44 @@ ${SYSTEM_STUDIO_EXTRA_QUICKBAR_HTML}
         <div class="method-desc" id="activeMethodDesc">Hardware manufacturer, model, version, serial number & UUID</div>
 
         <div class="param-row" id="paramRow" style="display: none;">
-          <span class="param-label">Target Parameter:</span>
-          <input type="text" class="param-input" id="paramInput" placeholder="" onkeydown="if (event.key === 'Enter') runCurrentMethod()">
+          <label class="param-label" for="paramInput">Target Parameter:</label>
+          <input type="text" class="param-input" id="paramInput" aria-label="Target parameter" placeholder="" onkeydown="if (event.key === 'Enter') runCurrentMethod()">
         </div>
 
         <div class="banner-controls">
-          <button class="btn btn-primary" id="btnExecute" onclick="runCurrentMethod()">🚀 Run Method</button>
-          <button class="btn" onclick="runCurrentCategory()">📋 Run Entire Category</button>
-          <button class="btn" id="btnLiveObserve" onclick="toggleLiveObserve()">⏱️ Live Stream (1s)</button>
-          <button class="btn" onclick="copyCurrentJson()">📋 Copy JSON</button>
-          <button class="btn" onclick="exportCurrentReport()">💾 Save Report</button>
-          <button class="btn" onclick="clearResults()">🧹 Clear</button>
+          <button type="button" class="btn btn-primary" id="btnExecute" onclick="runCurrentMethod()">🚀 Run Method</button>
+          <button type="button" class="btn" onclick="runCurrentCategory()">📋 Run Entire Category</button>
+          <button type="button" class="btn" id="btnLiveObserve" onclick="toggleLiveObserve()">⏱️ Live Stream (1s)</button>
+          <button type="button" class="btn" onclick="copyCurrentJson()">📋 Copy JSON</button>
+          <button type="button" class="btn" onclick="exportCurrentReport()">💾 Save Report</button>
+          <button type="button" class="btn" onclick="clearResults()">🧹 Clear</button>
         </div>${SYSTEM_STUDIO_EXTRA_BANNER_HTML}
       </section>
 
       <!-- View Selection Tabs -->
-      <div class="view-tabs">
-        <div class="tab-btn active" id="tabVisual" onclick="switchTab('visual')">📊 Visual Smart Cards</div>
-        <div class="tab-btn" id="tabJson" onclick="switchTab('json')">💻 Raw JSON Inspector</div>
-        <div class="tab-btn" id="tabConsole" onclick="switchTab('console')">⚡ Telemetry Log</div>
+      <div class="view-tabs" role="tablist" aria-label="Output views">
+        <div class="tab-btn active" id="tabVisual" role="tab" tabindex="0" aria-selected="true" aria-controls="viewVisual" onclick="switchTab('visual')" onkeydown="handleTabKey(event, 'visual')">📊 Visual Smart Cards</div>
+        <div class="tab-btn" id="tabJson" role="tab" tabindex="-1" aria-selected="false" aria-controls="viewJson" onclick="switchTab('json')" onkeydown="handleTabKey(event, 'json')">💻 Raw JSON Inspector</div>
+        <div class="tab-btn" id="tabConsole" role="tab" tabindex="-1" aria-selected="false" aria-controls="viewConsole" onclick="switchTab('console')" onkeydown="handleTabKey(event, 'console')">⚡ Telemetry Log</div>
       </div>
 
       <!-- Tab Content Area -->
       <div class="tab-content">
         <!-- 1. Visual Smart View -->
-        <div id="viewVisual">
+        <div id="viewVisual" role="tabpanel" aria-labelledby="tabVisual">
           <div class="visual-grid" id="visualContainer">
             <!-- Dynamic visual cards -->
           </div>
         </div>
 
         <!-- 2. JSON View -->
-        <div id="viewJson" style="display: none; height: 100%;">
+        <div id="viewJson" role="tabpanel" aria-labelledby="tabJson" style="display: none; height: 100%;">
 ${SYSTEM_STUDIO_EXTRA_JSONSEARCH_HTML}
           <div class="json-inspector" id="jsonInspector">{\n  "status": "ready"\n}</div>
         </div>
 
         <!-- 3. Console View -->
-        <div id="viewConsole" style="display: none; height: 100%;">
+        <div id="viewConsole" role="tabpanel" aria-labelledby="tabConsole" style="display: none; height: 100%;">
           <div class="console-box" id="consoleBox">
             <div class="log-line">
               <span class="log-time">[${new Date().toLocaleTimeString()}]</span>
@@ -1971,7 +2514,7 @@ ${SYSTEM_STUDIO_EXTRA_JSONSEARCH_HTML}
   <!-- Footer -->
   <footer>
     <div class="footer-left">
-      <span>Platform: <b id="footerPlatform">macOS (arm64)</b></span>
+      <span>Platform: <b id="footerPlatform">${initialPlatformLabel}</b></span>
       <span>•</span>
       <span>Total APIs: <b>76</b></span>
       <span>•</span>
@@ -1981,55 +2524,274 @@ ${SYSTEM_STUDIO_EXTRA_JSONSEARCH_HTML}
   </footer>
 
   <!-- Toast -->
-  <div class="toast" id="toastBox">Notification message</div>
+  <div class="toast" id="toastBox" role="status" aria-live="polite">Notification message</div>
 ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
 
   <script>
     const ALL_METHODS = ${methodsJson};
     const ALL_CATEGORIES = ${categoriesJson};
     const IS_SCREENSHOT_MODE = ${process.env.SCREENSHOT_MODE === "1" ? "true" : "false"};
+    const STUDIO_BUN_VERSION = ${JSON.stringify(Bun.version)};
 
     let activeMethod = "system";
     let activeResult = null;
     let liveObserverTimer = null;
     let currentTab = "visual";
     let selectedCategoryFilter = "ALL";
+    let demoTick = 0;
+
+    function maskClientString(str) {
+      let s = String(str);
+      s = s.replace(/\\/Users\\/[^/\\s"']+/g, "/Users/developer");
+      s = s.replace(/\\/home\\/[^/\\s"']+/g, "/home/developer");
+      s = s.replace(/[A-Za-z]:\\\\Users\\\\[^\\\\\\s"']+/gi, "C:\\\\Users\\\\developer");
+      s = s.replace(/\\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\b/gi, "🔒 [Protected / Masked]");
+      s = s.replace(/\\b(?:[0-9a-f]{2}[:-]){5}[0-9a-f]{2}\\b/gi, function(m) {
+        return /^0{2}([:-]0{2}){5}$/.test(m) ? m : "🔒 [Protected / Masked]";
+      });
+      return s;
+    }
+
+    function maskTelemetryClient(val, keyName, methodName) {
+      if (val === null || val === undefined) return val;
+      if (typeof val === "string") {
+        const k = String(keyName || "");
+        if (/^(serial|serialnum|assettag|hardware)$/i.test(k) && val.trim() && !/^unknown$/i.test(val.trim())) {
+          return "🔒 [Protected / Masked]";
+        }
+        if (/^(uuid|systemuuid)$/i.test(k)) return val.trim() ? "🔒 [Protected / Masked]" : val;
+        if (/^(mac|macdevice|machost|bssid)$/i.test(k)) {
+          return (!val.trim() || /^0{2}([:-]0{2}){5}$/.test(val.trim())) ? val : "🔒 [Protected / Masked]";
+        }
+        if (/^(hostname|fqdn)$/i.test(k)) return "studio-workstation.local";
+        if (/^(user|username)$/i.test(k)) {
+          const t = val.trim();
+          return (!t || /^(root|system|nobody|daemon)$/i.test(t) || t.startsWith("_")) ? val : "developer";
+        }
+        if (/^(ip4|ip|gateway|netgateway|localaddress|peeraddress|externalip)$/i.test(k) || methodName === "networkGatewayDefault") {
+          const t = val.trim();
+          if (!t || t === "127.0.0.1" || t === ["0", "0", "0", "0"].join(".") || t === "*") return val;
+          return methodName === "inetPublicIp" ? "203.0.113.*** (Masked)" : "192.168.1.*** (Masked)";
+        }
+        if (/^ip6$/i.test(k)) {
+          const t = val.trim();
+          if (!t || t === "::1" || t === "::") return val;
+          return methodName === "inetPublicIp" ? "2001:db8::*** (Masked)" : "fe80::*** (Masked)";
+        }
+        return maskClientString(val);
+      }
+      if (Array.isArray(val)) return val.map(function(it) { return maskTelemetryClient(it, keyName, methodName); });
+      if (typeof val === "object") {
+        const out = {};
+        for (const k of Object.keys(val)) {
+          out[k] = maskTelemetryClient(val[k], k, methodName);
+        }
+        return out;
+      }
+      return val;
+    }
+
+    function buildDemoPayload(methodName, param) {
+      demoTick += 1;
+      const loadVal = Number((8.4 + (demoTick % 7) * 1.7).toFixed(1));
+      const userLoad = Number((loadVal * 0.65).toFixed(1));
+      const sysLoad = Number((loadVal - userLoad).toFixed(1));
+      const memUsed = (8 + (demoTick % 4)) * 1024 * 1024 * 1024;
+      const memTotal = 32 * 1024 * 1024 * 1024;
+      const nowMs = 1795000000000 + demoTick * 1000;
+
+      const staticSnap = {
+        version: "6.0.0-beta.26",
+        system: {
+          manufacturer: "Studio Hardware",
+          model: "Workstation Pro (Demo)",
+          version: "1.0",
+          serial: "🔒 [Protected / Masked]",
+          uuid: "🔒 [Protected / Masked]",
+          sku: "RAD-WORKSTATION",
+          virtual: false,
+          type: "Desktop"
+        },
+        bios: { vendor: "Studio Firmware", version: "2.4.0", releaseDate: "2026-01-15", revision: "2.4" },
+        baseboard: { manufacturer: "Studio Hardware", model: "RAD-B650", version: "1.0", serial: "🔒 [Protected / Masked]", assetTag: "🔒 [Protected / Masked]", memMax: 137438953472, memSlots: 4 },
+        chassis: { manufacturer: "Studio Hardware", model: "Workstation Pro", type: "Desktop", version: "1.0", serial: "🔒 [Protected / Masked]", assetTag: "🔒 [Protected / Masked]", sku: "RAD-WORKSTATION" },
+        os: { platform: "darwin", distro: "Studio OS", release: "15.0", codename: "Demo", kernel: "25.0.0", arch: "arm64", hostname: "studio-workstation.local", fqdn: "studio-workstation.local", codepage: "UTF-8", logofile: "studio", serial: "🔒 [Protected / Masked]", build: "25A100", uefi: true, displayServer: "quartz" },
+        uuid: { os: "🔒 [Protected / Masked]", hardware: "🔒 [Protected / Masked]", macs: ["🔒 [Protected / Masked]"], disks: ["🔒 [Protected / Masked]"] },
+        versions: { kernel: "25.0.0", openssl: "3.3.0", bun: STUDIO_BUN_VERSION, node: "22.12.0", v8: "13.0", git: "2.47.0" },
+        cpu: { manufacturer: "Studio Silicon", brand: "Workstation M-Series", vendor: "Studio", family: "ARMv9", model: "Pro", stepping: "1", speed: 3.5, speedMin: 0.6, speedMax: 4.1, governor: "schedutil", cores: 12, physicalCores: 12, performanceCores: 8, efficiencyCores: 4, processors: 1, socket: "SOC", virtualization: true, cache: { l1d: 65536, l1i: 131072, l2: 4194304, l3: 25165824 } },
+        gpu: [{ vendor: "Studio Graphics", model: "Workstation Integrated GPU", bus: "Built-In", vramDynamic: true, vram: 16384, cores: 16 }],
+        displays: [{ vendor: "Studio Display", model: "Pro Display 5K", main: true, builtin: true, connection: "Internal", resolutionX: 3024, resolutionY: 1964, currentResX: 1512, currentResY: 982, currentRefreshRate: 120, serial: "🔒 [Protected / Masked]" }],
+        net: [
+          { iface: "lo0", ifaceName: "lo0", default: false, ip4: "127.0.0.1", ip4subnet: "255.0.0.0", ip6: "::1", mac: "00:00:00:00:00:00", internal: true, virtual: false, operstate: "unknown", type: "wired", mtu: 16384 },
+          { iface: "en0", ifaceName: "en0", default: true, ip4: "192.168.1.*** (Masked)", ip4subnet: "255.255.255.0", ip6: "fe80::*** (Masked)", mac: "🔒 [Protected / Masked]", internal: false, virtual: false, operstate: "up", type: "wireless", speed: 1200, mtu: 1500 }
+        ],
+        memLayout: [{ size: memTotal, bank: "Unified Bank 0", type: "LPDDR5", ecc: false, clockSpeed: 6400, formFactor: "SOC", manufacturer: "Studio Memory" }],
+        diskLayout: [{ device: "disk0", type: "NVMe", name: "STUDIO NVME 1TB", vendor: "Studio Storage", size: 1000000000000, interfaceType: "PCIe", smartStatus: "Ok", serialNum: "🔒 [Protected / Masked]" }],
+        audio: [{ id: "0", name: "Studio Reference Speakers", manufacturer: "Studio Audio", channel: "Stereo", default: true, in: false, out: true, type: "Built-in", status: "online" }],
+        bluetooth: [{ device: "0x2001", name: "Studio Wireless Headphones", manufacturer: "Studio Audio", macDevice: "🔒 [Protected / Masked]", connected: true, type: "Headphones", batteryPercent: 88 }],
+        usb: [{ id: 1, bus: 1, deviceId: 1, name: "Studio USB-C Hub", type: "Hub", removable: false, vendor: "Studio", serial: "🔒 [Protected / Masked]" }],
+        serialPorts: [{ device: "/dev/cu.studio-uart", name: "Studio UART Port", manufacturer: "Studio", serialNumber: "🔒 [Protected / Masked]" }],
+        printer: [{ id: 1, name: "Studio PDF Printer", model: "Virtual PDF", local: true, default: true, status: "idle" }],
+        camera: [{ name: "Studio FaceTime HD Camera", vendor: "Studio", model: "1080p", serial: "", connection: "internal" }],
+        keyboard: [{ name: "Studio Mechanical Keyboard", vendor: "Studio", model: "0x01", serial: "🔒 [Protected / Masked]", connection: "internal" }],
+        mouse: [{ name: "Studio Precision Trackpad", type: "Trackpad", vendor: "Studio", model: "0x02", serial: "🔒 [Protected / Masked]", connection: "internal" }],
+        pci: [{ slot: "PCIe-0", type: "NVMe Controller", vendor: "Studio", model: "PCIe Gen4 x4", driver: "nvme" }],
+        thunderbolt: [{ name: "Thunderbolt USB4 Bus 0", uuid: "🔒 [Protected / Masked]", bus: 0, type: "hub", speed: 120 }],
+        npu: [{ vendor: "Studio", name: "Neural Accelerator", model: "Studio NPU 16-Core", cores: 16, driver: "ane" }],
+        wifiInterfaces: [{ id: "Wi-Fi", networkInterface: "en0", model: "AirPort AX", vendor: "Studio", mac: "🔒 [Protected / Masked]" }],
+        software: [{ name: "Bun RAD Studio", version: "1.6.2", installDate: "2026-11-18", architecture: "arm64", path: "/Applications/BunRADStudio.app" }]
+      };
+
+      const dynamicSnap = {
+        time: { current: nowMs, uptime: 86400 + demoTick, timezone: "UTC", timezoneName: "UTC" },
+        cpuCurrentSpeed: { min: 2.4, max: 3.8, avg: Number((3.1 + (demoTick % 3) * 0.2).toFixed(1)), cores: [3.2, 3.2, 3.5, 3.5] },
+        users: [{ user: "developer", tty: "console", date: "2026-11-18", time: "15:00", ip: "", command: "-zsh" }],
+        processes: {
+          all: 142,
+          running: 3,
+          blocked: 0,
+          sleeping: 139,
+          unknown: 0,
+          list: [
+            { pid: 1001, parentPid: 1, name: "bun", cpu: loadVal, mem: 2.4, user: "developer", state: "running", command: "bun applications/system_studio_server.ts" },
+            { pid: 1002, parentPid: 1001, name: "studio-worker", cpu: 1.8, mem: 1.2, user: "developer", state: "sleeping", command: "/Users/developer/workspace/worker" },
+            { pid: 1003, parentPid: 1, name: "system-telemetry", cpu: 0.9, mem: 0.6, user: "system", state: "running", command: "/usr/libexec/telemetryd" }
+          ]
+        },
+        currentLoad: { avgLoad: 0.72, currentLoad: loadVal, currentLoadUser: userLoad, currentLoadSystem: sysLoad, currentLoadIdle: Number((100 - loadVal).toFixed(1)), cpus: [{ load: loadVal }, { load: userLoad }] },
+        temp: { main: 44 + (demoTick % 4), cores: [43, 45, 44, 46], max: 46, socket: [44], chipset: 39 },
+        fans: [{ name: "System Fan 1", rpm: 1450 + demoTick * 10, min: 1200, max: 4800 }],
+        networkStats: [{ iface: "en0", operstate: "up", rx_bytes: 124500000 + demoTick * 4096, rx_packets: 98000, rx_dropped: 0, rx_errors: 0, tx_bytes: 64200000 + demoTick * 2048, tx_packets: 54000, tx_dropped: 0, tx_errors: 0, rx_sec: 12400, tx_sec: 5200 }],
+        networkConnections: [{ protocol: "tcp4", localAddress: "127.0.0.1", localPort: "4567", peerAddress: "127.0.0.1", peerPort: "58012", state: "ESTABLISHED", pid: 1001, process: "bun" }],
+        mem: { total: memTotal, free: memTotal - memUsed, used: memUsed, active: memUsed, available: memTotal - memUsed, buffers: 0, cached: 4294967296, slab: 0, swaptotal: 2147483648, swapused: 0, swapfree: 2147483648 },
+        battery: [{ hasBattery: true, cycleCount: 42, isCharging: true, designedCapacity: 99600, maxCapacity: 98400, currentCapacity: 94500, voltage: 12.6, capacityUnit: "mWh", percent: 96, timeRemaining: null, acConnected: true, type: "Li-ion", model: "Studio Cell", manufacturer: "Studio Power", serial: "🔒 [Protected / Masked]" }],
+        services: [{ name: "com.studio.telemetry", running: true, startmode: "auto", pids: [1001], cpu: 0.4, mem: 0.2 }],
+        fsSize: [{ fs: "/dev/disk1s1", type: "APFS", size: 1000000000000, used: 420000000000, available: 580000000000, use: 42.0, mount: "/", rw: true }],
+        fsStats: { rx: 500000000 + demoTick * 8192, wx: 320000000 + demoTick * 4096, tx: 820000000, rx_sec: 4096, wx_sec: 2048, tx_sec: 6144, ms: 10 },
+        disksIO: { rIO: 12000 + demoTick * 3, wIO: 8400 + demoTick * 2, tIO: 20400 + demoTick * 5, rIO_sec: 12, wIO_sec: 8, tIO_sec: 20, rWaitTime: 0.2, wWaitTime: 0.1, tWaitTime: 0.3, rWaitPercent: 0.1, wWaitPercent: 0.1, tWaitPercent: 0.2, ms: 10 },
+        wifiNetworks: [{ ssid: "Studio-Mesh-5G", bssid: "🔒 [Protected / Masked]", mode: "Infrastructure", channel: 36, frequency: 5180, signalLevel: -48, quality: 92, security: ["WPA3"], wpaFlags: [], rsnFlags: ["CCMP"] }],
+        wifiConnections: [{ id: "en0", iface: "en0", model: "AirPort AX", ssid: "Studio-Mesh-5G", bssid: "🔒 [Protected / Masked]", mode: "station", channel: 36, frequency: 5180, type: "802.11ax", security: "WPA3", signalLevel: -48, quality: 92, txRate: 1200 }],
+        fsOpenFiles: { max: 368640, allocated: 8420 + demoTick, available: 360220 - demoTick },
+        blockDevices: [{ name: "/dev/disk0", identifier: "disk0", type: "disk", fsType: "APFS", mount: "/", size: 1000000000000, physical: "SSD", uuid: "🔒 [Protected / Masked]", label: "Studio HD", removable: false }],
+        inetLatency: 14.2
+      };
+
+      const map = {
+        version: staticSnap.version,
+        system: staticSnap.system,
+        bios: staticSnap.bios,
+        baseboard: staticSnap.baseboard,
+        chassis: staticSnap.chassis,
+        uuid: staticSnap.uuid,
+        pci: staticSnap.pci,
+        thunderbolt: staticSnap.thunderbolt,
+        osInfo: staticSnap.os,
+        versions: staticSnap.versions,
+        software: staticSnap.software,
+        npm: [{ name: "systeminformation", version: "6.0.0-beta.26", path: "/Users/developer/workspace/node_modules/systeminformation" }],
+        shell: "/bin/zsh",
+        time: dynamicSnap.time,
+        powerShellStart: { status: "No-op in demo environment", active: false, platform: "darwin" },
+        powerShellRelease: { status: "No-op in demo environment", released: true, platform: "darwin" },
+        cpu: staticSnap.cpu,
+        npu: staticSnap.npu,
+        cpuFlags: "aes sha1 sha256 neon fp16",
+        cpuCache: staticSnap.cpu.cache,
+        cpuCurrentSpeed: dynamicSnap.cpuCurrentSpeed,
+        cpuTemperature: dynamicSnap.temp,
+        fans: dynamicSnap.fans,
+        currentLoad: dynamicSnap.currentLoad,
+        fullLoad: loadVal,
+        mem: dynamicSnap.mem,
+        memLayout: staticSnap.memLayout,
+        battery: dynamicSnap.battery,
+        gpu: staticSnap.gpu,
+        displays: staticSnap.displays,
+        fsSize: dynamicSnap.fsSize,
+        fsOpenFiles: dynamicSnap.fsOpenFiles,
+        blockDevices: dynamicSnap.blockDevices,
+        fsStats: dynamicSnap.fsStats,
+        disksIO: dynamicSnap.disksIO,
+        diskLayout: staticSnap.diskLayout,
+        diskSpeed: { path: "/tmp/studio-bench", fs: "/dev/disk1s1", sizeMB: 16, writeSpeed: 4250.4, readSpeed: 5410.8, ms: 6 },
+        networkInterfaceDefault: "en0",
+        networkGatewayDefault: "192.168.1.*** (Masked)",
+        networkInterfaces: staticSnap.net,
+        networkStats: dynamicSnap.networkStats,
+        networkRoutes: [{ destination: "0.0.0.0/0", gateway: "192.168.1.*** (Masked)", iface: "en0", metric: 100, family: "IPv4" }],
+        networkConnections: dynamicSnap.networkConnections,
+        inetChecksite: { url: param || "https://google.com", statusCode: 200, ok: true, message: "OK (Demo)", ms: 18 },
+        inetLatency: dynamicSnap.inetLatency,
+        inetPublicIp: { ip4: "203.0.113.*** (Masked)", ip6: "2001:db8::*** (Masked)", ms: 12 },
+        inetSpeed: { server: "speed.cloudflare.com", downloadSpeed: 840.2, uploadSpeed: 185.4, downloadMB: 250.0, uploadMB: 50.0, ms: 1420 },
+        wifiNetworks: dynamicSnap.wifiNetworks,
+        wifiInterfaces: staticSnap.wifiInterfaces,
+        wifiConnections: dynamicSnap.wifiConnections,
+        processes: dynamicSnap.processes,
+        processLoad: [{ proc: param || "bun", pid: 1001, pids: [1001], cpu: loadVal, mem: 2.4 }],
+        processFocused: { pid: 1001, name: "System Studio Pro", path: "/Applications/BunRADStudio.app" },
+        services: dynamicSnap.services,
+        users: dynamicSnap.users,
+        audio: staticSnap.audio,
+        bluetoothDevices: staticSnap.bluetooth,
+        printer: staticSnap.printer,
+        usb: staticSnap.usb,
+        serialPorts: staticSnap.serialPorts,
+        camera: staticSnap.camera,
+        keyboard: staticSnap.keyboard,
+        mouse: staticSnap.mouse,
+        dockerInfo: { containers: 2, containersRunning: 1, containersPaused: 0, containersStopped: 1, images: 3, serverVersion: "27.3.1", operatingSystem: "Docker Desktop" },
+        dockerImages: [{ id: "sha256:demo001", repoTags: ["studio/worker:latest"], size: 145000000 }],
+        dockerContainers: [{ id: "demo-c1", name: "studio-telemetry", image: "studio/worker:latest", state: "running", status: "Up 2 hours" }],
+        dockerContainerStats: [{ id: "demo-c1", cpuPercent: 1.4, memUsage: 48000000, memLimit: 2147483648, memPercent: 2.2 }],
+        dockerContainerProcesses: [{ pid: 1, user: "developer", command: "bun run server.ts" }],
+        dockerVolumes: [{ name: "studio_cache", driver: "local", mountpoint: "/var/lib/docker/volumes/studio_cache/_data" }],
+        dockerAll: [{ id: "demo-c1", name: "studio-telemetry", state: "running", cpuPercent: 1.4, memPercent: 2.2 }],
+        vboxInfo: [],
+        getStaticData: staticSnap,
+        getDynamicData: dynamicSnap,
+        getAllData: Object.assign({}, staticSnap, dynamicSnap),
+        get: { cpu: { brand: staticSnap.cpu.brand, speed: staticSnap.cpu.speed }, mem: { total: memTotal, free: memTotal - memUsed } },
+        observe: { currentLoad: { currentLoad: loadVal }, mem: { used: memUsed } }
+      };
+
+      return Object.prototype.hasOwnProperty.call(map, methodName) ? map[methodName] : staticSnap.system;
+    }
 
     // ---------------------------------------------------------------------------------------------
     // Direct Native HTTP Client (Bypasses WebKit FFI Locks with 100% Reliability)
     // ---------------------------------------------------------------------------------------------
     async function apiRequest(endpoint, body) {
-      if (IS_SCREENSHOT_MODE || window.location.protocol === "file:" || window.location.search.includes("demo=1")) {
+      const isDemo = window.location.protocol === "file:" || window.location.search.includes("demo=1");
+      if (isDemo) {
         if (endpoint === "/api/kpis") {
+          demoTick += 1;
           return {
             cpuCores: 12,
             cpuBrand: "Workstation Silicon",
             cpuSpeed: "3.5 GHz",
-            cpuLoadPct: "8.4",
+            cpuLoadPct: (8.4 + (demoTick % 5) * 1.1).toFixed(1),
             memUsedGb: "8.2",
             memTotalGb: "32.0",
-            memPct: "26",
+            memPct: 26 + (demoTick % 3),
             netIface: "en0 (Protected)",
             netGateway: "192.168.1.*** (Masked)",
             hasBattery: true,
             batteryPct: 96,
             isCharging: true,
-            osDistro: "macOS (arm64)"
+            osDistro: "Studio OS (arm64)"
           };
         }
         if (endpoint.startsWith("/api/execute")) {
+          const qs = endpoint.split("?")[1] || "";
+          const params = new URLSearchParams(qs);
+          const mName = params.get("method") || "system";
+          const mParam = params.get("param") || "";
           return {
             success: true,
+            method: mName,
             elapsedMs: "1.4",
-            data: {
-              manufacturer: "Apple Inc.",
-              model: "Workstation Pro (Demo)",
-              version: "1.0",
-              serial: "🔒 [Protected / Masked]",
-              uuid: "🔒 [Protected / Masked]",
-              sku: "RAD-WORKSTATION",
-              virtual: false
-            }
+            data: buildDemoPayload(mName, mParam)
           };
         }
       }
@@ -2039,7 +2801,21 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
           : { method: 'GET' };
         const res = await fetch(endpoint, opts);
         if (!res.ok) throw new Error("HTTP " + res.status + " " + res.statusText);
-        return await res.json();
+        const json = await res.json();
+        if (IS_SCREENSHOT_MODE) {
+          if (endpoint === "/api/kpis") {
+            return Object.assign({}, json, {
+              netIface: String(json.netIface || "en0").includes("Protected") ? json.netIface : (json.netIface + " (Protected)"),
+              netGateway: "192.168.1.*** (Masked)"
+            });
+          }
+          if (json && json.success && Object.prototype.hasOwnProperty.call(json, "data")) {
+            const qs = endpoint.split("?")[1] || "";
+            const mName = new URLSearchParams(qs).get("method") || json.method || "";
+            json.data = maskTelemetryClient(json.data, mName, mName);
+          }
+        }
+        return json;
       } catch (err) {
         console.error("API Request failed to " + endpoint + ":", err);
         return { success: false, error: err.message };
@@ -2104,13 +2880,23 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
 
         const header = document.createElement("div");
         header.className = "cat-header";
+        header.setAttribute("role", "button");
+        header.setAttribute("tabindex", "0");
+        header.setAttribute("aria-expanded", String(!isCollapsed));
         header.title = (isCollapsed ? "Expand " : "Collapse ") + cat + " (Click arrow to toggle, or title to run first method)";
+        header.onkeydown = (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleCategoryCollapse(cat, e);
+          }
+        };
         
         const headerLeft = document.createElement("div");
         headerLeft.className = "cat-header-left";
         
         const arrow = document.createElement("span");
         arrow.className = "cat-arrow";
+        arrow.setAttribute("aria-hidden", "true");
         arrow.textContent = isCollapsed ? "▶" : "▼";
         arrow.onclick = (e) => toggleCategoryCollapse(cat, e);
         
@@ -2145,11 +2931,21 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
 
           methodsInCat.forEach(m => {
             const btn = document.createElement("div");
-            btn.className = "method-btn" + (m.name === activeMethod ? " active" : "");
+            const isAct = m.name === activeMethod;
+            btn.className = "method-btn" + (isAct ? " active" : "");
             btn.id = "btn_m_" + m.name;
+            btn.setAttribute("role", "button");
+            btn.setAttribute("tabindex", "0");
+            btn.setAttribute("aria-pressed", String(isAct));
             btn.title = m.name + "() - " + m.description;
             btn.innerHTML = \`<span class="method-name-text" title="\${escapeHtml(m.name)}()">\${escapeHtml(m.name)}</span><span style="font-size: 10px; color: var(--text-dim); flex-shrink: 0; margin-left: 6px;">\${m.acceptsParam ? '⚙️' : ''}</span>\`;
             btn.onclick = () => selectMethod(m.name, true);
+            btn.onkeydown = (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                selectMethod(m.name, true);
+              }
+            };
             items.appendChild(btn);
           });
 
@@ -2244,10 +3040,10 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
     function filterByCategory(cat) {
       selectedCategoryFilter = cat;
       document.querySelectorAll(".cat-pill-btn").forEach(btn => {
-        const isAll = cat === "ALL";
-        const btnText = btn.textContent;
-        const matches = isAll ? btnText.includes("All") : btnText.toLowerCase().includes(cat.slice(0, 4).toLowerCase());
+        const btnCat = btn.getAttribute("data-cat");
+        const matches = btnCat ? btnCat === cat : (cat === "ALL" && btn.textContent.includes("All"));
         btn.classList.toggle("active", matches);
+        btn.setAttribute("aria-pressed", String(matches));
       });
       renderSidebar();
 
@@ -2270,9 +3066,15 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
       const meta = ALL_METHODS.find(m => m.name === methodName);
       if (!meta) return;
 
-      document.querySelectorAll(".method-btn").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".method-btn").forEach(el => {
+        el.classList.remove("active");
+        el.setAttribute("aria-pressed", "false");
+      });
       const targetBtn = document.getElementById("btn_m_" + methodName);
-      if (targetBtn) targetBtn.classList.add("active");
+      if (targetBtn) {
+        targetBtn.classList.add("active");
+        targetBtn.setAttribute("aria-pressed", "true");
+      }
 
       document.getElementById("activeMethodName").textContent = meta.name + "()";
       document.getElementById("activeCategoryTag").textContent = meta.category;
@@ -2296,12 +3098,39 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
 
     function switchTab(tab) {
       currentTab = tab;
-      document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
-      document.getElementById("tab" + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add("active");
+      const tabs = ["visual", "json", "console"];
+      tabs.forEach(t => {
+        const btn = document.getElementById("tab" + t.charAt(0).toUpperCase() + t.slice(1));
+        const active = t === tab;
+        if (btn) {
+          btn.classList.toggle("active", active);
+          btn.setAttribute("aria-selected", String(active));
+          btn.setAttribute("tabindex", active ? "0" : "-1");
+        }
+      });
 
       document.getElementById("viewVisual").style.display = tab === "visual" ? "block" : "none";
       document.getElementById("viewJson").style.display = tab === "json" ? "block" : "none";
       document.getElementById("viewConsole").style.display = tab === "console" ? "block" : "none";
+    }
+
+    function handleTabKey(e, tab) {
+      const order = ["visual", "json", "console"];
+      const idx = order.indexOf(tab);
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        const next = order[(idx + 1) % order.length];
+        switchTab(next);
+        document.getElementById("tab" + next.charAt(0).toUpperCase() + next.slice(1))?.focus();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        const prev = order[(idx - 1 + order.length) % order.length];
+        switchTab(prev);
+        document.getElementById("tab" + prev.charAt(0).toUpperCase() + prev.slice(1))?.focus();
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        switchTab(tab);
+      }
     }
 
     function setExecuting(isExecuting, label) {
@@ -2346,6 +3175,9 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
       if (typeof json !== 'string') {
         json = JSON.stringify(json, undefined, 2);
       }
+      if (json === undefined || json === null) {
+        json = "null";
+      }
       json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       return json.replace(/("(\\\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\"])*"(\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g, function (match) {
         let cls = 'json-num';
@@ -2364,6 +3196,26 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
       });
     }
 
+    function formatSafeValue(v) {
+      if (v === null || v === undefined) return "N/A";
+      if (typeof v === "number") return Number.isFinite(v) ? String(v) : "0";
+      if (typeof v === "boolean") return String(v);
+      if (typeof v === "string") return v === "" ? "(empty)" : v;
+      if (Array.isArray(v)) {
+        if (v.length === 0) return "[]";
+        if (v.every(x => typeof x !== "object" || x === null)) {
+          return v.join(", ");
+        }
+        return v.length + " item" + (v.length === 1 ? "" : "s");
+      }
+      try {
+        const s = JSON.stringify(v);
+        return s.length > 90 ? s.slice(0, 87) + "..." : s;
+      } catch (e) {
+        return String(v);
+      }
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Comprehensive Human-Readable Hardware Audit Report Visualizer (getStaticData & getAllData)
     // ---------------------------------------------------------------------------------------------
@@ -2373,10 +3225,10 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
       const cpu = data.cpu || {};
       const osData = data.os || {};
       const memLayout = Array.isArray(data.memLayout) ? data.memLayout : [];
-      const totalMemBytes = memLayout.reduce((acc, m) => acc + (m.size || 0), 0) || (data.mem?.total || 0);
-      const totalMemGb = totalMemBytes ? (totalMemBytes / (1024 ** 3)).toFixed(1) : "48.0";
-      const memType = memLayout[0]?.type || "Unified RAM";
-      const memMfr = memLayout[0]?.manufacturer || "Apple Silicon / Hynix";
+      const totalMemBytes = memLayout.reduce((acc, m) => acc + (Number(m.size) || 0), 0) || (Number(data.mem?.total) || 0);
+      const totalMemGb = totalMemBytes > 0 ? (totalMemBytes / (1024 ** 3)).toFixed(1) : "N/A";
+      const memType = memLayout[0]?.type || "N/A";
+      const memMfr = memLayout[0]?.manufacturer || "N/A";
 
       const gpus = Array.isArray(data.gpu)
         ? data.gpu
@@ -2390,11 +3242,14 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
           ? data.graphics.displays
           : [];
       const mainDisp = displays.find(d => d.main) || displays[0] || {};
-      const dispDesc = mainDisp.model ? \`\${mainDisp.model} (\${mainDisp.resolutionX || ''}×\${mainDisp.resolutionY || ''}\${mainDisp.currentRefreshRate ? ' @' + mainDisp.currentRefreshRate + 'Hz' : ''})\` : "Retina Display";
+      const dispRes = mainDisp.resolutionX && mainDisp.resolutionY
+        ? \` (\${mainDisp.resolutionX}×\${mainDisp.resolutionY}\${mainDisp.currentRefreshRate ? ' @' + mainDisp.currentRefreshRate + 'Hz' : ''})\`
+        : "";
+      const dispDesc = mainDisp.model ? \`\${mainDisp.model}\${dispRes}\` : (dispRes ? \`Display\${dispRes}\` : "N/A");
 
       const disks = Array.isArray(data.diskLayout) ? data.diskLayout : [];
       const mainDisk = disks[0] || {};
-      const diskGb = mainDisk.size ? (mainDisk.size / (1024 ** 3)).toFixed(0) + " GB" : "1.0 TB";
+      const diskGb = Number(mainDisk.size) > 0 ? (Number(mainDisk.size) / (1024 ** 3)).toFixed(0) + " GB" : "N/A";
 
       const nets = Array.isArray(data.net) ? data.net : [];
       const activeNets = nets.filter(n => n.ip4 && n.ip4 !== "127.0.0.1" && !n.internal);
@@ -2405,66 +3260,62 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
 
       // 1. Hero Summary Banner Card
       const hero = document.createElement("div");
-      hero.className = "data-card";
-      hero.style.gridColumn = "1 / -1";
-      hero.style.background = "linear-gradient(135deg, rgba(14, 21, 38, 0.95), rgba(30, 41, 59, 0.75))";
-      hero.style.border = "1px solid rgba(56, 189, 248, 0.35)";
-      hero.style.padding = "18px 22px";
-      hero.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.35)";
+      hero.className = "data-card audit-hero-card";
 
       const badgeLabel = isFullAudit ? "⚡ Full Live System Audit" : "🏛️ Comprehensive Static Hardware Audit";
-      const cpuBrand = (cpu.manufacturer ? (cpu.manufacturer + ' ') : '') + (cpu.brand || 'Processor');
+      const cpuBrand = ((cpu.manufacturer ? cpu.manufacturer + ' ' : '') + (cpu.brand || '')).trim() || 'Processor';
       const serialStr = sys.serial || 'N/A';
       const uuidStr = sys.uuid || data.uuid?.os || 'N/A';
+      const sysTitle = ((sys.manufacturer || '') + ' ' + (sys.model || '')).trim() || 'System Workstation';
 
       hero.innerHTML = \`
         <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
           <div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span style="font-size: 24px;">💻</span>
-              <span style="font-size: 19px; font-weight: 800; color: #fff; letter-spacing: -0.3px;">\${escapeHtml(sys.manufacturer || 'Apple')} \${escapeHtml(sys.model || 'Workstation')}</span>
-              <span style="font-size: 11px; background: rgba(56, 189, 248, 0.2); color: var(--cyan); border: 1px solid rgba(56, 189, 248, 0.4); padding: 3px 8px; border-radius: 6px; font-weight: 700;">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <span style="font-size: 24px;" aria-hidden="true">💻</span>
+              <span class="audit-hero-title">\${escapeHtml(sysTitle)}</span>
+              <span style="font-size: 11px; background: rgba(56, 189, 248, 0.18); color: var(--cyan); border: 1px solid rgba(56, 189, 248, 0.4); padding: 3px 8px; border-radius: 6px; font-weight: 700;">
                 \${escapeHtml(badgeLabel)}
               </span>
             </div>
-            <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px; font-family: var(--font-mono);">
+            <div style="font-size: 12px; color: var(--text-dim); margin-top: 6px; font-family: var(--font-mono); word-break: break-word;">
               Hardware Serial: <span style="color: var(--text-main); font-weight: 600;">\${escapeHtml(serialStr)}</span> • 
               Hardware UUID: <span style="color: var(--text-main); font-weight: 600;">\${escapeHtml(uuidStr)}</span>
             </div>
           </div>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <span style="font-size: 11px; background: rgba(255, 255, 255, 0.08); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); color: var(--text-muted);">
-              OS: <strong style="color: #fff;">\${escapeHtml(osData.distro || osData.platform || 'macOS')} (\${escapeHtml(osData.arch || 'arm64')})</strong>
+            <span class="audit-hero-tag">
+              OS: <strong>\${escapeHtml(osData.distro || osData.platform || 'Unknown')} (\${escapeHtml(osData.arch || 'N/A')})</strong>
             </span>
-            <span style="font-size: 11px; background: rgba(255, 255, 255, 0.08); padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border-subtle); color: var(--text-muted);">
-              Kernel: <strong style="color: #fff;">\${escapeHtml(osData.kernel || osData.release || 'Darwin')}</strong>
+            <span class="audit-hero-tag">
+              Kernel: <strong>\${escapeHtml(osData.kernel || osData.release || 'N/A')}</strong>
             </span>
           </div>
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 16px;">
-          <div style="background: rgba(8, 12, 20, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 14px;">
+          <div class="audit-metric-box">
             <div style="font-size: 10px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Processor</div>
             <div style="font-size: 14px; font-weight: 700; color: var(--cyan); margin-top: 3px;">\${escapeHtml(cpuBrand)}</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${escapeHtml(cpu.cores || 1)} Cores @ \${escapeHtml(cpu.speed || 2.4)} GHz</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${escapeHtml(cpu.cores ?? 'N/A')} Cores\${cpu.speed ? ' @ ' + escapeHtml(cpu.speed) + ' GHz' : ''}</div>
           </div>
 
-          <div style="background: rgba(8, 12, 20, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 14px;">
+          <div class="audit-metric-box">
             <div style="font-size: 10px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Installed Memory</div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--purple); margin-top: 3px;">\${escapeHtml(totalMemGb)} GB \${escapeHtml(memType)}</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--purple); margin-top: 3px;">\${totalMemGb === 'N/A' ? 'N/A' : escapeHtml(totalMemGb + ' GB' + (memType !== 'N/A' ? ' ' + memType : ''))}</div>
             <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${escapeHtml(memMfr)}</div>
           </div>
 
-          <div style="background: rgba(8, 12, 20, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 14px;">
+          <div class="audit-metric-box">
             <div style="font-size: 10px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Display & GPU</div>
             <div style="font-size: 14px; font-weight: 700; color: var(--emerald); margin-top: 3px;">\${escapeHtml(dispDesc)}</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${escapeHtml(mainGpu.model || 'Integrated GPU')} (\${escapeHtml(mainGpu.cores ? mainGpu.cores + ' Cores' : 'Unified')})</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${escapeHtml(mainGpu.model || 'N/A')}\${mainGpu.cores ? ' (' + escapeHtml(mainGpu.cores) + ' Cores)' : ''}</div>
           </div>
 
-          <div style="background: rgba(8, 12, 20, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 10px 14px;">
+          <div class="audit-metric-box">
             <div style="font-size: 10px; text-transform: uppercase; color: var(--text-dim); font-weight: 700;">Primary Storage</div>
-            <div style="font-size: 14px; font-weight: 700; color: var(--amber); margin-top: 3px;">\${escapeHtml(diskGb)} \${escapeHtml(mainDisk.type || 'SSD')}</div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${escapeHtml(mainDisk.name || 'Internal Drive')} • SMART: \${escapeHtml(mainDisk.smartStatus || 'OK')}</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--amber); margin-top: 3px;">\${escapeHtml(diskGb)}\${mainDisk.type ? ' ' + escapeHtml(mainDisk.type) : ''}</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">\${escapeHtml(mainDisk.name || 'N/A')} • SMART: \${escapeHtml(mainDisk.smartStatus || 'N/A')}</div>
           </div>
         </div>
       \`;
@@ -2480,103 +3331,111 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
           const style = color ? \` style="color: \${color}; font-weight: 600;"\` : "";
           kvHtml += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(k)}:</span><span class="kv-v"\${style}>\${escapeHtml(v)}</span></div>\`;
         });
-        c.innerHTML = \`<div class="data-card-header"><span style="display: flex; align-items: center; gap: 6px;"><span>\${icon}</span><span>\${escapeHtml(title)}</span></span></div><div class="kv-list">\${kvHtml}</div>\`;
+        c.innerHTML = \`<div class="data-card-header"><span style="display: flex; align-items: center; gap: 6px;"><span aria-hidden="true">\${icon}</span><span>\${escapeHtml(title)}</span></span></div><div class="kv-list">\${kvHtml}</div>\`;
         container.appendChild(c);
       }
 
       // Domain 1: System & Baseboard Architecture
       addCard("System & Chassis Architecture", "🖥️", [
-        ["Hardware Manufacturer", sys.manufacturer || "Apple Inc."],
-        ["System Model", sys.model || "Mac16,7"],
-        ["SKU / Board Number", sys.sku || data.baseboard?.model || "J616sAP"],
-        ["Chassis Form Factor", sys.type || data.chassis?.type || "Notebook / Laptop"],
-        ["BIOS/EFI Vendor", data.bios?.vendor || "Apple Inc."],
-        ["BIOS/EFI Revision", data.bios?.version || data.bios?.revision || "2,973.120"],
-        ["OS Distribution", (osData.distro || osData.platform || 'macOS') + ' ' + (osData.release || '')],
-        ["Architecture", osData.arch || "arm64"],
+        ["Hardware Manufacturer", sys.manufacturer || "N/A"],
+        ["System Model", sys.model || "N/A"],
+        ["SKU / Board Number", sys.sku || data.baseboard?.model || "N/A"],
+        ["Chassis Form Factor", sys.type || data.chassis?.type || "N/A"],
+        ["BIOS/EFI Vendor", data.bios?.vendor || "N/A"],
+        ["BIOS/EFI Revision", data.bios?.version || data.bios?.revision || "N/A"],
+        ["OS Distribution", ((osData.distro || osData.platform || 'N/A') + ' ' + (osData.release || '')).trim()],
+        ["Architecture", osData.arch || "N/A"],
       ]);
 
       // Domain 2: CPU Processor Architecture
       addCard("CPU Processor Architecture", "⚡", [
         ["Processor Model", cpuBrand, "var(--cyan)"],
-        ["Total Physical / Logical Cores", (cpu.cores || 1) + " Cores", "#fff"],
-        ["Performance / Efficiency Cores", cpu.performanceCores ? (cpu.performanceCores + " P-Cores / " + (cpu.efficiencyCores || 0) + " E-Cores") : "Unified Architecture"],
-        ["Base Clock Speed", (cpu.speed || 2.4) + " GHz"],
-        ["Socket & Packaging", cpu.socket || "SOC (System-on-Chip)"],
-        ["Instruction Set", osData.arch === "arm64" ? "ARMv8/v9 (AArch64 64-bit)" : "x86_64"],
+        ["Total Physical / Logical Cores", cpu.cores ? (cpu.cores + " Cores") : "N/A", "var(--text-main)"],
+        ["Performance / Efficiency Cores", cpu.performanceCores ? (cpu.performanceCores + " P-Cores / " + (cpu.efficiencyCores || 0) + " E-Cores") : "Symmetric"],
+        ["Base Clock Speed", cpu.speed ? (cpu.speed + " GHz") : "N/A"],
+        ["Socket & Packaging", cpu.socket || "N/A"],
+        ["Instruction Set", osData.arch === "arm64" ? "ARMv8/v9 (AArch64 64-bit)" : (osData.arch || "N/A")],
         ["Virtualization Support", sys.virtual ? "Virtual Guest" : "Hardware Supported (Native)"],
       ]);
 
       // Domain 3: Memory (RAM) Subsystem
       addCard("Unified Memory Hierarchy", "💾", [
-        ["Installed RAM Capacity", totalMemGb + " GB", "var(--purple)"],
+        ["Installed RAM Capacity", totalMemGb === "N/A" ? "N/A" : totalMemGb + " GB", "var(--purple)"],
         ["Memory Technology", memType],
         ["Module Manufacturer", memMfr],
         ["RAM Modules Detected", memLayout.length + " Module(s)"],
-        ["Form Factor", memLayout[0]?.formFactor || "SOC (Unified Architecture)"],
+        ["Form Factor", memLayout[0]?.formFactor || "N/A"],
         ["Error Correction (ECC)", memLayout[0]?.ecc ? "ECC Enabled" : "Non-ECC"],
       ]);
 
       // Domain 4: Graphics & Display Engines
       addCard("Graphics & Display Subsystem", "🎨", [
-        ["Graphics Controller", mainGpu.model || "Apple GPU", "var(--emerald)"],
-        ["GPU Core Count", mainGpu.cores ? (mainGpu.cores + " Cores") : "Integrated GPU"],
-        ["VRAM Allocation", "Unified System Memory (Dynamic)"],
-        ["Primary Display", mainDisp.model || "Color LCD"],
-        ["Native Resolution", mainDisp.resolutionX ? (mainDisp.resolutionX + " × " + mainDisp.resolutionY + " px") : "Retina Resolution"],
-        ["Refresh Rate", mainDisp.currentRefreshRate ? (mainDisp.currentRefreshRate + " Hz ProMotion") : "60 Hz"],
-        ["Connection Type", mainDisp.connection || "Internal Built-In Panel"],
+        ["Graphics Controller", mainGpu.model || "N/A", "var(--emerald)"],
+        ["GPU Core Count", mainGpu.cores ? (mainGpu.cores + " Cores") : "Integrated / Shared"],
+        ["VRAM Allocation", mainGpu.vram ? (mainGpu.vram + " MB") : "Unified System Memory"],
+        ["Primary Display", mainDisp.model || "N/A"],
+        ["Native Resolution", mainDisp.resolutionX ? (mainDisp.resolutionX + " × " + mainDisp.resolutionY + " px") : "N/A"],
+        ["Refresh Rate", mainDisp.currentRefreshRate ? (mainDisp.currentRefreshRate + " Hz") : "N/A"],
+        ["Connection Type", mainDisp.connection || "N/A"],
       ]);
 
       // Domain 5: Storage & Physical Disks
       addCard("Storage Disks & Partitions", "💽", [
-        ["Primary Drive Name", mainDisk.name || "APPLE SSD AP1024Z", "var(--amber)"],
-        ["Storage Capacity", diskGb, "#fff"],
-        ["Drive Interface", (mainDisk.type || 'NVMe') + " (" + (mainDisk.interfaceType || 'PCIe') + ")"],
-        ["Drive Vendor", mainDisk.vendor || "Apple"],
-        ["SMART Health Status", "● " + (mainDisk.smartStatus || 'OK (Healthy)'), "#10b981"],
+        ["Primary Drive Name", mainDisk.name || "N/A", "var(--amber)"],
+        ["Storage Capacity", diskGb, "var(--text-main)"],
+        ["Drive Interface", mainDisk.type ? (mainDisk.type + (mainDisk.interfaceType ? " (" + mainDisk.interfaceType + ")" : "")) : "N/A"],
+        ["Drive Vendor", mainDisk.vendor || "N/A"],
+        ["SMART Health Status", mainDisk.smartStatus ? ("● " + mainDisk.smartStatus) : "N/A", "var(--emerald)"],
         ["Total Physical Drives", disks.length + " Drive(s)"],
       ]);
 
       // Domain 6: Network Connectivity
-      const netNames = activeNets.map(n => n.iface + " (" + n.ip4 + ")").join(', ') || "en0 (Active Wi-Fi)";
+      const netNames = activeNets.map(n => n.iface + " (" + n.ip4 + ")").join(', ') || (nets[0] ? nets[0].iface : "No active adapters");
       addCard("Network Connectivity & Interfaces", "🌐", [
         ["Active Network Adapters", netNames, "var(--cyan)"],
-        ["Total Interfaces Detected", nets.length + " interfaces (physical & virtual)"],
-        ["Primary Interface MAC", activeNets[0]?.mac || nets[0]?.mac || "Hardware Managed"],
+        ["Total Interfaces Detected", nets.length + " interfaces"],
+        ["Primary Interface MAC", activeNets[0]?.mac || nets[0]?.mac || "N/A"],
       ]);
 
       // Domain 7: Audio & Sound Hardware
-      const audioListStr = audios.map(a => (a.out ? '🔊' : '🎤') + ' ' + a.name).slice(0, 3).join(' • ') || "Built-in Audio Controller";
+      const audioListStr = audios.map(a => (a.out ? '🔊' : '🎤') + ' ' + (a.name || 'Audio Device')).slice(0, 3).join(' • ') || "No audio devices reported";
       addCard("Audio & Sound Hardware", "🔊", [
         ["Audio Devices", audioListStr],
         ["Total Controllers", audios.length + " sound devices detected"],
       ]);
 
       // Domain 8: Bluetooth Peripherals
-      const btListStr = bts.filter(b => b.connected).map(b => '📶 ' + b.name + ' (Connected)').join(' • ') || (bts[0] ? ('📶 ' + bts[0].name + ' (Paired)') : "Bluetooth Subsystem Active");
+      const btConnected = bts.filter(b => b.connected && b.name);
+      const btListStr = btConnected.length > 0
+        ? btConnected.map(b => '📶 ' + b.name + ' (Connected)').join(' • ')
+        : (bts[0]?.name ? ('📶 ' + bts[0].name + ' (Paired)') : "No Bluetooth devices connected");
       addCard("Bluetooth & Peripheral Bus", "📶", [
-        ["Connected Devices", btListStr, "#10b981"],
+        ["Connected Devices", btListStr, "var(--emerald)"],
         ["Total Paired Hardware", bts.length + " devices in registry"],
       ]);
 
       // Domain 9: Installed Software Runtime Environments
       addCard("Runtime Environments & SDKs", "📦", [
-        ["Bun JavaScript Runtime", "v" + (typeof Bun !== 'undefined' ? Bun.version : '1.4.2'), "var(--cyan)"],
-        ["Node.js Engine", versions.node ? ("v" + versions.node) : "v26.x"],
-        ["V8 JavaScript Engine", versions.v8 ? ("v" + versions.v8) : "Native JavaScriptCore / V8"],
-        ["Git Version", versions.git ? ("v" + versions.git) : "Installed"],
-        ["System Kernel", osData.kernel || "Darwin 25.6.0"],
+        ["Bun JavaScript Runtime", "v" + STUDIO_BUN_VERSION, "var(--cyan)"],
+        ["Node.js Engine", versions.node ? ("v" + versions.node) : "N/A"],
+        ["V8 JavaScript Engine", versions.v8 ? ("v" + versions.v8) : "N/A"],
+        ["Git Version", versions.git ? ("v" + versions.git) : "N/A"],
+        ["System Kernel", osData.kernel || "N/A"],
       ]);
 
       // Domain 10: Dynamic Live Telemetry (If Full System Audit - getAllData)
       if (isFullAudit) {
         const primaryBat = Array.isArray(data.battery) ? data.battery[0] : data.battery;
+        const loadPct = typeof data.currentLoad?.currentLoad === "number" && Number.isFinite(data.currentLoad.currentLoad)
+          ? data.currentLoad.currentLoad.toFixed(1) + "%"
+          : "Active";
+        const loadUser = typeof data.currentLoad?.currentLoadUser === "number" ? data.currentLoad.currentLoadUser.toFixed(1) : "0.0";
+        const loadSys = typeof data.currentLoad?.currentLoadSystem === "number" ? data.currentLoad.currentLoadSystem.toFixed(1) : "0.0";
         addCard("Real-Time Telemetry & Performance", "📈", [
-          ["Current CPU Load", data.currentLoad?.currentLoad ? (data.currentLoad.currentLoad.toFixed(1) + "%") : "Active", "var(--cyan)"],
-          ["CPU User / System", data.currentLoad ? ((data.currentLoad.currentLoadUser || 0).toFixed(1) + "% User • " + (data.currentLoad.currentLoadSystem || 0).toFixed(1) + "% Sys") : "Telemetry Active"],
-          ["Memory Allocation", data.mem ? (((data.mem.used || 0) / (1024**3)).toFixed(1) + " / " + (((data.mem.total || 1) / (1024**3)).toFixed(1)) + " GB") : "Active", "var(--purple)"],
-          ["Battery Health & Status", primaryBat ? ((primaryBat.percent ?? 100) + "% (" + (primaryBat.isCharging ? 'Charging' : 'AC Connected') + ")") : "AC Connected", "#fbbf24"],
+          ["Current CPU Load", loadPct, "var(--cyan)"],
+          ["CPU User / System", data.currentLoad ? (loadUser + "% User • " + loadSys + "% Sys") : "Telemetry Active"],
+          ["Memory Allocation", data.mem && data.mem.total ? (((data.mem.used || 0) / (1024**3)).toFixed(1) + " / " + ((data.mem.total / (1024**3)).toFixed(1)) + " GB") : "N/A", "var(--purple)"],
+          ["Battery Health & Status", primaryBat ? ((primaryBat.percent ?? 100) + "% (" + (primaryBat.isCharging ? 'Charging' : 'AC Connected') + ")") : "AC Connected", "var(--amber)"],
           ["Active Processes", data.processes ? (data.processes.all + " Total (" + data.processes.running + " Running)") : "Monitor Active"],
         ]);
       }
@@ -2595,9 +3454,27 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
         const card = document.createElement("div");
         card.style.gridColumn = "1 / -1";
         card.className = "data-card";
+        const rowsHtml = data.list.length === 0
+          ? '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);">No processes reported</td></tr>'
+          : data.list.slice(0, 60).map(p => {
+              const cpuVal = Number(p.cpu);
+              const memVal = Number(p.mem);
+              const cpuStr = Number.isFinite(cpuVal) ? cpuVal.toFixed(1) : "0.0";
+              const memStr = Number.isFinite(memVal) ? memVal.toFixed(1) : "0.0";
+              return \`
+                  <tr>
+                    <td>\${escapeHtml(p.pid ?? '')}</td>
+                    <td style="color: var(--cyan); font-weight: 600;">\${escapeHtml(p.name || 'process')}</td>
+                    <td>\${escapeHtml(cpuStr)}%</td>
+                    <td>\${escapeHtml(memStr)}%</td>
+                    <td>\${escapeHtml(p.user || 'system')}</td>
+                    <td>\${escapeHtml(p.state || 'running')}</td>
+                  </tr>
+                \`;
+            }).join('');
         card.innerHTML = \`
           <div class="data-card-header">
-            <span>Process Monitor (\${escapeHtml(data.all)} Total • \${escapeHtml(data.running)} Running)</span>
+            <span>Process Monitor (\${escapeHtml(data.all ?? data.list.length)} Total • \${escapeHtml(data.running ?? 0)} Running)</span>
             <span>CPU & Memory Breakdown</span>
           </div>
           <div class="table-container">
@@ -2612,18 +3489,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
                   <th>State</th>
                 </tr>
               </thead>
-              <tbody>
-                \${data.list.slice(0, 60).map(p => \`
-                  <tr>
-                    <td>\${escapeHtml(p.pid)}</td>
-                    <td style="color: var(--cyan); font-weight: 600;">\${escapeHtml(p.name)}</td>
-                    <td>\${escapeHtml(p.cpu ? Number(p.cpu).toFixed(1) : 0)}%</td>
-                    <td>\${escapeHtml(p.mem ? Number(p.mem).toFixed(1) : 0)}%</td>
-                    <td>\${escapeHtml(p.user || 'system')}</td>
-                    <td>\${escapeHtml(p.state || 'running')}</td>
-                  </tr>
-                \`).join('')}
-              </tbody>
+              <tbody>\${rowsHtml}</tbody>
             </table>
           </div>
         \`;
@@ -2637,18 +3503,18 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
           return;
         }
 
-        data.forEach((dev, idx) => {
+        data.forEach((dev) => {
           const card = document.createElement("div");
           card.className = "data-card";
           const icon = dev.out ? "🔊" : (dev.in ? "🎤" : "🎧");
           const role = dev.in && dev.out ? "Input / Output" : (dev.in ? "Microphone (Input)" : "Speakers / Headphones (Output)");
-          const isDef = dev.default ? '<span style="font-size: 10px; background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 6px; border-radius: 4px; font-weight: 600;">★ Default Device</span>' : '';
-          const stColor = dev.status === "online" ? "#10b981" : "var(--text-dim)";
+          const isDef = dev.default ? '<span style="font-size: 10px; background: rgba(16, 185, 129, 0.2); color: var(--emerald); border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 6px; border-radius: 4px; font-weight: 600;">★ Default Device</span>' : '';
+          const stColor = dev.status === "online" ? "var(--emerald)" : "var(--text-dim)";
 
           card.innerHTML = \`
             <div class="data-card-header">
               <span style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 16px;">\${icon}</span>
+                <span style="font-size: 16px;" aria-hidden="true">\${icon}</span>
                 <span style="color: var(--text-main); font-weight: 700;">\${escapeHtml(dev.name || 'Audio Controller')}</span>
               </span>
               \${isDef}
@@ -2672,16 +3538,16 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
           return;
         }
 
-        data.forEach((dev, idx) => {
+        data.forEach((dev) => {
           const card = document.createElement("div");
           card.className = "data-card";
           const icon = (dev.type && dev.type.toLowerCase().includes("head")) ? "🎧" : (dev.type && dev.type.toLowerCase().includes("mouse") ? "🖱️" : "📶");
-          const isConn = dev.connected ? '<span style="font-size: 10px; background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 6px; border-radius: 4px; font-weight: 600;">● Connected</span>' : '<span style="font-size: 10px; color: var(--text-dim);">Paired</span>';
+          const isConn = dev.connected ? '<span style="font-size: 10px; background: rgba(16, 185, 129, 0.2); color: var(--emerald); border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 6px; border-radius: 4px; font-weight: 600;">● Connected</span>' : '<span style="font-size: 10px; color: var(--text-dim);">Paired</span>';
 
           card.innerHTML = \`
             <div class="data-card-header">
               <span style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 16px;">\${icon}</span>
+                <span style="font-size: 16px;" aria-hidden="true">\${icon}</span>
                 <span style="color: var(--text-main); font-weight: 700;">\${escapeHtml(dev.name || 'Bluetooth Peripheral')}</span>
               </span>
               \${isConn}
@@ -2690,7 +3556,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
               <div class="kv-item"><span class="kv-k">Device Type:</span><span class="kv-v" style="color: var(--cyan); font-weight: 600;">\${escapeHtml(dev.type || 'Peripheral')}</span></div>
               <div class="kv-item"><span class="kv-k">Manufacturer:</span><span class="kv-v">\${escapeHtml(dev.manufacturer || 'Unknown')}</span></div>
               <div class="kv-item"><span class="kv-k">Device MAC:</span><span class="kv-v" style="font-family: var(--font-mono); font-size: 10px;">\${escapeHtml(dev.macDevice || 'N/A')}</span></div>
-              \${dev.batteryPercent !== null && dev.batteryPercent !== undefined ? \`<div class="kv-item"><span class="kv-k">Battery:</span><span class="kv-v" style="color: #10b981; font-weight: 700;">\${escapeHtml(dev.batteryPercent)}%</span></div>\` : ''}
+              \${typeof dev.batteryPercent === "number" && dev.batteryPercent >= 0 ? \`<div class="kv-item"><span class="kv-k">Battery:</span><span class="kv-v" style="color: var(--emerald); font-weight: 700;">\${escapeHtml(dev.batteryPercent)}%</span></div>\` : ''}
             </div>
           \`;
           container.appendChild(card);
@@ -2712,52 +3578,72 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
           return;
         }
 
-        data.forEach((item, idx) => {
+        const MAX_ARRAY_CARDS = 100;
+        const slice = data.slice(0, MAX_ARRAY_CARDS);
+        slice.forEach((item, idx) => {
           const card = document.createElement("div");
           card.className = "data-card";
-          const title = item.name || item.fs || item.device || item.iface || item.destination || item.vendor || (\`Entry #\${idx + 1}\`);
+          const title = (item && typeof item === "object")
+            ? (item.name || item.model || item.ssid || (Array.isArray(item.repoTags) ? item.repoTags[0] : "") || item.fs || item.device || item.iface || item.destination || item.bank || item.displayId || item.vendor || item.type || (\`Entry #\${idx + 1}\`))
+            : (\`Entry #\${idx + 1}\`);
           
           let kvHtml = "";
-          if (typeof item === "object") {
+          if (item && typeof item === "object") {
             Object.entries(item).forEach(([k, v]) => {
               if (v === null || v === undefined) return;
-              const valStr = typeof v === "object" ? JSON.stringify(v).slice(0, 45) : String(v);
+              const valStr = formatSafeValue(v);
               kvHtml += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(k)}:</span><span class="kv-v">\${escapeHtml(valStr)}</span></div>\`;
             });
+            if (!kvHtml) {
+              kvHtml = '<div class="kv-item"><span class="kv-v" style="color: var(--text-dim);">(No populated fields)</span></div>';
+            }
           } else {
-            kvHtml = \`<div class="kv-item"><span class="kv-v">\${escapeHtml(item)}</span></div>\`;
+            kvHtml = \`<div class="kv-item"><span class="kv-v">\${escapeHtml(formatSafeValue(item))}</span></div>\`;
           }
 
           card.innerHTML = \`<div class="data-card-header"><span>\${escapeHtml(title)}</span><span>#\${idx + 1}</span></div><div class="kv-list">\${kvHtml}</div>\`;
           container.appendChild(card);
         });
+
+        if (data.length > MAX_ARRAY_CARDS) {
+          const notice = document.createElement("div");
+          notice.className = "data-card";
+          notice.style.gridColumn = "1 / -1";
+          notice.innerHTML = \`<div class="data-card-header"><span>Summary</span><span>\${escapeHtml(data.length)} total entries</span></div><div>Showing first \${MAX_ARRAY_CARDS} of \${escapeHtml(data.length)} entries. Open the Raw JSON Inspector tab to inspect all items.</div>\`;
+          container.appendChild(notice);
+        }
         return;
       }
 
       if (typeof data === "object") {
+        const entries = Object.entries(data);
+        if (entries.length === 0) {
+          container.innerHTML = \`<div class="data-card"><div class="data-card-header">\${escapeHtml(methodName)}</div><div>Empty object / subsystem inactive.</div></div>\`;
+          return;
+        }
+
         const mainCard = document.createElement("div");
         mainCard.className = "data-card";
         let kvHtml = "";
 
         const friendlyTitle = methodName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
 
-        Object.entries(data).forEach(([k, v]) => {
+        entries.forEach(([k, v]) => {
           if (v === null || v === undefined) return;
           
           if (Array.isArray(v)) {
             const countStr = \`<span style="color: var(--cyan); font-weight: 600;">\${v.length} item\${v.length === 1 ? '' : 's'}</span>\`;
             kvHtml += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(k)}:</span><span class="kv-v">\${countStr}</span></div>\`;
 
-            // Render clean structured sub-cards for array items
-            if (v.length > 0 && typeof v[0] === "object") {
+            if (v.length > 0 && typeof v[0] === "object" && v[0] !== null) {
               v.slice(0, 8).forEach((item, idx) => {
                 const subCard = document.createElement("div");
                 subCard.className = "data-card";
-                const subTitle = item.name || item.model || item.device || item.iface || item.vendor || (\`\${k} #\${idx + 1}\`);
+                const subTitle = item.name || item.model || item.ssid || item.device || item.iface || item.vendor || (\`\${k} #\${idx + 1}\`);
                 let subKv = "";
                 Object.entries(item).forEach(([ik, iv]) => {
                   if (iv === null || iv === undefined) return;
-                  const ivStr = typeof iv === "object" ? (Array.isArray(iv) ? \`\${iv.length} items\` : JSON.stringify(iv).slice(0, 40)) : String(iv);
+                  const ivStr = formatSafeValue(iv);
                   subKv += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(ik)}:</span><span class="kv-v">\${escapeHtml(ivStr)}</span></div>\`;
                 });
                 subCard.innerHTML = \`<div class="data-card-header"><span>\${escapeHtml(subTitle)}</span><span>\${escapeHtml(k)} #\${idx + 1}</span></div><div class="kv-list">\${subKv}</div>\`;
@@ -2770,13 +3656,16 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
             let nestedKv = "";
             Object.entries(v).forEach(([nk, nv]) => {
               if (nv === null || nv === undefined) return;
-              const nvStr = typeof nv === "object" ? (Array.isArray(nv) ? \`\${nv.length} items\` : JSON.stringify(nv).slice(0, 40)) : String(nv);
+              const nvStr = formatSafeValue(nv);
               nestedKv += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(nk)}:</span><span class="kv-v">\${escapeHtml(nvStr)}</span></div>\`;
             });
+            if (!nestedKv) {
+              nestedKv = '<div class="kv-item"><span class="kv-v" style="color: var(--text-dim);">(Empty)</span></div>';
+            }
             nestedCard.innerHTML = \`<div class="data-card-header"><span>\${escapeHtml(k)}</span></div><div class="kv-list">\${nestedKv}</div>\`;
             container.appendChild(nestedCard);
           } else {
-            kvHtml += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(k)}:</span><span class="kv-v">\${escapeHtml(v)}</span></div>\`;
+            kvHtml += \`<div class="kv-item"><span class="kv-k">\${escapeHtml(k)}:</span><span class="kv-v">\${escapeHtml(formatSafeValue(v))}</span></div>\`;
           }
         });
 
@@ -2787,7 +3676,8 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
         return;
       }
 
-      container.innerHTML = \`<div class="data-card"><div class="data-card-header">Value</div><div style="font-size: 16px; font-weight: 700; color: var(--cyan);">\${escapeHtml(data)}</div></div>\`;
+      const displayScalar = data === "" ? "(Empty / none reported)" : String(data);
+      container.innerHTML = \`<div class="data-card"><div class="data-card-header">Value</div><div style="font-size: 16px; font-weight: 700; color: var(--cyan); word-break: break-word;">\${escapeHtml(displayScalar)}</div></div>\`;
     }
 
     async function runCurrentMethod() {
@@ -2835,6 +3725,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
       const meta = ALL_METHODS.find(m => m.name === activeMethod);
       const cat = meta ? meta.category : "Hardware & Baseboard";
       const methodsInCat = ALL_METHODS.filter(m => m.category === cat);
+      const reqId = ++reqSequence;
 
       setExecuting(true, "Batch: " + cat);
       logToConsole("Starting batch execution for category: " + cat, "info");
@@ -2844,9 +3735,11 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
 
       try {
         for (const m of methodsInCat) {
+          if (reqId !== reqSequence) return;
           try {
             const url = '/api/execute?method=' + encodeURIComponent(m.name) + (m.defaultParam ? '&param=' + encodeURIComponent(m.defaultParam) : '');
             const res = await apiRequest(url);
+            if (reqId !== reqSequence) return;
             aggregated[m.name] = res.success ? res.data : { error: res.error };
             logToConsole("  ✓ " + m.name + " (" + (res.elapsedMs || 0) + "ms)", res.success ? "ok" : "err");
           } catch (e) {
@@ -2854,6 +3747,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
           }
         }
 
+        if (reqId !== reqSequence) return;
         const elapsed = (performance.now() - t0).toFixed(1);
         activeResult = { method: cat + "_batch", data: aggregated, elapsedMs: elapsed };
         document.getElementById("executionTimer").textContent = "Batch completed in " + elapsed + " ms";
@@ -2861,9 +3755,13 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
         document.getElementById("jsonInspector").innerHTML = syntaxHighlight(aggregated);
         showToast("Category " + cat + " completed (" + elapsed + "ms)");
       } catch (err) {
-        logToConsole("Error executing batch " + cat + ": " + err.message, "err");
+        if (reqId === reqSequence) {
+          logToConsole("Error executing batch " + cat + ": " + err.message, "err");
+        }
       } finally {
-        setExecuting(false);
+        if (reqId === reqSequence) {
+          setExecuting(false);
+        }
       }
     }
 
@@ -2893,7 +3791,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
     }
 
     async function copyCurrentJson() {
-      if (!activeResult || !activeResult.data) {
+      if (!activeResult || activeResult.data === undefined) {
         showToast("No query results to copy yet!");
         return;
       }
@@ -2904,7 +3802,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
     }
 
     async function exportCurrentReport() {
-      if (!activeResult || !activeResult.data) {
+      if (!activeResult || activeResult.data === undefined) {
         showToast("Run an API query first before exporting!");
         return;
       }
@@ -2922,6 +3820,8 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
       activeResult = null;
       document.getElementById("visualContainer").innerHTML = "";
       document.getElementById("jsonInspector").innerHTML = '{\\n  "status": "cleared"\\n}';
+      const cnt = document.getElementById("jsonSearchCount");
+      if (cnt) cnt.textContent = "";
       document.getElementById("executionTimer").textContent = "Cleared";
       showToast("Output cleared");
     }
@@ -2931,25 +3831,32 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
         const kpis = await apiRequest('/api/kpis');
         if (!kpis || !kpis.cpuCores) return;
 
+        const loadNum = Number(kpis.cpuLoadPct);
+        const safeLoad = Number.isFinite(loadNum) ? Math.min(Math.max(loadNum, 0), 100) : 0;
+        const memNum = Number(kpis.memPct);
+        const safeMem = Number.isFinite(memNum) ? Math.min(Math.max(memNum, 0), 100) : 0;
+        const batNum = Number(kpis.batteryPct);
+        const safeBat = Number.isFinite(batNum) ? Math.min(Math.max(batNum, 0), 100) : 100;
+
         document.getElementById("kpiCpuValue").textContent = kpis.cpuCores + " Cores";
         document.getElementById("kpiCpuSub").textContent = kpis.cpuBrand + " @ " + kpis.cpuSpeed;
 
-        document.getElementById("kpiLoadValue").textContent = kpis.cpuLoadPct + "%";
-        document.getElementById("kpiLoadBadge").textContent = kpis.cpuLoadPct + "%";
-        document.getElementById("kpiLoadBar").style.width = Math.min(parseFloat(kpis.cpuLoadPct), 100) + "%";
+        document.getElementById("kpiLoadValue").textContent = safeLoad.toFixed(1) + "%";
+        document.getElementById("kpiLoadBadge").textContent = safeLoad.toFixed(1) + "%";
+        document.getElementById("kpiLoadBar").style.width = safeLoad + "%";
 
         document.getElementById("kpiMemValue").textContent = kpis.memUsedGb + " / " + kpis.memTotalGb + " GB";
-        document.getElementById("kpiMemPct").textContent = kpis.memPct + "%";
-        document.getElementById("kpiMemBar").style.width = kpis.memPct + "%";
+        document.getElementById("kpiMemPct").textContent = safeMem + "%";
+        document.getElementById("kpiMemBar").style.width = safeMem + "%";
 
         document.getElementById("kpiNetValue").textContent = kpis.netIface;
         document.getElementById("kpiNetSub").textContent = "GW: " + kpis.netGateway;
 
         const pText = kpis.hasBattery
-          ? kpis.batteryPct + "% (" + (kpis.isCharging ? "Charging" : "Discharging") + ")"
+          ? safeBat + "% (" + (kpis.isCharging ? "Charging" : "Discharging") + ")"
           : "AC Powered (Desktop)";
         document.getElementById("kpiPowerValue").textContent = pText;
-        document.getElementById("kpiPowerBar").style.width = (kpis.batteryPct || 100) + "%";
+        document.getElementById("kpiPowerBar").style.width = safeBat + "%";
 
         document.getElementById("pillPlatform").textContent = kpis.osDistro;
         document.getElementById("footerPlatform").textContent = kpis.osDistro;
@@ -2986,6 +3893,19 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
 
     window.addEventListener("DOMContentLoaded", async () => {
       try {
+        const overlay = document.getElementById("overlay");
+        if (overlay) {
+          overlay.setAttribute("role", "dialog");
+          overlay.setAttribute("aria-modal", "true");
+          overlay.setAttribute("aria-labelledby", "overlayTitle");
+        }
+        const jsonSearch = document.getElementById("jsonSearch");
+        if (jsonSearch) jsonSearch.setAttribute("aria-label", "Search keys and values in JSON");
+        const selAutoRefresh = document.getElementById("selAutoRefresh");
+        if (selAutoRefresh) selAutoRefresh.setAttribute("aria-label", "Auto-refresh interval");
+        const selExportFormat = document.getElementById("selExportFormat");
+        if (selExportFormat) selExportFormat.setAttribute("aria-label", "Export report format");
+
         initSidebarResizer();
         renderSidebar();
         await refreshKpiCards();

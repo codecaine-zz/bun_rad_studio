@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "fs";
+import { join } from "path";
 import { JSDOM } from "jsdom";
 import {
   createWindow,
@@ -9,6 +11,7 @@ import {
 import { DEFAULT_FAVORITE_SIMPLEGUI_THEMES } from "../src/shared/simpleguiThemes.ts";
 import { UI_CLIENT_HTML } from "../src/simplegui_components.ts";
 import { DIALOG_CLIENT_HTML } from "../src/simplegui_dialogs.ts";
+import { hostedPage } from "../src/simplegui_host.ts";
 import {
   createThemeShowcase,
   getShowcaseThemeCatalog,
@@ -331,5 +334,111 @@ describe("SimpleGUI Studio Control Polish, Chrome & Theme Rendering", () => {
     expect(visibleKeys()).toContain("tokyo_night");
 
     dom.window.close();
+  });
+
+  test("7. Cross-platform responsive grids, non-'light'-named light themes, FM host button contrast, Win32 dialog flags & safe image URIs", async () => {
+    // 1) .rad-grid-container uses --rad-grid-cols CSS var + @media mobile collapse instead of un-overridable inline !important
+    const win = createWindow("Grid & Theme QA", 1024, 720, {
+      theme: "nordic_paper",
+    });
+    win.beginGrid(2, 12);
+    win.beginCard("Left", "Card 1");
+    win.addInput("txtName", "Ada", "Name");
+    win.endCard();
+    win.beginCard("Right", "Card 2");
+    win.addTable(["ID", "Name"], [["1", "Service"]]).id("tblMain");
+    win.endCard();
+    win.endGrid();
+    const html = win.generateHtml();
+
+    expect(html).toContain("--rad-grid-cols");
+    expect(html).toContain(
+      "grid-template-columns: repeat(var(--rad-grid-cols, 2), minmax(0, 1fr))",
+    );
+    expect(html).toContain("@media (max-width: 768px)");
+    expect(html).toContain("@media (max-width: 640px)");
+    expect(html).not.toMatch(
+      /style\.cssText\s*=\s*["']display:grid;grid-template-columns:[^"']*!important/,
+    );
+
+    const dom = new JSDOM(html, {
+      runScripts: "dangerously",
+      url: "http://localhost/",
+    });
+    await Bun.sleep(45);
+    const doc = dom.window.document;
+    const gridEl = doc.querySelector(
+      ".rad-grid-container",
+    ) as HTMLElement | null;
+    expect(gridEl).toBeTruthy();
+    expect(gridEl!.style.getPropertyValue("--rad-grid-cols")).toBe("2");
+
+    // Verify _applyTheme tracks dataset.theme, light-theme polarity & window.currentTheme
+    const evalScripts: string[] = [];
+    (win as any).webview = { eval: (code: string) => evalScripts.push(code) };
+    (win as any).isWindowRunning = true;
+
+    (win as any)._applyTheme("nordic_paper", false);
+    expect(evalScripts.length).toBeGreaterThan(0);
+    for (const s of evalScripts.splice(0)) {
+      new Function("document", "window", "navigator", "getComputedStyle", s)(
+        doc,
+        dom.window,
+        dom.window.navigator,
+        dom.window.getComputedStyle.bind(dom.window),
+      );
+    }
+    expect(doc.documentElement.dataset.theme).toBe("light");
+    expect(doc.body.classList.contains("light-theme")).toBe(true);
+    expect((dom.window as any).currentTheme).toBe("nordic_paper");
+
+    // Verify setTableData works accurately on light themes without 'light' in the key name (nordic_paper)
+    win.setTableData(
+      "tblMain",
+      ["Service", "State"],
+      [["Telemetry", "Healthy"]],
+    );
+    expect(evalScripts.length).toBeGreaterThan(0);
+    for (const s of evalScripts.splice(0)) {
+      new Function("document", "window", "navigator", "getComputedStyle", s)(
+        doc,
+        dom.window,
+        dom.window.navigator,
+        dom.window.getComputedStyle.bind(dom.window),
+      );
+    }
+    const tbl = doc.querySelector("#tblMain table") as HTMLElement | null;
+    expect(tbl).toBeTruthy();
+    expect(tbl!.style.color).toContain("#0f172a");
+    const hdrRowStyle =
+      doc.querySelector("#tblMain tr")?.getAttribute("style") || "";
+    expect(hdrRowStyle.replace(/\s+/g, "")).toContain("rgba(0,0,0,0.04)");
+    dom.window.close();
+
+    // 2) Verify HostedSession applyFmTheme preserves contrast on accent buttons (--btn-fg)
+    const hosted = hostedPage(
+      {
+        html: "<!doctype html><html><head></head><body></body></html>",
+        binds: new Map(),
+      } as any,
+      "ws://127.0.0.1:1234",
+    );
+    expect(hosted).toContain("var accentBtnFg = hexBright(accent)");
+    expect(hosted).toContain('r.style.setProperty("--btn-fg", accentBtnFg)');
+    expect(hosted).toContain("button:not([data-no-theme]):not(.sgd-btn)");
+    expect(hosted).toContain(":not([type='file'])");
+
+    // 3) Verify SimpleDialogs responsive file-picker CSS & safe src sanitization in SimpleUI components
+    expect(DIALOG_CLIENT_HTML).toContain("@media (max-width:600px)");
+    expect(UI_CLIENT_HTML).toContain("@media (max-width:600px)");
+    expect(UI_CLIENT_HTML).toContain("function safeSrc(u)");
+    expect(UI_CLIENT_HTML).toContain("sgu-appbar");
+
+    // 4) Verify cross-OS Win32 PowerShell spawn suppresses console flash (windowsHide: true)
+    const dialogsSrc = readFileSync(
+      join(import.meta.dir, "..", "src", "simplegui_dialogs.ts"),
+      "utf8",
+    );
+    expect(dialogsSrc).toContain("windowsHide: true");
   });
 });

@@ -275,6 +275,7 @@ const UI_CSS = String.raw`
 .sgu-typo{margin:0}
 .sgu-panel .sgu-body,.sgu-list,.sgu-casc .sgu-col,.sgu-tree,.sgu-rt .sgu-ed,.sgu-mas,.sgu-vl .sgu-vp{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--theme-muted,#94a3b8) 42%,transparent) transparent}
 @media (prefers-reduced-motion:reduce){.sgu-anim-pulse,.sgu-anim-wave,.sgu-mq .sgu-trk,.sgu-pop,.sgu-scrim{animation:none!important}.sgu-btn,.sgu-fab,.sgu-panel,.sgu-dial .sgu-act,.sgu-dial .sgu-main,.sgu-top,.sgu-tour-hl,.sgu-bnav button .sgu-i{transition-duration:.01ms!important;transform:none!important}.sgu-ov:not(.sgu-shown) .sgu-panel.sgu-left{transform:translateX(-102%)!important}.sgu-ov:not(.sgu-shown) .sgu-panel.sgu-right{transform:translateX(102%)!important}.sgu-ov:not(.sgu-shown) .sgu-panel.sgu-top{transform:translateY(-102%)!important}.sgu-ov:not(.sgu-shown) .sgu-panel.sgu-bottom{transform:translateY(102%)!important}}
+@media (max-width:600px){.sgu-appbar{flex-wrap:wrap;height:auto;padding:6px 10px}.sgu-appbar input{width:100%}.sgu-casc{flex-direction:column}.sgu-casc .sgu-col{border-right:0;border-bottom:1px solid var(--sg-hairline,var(--card-border,rgba(148,163,184,.22)))}}
 `;
 
 const UI_JS = String.raw`
@@ -291,7 +292,8 @@ function norm(o) { if (o === null || o === undefined) return { label: "", value:
 function root(el) { var r = el.closest("[id]"); return r; }
 function emit(el, kind, val) { var r = root(el); if (!r) return; var f = window["on_" + r.id + "_" + kind]; if (typeof f === "function") { try { f(val); } catch (e) {} } }
 function btn(label, cls, fn) { var b = E("button", "sgu-btn " + (cls || ""), label); b.type = "button"; if (fn) on(b, "click", fn); return b; }
-function avatar(a, size) { var v = E("span", "sgu-avatar"); v.style.setProperty("--sgu-s", (size || 36) + "px"); v.style.setProperty("--sgu-c", a.color || colorFor(a.name || "")); if (a.src) { var im = E("img"); im.src = a.src; im.alt = a.name || ""; v.appendChild(im); } else v.textContent = initials(a.name || a.label || "?"); if (a.name) v.title = a.name; return v; }
+function safeSrc(u) { var s = String(u || "").trim(); if (!s || /^\s*(javascript|vbscript|data:text\/html):/i.test(s)) return ""; return s; }
+function avatar(a, size) { var v = E("span", "sgu-avatar"); v.style.setProperty("--sgu-s", (size || 36) + "px"); v.style.setProperty("--sgu-c", a.color || colorFor(a.name || "")); var src = safeSrc(a.src); if (src) { var im = E("img"); im.src = src; im.alt = a.name || ""; v.appendChild(im); } else v.textContent = initials(a.name || a.label || "?"); if (a.name) v.title = a.name; return v; }
 function initials(n) { var p = String(n).trim().split(/\s+/); return ((p[0] || "?")[0] + (p.length > 1 ? p[p.length - 1][0] : "")).toUpperCase(); }
 function colorFor(s) { var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return "hsl(" + (Math.abs(h) % 360) + ",55%,45%)"; }
 function setH(el, c) { if (c.height) el.style.height = typeof c.height === "number" ? c.height + "px" : c.height; }
@@ -652,11 +654,11 @@ R.watermark = function (el, c) {
 };
 R.masonry = function (el, c) {
     var m = E("div", "sgu-mas"); m.style.columnCount = c.columns || 3; m.style.setProperty("--sgu-g", (c.gap || 12) + "px");
-    (c.items || []).forEach(function (it, i) { var d = E("div"); if (typeof it === "string") { if (/^(https?:|data:)/.test(it) || /\.(png|jpe?g|gif|webp|svg)$/i.test(it)) { var im = E("img"); im.src = it; d.appendChild(im); d.style.padding = "0"; d.style.overflow = "hidden"; } else d.textContent = it; } else { if (it.image) { var im2 = E("img"); im2.src = it.image; d.appendChild(im2); } if (it.title) { var t = E("b", "", it.title); t.style.display = "block"; t.style.marginTop = it.image ? "8px" : "0"; d.appendChild(t); } if (it.html) { var h = E("div"); h.innerHTML = it.html; d.appendChild(h); } else if (it.text) d.appendChild(E("div", "", it.text)); if (it.height) d.style.minHeight = it.height + "px"; } d.style.cursor = "pointer"; on(d, "click", function () { emit(el, "click", { index: i, item: it }); }); m.appendChild(d); });
+    (c.items || []).forEach(function (it, i) { var d = E("div"); if (typeof it === "string") { if (/^(https?:|data:image\/)/.test(it) || /\.(png|jpe?g|gif|webp|svg)$/i.test(it)) { var im = E("img"); im.src = safeSrc(it); d.appendChild(im); d.style.padding = "0"; d.style.overflow = "hidden"; } else d.textContent = it; } else { if (it.image) { var im2 = E("img"); im2.src = safeSrc(it.image); d.appendChild(im2); } if (it.title) { var t = E("b", "", it.title); t.style.display = "block"; t.style.marginTop = it.image ? "8px" : "0"; d.appendChild(t); } if (it.html) { var h = E("div"); h.innerHTML = it.html; d.appendChild(h); } else if (it.text) d.appendChild(E("div", "", it.text)); if (it.height) d.style.minHeight = it.height + "px"; } d.style.cursor = "pointer"; on(d, "click", function () { emit(el, "click", { index: i, item: it }); }); m.appendChild(d); });
     el.appendChild(m);
 };
 R.imageCompare = function (el, c) {
-    var d = E("div", "sgu-cmp"), a = E("img"), b = E("img"), hd = E("div", "sgu-hd"), pos = c.position === undefined ? 50 : c.position; a.src = c.after || ""; b.src = c.before || ""; d.appendChild(a); d.appendChild(b); d.appendChild(hd);
+    var d = E("div", "sgu-cmp"), a = E("img"), b = E("img"), hd = E("div", "sgu-hd"), pos = c.position === undefined ? 50 : c.position; a.src = safeSrc(c.after); b.src = safeSrc(c.before); d.appendChild(a); d.appendChild(b); d.appendChild(hd);
     d.tabIndex = 0; d.setAttribute("role", "slider"); d.setAttribute("aria-valuemin", "0"); d.setAttribute("aria-valuemax", "100");
     if (c.labels !== false) { var l1 = E("span", "sgu-tag", c.beforeLabel || "Before"), l2 = E("span", "sgu-tag", c.afterLabel || "After"); l1.style.left = "8px"; l2.style.right = "8px"; d.appendChild(l1); d.appendChild(l2); }
     function set(p) { pos = Math.max(0, Math.min(100, p)); b.style.clipPath = "inset(0 " + (100 - pos) + "% 0 0)"; hd.style.left = "calc(" + pos + "% - 1.5px)"; d.setAttribute("aria-valuenow", String(Math.round(pos))); }
@@ -680,7 +682,7 @@ R.typography = function (el, c) {
 R.chips = function (el, c) {
     var wrap = E("div", "sgu-chips"), items = (c.chips || c.items || []).slice(), selected = {};
     function draw() { wrap.textContent = ""; items.forEach(function (raw, i) { var o = norm(raw), r = o.raw || {}; var ch = E("span", "sgu-chip" + (c.variant === "outlined" ? " sgu-outlined" : "") + (c.size === "small" ? " sgu-sm" : "") + (c.clickable || r.clickable ? " sgu-click" : "") + (selected[o.value] ? " sgu-selected" : "")); ch.style.setProperty("--sgu-c", col(r.color || c.color || "")); if (!r.color && !c.color) ch.style.setProperty("--sgu-c", c.variant === "outlined" ? "#64748b" : "#475569");
-        if (r.avatar || r.src) { var av = E("span", "sgu-av"); if (r.src) { var im = E("img"); im.src = r.src; av.appendChild(im); } else av.textContent = String(r.avatar).slice(0, 2); ch.appendChild(av); } else if (r.icon || c.icon) ch.appendChild(E("span", "", ic(r.icon || c.icon))); ch.appendChild(E("span", "", o.label));
+        if (r.avatar || r.src) { var av = E("span", "sgu-av"); if (r.src && safeSrc(r.src)) { var im = E("img"); im.src = safeSrc(r.src); av.appendChild(im); } else av.textContent = String(r.avatar || "?").slice(0, 2); ch.appendChild(av); } else if (r.icon || c.icon) ch.appendChild(E("span", "", ic(r.icon || c.icon))); ch.appendChild(E("span", "", o.label));
         if (c.clickable || r.clickable) on(ch, "click", function () { if (c.selectable) { if (c.multiple === false) selected = {}; selected[o.value] = !selected[o.value]; draw(); emit(el, "change", Object.keys(selected).filter(function (k) { return selected[k]; })); } emit(el, "click", o.value); });
         if (c.deletable || r.deletable) { var d = E("button", "sgu-del", "\u2715"); d.type = "button"; d.title = "Remove"; on(d, "click", function (e) { e.stopPropagation(); items.splice(items.indexOf(raw), 1); draw(); emit(el, "change", { deleted: o.value, remaining: items.map(function (x) { return norm(x).value; }) }); }); ch.appendChild(d); }
         wrap.appendChild(ch); }); nt(wrap); }
