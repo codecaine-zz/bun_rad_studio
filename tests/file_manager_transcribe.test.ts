@@ -817,9 +817,11 @@ exit 0
     });
     const doneJob = await installCtx.jobs.whenDone(job.id);
     expect(doneJob.state).toBe("done");
-    expect(existsSync(join(installData, "asr-env", "bin", "python3"))).toBe(
-      true,
-    );
+    const expectedEnvPython =
+      process.platform === "win32"
+        ? join(installData, "asr-env", "Scripts", "python.exe")
+        : join(installData, "asr-env", "bin", "python3");
+    expect(existsSync(expectedEnvPython)).toBe(true);
   });
 
   test("7. transcribeMicrophoneRecording works with TranscribeHooks without saving recording", async () => {
