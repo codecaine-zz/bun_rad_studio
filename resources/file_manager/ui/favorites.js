@@ -7,17 +7,19 @@ import { $, clear, h } from "./dom.js";
 import { showMenu, toast } from "./menus.js";
 import { goTo, saveSettings } from "./nav.js";
 import { inTrash, on, state } from "./state.js";
-import { baseName, plural } from "./util.js";
+import { baseName, plural, samePath } from "./util.js";
 
 const MAX_NAME = 60;
 
-export const isFavorite = (path) => state.settings.favorites.includes(path);
+export const isFavorite = (path) =>
+  state.settings.favorites.some((f) => samePath(f, path));
 
 /** What to show for a favorite: the person's own name, or the folder's name. */
 export function favoriteName(path) {
-  return (
-    state.settings.favoriteNames?.[path] || baseName(path, state.sep) || path
-  );
+  const names = state.settings.favoriteNames ?? {};
+  const custom =
+    names[path] || Object.entries(names).find(([k]) => samePath(k, path))?.[1];
+  return custom || baseName(path, state.sep) || path;
 }
 
 const here = () =>
@@ -51,7 +53,7 @@ export async function toggleHere() {
   if (isFavorite(path)) {
     if (
       await store(
-        state.settings.favorites.filter((f) => f !== path),
+        state.settings.favorites.filter((f) => !samePath(f, path)),
         state.settings.favoriteNames ?? {},
       )
     )

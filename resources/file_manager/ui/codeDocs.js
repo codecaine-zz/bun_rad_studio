@@ -561,6 +561,26 @@ export function createDocs() {
         bookmarks: session.bookmarks,
       }).catch(() => {});
     },
+
+    /** Clears open tabs, listeners and session cache so fresh page mounts don't inherit stale test tabs. */
+    reset() {
+      clearTimeout(persistTimer);
+      persistTimer = 0;
+      docs.length = 0;
+      listeners.clear();
+      reading.clear();
+      activeId = 0;
+      untitled = 0;
+      session = {
+        version: 1,
+        root: "",
+        tabs: [],
+        active: "",
+        settings: { ...DEFAULT_SETTINGS },
+        recents: [],
+        bookmarks: {},
+      };
+    },
   };
   return api;
 }

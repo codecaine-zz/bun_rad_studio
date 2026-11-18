@@ -49,6 +49,7 @@ import {
   joinPath,
   parentOf,
   plural,
+  samePath,
 } from "./util.js";
 import { isLocked, unlockEntries } from "./vault.js";
 
@@ -256,7 +257,7 @@ export async function openEntry(entry, { viewer = true } = {}) {
   if (
     !entry.isDir &&
     state.cliUtilsDir &&
-    entryParent === state.cliUtilsDir &&
+    samePath(entryParent, state.cliUtilsDir, state.sep === "\\") &&
     /^[A-Za-z0-9._-]+$/.test(entry.name)
   ) {
     const cmd = `${state.platform === "win32" ? ".\\" : "./"}${entry.name} `;

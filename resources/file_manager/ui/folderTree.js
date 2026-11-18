@@ -8,7 +8,7 @@ import { copyPathOf, isFavorite, toggleFavorite } from "./ops.js";
 import { hooks } from "./pane.js";
 import { emit, state, currentPath } from "./state.js";
 import { openNewTab } from "./tabs.js";
-import { baseName } from "./util.js";
+import { baseName, isInside, samePath as matchPath } from "./util.js";
 
 /** path -> Array<{ name, path }> */
 const childrenCache = new Map();
@@ -16,13 +16,8 @@ const childrenCache = new Map();
 const expandedPaths = new Set();
 const loadingPaths = new Set();
 
-function norm(p) {
-  if (!p) return "";
-  return state.sep === "\\" ? p.toLowerCase() : p;
-}
-
 function samePath(a, b) {
-  return Boolean(a && b && norm(a) === norm(b));
+  return matchPath(a, b, state.sep === "\\");
 }
 
 export async function loadTreeChildren(folderPath) {
@@ -256,7 +251,12 @@ export function folderTreeSection() {
       path: state.home,
       name: baseName(state.home, state.sep) || "Home",
     });
-  if (activePath && !roots.some((r) => activePath.startsWith(r.path))) {
+  if (
+    activePath &&
+    !roots.some((r) =>
+      isInside(activePath, r.path, state.sep, state.sep === "\\"),
+    )
+  ) {
     roots.push({
       path: activePath,
       name: baseName(activePath, state.sep) || activePath,

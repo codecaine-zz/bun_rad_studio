@@ -39,6 +39,12 @@ export function h(tag, attrs = {}, ...children) {
         const cleanVal = important ? rawVal.slice(0, -10).trim() : rawVal;
         el.style.setProperty(prop, cleanVal, important ? "important" : "");
       }
+    } else if (key === "style" && typeof value === "object") {
+      for (const [prop, v] of Object.entries(value)) {
+        if (v === undefined || v === null || v === false) continue;
+        if (prop.startsWith("--")) el.style.setProperty(prop, String(v));
+        else el.style[prop] = String(v);
+      }
     } else if (key.startsWith("on")) {
       if (typeof value === "function")
         el.addEventListener(key.slice(2).toLowerCase(), value);

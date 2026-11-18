@@ -36,6 +36,7 @@ import { openInMediaDeck } from "./playerDeck.js";
 import { canReadWithPhonon } from "./phonon.js";
 import { openPower } from "./power.js";
 import { openQuickLook } from "./quicklook.js";
+import { hintOf } from "./keymap.js";
 import {
   clearSelection,
   focusIndex,
@@ -1057,7 +1058,7 @@ export function renderSelectionBar() {
       "Code",
       one.isDir
         ? "Open this folder in the built-in Code editor"
-        : "Edit this file in the built-in Code editor (Mod+E)",
+        : `Edit this file in the built-in Code editor${hintOf("file.editInCode")}`,
       () => (one.isDir ? openFolderInCode(one.path) : openInCode(one.path)),
     );
   }
@@ -1230,7 +1231,7 @@ export function renderSelectionBar() {
       "folderize",
       "📁",
       "Group into Folder",
-      "Create a new folder here and move the selected items into it (Mod+Shift+G)",
+      `Create a new folder here and move the selected items into it${hintOf("file.newFolderWithSelection")}`,
       () => {
         setActivePane(targetPane.side);
         void ops.newFolderWithSelection(items);

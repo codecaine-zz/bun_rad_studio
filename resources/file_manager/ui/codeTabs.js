@@ -6,6 +6,9 @@ import { isDirty } from "./codeDocs.js";
 
 /** Draws the tabs into `strip`. `on`: { activate(doc), close(doc), closeOthers(doc), closeAll(), copyPath(doc), reveal(doc) }. */
 export function renderTabs(strip, docs, activeId, on) {
+  strip.hidden = docs.length === 0;
+  if (docs.length) strip.setAttribute("role", "tablist");
+  else strip.removeAttribute("role");
   strip.replaceChildren(
     ...docs.map((d) => {
       const dirty = isDirty(d);

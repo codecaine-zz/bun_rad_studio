@@ -258,6 +258,7 @@ beforeAll(async () => {
   });
   shared.selection.clear();
   mod = shared.platform === "darwin" ? "metaKey" : "ctrlKey";
+  power.resetPower();
   power.wirePower();
   power.openPower("code");
   await sleep(500);
@@ -265,6 +266,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await sleep(2000); // let the page's own delayed work (saving the session, refreshing the outline) finish while its globals still exist
+  (await import("../resources/file_manager/ui/power.js")).resetPower();
   (await import("../resources/file_manager/ui/menus.js")).closeMenu(); // an open menu would make the next page test ignore its shortcuts
   const g = globalThis as any;
   for (const key of GLOBALS) {

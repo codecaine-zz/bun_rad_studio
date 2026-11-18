@@ -8,7 +8,14 @@ import { registerPowerTab } from "./power.js";
 import { selectKeys, selectedEntries } from "./selection.js";
 import { emit, on, state } from "./state.js";
 import { showToolsDialog } from "./tools.js";
-import { baseName, extensionOf, isDocumentPackageEntry } from "./util.js";
+import {
+  baseName,
+  extensionOf,
+  isDocumentPackageEntry,
+  isInside,
+  isWindowsPath,
+  parentOf,
+} from "./util.js";
 
 export { isPhononSupported };
 
@@ -2005,11 +2012,8 @@ function mountPhononStudio(root, payload) {
     sourcePathInput.value = filePath;
     const stem = stemOf(baseName(filePath, state.sep)) || "speech";
     outNameInput.value = stem;
-    const parentIdx = Math.max(
-      filePath.lastIndexOf("/"),
-      filePath.lastIndexOf("\\"),
-    );
-    if (parentIdx > 0) outDirInput.value = filePath.slice(0, parentIdx);
+    const parentDir = parentOf(filePath, isWindowsPath(filePath) ? "\\" : "/");
+    if (parentDir) outDirInput.value = parentDir;
 
     nowPlayingStatus.textContent = `Converting "${baseName(filePath, state.sep)}" to plain text…`;
     try {
@@ -2096,7 +2100,10 @@ function mountPhononStudio(root, payload) {
       toast(`Saved plain text: ${baseName(res.path, state.sep)}`, {
         kind: "success",
       });
-      if (currentPath() && res.path.startsWith(currentPath())) {
+      if (
+        currentPath() &&
+        isInside(res.path, currentPath(), state.sep, state.sep === "\\")
+      ) {
         void refresh().then(() => selectKeys([res.path]));
       }
     } catch (err) {
@@ -2472,7 +2479,11 @@ function mountPhononStudio(root, payload) {
           if (isVid && out) {
             loadExportedVideoIntoPreview(out);
           }
-          if (currentPath() && out && out.startsWith(currentPath())) {
+          if (
+            currentPath() &&
+            out &&
+            isInside(out, currentPath(), state.sep, state.sep === "\\")
+          ) {
             void refresh().then(() => selectKeys([out]));
           }
         },
@@ -2553,7 +2564,11 @@ function mountPhononStudio(root, payload) {
             { kind: "success" },
           );
           if (isVid && out) loadExportedVideoIntoPreview(out);
-          if (currentPath() && out && out.startsWith(currentPath())) {
+          if (
+            currentPath() &&
+            out &&
+            isInside(out, currentPath(), state.sep, state.sep === "\\")
+          ) {
             void refresh().then(() => selectKeys(finishedJob.outputs || [out]));
           }
         },
@@ -2844,7 +2859,6 @@ function mountPhononStudio(root, payload) {
     class: "phonon-hidden-file-input",
     hidden: true,
     accept: "audio/*,.wav,.mp3,.m4a,.flac,.ogg,.webm",
-    style: { display: "none" },
     onchange: (e) => {
       const file = e.target.files?.[0];
       if (file) void importVoiceAudioFileFromPicker(file);
@@ -4518,7 +4532,7 @@ function mountPhononStudio(root, payload) {
 
   applyPayload(payload);
 
-  const offFolder = on("location-changed", () => {
+  const offFolder = on("view", () => {
     if (!outDirInput.value.trim() && currentPath()) {
       outDirInput.value = currentPath();
     }

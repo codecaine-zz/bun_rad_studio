@@ -16,6 +16,7 @@ import {
   toggleRecentsEnabled,
 } from "./recents.js";
 import { emit, on, state } from "./state.js";
+import { hintOf } from "./keymap.js";
 import { showToolsDialog } from "./tools.js";
 import { baseName, formatSize, parentOf, plural } from "./util.js";
 
@@ -483,8 +484,7 @@ function quick() {
         {
           type: "button",
           class: "btn home-quick",
-          title:
-            "Open the Universal Command Palette & Quick Jump (Mod+Shift+P)",
+          title: `Open the Universal Command Palette & Quick Jump${hintOf("app.commandPalette")}`,
           onclick: () => emit("command-palette", ""),
         },
         h(

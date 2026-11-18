@@ -24,12 +24,16 @@ import {
   store,
 } from "./serveStore.js";
 import { currentPath, on, state } from "./state.js";
+import { isInside, samePath } from "./util.js";
 
 /** The path of `full` inside `root` ("" when it is the root itself or isn't inside it), for starting a server again. */
 export function relativeTo(root, full) {
-  if (!full || full === root) return "";
+  if (!full || !root) return "";
   const sep = root.includes("\\") ? "\\" : "/";
-  return full.startsWith(root + sep) ? full.slice(root.length + 1) : "";
+  const ci = sep === "\\";
+  if (samePath(full, root, ci) || !isInside(full, root, sep, ci)) return "";
+  const prefix = root.endsWith(sep) ? root : `${root}${sep}`;
+  return full.slice(prefix.length);
 }
 
 function createTool(root) {

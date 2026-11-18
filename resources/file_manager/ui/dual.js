@@ -34,7 +34,14 @@ import {
 import { selectedEntries } from "./selection.js";
 import { emit, on, state } from "./state.js";
 import { openNewTab } from "./tabs.js";
-import { baseName, collapseCrumbs, parentOf, splitPath } from "./util.js";
+import {
+  baseName,
+  collapseCrumbs,
+  isInside,
+  parentOf,
+  samePath,
+  splitPath,
+} from "./util.js";
 
 let built = false;
 let loadNumber = 0;
@@ -163,7 +170,7 @@ export async function swapDualPanes() {
     toast("Open a folder in both panes first to swap them.", { kind: "info" });
     return false;
   }
-  if (lPath === rPath) {
+  if (samePath(lPath, rPath, state.sep === "\\")) {
     toast("Both panes are already showing the same folder.", { kind: "info" });
     return false;
   }
@@ -298,9 +305,13 @@ async function showRightCrumbSiblings(parentPath, currentChildPath, anchor) {
         label: f.name,
         icon: "📁",
         checked:
-          f.path === currentChildPath ||
-          right.location.path === f.path ||
-          (right.location.path || "").startsWith(f.path + state.sep),
+          samePath(f.path, currentChildPath, state.sep === "\\") ||
+          isInside(
+            right.location.path || "",
+            f.path,
+            state.sep,
+            state.sep === "\\",
+          ),
         action: () => loadRight(f.path),
       })),
       { anchor, label: "Subfolders" },

@@ -232,7 +232,7 @@ function applyFocusMode(on, { save = true } = {}) {
   btn?.setAttribute("aria-pressed", String(on));
   if (btn)
     btn.title = on
-      ? "Bring back the toolbar and side panels (Esc or Alt+6)"
+      ? `Bring back the toolbar and side panels (Esc or ${altKey()}6)`
       : `Hide the toolbar and side panels so the list or tool has the whole window (${altKey()}6). Press Esc to bring them back.`;
   state.settings.focusMode = on;
   syncSidebarButton();

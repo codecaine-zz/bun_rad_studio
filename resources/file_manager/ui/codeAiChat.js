@@ -11,7 +11,9 @@ import {
   tokenizeText,
 } from "./codeLogic.js";
 import { clear, h } from "./dom.js";
+import { shortcutText } from "./codeKeys.js";
 import { getClientModelFeatureProfile } from "./ollama.js";
+import { state } from "./state.js";
 
 const QUICK_PROMPTS = [
   {
@@ -2160,7 +2162,7 @@ export function createCodeAiChat(ctx) {
         {
           type: "button",
           class: "btn code-small",
-          title: "Hide AI Code Chat (Mod+Shift+I)",
+          title: `Hide AI Code Chat (${shortcutText("aiChat", state.platform)})`,
           "aria-label": "Close AI Code Chat",
           onclick: () => ctx.onClose?.(),
         },

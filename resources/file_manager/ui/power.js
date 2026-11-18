@@ -380,12 +380,20 @@ export const activePowerTab = () => activeId;
 
 /** Forgets which tools were opened and where the panel lives (tools stay registered). For tests that start the page more than once in one process. */
 export function resetPower() {
+  for (const entry of mounted.values()) {
+    try {
+      entry.hooks?.hide?.();
+    } catch {}
+    try {
+      entry.hooks?.dispose?.();
+    } catch {}
+  }
   mounted.clear();
   activeId = null;
   host = null;
   if (typeof document !== "undefined") {
     const app = document.getElementById("app");
-    app?.classList.remove("power-max", "power-compact");
+    app?.classList.remove("power-max", "power-compact", "power-open");
   }
 }
 

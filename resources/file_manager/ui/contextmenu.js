@@ -53,6 +53,7 @@ import {
   extractableEntries,
   isDocumentPackageEntry,
   parentOf,
+  samePath,
 } from "./util.js";
 import { labelOf } from "./keymap.js";
 import { openQuickLook } from "./quicklook.js";
@@ -531,13 +532,22 @@ function entryItems(entries) {
     !e.isDir &&
     (e.program ||
       (state.cliUtilsDir &&
-        parentOf(e.path, state.sep) === state.cliUtilsDir) ||
-      (state.cliAppsDir && parentOf(e.path, state.sep) === state.cliAppsDir)) &&
+        samePath(
+          parentOf(e.path, state.sep),
+          state.cliUtilsDir,
+          state.sep === "\\",
+        )) ||
+      (state.cliAppsDir &&
+        samePath(
+          parentOf(e.path, state.sep),
+          state.cliAppsDir,
+          state.sep === "\\",
+        ))) &&
     /^[A-Za-z0-9._-]+$/.test(e.name)
       ? {
           label: `Put ${state.platform === "win32" ? ".\\" : "./"}${e.name} in Terminal`,
           icon: "⌨️",
-          tip: "Open the terminal in this file's folder and type ./filename so you can add arguments or press Enter.",
+          tip: `Open the terminal in this file's folder and type ${state.platform === "win32" ? ".\\" : "./"}filename so you can add arguments or press Enter.`,
           action: () =>
             emit("terminal-run-in", {
               folder: parentOf(e.path, state.sep),
@@ -550,13 +560,22 @@ function entryItems(entries) {
     !e.isDir &&
     (e.program ||
       (state.cliUtilsDir &&
-        parentOf(e.path, state.sep) === state.cliUtilsDir) ||
-      (state.cliAppsDir && parentOf(e.path, state.sep) === state.cliAppsDir)) &&
+        samePath(
+          parentOf(e.path, state.sep),
+          state.cliUtilsDir,
+          state.sep === "\\",
+        )) ||
+      (state.cliAppsDir &&
+        samePath(
+          parentOf(e.path, state.sep),
+          state.cliAppsDir,
+          state.sep === "\\",
+        ))) &&
     /^[A-Za-z0-9._-]+$/.test(e.name)
       ? {
           label: `Run ${state.platform === "win32" ? ".\\" : "./"}${e.name} in Terminal`,
           icon: "▶️",
-          tip: "Open the terminal in this file's folder and run ./filename right away.",
+          tip: `Open the terminal in this file's folder and run ${state.platform === "win32" ? ".\\" : "./"}filename right away.`,
           action: () =>
             emit("terminal-run-in", {
               folder: parentOf(e.path, state.sep),

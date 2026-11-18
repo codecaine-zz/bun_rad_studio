@@ -16,6 +16,11 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.32rem 0.65rem;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  scrollbar-width: none;
   background: linear-gradient(
     180deg,
     color-mix(in oklab, var(--surface-elevated, var(--panel)) 68%, var(--panel))
@@ -24,6 +29,28 @@
   );
   border-bottom: 1px solid color-mix(in oklab, var(--border) 76%, transparent);
   box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff 12%, transparent);
+}
+#viewbar::-webkit-scrollbar {
+  display: none;
+}
+@media (max-width: 1680px) and (min-width: 821px) {
+  #viewbar {
+    gap: 0.28rem;
+    padding: 0.3rem 0.48rem;
+  }
+  #viewbar .vb-btn {
+    padding: 0.26rem 0.44rem;
+    gap: 0.28rem;
+    font-size: 0.88rem;
+  }
+  #viewbar #view-extras {
+    gap: 0.25rem;
+  }
+  #viewbar .vb-clock {
+    padding: 0.22rem 0.45rem;
+    gap: 0.28rem;
+    font-size: 0.76rem;
+  }
 }
 .vb-btn {
   display: inline-flex;
@@ -1370,6 +1397,8 @@ body:not(.ready) #stage {
   background: var(--bg);
   container-type: inline-size;
   container-name: dualpane files;
+  min-width: 0;
+  overflow: hidden;
 }
 .dual-head {
   display: flex;
@@ -1378,6 +1407,12 @@ body:not(.ready) #stage {
   padding: 0.35rem 0.6rem;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.dual-head::-webkit-scrollbar {
+  display: none;
 }
 .dual-crumbs {
   flex: 1;

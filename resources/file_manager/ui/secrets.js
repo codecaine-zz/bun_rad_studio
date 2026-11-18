@@ -285,7 +285,7 @@ registerPowerTab({
         ),
         btn(
           "🔒 Lock now",
-          "Lock the vault right now and forget everything shown (Ctrl+L)",
+          `Lock the vault right now and forget everything shown (${state.platform === "darwin" ? "⌘L" : "Ctrl+L"})`,
           () => lockNow("Vault locked."),
           "btn sx-lock",
         ),

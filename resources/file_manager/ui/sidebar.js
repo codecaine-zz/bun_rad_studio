@@ -160,7 +160,7 @@ export function renderSidebar() {
         icon: "🛠️",
         label: "CLI Utilities",
         placeId: "scripts",
-        title: `${state.cliUtilsDir} — Built-in RAD Studio CLI utilities (open terminal here and run ./<tool-name>)`,
+        title: `${state.cliUtilsDir} — Built-in RAD Studio CLI utilities (open terminal here and run ${state.platform === "win32" ? ".\\<tool-name>" : "./<tool-name>"})`,
         active: same(state.cliUtilsDir),
         onClick: () => {
           goTo(state.cliUtilsDir);
@@ -175,7 +175,7 @@ export function renderSidebar() {
                 action: () => goTo(state.cliUtilsDir),
               },
               {
-                label: "Open terminal in CLI Utilities (./)",
+                label: `Open terminal in CLI Utilities (${state.platform === "win32" ? ".\\" : "./"})`,
                 icon: "⌨️",
                 action: () => {
                   goTo(state.cliUtilsDir);
@@ -192,29 +192,31 @@ export function renderSidebar() {
           ),
       }),
     );
-    if (isPhononSupported()) {
-      places.push(
-        sideItem({
-          icon: "🗣️",
-          label: "Ollama TTS",
-          placeId: "phonon",
-          title:
-            "Ollama Phonon Voice Reader — Read text & documents out loud, convert to plain text, set default voice, and save as any audio file",
-          active: state.powerOpen && state.powerTab === "phonon",
-          onClick: () => {
-            const readable = selectedEntries().filter(
-              (e) => !e.isDir && canReadWithPhonon(e),
-            );
-            openPower(
-              "phonon",
-              readable.length
-                ? { paths: readable.map((e) => e.path) }
-                : undefined,
-            );
-          },
-        }),
-      );
-    }
+  }
+  if (isPhononSupported()) {
+    places.push(
+      sideItem({
+        icon: "🗣️",
+        label: "Ollama TTS",
+        placeId: "phonon",
+        title:
+          "Ollama Phonon Voice Reader — Read text & documents out loud, convert to plain text, set default voice, and save as any audio file",
+        active:
+          state.powerOpen &&
+          (state.powerTab === "phonon" || activePowerTab() === "phonon"),
+        onClick: () => {
+          const readable = selectedEntries().filter(
+            (e) => !e.isDir && canReadWithPhonon(e),
+          );
+          openPower(
+            "phonon",
+            readable.length
+              ? { paths: readable.map((e) => e.path) }
+              : undefined,
+          );
+        },
+      }),
+    );
   }
   places.push(
     sideItem({
@@ -244,7 +246,9 @@ export function renderSidebar() {
       placeId: "ollama",
       title:
         "Built-In Ollama AI Assistant & Full Capability Router — Chat, Deep Thinking, Vision, SystemOne Decision, Text-to-Audio LLMs, Meaning Search, Web Search & 1-Click Auto-Install",
-      active: state.powerOpen && state.powerTab === "ollama",
+      active:
+        state.powerOpen &&
+        (state.powerTab === "ollama" || activePowerTab() === "ollama"),
       onClick: () => openPower("ollama"),
     }),
   );
@@ -255,7 +259,9 @@ export function renderSidebar() {
       placeId: "bionic",
       title:
         "Built-In LM Studio Bionic AI Studio — Apple Silicon MLX/oMLX/Splash LLMs & VLMs, @Skill Agent Hub, Bionic Workspace Projects, Phonon 40M Multilingual 24kHz Metal TTS, ExecuTorch Whisper ASR & Nomic Embeddings",
-      active: state.powerOpen && state.powerTab === "bionic",
+      active:
+        state.powerOpen &&
+        (state.powerTab === "bionic" || activePowerTab() === "bionic"),
       onClick: () => openPower("bionic"),
     }),
   );
@@ -325,4 +331,6 @@ export function wireSidebar() {
   on("places", renderSidebar);
   on("view", renderSidebar);
   on("settings", renderSidebar);
+  on("power", renderSidebar);
+  on("power-tab", renderSidebar);
 }

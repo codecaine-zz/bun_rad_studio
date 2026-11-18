@@ -193,6 +193,8 @@ button:disabled {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* ------------------------------------------------------------------ toolbar */
@@ -1389,6 +1391,11 @@ button.crumb-sep:focus-visible {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.32rem 0.85rem;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;
+  scrollbar-width: none;
   background: linear-gradient(
     180deg,
     var(--panel) 0%,
@@ -1400,6 +1407,9 @@ button.crumb-sep:focus-visible {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.005em;
   color: var(--muted);
+}
+#status::-webkit-scrollbar {
+  display: none;
 }
 #status-left {
   min-width: 0;

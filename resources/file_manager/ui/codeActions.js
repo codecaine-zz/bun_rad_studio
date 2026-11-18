@@ -4,7 +4,7 @@
 import { call, ApiError } from "./api.js";
 import { confirmBox, promptBox } from "./dialogs.js";
 import { showMenu, toast } from "./menus.js";
-import { baseName, parentOf } from "./util.js";
+import { baseName, isInside, parentOf } from "./util.js";
 import { state } from "./state.js";
 import {
   GENERATOR_ITEMS,
@@ -293,9 +293,8 @@ export function createActions(ctx) {
           note: r.truncated || r.timedOut,
         };
       }
-      const rootPrefix = root.endsWith(sep()) ? root : `${root}${sep()}`;
       const inRootRecents = recents.filter((x) =>
-        x.value.startsWith(rootPrefix),
+        isInside(x.value, root, state.sep, state.sep === "\\"),
       );
       const seen = new Set(inRootRecents.map((x) => x.value));
       const wsItems = [];

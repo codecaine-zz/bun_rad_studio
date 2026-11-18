@@ -4,7 +4,7 @@ import { call, ApiError } from "./api.js";
 import { h } from "./dom.js";
 import { confirmBox, promptBox } from "./dialogs.js";
 import { showMenu, toast } from "./menus.js";
-import { baseName, joinPath, parentOf, sortEntries } from "./util.js";
+import { baseName, isInside, joinPath, parentOf, sortEntries } from "./util.js";
 import { matchesAction } from "./keymap.js";
 import { state } from "./state.js";
 
@@ -465,11 +465,9 @@ export function createExplorer({
     },
     /** Opens the folders above `path` so the file is visible in the tree. */
     async reveal(path) {
-      if (!root || !path.startsWith(root + sep())) return;
-      const parts = path
-        .slice(root.length + 1)
-        .split(sep())
-        .slice(0, -1);
+      if (!root || !isInside(path, root, sep(), sep() === "\\")) return;
+      const rootPrefix = root.endsWith(sep()) ? root : `${root}${sep()}`;
+      const parts = path.slice(rootPrefix.length).split(sep()).slice(0, -1);
       let at = root;
       for (const part of parts) {
         at = joinPath(at, part, sep());

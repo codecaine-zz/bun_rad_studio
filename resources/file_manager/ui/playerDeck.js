@@ -18,7 +18,14 @@ import {
 import { closeQuickLook, quickLookIsOpen } from "./quicklook.js";
 import { selectedEntries } from "./selection.js";
 import { on, state } from "./state.js";
-import { extensionOf, formatSize } from "./util.js";
+import {
+  extensionOf,
+  formatSize,
+  isAbsolutePath,
+  isWindowsPath,
+  joinPath,
+  parentOf,
+} from "./util.js";
 import {
   DECK_HARDWARE_TIERS,
   EQ_BANDS,
@@ -3653,14 +3660,13 @@ function mount(root) {
       const items = parseM3u(file.text);
       if (!items.length)
         return toast("That playlist file has no tracks.", { kind: "info" });
-      const sep = state.sep || "/";
-      const dir = path.slice(0, Math.max(0, path.lastIndexOf(sep)));
+      const pathSep = isWindowsPath(path) ? "\\" : state.sep || "/";
+      const dir = parentOf(path, pathSep) || pathSep;
       const resolvedEntries = [];
       for (const item of items) {
-        const full =
-          item.path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(item.path)
-            ? item.path
-            : `${dir}${sep}${item.path}`;
+        const full = isAbsolutePath(item.path)
+          ? item.path
+          : joinPath(dir, item.path, pathSep);
         try {
           const { entry } = await call("entry", { path: full });
           if (entry && !entry.isDir)

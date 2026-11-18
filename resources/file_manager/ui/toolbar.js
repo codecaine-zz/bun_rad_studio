@@ -43,6 +43,7 @@ import {
   baseName,
   collapseCrumbs,
   formatSize,
+  isInside,
   parentOf,
   plural,
   splitPath,
@@ -592,6 +593,10 @@ export function updateAddressButtons() {
     copyBtn.hidden = !folderOk;
     copyBtn.title = `Copy current folder path${hintOf("file.copyPath")}`;
   }
+  const editBtn = $("#edit-address");
+  if (editBtn) {
+    editBtn.title = `Type a location${hintOf("nav.address")}`;
+  }
 }
 
 async function showChildFoldersMenu(folderPath, anchorOrPoint) {
@@ -611,9 +616,12 @@ async function showChildFoldersMenu(folderPath, anchorOrPoint) {
     const items = dirs.map((d) => ({
       label: d.name,
       icon: "📂",
-      checked:
-        state.location.path === d.path ||
-        state.location.path.startsWith(d.path + state.sep),
+      checked: isInside(
+        state.location.path || "",
+        d.path,
+        state.sep,
+        state.sep === "\\",
+      ),
       action: () => goTo(d.path),
     }));
     showMenu(items, {

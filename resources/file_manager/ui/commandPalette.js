@@ -9,7 +9,7 @@ import { openDialog } from "./dialogs.js";
 import { $, clear, h, iconForEntry } from "./dom.js";
 import { swapDualPanes } from "./dual.js";
 import { showHelp, showSettings } from "./extras.js";
-import { labelOf } from "./keymap.js";
+import { hintOf, labelOf } from "./keymap.js";
 import { toast } from "./menus.js";
 import {
   calculateFolderSizes,
@@ -810,13 +810,14 @@ export function buildPaletteCatalog() {
   }
 
   // 5. View, Workspace, Density, Grouping, Kind Filters, Color Tags & Themes
+  const alt = state.platform === "darwin" ? "⌥" : "Alt+";
   add({
     id: "view.ws.files",
     category: "view",
     icon: "🗂️",
     title: "Workspace: Files view",
     subtitle: "Browse files and folders",
-    shortcut: "Alt+1",
+    shortcut: `${alt}1`,
     keywords: "workspace files view",
     run: () => emit("workspace-go", "files"),
   });
@@ -826,7 +827,7 @@ export function buildPaletteCatalog() {
     icon: "🏠",
     title: "Workspace: Home dashboard",
     subtitle: "Quick actions, pinned folders, recent files, and all tools",
-    shortcut: "Alt+2",
+    shortcut: `${alt}2`,
     keywords: "workspace home start dashboard",
     run: () => emit("workspace-go", "home"),
   });
@@ -836,7 +837,7 @@ export function buildPaletteCatalog() {
     icon: "🧰",
     title: "Workspace: Tools view",
     subtitle: "Full-window Power tools and studios",
-    shortcut: "Alt+3",
+    shortcut: `${alt}3`,
     keywords: "workspace tools power",
     run: () => emit("workspace-go", "tools"),
   });
@@ -846,7 +847,7 @@ export function buildPaletteCatalog() {
     icon: "◫",
     title: "Workspace: Split view (Files + Tool)",
     subtitle: "Browse files alongside any Power tool or studio",
-    shortcut: "Alt+4",
+    shortcut: `${alt}4`,
     keywords: "workspace split side by side",
     run: () => emit("workspace-go", "split"),
   });
@@ -856,7 +857,7 @@ export function buildPaletteCatalog() {
     icon: "♊",
     title: "Workspace: Dual-pane commander view",
     subtitle: "Two independent folder panes side by side (F5 copy, F6 move)",
-    shortcut: "Alt+5",
+    shortcut: `${alt}5`,
     keywords: "workspace dual two panes commander",
     run: () => emit("workspace-go", "dual"),
   });
@@ -1359,8 +1360,7 @@ export function openCommandPalette(initialQuery = "") {
         icon: "📂",
         isTypedPath: true,
         title: `Go to path: ${cleanedPath}`,
-        subtitle:
-          "Jump directly to this folder or file path (Mod+Enter for new tab)",
+        subtitle: `Jump directly to this folder or file path (${state.platform === "darwin" ? "⌘Enter" : "Ctrl+Enter"} for new tab)`,
         shortcut: "Enter",
         run: () => navigateTypedPath(cleanedPath, { inNewTab: false }),
         runNewTab: () => navigateTypedPath(cleanedPath, { inNewTab: true }),
@@ -1495,7 +1495,11 @@ export function openCommandPalette(initialQuery = "") {
     h(
       "div",
       { class: "cp-footer" },
-      h("span", {}, "↑↓ move · Enter run · Mod+Enter new tab · Esc close"),
+      h(
+        "span",
+        {},
+        `↑↓ move · Enter run · ${state.platform === "darwin" ? "⌘Enter" : "Ctrl+Enter"} new tab · Esc close`,
+      ),
       h("span", {}, "Prefixes: > actions · @ places · ? tools · + templates"),
     ),
   );
@@ -1513,6 +1517,12 @@ export function openCommandPalette(initialQuery = "") {
 
 export function wireCommandPalette() {
   const btn = $("#viewbar-palette");
+  const syncTitle = () => {
+    if (btn)
+      btn.title = `Open the Command Palette & Quick Jump${hintOf("app.commandPalette")}`;
+  };
+  syncTitle();
+  on("settings", syncTitle);
   btn?.addEventListener("click", () => openCommandPalette());
   on("command-palette", (q) =>
     openCommandPalette(typeof q === "string" ? q : ""),

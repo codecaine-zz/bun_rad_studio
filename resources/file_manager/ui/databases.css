@@ -46,6 +46,12 @@
   gap: 0;
   overflow: hidden;
 }
+#app.power-max:not(.db-studio-max)
+  .db-root[data-view="studio"]
+  .db-studio
+  > .db-studio-head {
+  padding-top: 2.85rem;
+}
 .db-root[data-view="studio"] > .db-studio-area {
   flex: 1 1 auto;
   min-height: 0;

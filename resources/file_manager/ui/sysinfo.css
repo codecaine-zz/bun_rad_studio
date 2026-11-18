@@ -5,6 +5,9 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .sys-header-row {
@@ -155,6 +158,8 @@
 .sys-table-wrap {
   max-height: 28rem;
   overflow: auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .sys-table thead th {

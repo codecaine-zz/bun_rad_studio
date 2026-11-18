@@ -1,12 +1,19 @@
 /* Styles of the Subdomains tool. Every class starts with .subs- to stay out of the way of the other tools. */
 .subs-root {
   gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .subs-card {
   min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .subs-grow {
   flex: 1 1 260px;
+  min-width: 0;
+  max-width: 100%;
 }
 .subs-grow > input {
   width: 100%;
@@ -63,16 +70,36 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
 }
 .subs-source {
   display: grid;
-  grid-template-columns: minmax(150px, 220px) 1fr;
+  grid-template-columns: minmax(min(130px, 45%), 220px) minmax(0, 1fr);
   gap: 2px 12px;
   align-items: start;
   padding: 6px 8px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--bg);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+.subs-source > * {
+  min-width: 0;
+  max-width: 100%;
+}
+@container power (max-width: 480px) {
+  .subs-source {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .subs-source {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .subs-source-state {
   grid-column: 1 / -1;

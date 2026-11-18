@@ -101,6 +101,9 @@
     var(--ollama-sunken);
   scrollbar-width: thin;
   accent-color: var(--ollama-accent);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .ollama-suite > *,
@@ -299,6 +302,9 @@
   background: var(--ollama-panel);
   border: 1px solid var(--ollama-border);
   color: var(--ollama-text);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .ollama-card-title {
@@ -316,6 +322,11 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+.ollama-row > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .ollama-input,
@@ -328,6 +339,9 @@
   padding: 6px 9px;
   font-size: 12px;
   font-family: inherit;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .ollama-input::placeholder,

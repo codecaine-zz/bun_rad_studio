@@ -6,6 +6,7 @@ import { call, rawUrl } from "./api.js";
 import { debounce, h } from "./dom.js";
 import { showMenu, toast } from "./menus.js";
 import { registerOpener } from "./openwith.js";
+import { isInside, resolveLocalMediaPath } from "./util.js";
 import {
   activePowerTab,
   openPower,
@@ -65,6 +66,7 @@ import { renderTabs, renderWelcome, wireTabKeys } from "./codeTabs.js";
 import { createCodeAiChat } from "./codeAiChat.js";
 
 const docs = createDocs();
+let activeCleanup = null;
 
 /** True when any open file has changes that aren't saved (the File Manager asks before closing). */
 export const codeHasUnsaved = () => docs.anyDirty();
@@ -258,6 +260,8 @@ const MENUS = {
 };
 
 function mount(root) {
+  activeCleanup?.();
+  docs.reset();
   root.classList.add("code-root");
   const settings = () => docs.settings;
   const doc = () => docs.active;
@@ -500,7 +504,7 @@ function mount(root) {
       actions.invalidateFiles();
       docs
         .list()
-        .filter((d) => d.path === path || d.path.startsWith(path + state.sep))
+        .filter((d) => isInside(d.path, path, state.sep, state.sep === "\\"))
         .forEach((d) => docs.close(d.id));
     },
     onRootChanged: (r) => {
@@ -864,9 +868,14 @@ function mount(root) {
     crumbs.hidden = !d;
     if (!d) return;
     const items = [];
+    const rootPrefix = explorer.root?.endsWith(state.sep)
+      ? explorer.root
+      : `${explorer.root}${state.sep}`;
     const rel =
-      d.path && explorer.root && d.path.startsWith(explorer.root + state.sep)
-        ? d.path.slice(explorer.root.length + 1)
+      d.path &&
+      explorer.root &&
+      isInside(d.path, explorer.root, state.sep, state.sep === "\\")
+        ? d.path.slice(rootPrefix.length) || d.name
         : d.path || d.name;
     const parts = rel.split(/[\\/]/).filter(Boolean);
     parts.slice(-4).forEach((seg, idx, arr) => {
@@ -1011,8 +1020,7 @@ function mount(root) {
           {
             type: "button",
             class: "code-crumb-pill code-crumb-ai",
-            title:
-              "Open AI Code Chat (LM Studio Bionic & Ollama) for this file or selection (Mod+Shift+I)",
+            title: `Open AI Code Chat (LM Studio Bionic & Ollama) for this file or selection (${shortcutText("aiChat", state.platform)})`,
             onclick: () => {
               if (!aiChatOn) app.toggleAiChat();
               else aiChat.focusInput();
@@ -1240,54 +1248,16 @@ function mount(root) {
   const slugifyHeading = slugifyMarkdownHeading;
 
   function resolveLocalImageSrc(d, rawSrc) {
-    const s = String(rawSrc ?? "").trim();
-    if (
-      !s ||
-      (/^[a-z][a-z0-9+.-]*:/i.test(s) &&
-        !/^file:\/\//i.test(s) &&
-        !/^[A-Za-z]:[\\/]/.test(s))
-    )
-      return "";
-    let clean = s.split("#")[0].split("?")[0];
-    try {
-      clean = decodeURIComponent(clean);
-    } catch {}
-    if (/^file:\/\//i.test(clean)) {
-      try {
-        clean = decodeURIComponent(new URL(clean).pathname);
-      } catch {
-        return "";
-      }
-    }
-    const sep = state.sep || "/";
-    const baseDir = d?.path
-      ? d.path.slice(
-          0,
-          Math.max(d.path.lastIndexOf("/"), d.path.lastIndexOf("\\")),
-        ) || d.path
-      : explorer.root ||
+    const resolved = resolveLocalMediaPath(
+      rawSrc,
+      d?.path,
+      explorer.root ||
         (state.location.kind === "folder" && state.location.path) ||
         state.home ||
-        "";
-    const isAbs = clean.startsWith("/") || /^[A-Za-z]:[\\/]/.test(clean);
-    const joined = isAbs ? clean : `${baseDir}${sep}${clean}`;
-    const driveMatch = /^[A-Za-z]:/.exec(joined);
-    const prefix = driveMatch
-      ? driveMatch[0]
-      : joined.startsWith("/")
-        ? ""
-        : "";
-    const parts = joined.slice(prefix.length).split(/[\\/]+/);
-    const norm = [];
-    for (const part of parts) {
-      if (!part || part === ".") continue;
-      if (part === "..") norm.pop();
-      else norm.push(part);
-    }
-    const resolved = prefix
-      ? `${prefix}${sep}${norm.join(sep)}`
-      : `${sep}${norm.join(sep)}`;
-    return rawUrl(resolved);
+        "",
+      state.sep || "/",
+    );
+    return resolved ? rawUrl(resolved) : "";
   }
 
   function jumpToHeadingInDoc(targetDoc, rawFrag) {
@@ -1897,7 +1867,7 @@ function mount(root) {
   );
   const aiChatBtn = quick(
     "🤖 AI Chat",
-    "Show or hide the AI Code Chat assistant (LM Studio Bionic & Ollama) — Mod+Shift+I",
+    `Show or hide the AI Code Chat assistant (LM Studio Bionic & Ollama) — ${shortcutText("aiChat", state.platform)}`,
     () => commands.run("aiChat"),
     { class: "code-btn code-tog", "aria-pressed": "false" },
   );
@@ -2093,41 +2063,39 @@ function mount(root) {
     const id = commandForEvent(e, state.platform);
     if (id && commands.run(id)) e.preventDefault();
   });
-  window.addEventListener("beforeunload", (e) => {
+  const onBeforeUnload = (e) => {
     if (docs.anyDirty()) {
       e.preventDefault();
       e.returnValue = "";
     }
-  });
+  };
+  window.addEventListener("beforeunload", onBeforeUnload);
 
   const visible = () => powerIsOpen() && activePowerTab() === "code";
   // Esc also leaves zen mode when the keyboard focus is outside the editor (after clicking a button, say). Without this the
   // key would reach the File Manager and close the whole Tools view while the editor stayed in zen mode.
-  document.addEventListener(
-    "keydown",
-    (e) => {
-      if (
-        !zen ||
-        e.key !== "Escape" ||
-        e.defaultPrevented ||
-        e.shiftKey ||
-        e.ctrlKey ||
-        e.metaKey ||
-        e.altKey
-      )
-        return;
-      if (
-        root.contains(e.target) ||
-        !visible() ||
-        document.querySelector(".modal-backdrop, .menu")
-      )
-        return;
-      e.preventDefault();
-      e.stopPropagation();
-      commands.run("zen");
-    },
-    true,
-  );
+  const onDocKeydown = (e) => {
+    if (
+      !zen ||
+      e.key !== "Escape" ||
+      e.defaultPrevented ||
+      e.shiftKey ||
+      e.ctrlKey ||
+      e.metaKey ||
+      e.altKey
+    )
+      return;
+    if (
+      root.contains(e.target) ||
+      !visible() ||
+      document.querySelector(".modal-backdrop, .menu")
+    )
+      return;
+    e.preventDefault();
+    e.stopPropagation();
+    commands.run("zen");
+  };
+  document.addEventListener("keydown", onDocKeydown, true);
   async function checkDisk() {
     if (!visible() || !docs.list().length) return;
     const r = await docs.checkExternal();
@@ -2139,7 +2107,7 @@ function mount(root) {
   }
   window.addEventListener("focus", checkDisk);
 
-  docs.subscribe((kind) => {
+  const unsubDocs = docs.subscribe((kind) => {
     if (kind === "tabs" || kind === "active") showActive();
     else if (kind === "recents") {
       if (!doc()) showActive();
@@ -2189,6 +2157,16 @@ function mount(root) {
     showActive();
   }
 
+  function dispose() {
+    window.removeEventListener("beforeunload", onBeforeUnload);
+    document.removeEventListener("keydown", onDocKeydown, true);
+    window.removeEventListener("focus", checkDisk);
+    unsubDocs();
+    docs.reset();
+    if (activeCleanup === dispose) activeCleanup = null;
+  }
+  activeCleanup = dispose;
+
   return {
     async show(opts) {
       try {
@@ -2224,6 +2202,7 @@ function mount(root) {
       saveScroll();
       docs.persistNow();
     },
+    dispose,
   };
 }
 

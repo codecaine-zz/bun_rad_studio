@@ -9,6 +9,7 @@ import { currentPath } from "./pane.js";
 import { closePower, registerPowerTab } from "./power.js";
 import { selectedEntries } from "./selection.js";
 import { on, state } from "./state.js";
+import { isAbsolutePath, isWindowsPath, parentOf } from "./util.js";
 
 const uiState = {
   subTab: "assistant", // "assistant" | "decision" | "speech" | "meaning" | "models"
@@ -1296,37 +1297,34 @@ function createAudioPlayerEl(audioUrl) {
 }
 
 function currentFolderRel() {
-  return currentPath() || state.location?.path || state.home || "/";
+  return (
+    currentPath() ||
+    state.location?.path ||
+    state.home ||
+    (state.sep === "\\" ? "C:\\" : "/")
+  );
 }
 
 function resolveMatchTargetPaths(m) {
   const sep = state.sep || "/";
-  const baseDir = (
-    currentPath() ||
-    state.location?.path ||
-    state.home ||
-    "/"
-  ).replace(/[\\/]+$/, "");
+  const baseDir = currentFolderRel();
+  const basePrefix =
+    baseDir.length > 1 && !/^[A-Za-z]:\\$/.test(baseDir)
+      ? baseDir.replace(/[\\/]+$/, "")
+      : baseDir;
   const rawFile = String(m.absPath || m.path || "").trim();
-  const isAbs = rawFile.startsWith("/") || /^[A-Za-z]:[\\/]/.test(rawFile);
-  const fullFilePath = isAbs
+  const fullFilePath = isAbsolutePath(rawFile)
     ? rawFile
     : rawFile
-      ? `${baseDir}${sep}${rawFile.replace(/^[.][\\/]/, "")}`
+      ? `${basePrefix.endsWith(sep) ? basePrefix : `${basePrefix}${sep}`}${rawFile.replace(/^[.][\\/]/, "")}`
       : baseDir;
 
   const rawFolder = String(m.folderPath || "").trim();
-  const isFolderAbs =
-    rawFolder.startsWith("/") || /^[A-Za-z]:[\\/]/.test(rawFolder);
-  if (isFolderAbs) {
+  if (isAbsolutePath(rawFolder)) {
     return { folderPath: rawFolder, filePath: fullFilePath };
   }
-  const lastSlash = Math.max(
-    fullFilePath.lastIndexOf("/"),
-    fullFilePath.lastIndexOf("\\"),
-  );
   const folderPath =
-    lastSlash > 0 ? fullFilePath.slice(0, lastSlash) : baseDir || "/";
+    parentOf(fullFilePath, isWindowsPath(fullFilePath) ? "\\" : "/") || baseDir;
   return { folderPath, filePath: fullFilePath };
 }
 

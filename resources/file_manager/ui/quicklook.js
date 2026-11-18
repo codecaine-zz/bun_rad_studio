@@ -41,7 +41,10 @@ import {
   formatDate,
   formatSize,
   isDocumentPackageEntry,
+  isWindowsPath,
+  parentOf,
   plural,
+  resolveLocalMediaPath,
 } from "./util.js";
 
 const DEFAULT_FOOT =
@@ -197,47 +200,13 @@ function failed(entry, what) {
 }
 
 function resolveQuickLookImageSrc(entry, rawSrc) {
-  const s = String(rawSrc ?? "").trim();
-  if (
-    !s ||
-    (/^[a-z][a-z0-9+.-]*:/i.test(s) &&
-      !/^file:\/\//i.test(s) &&
-      !/^[A-Za-z]:[\\/]/.test(s))
-  )
-    return "";
-  let clean = s.split("#")[0].split("?")[0];
-  try {
-    clean = decodeURIComponent(clean);
-  } catch {}
-  if (/^file:\/\//i.test(clean)) {
-    try {
-      clean = decodeURIComponent(new URL(clean).pathname);
-    } catch {
-      return "";
-    }
-  }
-  const sep = state.sep || "/";
-  const baseDir = entry?.path
-    ? entry.path.slice(
-        0,
-        Math.max(entry.path.lastIndexOf("/"), entry.path.lastIndexOf("\\")),
-      ) || entry.path
-    : state.home || "";
-  const isAbs = clean.startsWith("/") || /^[A-Za-z]:[\\/]/.test(clean);
-  const joined = isAbs ? clean : `${baseDir}${sep}${clean}`;
-  const driveMatch = /^[A-Za-z]:/.exec(joined);
-  const prefix = driveMatch ? driveMatch[0] : "";
-  const parts = joined.slice(prefix.length).split(/[\\/]+/);
-  const norm = [];
-  for (const part of parts) {
-    if (!part || part === ".") continue;
-    if (part === "..") norm.pop();
-    else norm.push(part);
-  }
-  const resolved = prefix
-    ? `${prefix}${sep}${norm.join(sep)}`
-    : `${sep}${norm.join(sep)}`;
-  return rawUrl(resolved);
+  const resolved = resolveLocalMediaPath(
+    rawSrc,
+    entry?.path,
+    state.home || "",
+    state.sep || "/",
+  );
+  return resolved ? rawUrl(resolved) : "";
 }
 
 async function openQuickLookMarkdownLink(entry, rawHref) {
@@ -287,10 +256,9 @@ async function openQuickLookMarkdownLink(entry, rawHref) {
     return;
   }
   const baseDir = entry?.path
-    ? entry.path.slice(
-        0,
-        Math.max(entry.path.lastIndexOf("/"), entry.path.lastIndexOf("\\")),
-      ) || entry.path
+    ? parentOf(entry.path, isWindowsPath(entry.path) ? "\\" : "/") ||
+      state.home ||
+      ""
     : state.home || "";
   try {
     const resolved = await call("typedpath", {

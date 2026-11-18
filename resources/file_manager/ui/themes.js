@@ -29,6 +29,7 @@ import {
 import { toast } from "./menus.js";
 import { refresh, saveSettings } from "./nav.js";
 import { currentPath, emit, on, state } from "./state.js";
+import { baseName, isWindowsPath } from "./util.js";
 
 /** Interactive File Manager UI element shaders for folders, toolbars, breadcrumbs, and rows. */
 export const UI_ELEMENT_FX_OPTIONS = [
@@ -16521,7 +16522,8 @@ export async function showThemeShareDialog(initialKey = "", existingThemes) {
                     );
                     return;
                   }
-                  const folderName = dir.split("/").pop() || dir;
+                  const folderName =
+                    baseName(dir, isWindowsPath(dir) ? "\\" : "/") || dir;
                   if (collectedThemes.length > 0) {
                     importBox.value = JSON.stringify(
                       {

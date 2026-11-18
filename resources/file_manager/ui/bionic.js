@@ -94,7 +94,12 @@ let promptTextareaEl = null;
 let speechTextareaEl = null;
 
 function currentFolderRel() {
-  return currentPath() || state.location?.path || state.home || "/";
+  return (
+    currentPath() ||
+    state.location?.path ||
+    state.home ||
+    (state.sep === "\\" ? "C:\\" : "/")
+  );
 }
 
 function selectedFilePaths() {

@@ -7,6 +7,13 @@
   overflow-y: auto;
   height: 100%;
   box-sizing: border-box;
+  min-width: 0;
+}
+#app.power-max .power-pane.phonon-studio-root {
+  padding-top: 3rem;
+}
+.phonon-hidden-file-input {
+  display: none;
 }
 
 .phonon-banner-card {
@@ -156,26 +163,31 @@
 
 .phonon-grid-2 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr));
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .phonon-grid-3 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .phonon-grid-4 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(195px, 100%), 1fr));
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .phonon-field {
   display: flex;
   flex-direction: column;
   gap: 0.32rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .phonon-label {
@@ -196,15 +208,28 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.45rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.phonon-inline-row > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .phonon-inline-row > .input,
 .phonon-inline-row > .phonon-select {
   flex: 1 1 190px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .phonon-path-input {
   flex: 1 1 280px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .phonon-cleanup-bar {
@@ -318,7 +343,8 @@
 .phonon-sm-select {
   padding: 0.22rem 0.5rem;
   font-size: 0.78rem;
-  min-width: 145px;
+  min-width: min(145px, 100%);
+  max-width: 100%;
 }
 
 .phonon-teleprompter-stage {

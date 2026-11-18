@@ -152,7 +152,8 @@ export function parentOf(path, sep) {
     return i <= 0 ? "/" : path.slice(0, i);
   }
   const unc = /^\\\\[^\\]+\\[^\\]+/.exec(path);
-  if (unc && path.length === unc[0].length) return null;
+  if (unc && (path.length === unc[0].length || path === `${unc[0]}\\`))
+    return null;
   if (/^[A-Za-z]:\\?$/.test(path)) return null;
   const i = path.lastIndexOf("\\");
   if (i < 0) return null;
@@ -204,6 +205,89 @@ export function isInside(path, folder, sep, ignoreCase = false) {
   const b = ignoreCase ? folder.toLowerCase() : folder;
   if (a === b) return true;
   return a.startsWith(b.endsWith(sep) ? b : b + sep);
+}
+
+/** True when `a` and `b` name the same path (case-insensitive on Windows paths). */
+export function samePath(
+  a,
+  b,
+  ignoreCase = isWindowsPath(String(a || "")) || isWindowsPath(String(b || "")),
+) {
+  if (!a || !b) return false;
+  return ignoreCase
+    ? String(a).toLowerCase() === String(b).toLowerCase()
+    : a === b;
+}
+
+/** True for POSIX `/...`, Windows drive `C:\...` / `C:/...`, or UNC `\\server\share...` paths. */
+export function isAbsolutePath(path) {
+  return (
+    typeof path === "string" &&
+    (path.startsWith("/") ||
+      /^[A-Za-z]:[\\/]/.test(path) ||
+      path.startsWith("\\\\"))
+  );
+}
+
+/** Resolves a local image or link reference inside a file (`baseFilePath`) across POSIX, Windows drive, and UNC paths. */
+export function resolveLocalMediaPath(
+  rawSrc,
+  baseFilePath,
+  fallbackDir = "",
+  defaultSep = "/",
+) {
+  const s = String(rawSrc ?? "").trim();
+  if (
+    !s ||
+    (/^[a-z][a-z0-9+.-]*:/i.test(s) &&
+      !/^file:\/\//i.test(s) &&
+      !/^[A-Za-z]:[\\/]/.test(s))
+  )
+    return "";
+  let clean = s.split("#")[0].split("?")[0];
+  try {
+    clean = decodeURIComponent(clean);
+  } catch {}
+  if (/^file:\/\//i.test(clean)) {
+    try {
+      const u = new URL(clean);
+      const decoded = decodeURIComponent(u.pathname);
+      clean = u.host
+        ? `\\\\${u.host}${decoded.replace(/\//g, "\\")}`
+        : decoded.replace(/^\/([A-Za-z]:[\\/])/, "$1");
+    } catch {
+      return "";
+    }
+  }
+  const sep =
+    isWindowsPath(clean) ||
+    isWindowsPath(String(baseFilePath || "")) ||
+    defaultSep === "\\"
+      ? "\\"
+      : "/";
+  const baseDir = baseFilePath
+    ? parentOf(baseFilePath, isWindowsPath(baseFilePath) ? "\\" : "/") ||
+      fallbackDir ||
+      sep
+    : fallbackDir || "";
+  const joined = isAbsolutePath(clean)
+    ? clean
+    : baseDir
+      ? joinPath(baseDir, clean, sep)
+      : clean;
+  const uncMatch = /^\\\\[^\\]+\\[^\\]+/.exec(joined);
+  const driveMatch = !uncMatch ? /^[A-Za-z]:/.exec(joined) : null;
+  const prefix = uncMatch ? uncMatch[0] : driveMatch ? driveMatch[0] : "";
+  const parts = joined.slice(prefix.length).split(/[\\/]+/);
+  const norm = [];
+  for (const part of parts) {
+    if (!part || part === ".") continue;
+    if (part === "..") norm.pop();
+    else norm.push(part);
+  }
+  if (uncMatch) return norm.length ? `${prefix}\\${norm.join("\\")}` : prefix;
+  if (driveMatch) return `${prefix}\\${norm.join("\\")}`;
+  return `${sep}${norm.join(sep)}`;
 }
 
 /** The drive or mount that contains `path`: the longest matching entry of `drives`. */
