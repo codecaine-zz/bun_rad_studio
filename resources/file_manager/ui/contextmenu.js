@@ -2,6 +2,7 @@
 import { isStudioPicture } from "./imageStudio.js";
 import { isStudioMedia } from "./mediaStudio.js";
 import { canReadWithPhonon } from "./phonon.js";
+import { canTranscribeWithAi } from "./transcribe.js";
 import { isPlayableOrPlaylist } from "./mediacore.js";
 import { openInMediaDeck } from "./playerDeck.js";
 import { showMenu } from "./menus.js";
@@ -288,6 +289,9 @@ function entryItems(entries) {
     ];
   }
   const extractable = extractableEntries(entries);
+  const transcribable = entries.filter(
+    (x) => !x.isDir && canTranscribeWithAi(x),
+  );
   const clip = !!state.clipboard;
   const convertible = entries.length > 0;
   return [
@@ -418,6 +422,29 @@ function entryItems(entries) {
           tip: "Transcribe this audio or video file to Markdown, TXT, SRT, or JSON using Bionic's ExecuTorch Whisper Metal ASR engine.",
           action: () =>
             openPower("bionic", { subTab: "speech_asr", paths: [e.path] }),
+        }
+      : null,
+    transcribable.length > 0
+      ? {
+          label: "Transcribe Audio to Text…",
+          icon: "🎙️",
+          tip: "Open Audio-to-Text AI Studio with the selected audio or video file(s) queued for Whisper ASR transcription.",
+          action: () =>
+            openPower("transcribe", {
+              paths: transcribable.map((x) => x.path),
+            }),
+        }
+      : null,
+    transcribable.length > 0
+      ? {
+          label: "Generate Subtitles (.SRT)",
+          icon: "💬",
+          tip: "Open Audio-to-Text AI Studio in SubRip (.srt) subtitle mode for the selected audio or video file(s).",
+          action: () =>
+            openPower("transcribe", {
+              paths: transcribable.map((x) => x.path),
+              format: "srt",
+            }),
         }
       : null,
     one && canReadWithPhonon(e)

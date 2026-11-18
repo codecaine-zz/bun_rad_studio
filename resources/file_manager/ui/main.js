@@ -56,6 +56,7 @@ import "./cliUtils.js";
 import "./tasks.js";
 import "./sysinfo.js";
 import "./phonon.js";
+import "./transcribe.js";
 import "./ollama.js";
 import "./bionic.js";
 import "./games.js";

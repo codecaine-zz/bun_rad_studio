@@ -22,6 +22,7 @@ import { showOperationHistory } from "./opHistory.js";
 import * as ops from "./ops.js";
 import { activePane, currentPath } from "./pane.js";
 import { isPhononSupported } from "./phonon.js";
+import { canTranscribeWithAi } from "./transcribe.js";
 import { listPowerTabs, openPower } from "./power.js";
 import {
   KIND_CHIP_DEFS,
@@ -432,6 +433,44 @@ export function buildPaletteCatalog() {
       run: () => openPower("phonon"),
     });
   }
+  add({
+    id: "act.transcribeAudio",
+    category: "actions",
+    icon: "🎙️",
+    title: "Audio to Text: Transcribe Selected Audio/Video or Mic…",
+    subtitle:
+      "Transcribe selected audio/video files or record microphone speech to Markdown, TXT, SRT, VTT, LRC, or JSON",
+    keywords:
+      "transcribe audio speech to text stt asr whisper microphone dictation markdown txt json",
+    run: () => {
+      const media = selectedEntries(activePane()).filter(
+        (e) => !e.isDir && canTranscribeWithAi(e),
+      );
+      openPower(
+        "transcribe",
+        media.length ? { paths: media.map((e) => e.path) } : undefined,
+      );
+    },
+  });
+  add({
+    id: "act.transcribeSubtitles",
+    category: "actions",
+    icon: "💬",
+    title: "Audio to Text: Generate Subtitles (.SRT / .VTT)",
+    subtitle:
+      "Open Audio-to-Text AI Studio in SubRip (.srt) subtitle mode for the selected audio or video files",
+    keywords:
+      "subtitles captions srt vtt lrc transcribe video audio whisper speech to text",
+    run: () => {
+      const media = selectedEntries(activePane()).filter(
+        (e) => !e.isDir && canTranscribeWithAi(e),
+      );
+      openPower("transcribe", {
+        format: "srt",
+        ...(media.length ? { paths: media.map((e) => e.path) } : {}),
+      });
+    },
+  });
   add({
     id: "act.lock",
     category: "actions",

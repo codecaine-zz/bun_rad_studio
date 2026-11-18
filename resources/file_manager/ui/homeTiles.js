@@ -48,6 +48,8 @@ const TOOL_TEXT = {
     "System Information and hardware telemetry: live CPU, RAM, storage, GPU, network, USB, battery and OS details with deep system probes and report export.",
   phonon:
     "Read text and documents out loud with Ollama Phonon neural voices, convert formats to plain text, set your default voice, and save as any audio file format.",
+  transcribe:
+    "Transcribe audio and video files or live microphone speech into Markdown, plain text, SRT/VTT subtitles, LRC lyrics, or JSON with interactive timestamps and AI summaries.",
   ollama:
     "Built-In Ollama AI Assistant & Full Capability Router: chat, deep thinking, vision, SystemOne decision, cross-platform text-to-audio speech LLMs, meaning search, web search, and 1-click auto-install.",
   bionic:

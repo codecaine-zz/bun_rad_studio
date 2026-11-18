@@ -12,10 +12,11 @@ import { tagsSection } from "./tags.js";
 import { $, clear, h, placeIconFor } from "./dom.js";
 import { goTo, showTrash } from "./nav.js";
 import * as ops from "./ops.js";
-import { openPower } from "./power.js";
+import { activePowerTab, openPower } from "./power.js";
 import { selectedEntries } from "./selection.js";
 import { openNewTab } from "./tabs.js";
 import { canReadWithPhonon, isPhononSupported } from "./phonon.js";
+import { canTranscribeWithAi } from "./transcribe.js";
 import { emit, inTrash, on, state } from "./state.js";
 import { driveFor, formatSize, plural } from "./util.js";
 
@@ -215,6 +216,27 @@ export function renderSidebar() {
       );
     }
   }
+  places.push(
+    sideItem({
+      icon: "🎙️",
+      label: "Audio to Text",
+      placeId: "transcribe",
+      title:
+        "Audio-to-Text AI Studio — Transcribe audio & video files or live microphone speech to Markdown, TXT, SRT, VTT, LRC, or JSON with timestamps and AI summaries",
+      active:
+        state.powerOpen &&
+        (state.powerTab === "transcribe" || activePowerTab() === "transcribe"),
+      onClick: () => {
+        const media = selectedEntries().filter(
+          (e) => !e.isDir && canTranscribeWithAi(e),
+        );
+        openPower(
+          "transcribe",
+          media.length ? { paths: media.map((e) => e.path) } : undefined,
+        );
+      },
+    }),
+  );
   places.push(
     sideItem({
       icon: "🤖",

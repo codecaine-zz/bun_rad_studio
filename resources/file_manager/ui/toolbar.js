@@ -8,6 +8,7 @@ import { showRecentsMenu } from "./recents.js";
 import { showToolsDialog } from "./tools.js";
 import { openPower, togglePower } from "./power.js";
 import { canReadWithPhonon, isPhononSupported } from "./phonon.js";
+import { canTranscribeWithAi } from "./transcribe.js";
 import { lockSelection } from "./vault.js";
 import { showOperationHistory } from "./opHistory.js";
 import { $, buttonIconFor, clear, h } from "./dom.js";
@@ -396,6 +397,22 @@ function buttonSpecs() {
             },
           ]
         : []),
+      {
+        id: "transcribe",
+        icon: "🎙️",
+        label: "Audio to Text",
+        tip: "Open Audio-to-Text AI Studio: transcribe audio & video files or live microphone speech into Markdown, TXT, SRT, VTT, LRC, or JSON with timestamps and AI summaries",
+        run: () => {
+          const media = selectedEntries().filter(
+            (e) => !e.isDir && canTranscribeWithAi(e),
+          );
+          openPower(
+            "transcribe",
+            media.length ? { paths: media.map((e) => e.path) } : undefined,
+          );
+        },
+        enabled: () => true,
+      },
       {
         id: "tools",
         icon: "🧰",
@@ -949,6 +966,18 @@ export function wireToolbar() {
         );
       });
     }
+  }
+  const vbTranscribe = $("#viewbar-transcribe");
+  if (vbTranscribe) {
+    vbTranscribe.addEventListener("click", () => {
+      const media = selectedEntries().filter(
+        (e) => !e.isDir && canTranscribeWithAi(e),
+      );
+      openPower(
+        "transcribe",
+        media.length ? { paths: media.map((e) => e.path) } : undefined,
+      );
+    });
   }
   const refreshAll = () => {
     if (inTrash()) renderBanner();
