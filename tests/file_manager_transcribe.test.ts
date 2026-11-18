@@ -883,7 +883,10 @@ exit 0
       const macStatus = await getTranscribeStatus(macUnbundledCtx);
       const macNative = macStatus.engines.find((e) => e.id === "os-native");
       expect(macNative!.label).toBe("macOS Speech Recognition");
-      if (!isMacOsSpeechBundleAuthorized(process.execPath)) {
+      if (
+        process.platform === "darwin" &&
+        !isMacOsSpeechBundleAuthorized(process.execPath)
+      ) {
         expect(macNative!.available).toBe(false);
         expect(macNative!.path).toBeNull();
         expect(macNative!.detail).toBe(
@@ -899,6 +902,12 @@ exit 0
             "Requires .app bundle speech permission",
           ),
         });
+      } else if (!isMacOsSpeechBundleAuthorized(process.execPath)) {
+        expect(macNative!.available).toBe(false);
+        expect(macNative!.path).toBeNull();
+        expect(macNative!.detail).toMatch(
+          /Requires (\.app bundle speech permission|macOS with Swift CLI)/,
+        );
       }
 
       // macOS explicit test toolDirs with mock swift binary enables os-native cleanly
