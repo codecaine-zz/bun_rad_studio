@@ -1,8 +1,8 @@
 {
   "suite": "Codecaine Utility Suite",
   "version": "1.6.1",
-  "generatedAt": "2026-11-16T02:03:22.035Z",
-  "totalWrappers": 336,
+  "generatedAt": "2026-11-18T20:01:52.138Z",
+  "totalWrappers": 338,
   "commands": [
     {
       "name": "codecaine",
@@ -1187,6 +1187,22 @@
       "category": "CLI Utilities",
       "description": "Command-line terminal utility for Tr",
       "targetScript": "cli_apps/tr_cli.ts"
+    },
+    {
+      "name": "codecaine-transcribe",
+      "type": "cli",
+      "displayName": "Transcribe CLI",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Transcribe",
+      "targetScript": "cli_apps/transcribe_cli.ts"
+    },
+    {
+      "name": "codecaine-transcribe-cli",
+      "type": "cli",
+      "displayName": "Transcribe CLI (CLI)",
+      "category": "CLI Utilities",
+      "description": "Command-line terminal utility for Transcribe",
+      "targetScript": "cli_apps/transcribe_cli.ts"
     },
     {
       "name": "codecaine-tts",
