@@ -807,7 +807,6 @@ function mountTranscribeStudio(root) {
   const resultsTabsEl = h("div", {
     id: "transcribe-result-tabs",
     class: "transcribe-result-tabs",
-    role: "tablist",
     "aria-label": "Transcribed files",
     hidden: true,
     onkeydown: (e) => {
@@ -930,7 +929,6 @@ function mountTranscribeStudio(root) {
     {
       id: "transcribe-result-panel",
       class: "transcribe-result-panel",
-      role: "tabpanel",
     },
     h(
       "div",
@@ -1289,7 +1287,14 @@ function mountTranscribeStudio(root) {
     const hasResults = results.length > 0;
     resultsEmptyEl.hidden = hasResults;
     resultsBodyEl.hidden = !hasResults;
-    if (!hasResults) return;
+    if (!hasResults) {
+      clear(resultsTabsEl);
+      resultsTabsEl.hidden = true;
+      resultsTabsEl.removeAttribute("role");
+      resultPanelEl.removeAttribute("role");
+      resultPanelEl.removeAttribute("aria-labelledby");
+      return;
+    }
 
     if (activeResultIndex < 0 || activeResultIndex >= results.length) {
       activeResultIndex = 0;
@@ -1298,8 +1303,10 @@ function mountTranscribeStudio(root) {
 
     // Multi-file result tabs
     clear(resultsTabsEl);
-    resultsTabsEl.hidden = results.length <= 1;
-    if (results.length > 1) {
+    const hasMultiTabs = results.length > 1;
+    resultsTabsEl.hidden = !hasMultiTabs;
+    if (hasMultiTabs) {
+      resultsTabsEl.setAttribute("role", "tablist");
       results.forEach((item, idx) => {
         const label =
           item.fileName || mediaBaseName(item.sourcePath) || `File ${idx + 1}`;
@@ -1322,11 +1329,14 @@ function mountTranscribeStudio(root) {
           ),
         );
       });
+      resultPanelEl.setAttribute("role", "tabpanel");
       resultPanelEl.setAttribute(
         "aria-labelledby",
         `transcribe-result-tab-${activeResultIndex}`,
       );
     } else {
+      resultsTabsEl.removeAttribute("role");
+      resultPanelEl.removeAttribute("role");
       resultPanelEl.removeAttribute("aria-labelledby");
     }
 

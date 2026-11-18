@@ -347,6 +347,11 @@
   gap: 0.4rem;
 }
 
+.transcribe-results-body[hidden],
+.transcribe-result-tabs[hidden] {
+  display: none;
+}
+
 .transcribe-result-tab {
   padding: 0.26rem 0.65rem;
   border-radius: 999px;

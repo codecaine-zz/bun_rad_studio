@@ -691,6 +691,11 @@ describe("Audio-to-Text AI Studio UI", () => {
 
     const audioEl = q("#transcribe-audio-player", pane);
     expect(audioEl.getAttribute("src")).toContain(encodeURIComponent(mp3Path));
+    expect(q("#transcribe-result-tabs", pane).hidden).toBe(true);
+    expect(q("#transcribe-result-tabs", pane).hasAttribute("role")).toBe(false);
+    expect(q("#transcribe-result-panel", pane).hasAttribute("role")).toBe(
+      false,
+    );
 
     // Segments rendered with [MM:SS.s] stamps
     const segBtns = qa(".transcribe-seg-btn", pane);
