@@ -229,9 +229,9 @@ Sample output:
 ```text
 🩺 Codecaine Utility Suite Health Check:
 ──────────────────────────────────────────────────────────
-  • Suite Version:      v1.6.1
+  • Suite Version:      v1.6.2
   • Install Method:     homebrew-formula
-  • Install Root:       /opt/homebrew/Cellar/codecaine-utility-suite/1.6.1/libexec
+  • Install Root:       /opt/homebrew/Cellar/codecaine-utility-suite/1.6.2/libexec
   • Bun Runtime:        ✔ v1.4.4 (darwin-arm64)
   • Detected Catalog:   ✔ 215 tools (108 GUI Studios, 80 CLI Tools, 27 Demos)
   • Global PATH:        ✔ /opt/homebrew/bin/codecaine

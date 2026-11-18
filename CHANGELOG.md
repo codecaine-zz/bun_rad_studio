@@ -1,6 +1,20 @@
 # Changelog
 
-All notable changes. Version 1.6.1 is the twenty-eighth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9, 1.5.0, 1.5.1, 1.5.2, 1.5.3, 1.5.4, 1.5.7, 1.5.8, 1.5.9 and 1.6.0 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.6.2 is the twenty-ninth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9, 1.5.0, 1.5.1, 1.5.2, 1.5.3, 1.5.4, 1.5.7, 1.5.8, 1.5.9, 1.6.0 and 1.6.1 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.6.2 (18 November 2026)
+
+### Added
+
+- **Built-In Cross-Platform AI Audio-to-Text & Subtitle Studio & `transcribe_cli` (`src/features/filemanager/fmTranscribe.ts`, `src/features/filemanager/fmServer.ts`, `src/features/filemanager/fmOllama.ts`, `src/features/filemanager/fmBionic.ts`, `src/features/filemanager/fmCli.ts`, `resources/file_manager/ui/transcribe.js`, `resources/file_manager/ui/transcribe.css`, `cli_apps/transcribe_cli.ts`).** Add a local 6-tier Audio-to-Text & Subtitle Studio (`whisper-cli`, `python-whisper`, `openai-asr`, `ollama-omni`, `os-native`, and `companion`) inside Codecaine File Manager (`?tool=transcribe`, sidebar/ribbon/command palette/context menu) and as a standalone CLI (`bun run cli:transcribe`, `cli:stt`, `cli:asr`, and `fmCli` `transcribe`/`stt`/`asr` subcommands), supporting batch audio/video transcription, microphone recording transcription, optional `ffmpeg` speech enhancement, Ollama summaries/action items/chapters, and 6 output formats (`md`, `txt`, `srt`, `vtt`, `lrc`, `json`).
+
+### Improved
+
+- **System Information Studio `systeminformation` `v6.0.0-beta.26` Upgrade (All 76 APIs) (`applications/system_studio.ts`, `applications/system_studio_server.ts`, `cli_apps/system_cli.ts`, `src/features/filemanager/fmSysinfo.ts`, `package.json`).** Upgrade `systeminformation` to `^6.0.0-beta.26` and expand System Information Studio, `system_cli`, and File Manager System Info to expose and verify all 76 `systeminformation` hardware, OS, storage, network, USB/Bluetooth/audio/printer, Docker, and VirtualBox telemetry APIs.
+
+### Fixed
+
+- **Cross-Platform CI Test Timing & Async Polling Hardening (`tests/file_manager_code_page.test.ts`, `tests/file_manager_downloads.test.ts`, `tests/file_manager_views.test.ts`, `tests/file_manager_crypto_ui.test.ts`, `tests/file_manager_themes.test.ts`).** Poll async autosave sessions, crypto lock/unlock state, copy-bar mount, theme/random-FX menu updates, and downloads list refreshes deterministically, and increase the 64 MB checksum test timeout for Windows CI runners.
 
 ## 1.6.1 (15 November 2026)
 
