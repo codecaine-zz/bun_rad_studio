@@ -16,10 +16,10 @@ class CodecaineUtilitySuite < Formula
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/codecaine-zz/bun_rad_studio/releases/download/v1.6.3/bun-rad-studio-v1.6.3-macos-arm64.tar.gz"
-      sha256 "521fb196d8e07c7a99dc34b53e5c09212190de942859d00caf78bdc867e59bd6"
+      sha256 "b5e6083166b8ee4acc452dae2f3793c03dd6a2176b21d7a137520d6ff88e20aa"
     else
       url "https://github.com/codecaine-zz/bun_rad_studio/releases/download/v1.6.3/bun-rad-studio-v1.6.3-macos-x64.tar.gz"
-      sha256 "ca8780b673fac8b7a5b54781a58e188c2260cda0faebe53dab992fe98d11cf37"
+      sha256 "59865dfd14614c94a97dd292d9e445d6102b816e4e7fbde79108db6ea6a5eabe"
     end
   end
 
@@ -29,10 +29,10 @@ class CodecaineUtilitySuite < Formula
 
     if Hardware::CPU.arm?
       url "https://github.com/codecaine-zz/bun_rad_studio/releases/download/v1.6.3/bun-rad-studio-v1.6.3-linux-arm64.tar.gz"
-      sha256 "7c18e2ddde4ac7bb9d0415c6c77387f58f1cce1e8bf4647ef583aad4aa02487e"
+      sha256 "34eb1be31149e0770cba17fb343139e77ec477e84e21d9a43d48763a44a5b902"
     else
       url "https://github.com/codecaine-zz/bun_rad_studio/releases/download/v1.6.3/bun-rad-studio-v1.6.3-linux-x64.tar.gz"
-      sha256 "8c33dad64f7282573364140b4b47dd2ce18dc8b40c67c939342e89cd65a21937"
+      sha256 "3c627035f627ea224b3f0718786e138082356bb0debf5adb49effa7e41cb642e"
     end
   end
 
