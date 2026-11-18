@@ -1369,7 +1369,15 @@ describe("the Dual view", () => {
     rowOf("#dual-list", "dest").dispatchEvent(
       new win.MouseEvent("dblclick", { bubbles: true }),
     );
-    await sleep(300);
+    for (
+      let i = 0;
+      i < 60 &&
+      (JSON.stringify(rowNames("#dual-list")) !== JSON.stringify(["c.txt"]) ||
+        (await savedSettings()).dualPath !== dest);
+      i++
+    ) {
+      await sleep(50);
+    }
     expect(rowNames("#dual-list")).toEqual(["c.txt"]);
     expect(rowNames("#list")).toContain("dest");
     clickRow("#dual-list", "c.txt");
@@ -1387,14 +1395,31 @@ describe("the Dual view", () => {
     expect(app().dataset.dualActive).toBe("left");
     let ev = key($("#list"), "F5");
     expect(ev.defaultPrevented).toBe(true);
-    await sleep(600);
+    for (
+      let i = 0;
+      i < 60 &&
+      (!existsSync(join(dest, "a.txt")) ||
+        !rowNames("#dual-list").includes("a.txt"));
+      i++
+    ) {
+      await sleep(50);
+    }
     expect(existsSync(join(dest, "a.txt"))).toBe(true);
     expect(existsSync(join(home, "a.txt"))).toBe(true);
     expect(rowNames("#dual-list")).toEqual(["a.txt", "c.txt"]);
 
     clickRow("#list", "b.txt");
     ev = key($("#list"), "F6");
-    await sleep(600);
+    for (
+      let i = 0;
+      i < 60 &&
+      (!existsSync(join(dest, "b.txt")) ||
+        existsSync(join(home, "b.txt")) ||
+        !rowNames("#dual-list").includes("b.txt"));
+      i++
+    ) {
+      await sleep(50);
+    }
     expect(existsSync(join(dest, "b.txt"))).toBe(true);
     expect(existsSync(join(home, "b.txt"))).toBe(false);
     expect(rowNames("#dual-list")).toEqual(["a.txt", "b.txt", "c.txt"]);
@@ -1415,13 +1440,30 @@ describe("the Dual view", () => {
     clickRow("#dual-list", "c.txt");
     expect(existsSync(join(home, "c.txt"))).toBe(false);
     key(doc.body, "F5");
-    await sleep(600);
+    for (
+      let i = 0;
+      i < 60 &&
+      (!existsSync(join(home, "c.txt")) ||
+        !rowNames("#list").includes("c.txt"));
+      i++
+    ) {
+      await sleep(50);
+    }
     expect(existsSync(join(home, "c.txt"))).toBe(true);
     expect(existsSync(join(dest, "c.txt"))).toBe(true);
     expect(rowNames("#list")).toContain("c.txt");
     clickRow("#dual-list", "b.txt");
     $("#dual-move-left").click();
-    await sleep(600);
+    for (
+      let i = 0;
+      i < 60 &&
+      (!existsSync(join(home, "b.txt")) ||
+        existsSync(join(dest, "b.txt")) ||
+        rowNames("#dual-list").includes("b.txt"));
+      i++
+    ) {
+      await sleep(50);
+    }
     expect(existsSync(join(home, "b.txt"))).toBe(true);
     expect(existsSync(join(dest, "b.txt"))).toBe(false);
     expect(rowNames("#dual-list")).toEqual(["a.txt", "c.txt"]);

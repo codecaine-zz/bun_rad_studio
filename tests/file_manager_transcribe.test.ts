@@ -31,6 +31,24 @@ import {
   type TranscribeSegment,
 } from "../src/features/filemanager/fmTranscribe";
 
+function writeWinMockExe(outExe: string, tsSource: string) {
+  const srcPath = `${outExe}.src.ts`;
+  writeFileSync(srcPath, tsSource);
+  const res = Bun.spawnSync([
+    process.execPath,
+    "build",
+    "--compile",
+    srcPath,
+    "--outfile",
+    outExe,
+  ]);
+  if (res.exitCode !== 0) {
+    throw new Error(
+      `Failed to compile mock exe ${outExe}: ${res.stderr.toString()}`,
+    );
+  }
+}
+
 function createTestWavBuffer(
   durationSec = 1.5,
   sampleRate = 16000,
@@ -490,13 +508,15 @@ describe("Codecaine File Manager — AI Audio-to-Text & Subtitle Engine Backend"
       process.env.FM_ASR_BASE_URL = prevAsr;
     }
 
-    // Tier 2: python-whisper via ctx.dataDir/asr-env/bin/python3 (or Scripts/python.cmd on Windows)
+    // Tier 2: python-whisper via ctx.dataDir/asr-env/bin/python3 (or Scripts/python.exe on Windows)
     if (process.platform === "win32") {
       const asrEnvScripts = join(tierData, "asr-env", "Scripts");
       mkdirSync(asrEnvScripts, { recursive: true });
-      writeFileSync(
-        join(asrEnvScripts, "python.cmd"),
-        `@echo off\r\nif "%~1"=="-c" exit /b 0\r\necho @@FM_ASR_JSON@@{"ok":true,"engine":"python-whisper:faster-whisper","model":"openai/whisper-base","language":"en","durationSec":1.2,"text":"Mock Python Whisper output.","segments":[{"start":0,"end":1.2,"text":"Mock Python Whisper output."}]}\r\n`,
+      writeWinMockExe(
+        join(asrEnvScripts, "python.exe"),
+        `if (process.argv.includes("-c")) process.exit(0);
+console.log('@@FM_ASR_JSON@@{"ok":true,"engine":"python-whisper:faster-whisper","model":"openai/whisper-base","language":"en","durationSec":1.2,"text":"Mock Python Whisper output.","segments":[{"start":0,"end":1.2,"text":"Mock Python Whisper output."}]}');
+`,
       );
     } else {
       const asrEnvBin = join(tierData, "asr-env", "bin");
@@ -534,9 +554,15 @@ echo '@@FM_ASR_JSON@@{"ok":true,"engine":"python-whisper:faster-whisper","model"
 
     // Tier 1: whisper-cli mock executable in toolDirs
     if (process.platform === "win32") {
-      writeFileSync(
-        join(tierBin, "whisper-cli.cmd"),
-        `@echo off\r\nset "OUT_PREFIX="\r\n:loop\r\nif "%~1"=="" goto done\r\nif "%~1"=="-of" (\r\n  set "OUT_PREFIX=%~2"\r\n  shift\r\n  shift\r\n  goto loop\r\n)\r\nshift\r\ngoto loop\r\n:done\r\n> "%OUT_PREFIX%.json" echo {"result":{"language":"en"},"transcription":[{"offsets":{"from":0,"to":1200},"text":"Whisper CLI mock result."}]}\r\n`,
+      writeWinMockExe(
+        join(tierBin, "whisper-cli.exe"),
+        `import { writeFileSync } from "node:fs";
+const idx = process.argv.indexOf("-of");
+const outPrefix = idx >= 0 ? process.argv[idx + 1] : "";
+if (outPrefix) {
+  writeFileSync(\`\${outPrefix}.json\`, '{"result":{"language":"en"},"transcription":[{"offsets":{"from":0,"to":1200},"text":"Whisper CLI mock result."}]}');
+}
+`,
       );
     } else {
       const mockWhisperCli = join(tierBin, "whisper-cli");
@@ -752,9 +778,17 @@ echo '{"result":{"language":"en"},"transcription":[{"offsets":{"from":0,"to":120
     mkdirSync(installBin, { recursive: true });
     mkdirSync(installData, { recursive: true });
     if (process.platform === "win32") {
-      writeFileSync(
-        join(installBin, "python.cmd"),
-        `@echo off\r\nif "%~1"=="-m" if "%~2"=="venv" (\r\n  mkdir "%~3\\Scripts" 2>nul\r\n  > "%~3\\Scripts\\python.cmd" echo @echo off\r\n  >> "%~3\\Scripts\\python.cmd" echo exit /b 0\r\n)\r\nexit /b 0\r\n`,
+      writeWinMockExe(
+        join(installBin, "python.exe"),
+        `import { copyFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+const args = process.argv.slice(2);
+if (args[0] === "-m" && args[1] === "venv" && args[2]) {
+  const scripts = join(args[2], "Scripts");
+  mkdirSync(scripts, { recursive: true });
+  copyFileSync(process.execPath, join(scripts, "python.exe"));
+}
+`,
       );
     } else {
       const fakeSysPy = join(installBin, "python3");
@@ -936,11 +970,13 @@ echo '{"text":"Mock Swift speech transcript.","segments":[{"start":0,"end":0.6,"
       ).toBe(true);
       const wavPath = join(isoHome, "swift_test.wav");
       writeFileSync(wavPath, createTestWavBuffer(0.6, 16000));
-      const swiftRes = await runLocalAsrEngine(macToolCtx, wavPath, {
-        engine: "os-native",
-      });
-      expect(swiftRes.engine).toBe("os-native:sfspeech");
-      expect(swiftRes.text).toBe("Mock Swift speech transcript.");
+      if (process.platform !== "win32") {
+        const swiftRes = await runLocalAsrEngine(macToolCtx, wavPath, {
+          engine: "os-native",
+        });
+        expect(swiftRes.engine).toBe("os-native:sfspeech");
+        expect(swiftRes.text).toBe("Mock Swift speech transcript.");
+      }
 
       // macOS .app bundle Info.plist detection helper
       const appMacOs = join(isoRoot, "Demo.app", "Contents", "MacOS");

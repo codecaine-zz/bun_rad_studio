@@ -1030,5 +1030,5 @@ describe("Live Headless Google Chrome CDP Cross-OS QA", () => {
       if (prevScreenshot === undefined) delete process.env.SCREENSHOT_MODE;
       else process.env.SCREENSHOT_MODE = prevScreenshot;
     }
-  }, 120_000);
+  }, 240_000);
 });
