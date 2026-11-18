@@ -10,7 +10,7 @@ import { currentPath, left, right } from "./pane.js";
 import { openPower, registerPowerTab } from "./power.js";
 import { selectedEntries } from "./selection.js";
 import { emit, state } from "./state.js";
-import { baseName, extensionOf } from "./util.js";
+import { extensionOf } from "./util.js";
 
 export const TRANSCRIBE_MEDIA_EXTS = new Set([
   "mp3",
@@ -50,6 +50,24 @@ const VIDEO_EXTS = new Set([
   "flv",
   "3gp",
   "webm",
+]);
+
+/** Extensions supported by the server's `/api/raw` MEDIA_MIME range streamer for browser `<audio>` playback. */
+const PLAYABLE_MEDIA_EXTS = new Set([
+  "mp3",
+  "wav",
+  "m4a",
+  "aac",
+  "flac",
+  "ogg",
+  "oga",
+  "opus",
+  "weba",
+  "mp4",
+  "m4v",
+  "mov",
+  "webm",
+  "ogv",
 ]);
 
 const ENGINES = [
@@ -100,7 +118,57 @@ const FORMATS = [
   { id: "json", label: "Structured JSON (.json)" },
 ];
 
+const VALID_ENGINE_SET = new Set(ENGINES.map((e) => e.id));
 const VALID_FORMAT_SET = new Set(FORMATS.map((f) => f.id));
+
+/**
+ * Extracts the file or folder base name across POSIX (`/`), Windows (`\`), UNC (`\\server\share\file`),
+ * and mixed-separator paths regardless of `state.sep`.
+ * @param {string | null | undefined} p
+ */
+export function mediaBaseName(p) {
+  const s = String(p ?? "")
+    .trim()
+    .replace(/[\\/]+$/, "");
+  if (!s) return "";
+  const idx = Math.max(s.lastIndexOf("/"), s.lastIndexOf("\\"));
+  return idx >= 0 ? s.slice(idx + 1) : s;
+}
+
+/**
+ * Normalizes a queue path key for deduplication across mixed separators (`/` vs `\`),
+ * applying case-insensitive matching on Windows (`win32`) while preserving case on POSIX.
+ * @param {string | null | undefined} p
+ * @param {string} [platform]
+ */
+export function normalizeQueuePathKey(p, platform = state.platform) {
+  let s = String(p ?? "").trim();
+  if (!s) return "";
+  const isUnc = s.startsWith("\\\\") || s.startsWith("//");
+  s = s.replace(/[\\/]+/g, "/");
+  if (isUnc && !s.startsWith("//")) s = `/${s}`;
+  if (s.length > 1) s = s.replace(/\/+$/, "");
+  return platform === "win32" ? s.toLowerCase() : s;
+}
+
+function isAbsoluteMediaPath(p) {
+  return p.startsWith("/") || /^[A-Za-z]:[\\/]/.test(p) || p.startsWith("\\\\");
+}
+
+/**
+ * Resolves a browser-playable `<audio>` URL for a media path, returning `""` for ephemeral
+ * `microphone://` URIs, non-absolute paths, or containers not served by `/api/raw` (such as `.mkv`).
+ * @param {string | null | undefined} p
+ */
+export function audioUrlFor(p) {
+  const raw = typeof p === "string" ? p.trim() : "";
+  if (!raw || raw.startsWith("microphone://")) return "";
+  if (raw.startsWith("blob:")) return raw;
+  if (!isAbsoluteMediaPath(raw)) return "";
+  const ext = extensionOf(mediaBaseName(raw));
+  if (!PLAYABLE_MEDIA_EXTS.has(ext)) return "";
+  return rawUrl(raw);
+}
 
 /**
  * Returns true if the entry (or path string) is an audio or video file supported by Audio-to-Text AI Studio.
@@ -109,12 +177,22 @@ const VALID_FORMAT_SET = new Set(FORMATS.map((f) => f.id));
 export function canTranscribeWithAi(entry) {
   if (!entry) return false;
   if (typeof entry === "string") {
-    return TRANSCRIBE_MEDIA_EXTS.has(extensionOf(entry));
+    return TRANSCRIBE_MEDIA_EXTS.has(extensionOf(mediaBaseName(entry)));
   }
   if (entry.isDir) return false;
   if (entry.kind === "audio" || entry.kind === "video") return true;
   const nameOrPath = entry.name || entry.path || "";
-  return TRANSCRIBE_MEDIA_EXTS.has(extensionOf(nameOrPath));
+  return TRANSCRIBE_MEDIA_EXTS.has(extensionOf(mediaBaseName(nameOrPath)));
+}
+
+function formatClockTenths(sec) {
+  const clamped = Math.max(0, Number(sec) || 0);
+  const totalTenths = Math.round(clamped * 10);
+  const tenths = totalTenths % 10;
+  const totalSec = Math.floor(totalTenths / 10);
+  const secs = totalSec % 60;
+  const mins = Math.floor(totalSec / 60);
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${tenths}`;
 }
 
 /**
@@ -122,10 +200,7 @@ export function canTranscribeWithAi(entry) {
  * @param {number} sec
  */
 export function formatSegmentStamp(sec) {
-  const s = Math.max(0, Number(sec) || 0);
-  const mins = Math.floor(s / 60);
-  const rem = (s % 60).toFixed(1).padStart(4, "0");
-  return `[${String(mins).padStart(2, "0")}:${rem}]`;
+  return `[${formatClockTenths(sec)}]`;
 }
 
 function formatDurationClock(sec) {
@@ -136,9 +211,9 @@ function formatDurationClock(sec) {
 }
 
 function stemOf(name) {
-  const s = String(name || "transcript");
-  const dot = s.lastIndexOf(".");
-  return dot > 0 ? s.slice(0, dot) : s;
+  const base = mediaBaseName(name) || "transcript";
+  const dot = base.lastIndexOf(".");
+  return dot > 0 ? base.slice(0, dot) : base;
 }
 
 function isDemoMode() {
@@ -277,7 +352,7 @@ function findSelectedMediaPaths() {
 
 function buildFormatSource(r) {
   return {
-    fileName: r.fileName || baseName(r.sourcePath || "transcript", state.sep),
+    fileName: r.fileName || mediaBaseName(r.sourcePath) || "transcript",
     engine: r.engine || "auto",
     model: r.model || "openai/whisper-base",
     language: r.language || "auto",
@@ -332,6 +407,16 @@ function mountTranscribeStudio(root) {
   let busy = false;
   let installing = false;
   let formatSeq = 0;
+  const blobUrls = new Set();
+
+  function revokeBlobUrls() {
+    for (const u of blobUrls) {
+      try {
+        URL?.revokeObjectURL?.(u);
+      } catch {}
+    }
+    blobUrls.clear();
+  }
 
   // Live microphone state
   let recording = false;
@@ -722,7 +807,26 @@ function mountTranscribeStudio(root) {
   const resultsTabsEl = h("div", {
     id: "transcribe-result-tabs",
     class: "transcribe-result-tabs",
+    role: "tablist",
+    "aria-label": "Transcribed files",
     hidden: true,
+    onkeydown: (e) => {
+      if (results.length <= 1) return;
+      let nextIdx = -1;
+      if (e.key === "ArrowRight") {
+        nextIdx = (activeResultIndex + 1) % results.length;
+      } else if (e.key === "ArrowLeft") {
+        nextIdx = (activeResultIndex - 1 + results.length) % results.length;
+      } else if (e.key === "Home") {
+        nextIdx = 0;
+      } else if (e.key === "End") {
+        nextIdx = results.length - 1;
+      }
+      if (nextIdx >= 0) {
+        e.preventDefault();
+        selectResultTab(nextIdx, { focusTab: true });
+      }
+    },
   });
   const resultMetaEl = h("div", { class: "transcribe-status-pills" });
   const audioEl = h("audio", {
@@ -736,6 +840,11 @@ function mountTranscribeStudio(root) {
     { class: "transcribe-pill accent" },
     "🎧 Synchronized Playback",
   );
+  const playerNoteEl = h("span", {
+    id: "transcribe-player-note",
+    class: "transcribe-player-note",
+    hidden: true,
+  });
   const segmentsListEl = h("div", {
     id: "transcribe-segments",
     class: "transcribe-segments-list",
@@ -816,14 +925,13 @@ function mountTranscribeStudio(root) {
     "Transcribed audio segments, synchronized playback, AI summaries, and exportable subtitles (.md, .txt, .srt, .vtt, .lrc, .json) will appear here.",
   );
 
-  const resultsBodyEl = h(
+  const resultPanelEl = h(
     "div",
     {
-      id: "transcribe-results-body",
-      class: "transcribe-results-body",
-      hidden: true,
+      id: "transcribe-result-panel",
+      class: "transcribe-result-panel",
+      role: "tabpanel",
     },
-    resultsTabsEl,
     h(
       "div",
       { class: "transcribe-card-head" },
@@ -834,7 +942,13 @@ function mountTranscribeStudio(root) {
       ),
       resultMetaEl,
     ),
-    h("div", { class: "transcribe-player-wrap" }, playerTrackLabel, audioEl),
+    h(
+      "div",
+      { class: "transcribe-player-wrap" },
+      playerTrackLabel,
+      audioEl,
+      playerNoteEl,
+    ),
     h(
       "div",
       { class: "transcribe-segments-section" },
@@ -869,6 +983,17 @@ function mountTranscribeStudio(root) {
       openCodeBtn,
       sendPhononBtn,
     ),
+  );
+
+  const resultsBodyEl = h(
+    "div",
+    {
+      id: "transcribe-results-body",
+      class: "transcribe-results-body",
+      hidden: true,
+    },
+    resultsTabsEl,
+    resultPanelEl,
   );
 
   const resultsCard = h(
@@ -919,13 +1044,36 @@ function mountTranscribeStudio(root) {
       : "○ Ollama Offline";
 
     if (Array.isArray(s.models) && s.models.length > 0) {
-      const existing = new Set(MODELS.map((m) => m.id));
-      const merged = [
-        ...MODELS,
-        ...s.models
-          .filter((m) => typeof m === "string" && !existing.has(m))
-          .map((m) => ({ id: m, label: m })),
-      ];
+      const byId = new Map(MODELS.map((m) => [m.id, { ...m }]));
+      for (const item of s.models) {
+        if (typeof item === "string") {
+          const id = item.trim();
+          if (id && !byId.has(id)) {
+            byId.set(id, { id, label: id });
+          }
+        } else if (item && typeof item === "object") {
+          const id = typeof item.id === "string" ? item.id.trim() : "";
+          if (!id) continue;
+          const label =
+            typeof item.label === "string" && item.label.trim()
+              ? item.label.trim()
+              : id;
+          const prev = byId.get(id);
+          if (!prev || label !== id) {
+            byId.set(id, { id, label });
+          }
+        }
+      }
+      const merged = [...byId.values()];
+      const currentSelection = selectedModel || modelCtl.select.value;
+      if (merged.some((opt) => opt.id === currentSelection)) {
+        selectedModel = currentSelection;
+      } else {
+        selectedModel =
+          merged.find((opt) => opt.id === "openai/whisper-base")?.id ||
+          merged[0]?.id ||
+          "";
+      }
       clear(modelCtl.select);
       for (const opt of merged) {
         modelCtl.select.append(
@@ -938,23 +1086,62 @@ function mountTranscribeStudio(root) {
       }
       modelCtl.select.value = selectedModel;
     }
+
+    if (Array.isArray(s.languages) && s.languages.length > 0) {
+      const langById = new Map(LANGUAGES.map((l) => [l.id, { ...l }]));
+      for (const item of s.languages) {
+        if (typeof item === "string") {
+          const id = item.trim();
+          if (id && !langById.has(id)) {
+            langById.set(id, { id, label: id });
+          }
+        } else if (item && typeof item === "object") {
+          const rawId = item.id ?? item.code;
+          const id = typeof rawId === "string" ? rawId.trim() : "";
+          if (!id) continue;
+          const label =
+            typeof item.label === "string" && item.label.trim()
+              ? item.label.trim()
+              : id;
+          if (!langById.has(id)) {
+            langById.set(id, { id, label });
+          }
+        }
+      }
+      const mergedLangs = [...langById.values()];
+      const curLang = selectedLanguage || langCtl.select.value;
+      if (!mergedLangs.some((opt) => opt.id === curLang)) {
+        selectedLanguage = mergedLangs[0]?.id || "auto";
+      } else {
+        selectedLanguage = curLang;
+      }
+      clear(langCtl.select);
+      for (const opt of mergedLangs) {
+        langCtl.select.append(
+          h(
+            "option",
+            { value: opt.id, selected: opt.id === selectedLanguage },
+            opt.label,
+          ),
+        );
+      }
+      langCtl.select.value = selectedLanguage;
+    }
   }
 
   function addPathsToQueue(paths, { replace = false } = {}) {
     const cleaned = (Array.isArray(paths) ? paths : [paths])
       .map((p) => (typeof p === "string" ? p.trim() : ""))
       .filter(Boolean);
-    if (replace) {
-      queue = [...new Set(cleaned)];
-    } else {
-      const seen = new Set(queue);
-      for (const p of cleaned) {
-        if (!seen.has(p)) {
-          seen.add(p);
-          queue.push(p);
-        }
-      }
+    const nextQueue = replace ? [] : [...queue];
+    const seen = new Set(nextQueue.map((p) => normalizeQueuePathKey(p)));
+    for (const p of cleaned) {
+      const key = normalizeQueuePathKey(p);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      nextQueue.push(p);
     }
+    queue = nextQueue;
     renderQueue();
   }
 
@@ -1001,7 +1188,7 @@ function mountTranscribeStudio(root) {
       return;
     }
     queue.forEach((p, idx) => {
-      const name = baseName(p, state.sep) || p;
+      const name = mediaBaseName(p) || p;
       const isVid = VIDEO_EXTS.has(extensionOf(name));
       queueChipsEl.append(
         h(
@@ -1032,13 +1219,17 @@ function mountTranscribeStudio(root) {
     });
   }
 
-  function setActiveSegment(idx) {
+  function setActiveSegment(idx, { scroll = false } = {}) {
     activeSegmentIndex = idx;
     segmentButtons.forEach((btn, i) => {
       const active = i === idx;
       btn.classList.toggle("is-active", active);
-      if (active) btn.setAttribute("aria-current", "true");
-      else btn.removeAttribute("aria-current");
+      if (active) {
+        btn.setAttribute("aria-current", "true");
+        if (scroll) btn.scrollIntoView?.({ block: "nearest" });
+      } else {
+        btn.removeAttribute("aria-current");
+      }
     });
   }
 
@@ -1072,11 +1263,27 @@ function mountTranscribeStudio(root) {
       }
     }
     if (found !== activeSegmentIndex) {
-      setActiveSegment(found);
+      setActiveSegment(found, { scroll: !audioEl.paused });
     }
   }
 
   audioEl.addEventListener("timeupdate", syncActiveSegmentToAudioTime);
+  audioEl.addEventListener("seeked", syncActiveSegmentToAudioTime);
+
+  function selectResultTab(idx, { focusTab = false } = {}) {
+    if (idx < 0 || idx >= results.length || idx === activeResultIndex) return;
+    try {
+      audioEl.pause?.();
+      audioEl.currentTime = 0;
+    } catch {}
+    activeResultIndex = idx;
+    activeSegmentIndex = -1;
+    ++formatSeq;
+    renderResults();
+    if (focusTab) {
+      resultsTabsEl.querySelector(`#transcribe-result-tab-${idx}`)?.focus?.();
+    }
+  }
 
   function renderResults() {
     const hasResults = results.length > 0;
@@ -1095,26 +1302,32 @@ function mountTranscribeStudio(root) {
     if (results.length > 1) {
       results.forEach((item, idx) => {
         const label =
-          item.fileName ||
-          baseName(item.sourcePath || "", state.sep) ||
-          `File ${idx + 1}`;
+          item.fileName || mediaBaseName(item.sourcePath) || `File ${idx + 1}`;
+        const isSel = idx === activeResultIndex;
         resultsTabsEl.append(
           h(
             "button",
             {
+              id: `transcribe-result-tab-${idx}`,
               type: "button",
-              class: `transcribe-result-tab${idx === activeResultIndex ? " active" : ""}`,
+              role: "tab",
+              "aria-selected": String(isSel),
+              "aria-controls": "transcribe-result-panel",
+              tabindex: isSel ? "0" : "-1",
+              class: `transcribe-result-tab${isSel ? " active" : ""}`,
               title: `View transcription result for ${label}`,
-              onclick: () => {
-                activeResultIndex = idx;
-                activeSegmentIndex = -1;
-                renderResults();
-              },
+              onclick: () => selectResultTab(idx),
             },
             label,
           ),
         );
       });
+      resultPanelEl.setAttribute(
+        "aria-labelledby",
+        `transcribe-result-tab-${activeResultIndex}`,
+      );
+    } else {
+      resultPanelEl.removeAttribute("aria-labelledby");
     }
 
     // Metadata pills
@@ -1138,22 +1351,55 @@ function mountTranscribeStudio(root) {
             class: "transcribe-pill ok",
             title: r.isDemo ? "" : r.savedPath,
           },
-          `✓ Saved: ${baseName(r.savedPath, state.sep)}`,
+          `✓ Saved: ${mediaBaseName(r.savedPath) || r.savedPath}`,
         ),
       );
     }
 
     // Audio element source
-    const fileLabel =
-      r.fileName || baseName(r.sourcePath || "", state.sep) || "Audio";
+    const fileLabel = r.fileName || mediaBaseName(r.sourcePath) || "Audio";
     playerTrackLabel.textContent = `🎧 ${fileLabel}`;
-    if (r.sourcePath && !r.isDemo) {
-      const nextSrc = rawUrl(r.sourcePath);
+    const nextSrc = r.isDemo ? "" : r.previewUrl || audioUrlFor(r.sourcePath);
+    if (nextSrc) {
       if (audioEl.getAttribute("src") !== nextSrc) {
+        try {
+          audioEl.pause?.();
+        } catch {}
         audioEl.setAttribute("src", nextSrc);
+        if (audioEl.readyState > 0) {
+          try {
+            audioEl.load?.();
+          } catch {}
+        }
       }
+      playerNoteEl.hidden = true;
+      playerNoteEl.textContent = "";
     } else {
-      audioEl.removeAttribute("src");
+      if (audioEl.hasAttribute("src")) {
+        try {
+          audioEl.pause?.();
+        } catch {}
+        audioEl.removeAttribute("src");
+        if (audioEl.readyState > 0) {
+          try {
+            audioEl.load?.();
+          } catch {}
+        }
+      }
+      if (r.isDemo) {
+        playerNoteEl.hidden = true;
+        playerNoteEl.textContent = "";
+      } else {
+        const ext = extensionOf(fileLabel);
+        playerNoteEl.hidden = false;
+        playerNoteEl.textContent = String(r.sourcePath || "").startsWith(
+          "microphone://",
+        )
+          ? "Ephemeral microphone recording preview unavailable"
+          : ext && !PLAYABLE_MEDIA_EXTS.has(ext)
+            ? `Browser audio preview unavailable for .${ext} container`
+            : "Browser audio preview unavailable for this source";
+      }
     }
 
     // Segments
@@ -1277,9 +1523,16 @@ function mountTranscribeStudio(root) {
 
     // Formatted preview & action buttons
     const activeFmt = (r.format || selectedFormat || "md").toLowerCase();
+    if (VALID_FORMAT_SET.has(activeFmt)) {
+      selectedFormat = activeFmt;
+      formatCtl.select.value = activeFmt;
+    }
     formatBadgeEl.textContent = `.${activeFmt.toUpperCase()}`;
     previewTextarea.value = r.formatted ?? r.text ?? "";
     openCodeBtn.disabled = !r.savedPath;
+    openCodeBtn.title = r.savedPath
+      ? `Open ${mediaBaseName(r.savedPath) || "saved transcript"} in the built-in Code Editor`
+      : "Open the saved transcript file in the built-in Code Editor";
   }
 
   // ---------------------------------------------------------------------------
@@ -1441,6 +1694,8 @@ function mountTranscribeStudio(root) {
         saveSidecar,
         outputDir: currentFolderPath(),
       });
+      ++formatSeq;
+      revokeBlobUrls();
       results = Array.isArray(res?.results) ? res.results : [];
       activeResultIndex = 0;
       activeSegmentIndex = -1;
@@ -1479,12 +1734,12 @@ function mountTranscribeStudio(root) {
         source: buildFormatSource(r),
         format: nextFormat,
       });
-      if (seq !== formatSeq) return;
+      if (seq !== formatSeq || results[activeResultIndex] !== r) return;
       r.format = res.format || nextFormat;
       r.formatted = res.formatted ?? r.formatted;
       renderResults();
     } catch (err) {
-      if (seq !== formatSeq) return;
+      if (seq !== formatSeq || results[activeResultIndex] !== r) return;
       toast(
         err instanceof ApiError
           ? err.message
@@ -1505,7 +1760,7 @@ function mountTranscribeStudio(root) {
     const content = previewTextarea.value;
     const folder = currentFolderPath();
     const name = stemOf(
-      r.fileName || baseName(r.sourcePath || "transcript", state.sep),
+      r.fileName || mediaBaseName(r.sourcePath) || "transcript",
     );
     try {
       const res = await call("transcribe/save", {
@@ -1516,9 +1771,12 @@ function mountTranscribeStudio(root) {
       });
       r.savedPath = res.savedPath;
       renderResults();
-      toast(`Saved ${res.name || baseName(res.savedPath, state.sep)}`, {
-        kind: "success",
-      });
+      toast(
+        `Saved ${res.name || mediaBaseName(res.savedPath) || "transcript"}`,
+        {
+          kind: "success",
+        },
+      );
       void refresh();
     } catch (err) {
       toast(
@@ -1632,7 +1890,23 @@ function mountTranscribeStudio(root) {
         addPathsToQueue([res.recordingPath]);
       }
       if (res?.result) {
-        results = [res.result];
+        ++formatSeq;
+        revokeBlobUrls();
+        const recResult = { ...res.result };
+        if (
+          !res.recordingPath &&
+          !audioUrlFor(recResult.sourcePath) &&
+          typeof URL?.createObjectURL === "function"
+        ) {
+          try {
+            const previewUrl = URL.createObjectURL(blob);
+            if (previewUrl) {
+              blobUrls.add(previewUrl);
+              recResult.previewUrl = previewUrl;
+            }
+          } catch {}
+        }
+        results = [recResult];
         activeResultIndex = 0;
         activeSegmentIndex = -1;
         renderResults();
@@ -1758,10 +2032,9 @@ function mountTranscribeStudio(root) {
       micTimerEl.textContent = "00:00.0";
       recTimerId = setInterval(() => {
         if (!recording) return;
-        const sec = (Date.now() - recStartMs) / 1000;
-        const mins = Math.floor(sec / 60);
-        const rem = (sec % 60).toFixed(1).padStart(4, "0");
-        micTimerEl.textContent = `${String(mins).padStart(2, "0")}:${rem}`;
+        micTimerEl.textContent = formatClockTenths(
+          (Date.now() - recStartMs) / 1000,
+        );
       }, 100);
 
       recRecorder.start();
@@ -1779,7 +2052,15 @@ function mountTranscribeStudio(root) {
   // Demo / Payload Initialization & Lifecycle Hooks
   // ---------------------------------------------------------------------------
 
+  function ensureOption(selectEl, value) {
+    if (![...selectEl.options].some((o) => o.value === value)) {
+      selectEl.append(h("option", { value }, value));
+    }
+  }
+
   function applyDemoSession() {
+    ++formatSeq;
+    revokeBlobUrls();
     const demo = buildDemoTranscribeSession();
     statusData = demo.status;
     renderStatusHeader();
@@ -1794,11 +2075,52 @@ function mountTranscribeStudio(root) {
 
   function applyPayload(opts) {
     if (!opts || typeof opts !== "object") return;
-    if (typeof opts.format === "string" && VALID_FORMAT_SET.has(opts.format)) {
-      selectedFormat = opts.format;
-      formatCtl.select.value = opts.format;
-      if (results[activeResultIndex] && !opts.paths && !opts.path) {
-        void handleFormatChange(opts.format);
+    if (typeof opts.engine === "string") {
+      const eng = opts.engine.trim().toLowerCase();
+      if (VALID_ENGINE_SET.has(eng)) {
+        selectedEngine = eng;
+        engineCtl.select.value = eng;
+      }
+    }
+    if (typeof opts.model === "string" && opts.model.trim()) {
+      const m = opts.model.trim();
+      selectedModel = m;
+      ensureOption(modelCtl.select, m);
+      modelCtl.select.value = m;
+    }
+    if (typeof opts.language === "string" && opts.language.trim()) {
+      const lang = opts.language.trim();
+      selectedLanguage = lang;
+      ensureOption(langCtl.select, lang);
+      langCtl.select.value = lang;
+    }
+    if (typeof opts.enhanceAudio === "boolean") {
+      enhanceAudio = opts.enhanceAudio;
+      enhanceChk.input.checked = opts.enhanceAudio;
+    }
+    if (typeof opts.summarize === "boolean") {
+      summarize = opts.summarize;
+      summarizeChk.input.checked = opts.summarize;
+    }
+    if (typeof opts.saveSidecar === "boolean") {
+      saveSidecar = opts.saveSidecar;
+      saveSidecarChk.input.checked = opts.saveSidecar;
+    }
+    const willAutoRun = opts.autoRun === true || opts.autoStart === true;
+    if (typeof opts.format === "string") {
+      const rawFmt = opts.format.trim().toLowerCase();
+      const fmt = rawFmt === "markdown" ? "md" : rawFmt;
+      if (VALID_FORMAT_SET.has(fmt)) {
+        selectedFormat = fmt;
+        formatCtl.select.value = fmt;
+        if (
+          results[activeResultIndex] &&
+          !opts.paths &&
+          !opts.path &&
+          !willAutoRun
+        ) {
+          void handleFormatChange(fmt);
+        }
       }
     }
     if (typeof opts.path === "string" && opts.path.trim()) {
@@ -1806,7 +2128,7 @@ function mountTranscribeStudio(root) {
     } else if (Array.isArray(opts.paths)) {
       addPathsToQueue(opts.paths, { replace: true });
     }
-    if (opts.autoRun === true && queue.length > 0) {
+    if (willAutoRun && queue.length > 0) {
       void runTranscription();
     }
   }
@@ -1835,6 +2157,7 @@ function mountTranscribeStudio(root) {
     dispose() {
       if (recording) stopMicRecording({ discard: true });
       cleanupMicResources();
+      revokeBlobUrls();
       try {
         audioEl.pause?.();
       } catch {}

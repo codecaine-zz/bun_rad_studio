@@ -11,6 +11,10 @@
   color: var(--text);
 }
 
+#app.power-max .transcribe-root {
+  padding-top: max(3.2rem, 50px);
+}
+
 .transcribe-banner-card {
   display: flex;
   flex-wrap: wrap;
@@ -202,6 +206,8 @@
 }
 
 .transcribe-chip-name {
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -328,6 +334,13 @@
   color: var(--danger);
 }
 
+.transcribe-results-body,
+.transcribe-result-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.72rem;
+}
+
 .transcribe-result-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -343,6 +356,15 @@
   font: inherit;
   font-size: 0.81rem;
   cursor: pointer;
+}
+
+.transcribe-result-tab:hover {
+  background: var(--hover);
+}
+
+.transcribe-result-tab:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 1px;
 }
 
 .transcribe-result-tab.active {
@@ -365,7 +387,14 @@
 
 .transcribe-audio-player {
   flex: 1 1 280px;
+  min-width: 0;
+  max-width: 100%;
   height: 36px;
+}
+
+.transcribe-player-note {
+  font-size: 0.78rem;
+  color: var(--muted);
 }
 
 .transcribe-segments-section {
@@ -440,7 +469,7 @@
 
 .transcribe-insights-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
   gap: 0.7rem;
 }
 

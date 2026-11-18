@@ -928,4 +928,430 @@ describe("Audio-to-Text AI Studio UI", () => {
       win.history.replaceState({}, "", prevUrl);
     }
   });
+
+  test("9. Cross-platform mediaBaseName, queue deduplication, audioUrlFor, and timestamp rollover work accurately", async () => {
+    // 9a. mediaBaseName handles Windows, UNC, POSIX, mixed separators, trailing slashes regardless of state.sep
+    const prevPlatform = state.platform;
+    const prevSep = state.sep;
+    try {
+      state.sep = "/";
+      expect(transcribeMod.mediaBaseName("C:\\Users\\Demo\\clip.mp3")).toBe(
+        "clip.mp3",
+      );
+      expect(transcribeMod.mediaBaseName("\\\\nas\\share\\clip.wav")).toBe(
+        "clip.wav",
+      );
+      expect(transcribeMod.mediaBaseName("/home/demo/clip.flac")).toBe(
+        "clip.flac",
+      );
+      expect(
+        transcribeMod.mediaBaseName("C:/Users/Demo\\mixed/clip.m4a/"),
+      ).toBe("clip.m4a");
+      state.sep = "\\";
+      expect(transcribeMod.mediaBaseName("/home/demo/clip.ogg///")).toBe(
+        "clip.ogg",
+      );
+
+      // Dotfiles and extensionless files inside dotted folders must not falsely match
+      expect(transcribeMod.canTranscribeWithAi("/home/demo/.mp3")).toBe(false);
+      expect(
+        transcribeMod.canTranscribeWithAi("C:\\Users\\Demo.mp3\\README"),
+      ).toBe(false);
+      expect(
+        transcribeMod.canTranscribeWithAi("\\\\nas\\share\\recording.wav"),
+      ).toBe(true);
+
+      // 9b. Timestamp rounding rollover fix: 59.96s must format as [01:00.0], never [00:60.0]
+      expect(transcribeMod.formatSegmentStamp(0)).toBe("[00:00.0]");
+      expect(transcribeMod.formatSegmentStamp(59.96)).toBe("[01:00.0]");
+      expect(transcribeMod.formatSegmentStamp(119.99)).toBe("[02:00.0]");
+      expect(transcribeMod.formatSegmentStamp(3661.04)).toBe("[61:01.0]");
+
+      // 9c. audioUrlFor supports playable audio & video containers (.mp4, .webm, .mov),
+      // Windows/UNC paths, blob:, and blocks .mkv & microphone:// ephemeral URIs
+      expect(transcribeMod.audioUrlFor("/home/demo/video.mp4")).toContain(
+        "/api/raw?path=%2Fhome%2Fdemo%2Fvideo.mp4",
+      );
+      expect(transcribeMod.audioUrlFor("/home/demo/video.webm")).toContain(
+        "/api/raw",
+      );
+      expect(transcribeMod.audioUrlFor("/home/demo/video.mov")).toContain(
+        "/api/raw",
+      );
+      expect(transcribeMod.audioUrlFor("C:\\Users\\Demo\\clip.mp3")).toContain(
+        "/api/raw",
+      );
+      expect(transcribeMod.audioUrlFor("\\\\nas\\share\\clip.wav")).toContain(
+        "/api/raw",
+      );
+      expect(transcribeMod.audioUrlFor("blob:http://127.0.0.1/abc")).toBe(
+        "blob:http://127.0.0.1/abc",
+      );
+      expect(transcribeMod.audioUrlFor("/home/demo/video.mkv")).toBe("");
+      expect(transcribeMod.audioUrlFor("microphone://session-1")).toBe("");
+      expect(transcribeMod.audioUrlFor("relative-ephemeral.wav")).toBe("");
+
+      // 9d. Queue deduplication normalizes separators & respects OS case rules
+      power.resetPower();
+      q("#power-body").replaceChildren();
+      power.wirePower();
+      power.openPower("transcribe");
+      const pane = q("#power-pane-transcribe");
+      const inp = q("#transcribe-path-input", pane);
+      const addBtn = q("#transcribe-add-path-btn", pane);
+      const clearBtn = q("#transcribe-clear-queue-btn", pane);
+
+      state.platform = "win32";
+      state.sep = "\\";
+      clearBtn.click();
+      for (const p of [
+        "C:\\Users\\Demo\\clip.mp3",
+        "C:/Users/Demo/clip.mp3",
+        "c:\\users\\demo\\CLIP.MP3",
+        "\\\\nas\\share\\clip.wav",
+        "//nas/share/CLIP.WAV",
+      ]) {
+        inp.value = p;
+        addBtn.click();
+      }
+      expect(
+        qa(".transcribe-chip-name", pane).map((el: any) => el.textContent),
+      ).toEqual(["clip.mp3", "clip.wav"]);
+
+      state.platform = "linux";
+      state.sep = "/";
+      clearBtn.click();
+      for (const p of [
+        "/home/demo/clip.flac",
+        "/home/demo/Clip.flac",
+        "/home/demo//clip.flac",
+      ]) {
+        inp.value = p;
+        addBtn.click();
+      }
+      expect(
+        qa(".transcribe-chip-name", pane).map((el: any) => el.textContent),
+      ).toEqual(["clip.flac", "Clip.flac"]);
+    } finally {
+      state.platform = prevPlatform;
+      state.sep = prevSep;
+    }
+  });
+
+  test("10. renderStatusHeader merges structured { id, label } models & strings while preserving valid selection", async () => {
+    const g = globalThis as any;
+    const prevFetch = g.fetch;
+    g.fetch = async (u: any, o: any) => {
+      if (String(u || "").includes("/api/transcribe/status")) {
+        return Response.json({
+          ok: true,
+          ready: true,
+          recommendedEngine: "python-whisper",
+          recommendedLabel: "Python Whisper AI",
+          ffmpegAvailable: true,
+          ffmpegPath: "/usr/bin/ffmpeg",
+          ollamaAvailable: false,
+          asrEnvInstalled: true,
+          engines: [],
+          supportedExtensions: ["mp3", "wav"],
+          supportedFormats: ["md", "txt", "srt", "vtt", "lrc", "json"],
+          models: [
+            {
+              id: "openai/whisper-tiny.en",
+              label: "Whisper Tiny English (~75 MB · Fast EN)",
+            },
+            {
+              id: "openai/whisper-base",
+              label: "Whisper Base (~145 MB · Balanced)",
+            },
+            { id: "custom/no-label" },
+            "openai/whisper-medium",
+          ],
+          languages: [{ code: "auto", label: "Auto-Detect" }],
+        });
+      }
+      return prevFetch(u, o);
+    };
+
+    try {
+      power.resetPower();
+      q("#power-body").replaceChildren();
+      power.wirePower();
+      power.openPower("transcribe", { model: "openai/whisper-tiny.en" });
+      const pane = q("#power-pane-transcribe");
+      await waitFor(
+        () =>
+          [...q("#transcribe-model", pane).options].some(
+            (o: any) => o.value === "openai/whisper-medium",
+          ),
+        2000,
+        "structured models rendered",
+      );
+
+      const opts = [...q("#transcribe-model", pane).options].map((o: any) => ({
+        value: o.value,
+        label: o.textContent,
+      }));
+      expect(opts).toContainEqual({
+        value: "openai/whisper-tiny.en",
+        label: "Whisper Tiny English (~75 MB · Fast EN)",
+      });
+      expect(opts).toContainEqual({
+        value: "openai/whisper-base",
+        label: "Whisper Base (~145 MB · Balanced)",
+      });
+      expect(opts).toContainEqual({
+        value: "custom/no-label",
+        label: "custom/no-label",
+      });
+      expect(opts).toContainEqual({
+        value: "openai/whisper-medium",
+        label: "openai/whisper-medium",
+      });
+      expect(q("#transcribe-model", pane).value).toBe("openai/whisper-tiny.en");
+    } finally {
+      g.fetch = prevFetch;
+    }
+  });
+
+  test("11. applyPayload supports autoStart and all config options, multi-file ARIA tab keyboard nav, formatSeq race guard, and .mkv preview safety", async () => {
+    power.resetPower();
+    q("#power-body").replaceChildren();
+    power.wirePower();
+    apiRequests.length = 0;
+
+    const mkvPath = join(work, "session.mkv");
+    const mp3Path = join(work, "interview.mp3");
+    writeFileSync(mkvPath, "fake-mkv");
+
+    power.openPower("transcribe", {
+      paths: [mp3Path, mkvPath],
+      engine: "python-whisper",
+      model: "openai/whisper-small",
+      language: "es",
+      format: "srt",
+      enhanceAudio: true,
+      summarize: false,
+      saveSidecar: true,
+      autoStart: true,
+    });
+
+    const pane = q("#power-pane-transcribe");
+    await waitFor(
+      () =>
+        apiRequests.some((r) => r.op === "transcribe/run") &&
+        !q("#transcribe-results-body", pane).hidden,
+      3000,
+      "autoStart batch transcription completed",
+    );
+
+    const runReq = apiRequests.find((r) => r.op === "transcribe/run")!;
+    expect(runReq.body).toMatchObject({
+      paths: [mp3Path, mkvPath],
+      engine: "python-whisper",
+      model: "openai/whisper-small",
+      language: "es",
+      format: "srt",
+      enhanceAudio: true,
+      summarize: false,
+      saveSidecar: true,
+    });
+    expect(q("#transcribe-engine", pane).value).toBe("python-whisper");
+    expect(q("#transcribe-model", pane).value).toBe("openai/whisper-small");
+    expect(q("#transcribe-language", pane).value).toBe("es");
+    expect(q("#transcribe-format", pane).value).toBe("srt");
+    expect(q("#transcribe-enhance", pane).checked).toBe(true);
+    expect(q("#transcribe-summarize", pane).checked).toBe(false);
+    expect(q("#transcribe-save-sidecar", pane).checked).toBe(true);
+
+    // Multi-file ARIA tablist + keyboard navigation to .mkv tab
+    const tablist = q("#transcribe-result-tabs", pane);
+    expect(tablist.getAttribute("role")).toBe("tablist");
+    const tabs = qa('[role="tab"]', tablist);
+    expect(tabs.length).toBe(2);
+    expect(tabs[0].getAttribute("aria-selected")).toBe("true");
+    expect(tabs[1].getAttribute("aria-selected")).toBe("false");
+    expect(q("#transcribe-result-panel", pane).getAttribute("role")).toBe(
+      "tabpanel",
+    );
+
+    // ArrowRight switches to Tab 1 (session.mkv) which must NOT set <audio src> to .mkv
+    tablist.dispatchEvent(
+      new win.KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
+    );
+    const tabsAfterRight = qa('[role="tab"]', tablist);
+    expect(tabsAfterRight[1].getAttribute("aria-selected")).toBe("true");
+    expect(tabsAfterRight[0].getAttribute("aria-selected")).toBe("false");
+    expect(q("#transcribe-audio-player", pane).hasAttribute("src")).toBe(false);
+    expect(q("#transcribe-player-note", pane).hidden).toBe(false);
+    expect(q("#transcribe-player-note", pane).textContent).toContain(".mkv");
+
+    // ArrowLeft switches back to Tab 0 (interview.mp3)
+    tablist.dispatchEvent(
+      new win.KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }),
+    );
+    const tabsAfterLeft = qa('[role="tab"]', tablist);
+    expect(tabsAfterLeft[0].getAttribute("aria-selected")).toBe("true");
+    expect(q("#transcribe-audio-player", pane).getAttribute("src")).toContain(
+      encodeURIComponent(mp3Path),
+    );
+
+    // formatSeq race guard: slow earlier response must not overwrite newer format response
+    const g = globalThis as any;
+    const prevFetch = g.fetch;
+    let resolveFirst: ((r: Response) => void) | null = null;
+    let fmtCall = 0;
+    g.fetch = async (u: any, o: any) => {
+      if (String(u || "").includes("/api/transcribe/format")) {
+        fmtCall++;
+        const n = fmtCall;
+        if (n === 1) {
+          return new Promise<Response>((resolve) => {
+            resolveFirst = resolve;
+          });
+        }
+        return Response.json({
+          ok: true,
+          format: "lrc",
+          formatted: "[00:00.00]Newer LRC output",
+        });
+      }
+      return prevFetch(u, o);
+    };
+    try {
+      const fmtSel = q("#transcribe-format", pane);
+      fmtSel.value = "txt";
+      fmtSel.dispatchEvent(new win.Event("change", { bubbles: true }));
+      await sleep(10);
+      fmtSel.value = "lrc";
+      fmtSel.dispatchEvent(new win.Event("change", { bubbles: true }));
+      await waitFor(
+        () =>
+          q("#transcribe-preview", pane).value === "[00:00.00]Newer LRC output",
+        2000,
+        "newer LRC format applied",
+      );
+      resolveFirst!(
+        Response.json({
+          ok: true,
+          format: "txt",
+          formatted: "STALE TXT SHOULD BE IGNORED",
+        }),
+      );
+      await sleep(30);
+      expect(q("#transcribe-preview", pane).value).toBe(
+        "[00:00.00]Newer LRC output",
+      );
+      expect(q("#transcribe-format-badge", pane).textContent).toBe(".LRC");
+    } finally {
+      g.fetch = prevFetch;
+    }
+  });
+
+  test("12. transcribe.css includes #app.power-max clearance and ephemeral mic uses blob URL instead of /api/raw", async () => {
+    const css = readFileSync(
+      join(
+        import.meta.dir,
+        "..",
+        "resources",
+        "file_manager",
+        "ui",
+        "transcribe.css",
+      ),
+      "utf8",
+    );
+    expect(css).toMatch(
+      /#app\.power-max\s+\.transcribe-root\s*\{[^}]*padding-top:/,
+    );
+
+    const g = globalThis as any;
+    const prevFetch = g.fetch;
+    const prevCreate = g.URL?.createObjectURL;
+    const prevRevoke = g.URL?.revokeObjectURL;
+    let revoked: string[] = [];
+    if (g.URL) {
+      g.URL.createObjectURL = () => "blob:http://127.0.0.1/ephemeral-mic-1";
+      g.URL.revokeObjectURL = (u: string) => revoked.push(u);
+    }
+    g.fetch = async (u: any, o: any) => {
+      if (String(u || "").includes("/api/transcribe/mic")) {
+        return Response.json({
+          ok: true,
+          recordingPath: null,
+          result: {
+            sourcePath: "microphone://ephemeral",
+            fileName: "mic-ephemeral.webm",
+            engine: "python-whisper",
+            model: "openai/whisper-base",
+            language: "en",
+            durationSec: 2.0,
+            elapsedMs: 120,
+            wordCount: 3,
+            text: "Ephemeral mic test.",
+            segments: [{ start: 0, end: 2.0, text: "Ephemeral mic test." }],
+            formatted: "Ephemeral mic test.\n",
+            format: "txt",
+            summary: null,
+            actionItems: [],
+            chapters: [],
+            savedPath: null,
+          },
+        });
+      }
+      return prevFetch(u, o);
+    };
+
+    try {
+      power.openPower("transcribe");
+      const pane = q("#power-pane-transcribe");
+      win.navigator.mediaDevices = {
+        getUserMedia: async () => ({
+          getTracks: () => [{ stop() {} }],
+        }),
+      };
+      g.MediaRecorder = class {
+        state = "inactive";
+        ondataavailable: ((ev: any) => void) | null = null;
+        onstop: (() => void) | null = null;
+        static isTypeSupported(t: string) {
+          return t === "audio/webm";
+        }
+        start() {
+          this.state = "recording";
+        }
+        stop() {
+          this.state = "inactive";
+          this.ondataavailable?.({
+            data: new win.Blob(["mic-bytes"], { type: "audio/webm" }),
+          });
+          this.onstop?.();
+        }
+      };
+
+      q("#transcribe-mic-btn", pane).click();
+      await waitFor(
+        () => q("#transcribe-mic-btn", pane).textContent.includes("Stop"),
+        2000,
+        "mic started",
+      );
+      q("#transcribe-mic-btn", pane).click();
+      await waitFor(
+        () =>
+          q("#transcribe-preview", pane).value.includes("Ephemeral mic test."),
+        2000,
+        "ephemeral mic result rendered",
+      );
+      expect(q("#transcribe-audio-player", pane).getAttribute("src")).toBe(
+        "blob:http://127.0.0.1/ephemeral-mic-1",
+      );
+    } finally {
+      g.fetch = prevFetch;
+      if (g.URL) {
+        if (prevCreate) g.URL.createObjectURL = prevCreate;
+        else delete g.URL.createObjectURL;
+        if (prevRevoke) g.URL.revokeObjectURL = prevRevoke;
+        else delete g.URL.revokeObjectURL;
+      }
+    }
+  });
 });

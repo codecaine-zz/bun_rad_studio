@@ -13,7 +13,7 @@
  * `dynaudnorm`), 6-format transcript rendering (`md`, `txt`, `srt`, `vtt`, `lrc`, `json`),
  * microphone upload transcription, optional local Ollama summarization, and one-click `asr-env` install.
  */
-import { existsSync, promises as fsp, statSync } from "fs";
+import { existsSync, promises as fsp, readFileSync, statSync } from "fs";
 import { homedir } from "os";
 import * as nodePath from "path";
 import {
@@ -213,15 +213,22 @@ const VALID_ENGINES = new Set<TranscribeEngineId>([
   "companion",
 ]);
 
-/** Returns true when `nameOrPath` ends with one of `TRANSCRIBE_MEDIA_EXTS`. */
-export function isTranscribableMediaPath(nameOrPath: string): boolean {
-  if (typeof nameOrPath !== "string" || !nameOrPath.trim()) return false;
-  const cleaned = nameOrPath.trim().replace(/[\\/]+$/, "");
+function basenameAny(nameOrPath: string): string {
+  const cleaned = String(nameOrPath ?? "")
+    .trim()
+    .replace(/[\\/]+$/, "");
+  if (!cleaned) return "";
   const slashIdx = Math.max(
     cleaned.lastIndexOf("/"),
     cleaned.lastIndexOf("\\"),
   );
-  const base = slashIdx >= 0 ? cleaned.slice(slashIdx + 1) : cleaned;
+  return slashIdx >= 0 ? cleaned.slice(slashIdx + 1) : cleaned;
+}
+
+/** Returns true when `nameOrPath` ends with one of `TRANSCRIBE_MEDIA_EXTS`. */
+export function isTranscribableMediaPath(nameOrPath: string): boolean {
+  if (typeof nameOrPath !== "string" || !nameOrPath.trim()) return false;
+  const base = basenameAny(nameOrPath);
   const dot = base.lastIndexOf(".");
   if (dot <= 0 || dot === base.length - 1) return false;
   return TRANSCRIBE_MEDIA_EXTS.has(base.slice(dot + 1).toLowerCase());
@@ -236,6 +243,22 @@ function isAbsoluteInput(ctx: FmContext, raw: string): boolean {
   if (ctx.platform === "win32" && /^[A-Za-z]:[\\/]/.test(raw)) return true;
   if (ctx.platform === "win32" && raw.startsWith("\\\\")) return true;
   return false;
+}
+
+function realpathCheckPlatform(
+  ctx: FmContext,
+  targetPath: string,
+): NodeJS.Platform {
+  if (
+    process.platform !== "win32" &&
+    targetPath.startsWith("/") &&
+    !targetPath.startsWith("//") &&
+    (!ctx.sandboxRoot ||
+      (ctx.sandboxRoot.startsWith("/") && !ctx.sandboxRoot.startsWith("//")))
+  ) {
+    return process.platform;
+  }
+  return ctx.platform;
 }
 
 function resolveInsideSandbox(ctx: FmContext, rawPath: string): string {
@@ -270,7 +293,11 @@ function resolveInsideSandbox(ctx: FmContext, rawPath: string): string {
       "Relative path traversal outside the workspace root is not permitted.",
     );
   }
-  assertRealpathInsideSandboxSync(resolved, ctx.sandboxRoot, ctx.platform);
+  assertRealpathInsideSandboxSync(
+    resolved,
+    ctx.sandboxRoot,
+    realpathCheckPlatform(ctx, resolved),
+  );
   return resolved;
 }
 
@@ -303,7 +330,11 @@ function resolveSaveFolder(ctx: FmContext, rawFolder: string): string {
       "Relative folder traversal outside the workspace root is not permitted.",
     );
   }
-  assertRealpathInsideSandboxSync(resolved, ctx.sandboxRoot, ctx.platform);
+  assertRealpathInsideSandboxSync(
+    resolved,
+    ctx.sandboxRoot,
+    realpathCheckPlatform(ctx, resolved),
+  );
   return resolved;
 }
 
@@ -994,8 +1025,10 @@ function parseWhisperJsonOutput(
 // ---------------------------------------------------------------------------------------------------------------
 
 function allowHostAsrEnv(ctx: FmContext): boolean {
+  const p = pathApi(ctx);
   return (
-    nodePath.resolve(ctx.home) === nodePath.resolve(homedir()) ||
+    normCase(p.resolve(ctx.home), ctx.platform) ===
+      normCase(p.resolve(homedir()), ctx.platform) ||
     process.env.FM_TRANSCRIBE_ALLOW_HOST_ENV === "1"
   );
 }
@@ -1051,7 +1084,7 @@ function discoverAsrPythonCandidates(ctx: FmContext): Array<{
   const out: Array<{ envName: string; envDir: string; pythonPath: string }> =
     [];
   for (const item of dirs) {
-    const key = nodePath.resolve(item.envDir);
+    const key = normCase(p.resolve(item.envDir), ctx.platform);
     if (seen.has(key)) continue;
     seen.add(key);
     const pythonPath = pythonBinaryInEnv(item.envDir, ctx.platform);
@@ -1209,6 +1242,29 @@ async function probeOllamaStatus(ctx: FmContext): Promise<{
   }
 }
 
+/**
+ * Returns true when `execPath` lives inside a macOS `.app/Contents/MacOS/` bundle whose
+ * `../Info.plist` declares `NSSpeechRecognitionUsageDescription` (preventing TCC SIGABRT crashes
+ * when running unbundled CLI or server binaries).
+ */
+export function isMacOsSpeechBundleAuthorized(
+  execPath: string = process.execPath,
+): boolean {
+  if (!execPath) return false;
+  const norm = String(execPath).replace(/\\/g, "/");
+  const match = /^(.*\.app\/Contents)\/MacOS\/[^/]+$/.exec(norm);
+  if (!match) return false;
+  const plistPath = `${match[1]}/Info.plist`;
+  try {
+    if (!existsSync(plistPath)) return false;
+    return readFileSync(plistPath, "utf8").includes(
+      "NSSpeechRecognitionUsageDescription",
+    );
+  } catch {
+    return false;
+  }
+}
+
 function findOsNativeRunner(ctx: FmContext): {
   available: boolean;
   executable: string | null;
@@ -1222,12 +1278,29 @@ function findOsNativeRunner(ctx: FmContext): {
       process.platform === "darwin" || ctx.toolDirs
         ? findExecutable("darwin", ["swift"], dirs)
         : null;
+    if (!swiftExe) {
+      return {
+        available: false,
+        executable: null,
+        detail: "Requires macOS with Swift CLI",
+      };
+    }
+    const allowed =
+      Boolean(ctx.toolDirs) ||
+      process.env.FM_ENABLE_MACOS_NATIVE_SPEECH === "1" ||
+      isMacOsSpeechBundleAuthorized(process.execPath);
+    if (!allowed) {
+      return {
+        available: false,
+        executable: null,
+        detail:
+          "Requires .app bundle speech permission or FM_ENABLE_MACOS_NATIVE_SPEECH=1 (use Local Whisper AI)",
+      };
+    }
     return {
-      available: Boolean(swiftExe),
+      available: true,
       executable: swiftExe,
-      detail: swiftExe
-        ? "macOS SFSpeechRecognizer (Swift)"
-        : "Requires macOS with Swift CLI",
+      detail: "macOS SFSpeechRecognizer (Swift)",
     };
   }
   if (ctx.platform === "win32") {
@@ -1329,7 +1402,9 @@ export async function getTranscribeStatus(
       label:
         ctx.platform === "win32"
           ? "Windows Speech Recognition"
-          : "macOS Speech Recognition",
+          : ctx.platform === "darwin"
+            ? "macOS Speech Recognition"
+            : "OS Native Speech Recognition (macOS / Windows)",
       available: osNative.available,
       priority: 5,
       detail: osNative.detail,
@@ -1595,7 +1670,7 @@ async function runWhisperCliTier(
     throw new FmError("ASR_TIMEOUT", `${spec.kind} timed out.`);
   }
 
-  const inputStem = splitName(nodePath.basename(inputPath))[0] || "input";
+  const inputStem = splitName(basenameAny(inputPath))[0] || "input";
   const stems = [outPrefix, nodePath.join(tmpDir, inputStem)];
 
   for (const base of stems) {
@@ -1771,7 +1846,7 @@ async function runOpenAiAsrTier(
 ): Promise<RawAsrOutput> {
   const filePath = prep.wavPath ?? mediaAbsPath;
   const bytes = await fsp.readFile(filePath);
-  const fileName = nodePath.basename(filePath);
+  const fileName = basenameAny(filePath);
   const mime = prep.isWav ? "audio/wav" : "application/octet-stream";
 
   let lastErr = "No OpenAI-compatible ASR endpoint responded.";
@@ -2216,13 +2291,16 @@ async function executeEngineOrder(
         );
       }
     } catch (err) {
+      if (order.length === 1 && err instanceof FmError) {
+        throw err;
+      }
       failures.push(`${tier}: ${(err as Error)?.message || "unavailable"}`);
     }
   }
 
   throw new FmError(
     "ASR_ENGINE_UNAVAILABLE",
-    `No local ASR engine could transcribe "${nodePath.basename(mediaAbsPath)}". Install Local Whisper AI or FFmpeg + Whisper CLI. Details: ${failures.join(" | ")}`,
+    `No local ASR engine could transcribe "${basenameAny(mediaAbsPath)}". Install Local Whisper AI or FFmpeg + Whisper CLI. Details: ${failures.join(" | ")}`,
   );
 }
 
@@ -2246,12 +2324,20 @@ export async function runLocalAsrEngine(
   const engine = normalizeEngine(opts.engine);
   const model = String(opts.model ?? "").trim();
   const language = String(opts.language ?? "auto").trim() || "auto";
+  const rawPath = String(mediaAbsPath ?? "").trim();
+  if (!rawPath || rawPath.includes("\0")) {
+    throw new FmError("BAD_PATH", "Invalid or empty media file path.");
+  }
+  const st = await fsp.stat(rawPath).catch(() => null);
+  if (!st || !st.isFile()) {
+    throw new FmError("NOT_FOUND", `Media file not found: ${rawPath}`);
+  }
   const tmpDir = createSessionTempDirSync("fm-asr-");
   try {
-    const prep = await prepareAudioForAsr(ctx, mediaAbsPath, tmpDir, false);
+    const prep = await prepareAudioForAsr(ctx, rawPath, tmpDir, false);
     return await executeEngineOrder(
       ctx,
-      mediaAbsPath,
+      rawPath,
       prep,
       tmpDir,
       engine,
@@ -2456,7 +2542,11 @@ async function transcribeResolvedFile(
     const destDir = outputDirAbs ?? pathApi(ctx).dirname(mediaAbsPath);
     assertCreatable(ctx, destDir);
     await fsp.mkdir(destDir, { recursive: true });
-    assertRealpathInsideSandboxSync(destDir, ctx.sandboxRoot, ctx.platform);
+    assertRealpathInsideSandboxSync(
+      destDir,
+      ctx.sandboxRoot,
+      realpathCheckPlatform(ctx, destDir),
+    );
 
     const stem = splitName(displayFileName)[0] || "transcript";
     const wantedName = `${stem}.${format}`;
@@ -2469,7 +2559,11 @@ async function transcribeResolvedFile(
     );
     const outAbs = pathApi(ctx).join(destDir, chosenName);
     assertModifiable(ctx, outAbs);
-    assertRealpathInsideSandboxSync(outAbs, ctx.sandboxRoot, ctx.platform);
+    assertRealpathInsideSandboxSync(
+      outAbs,
+      ctx.sandboxRoot,
+      realpathCheckPlatform(ctx, outAbs),
+    );
     await writeNewFileExclusiveAsync(outAbs, formatted);
     savedPath = outAbs;
   }
@@ -2510,6 +2604,9 @@ export async function transcribeAudioPaths(
     );
   }
 
+  normalizeEngine(options?.engine);
+  normalizeFormat(options?.format);
+
   let outputDirAbs: string | undefined;
   if (typeof options.outputDir === "string" && options.outputDir.trim()) {
     outputDirAbs = resolveSaveFolder(ctx, options.outputDir);
@@ -2517,7 +2614,7 @@ export async function transcribeAudioPaths(
     assertRealpathInsideSandboxSync(
       outputDirAbs,
       ctx.sandboxRoot,
-      ctx.platform,
+      realpathCheckPlatform(ctx, outputDirAbs),
     );
   }
 
@@ -2533,7 +2630,7 @@ export async function transcribeAudioPaths(
 
   const results: TranscribeSingleResult[] = [];
   for (const mediaAbs of resolvedFiles) {
-    const fileName = pathApi(ctx).basename(mediaAbs);
+    const fileName = basenameAny(mediaAbs);
     results.push(
       await transcribeResolvedFile(
         ctx,
@@ -2636,7 +2733,7 @@ export async function transcribeMicrophoneRecording(
     assertRealpathInsideSandboxSync(
       outputDirAbs,
       ctx.sandboxRoot,
-      ctx.platform,
+      realpathCheckPlatform(ctx, outputDirAbs),
     );
   }
 
@@ -2647,7 +2744,11 @@ export async function transcribeMicrophoneRecording(
     const recDir = resolveSaveFolder(ctx, payload.saveRecordingFolder);
     assertCreatable(ctx, recDir);
     await fsp.mkdir(recDir, { recursive: true });
-    assertRealpathInsideSandboxSync(recDir, ctx.sandboxRoot, ctx.platform);
+    assertRealpathInsideSandboxSync(
+      recDir,
+      ctx.sandboxRoot,
+      realpathCheckPlatform(ctx, recDir),
+    );
     const taken = await readTakenNames(recDir, ctx.platform);
     const finalRecName = uniqueName(wantedFileName, (cand) =>
       taken.has(normCase(cand, ctx.platform)),
@@ -2657,7 +2758,7 @@ export async function transcribeMicrophoneRecording(
     assertRealpathInsideSandboxSync(
       recordingPath,
       ctx.sandboxRoot,
-      ctx.platform,
+      realpathCheckPlatform(ctx, recordingPath),
     );
     await writeNewFileExclusiveAsync(recordingPath, audioBuf);
 
@@ -2926,7 +3027,11 @@ export const TRANSCRIBE_OPS: Record<string, FmHandler> = {
       typeof rec.name === "string" && rec.name.trim()
         ? rec.name.trim()
         : `transcript.${format}`;
-    if (!splitName(rawName)[1]) {
+    const lowerRaw = rawName.toLowerCase();
+    const hasTranscriptExt = SUPPORTED_FORMATS.some((ext) =>
+      lowerRaw.endsWith(`.${ext}`),
+    );
+    if (!hasTranscriptExt) {
       rawName = `${rawName}.${format}`;
     }
     const nameErr = validateName(rawName, ctx.platform);
@@ -2938,7 +3043,11 @@ export const TRANSCRIBE_OPS: Record<string, FmHandler> = {
     );
     const savedPath = pathApi(ctx).join(folder, finalName);
     assertModifiable(ctx, savedPath);
-    assertRealpathInsideSandboxSync(savedPath, ctx.sandboxRoot, ctx.platform);
+    assertRealpathInsideSandboxSync(
+      savedPath,
+      ctx.sandboxRoot,
+      realpathCheckPlatform(ctx, savedPath),
+    );
     await fsp.writeFile(savedPath, rec.content, {
       flag: "wx",
       encoding: "utf8",

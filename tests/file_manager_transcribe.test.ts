@@ -19,6 +19,7 @@ import {
   TRANSCRIBE_MEDIA_EXTS,
   formatTranscriptOutput,
   getTranscribeStatus,
+  isMacOsSpeechBundleAuthorized,
   isTranscribableMediaPath,
   parseWavHeaderInfo,
   runLocalAsrEngine,
@@ -799,5 +800,217 @@ exit 0
     expect(out.result.fileName).toBe("ephemeral-mic.wav");
     expect(out.result.text).toBe("Ephemeral microphone capture.");
     expect(out.result.formatted).toBe("Ephemeral microphone capture.\n");
+  });
+
+  test("8. Cross-platform os-native labels and macOS unbundled TCC crash guard work cleanly", async () => {
+    const prevBaseUrl = process.env.FM_ASR_BASE_URL;
+    const prevMacEnable = process.env.FM_ENABLE_MACOS_NATIVE_SPEECH;
+    process.env.FM_ASR_BASE_URL = "http://127.0.0.1:1";
+    delete process.env.FM_ENABLE_MACOS_NATIVE_SPEECH;
+
+    const isoRoot = join(tempRoot, "os-native-guard");
+    const isoHome = join(isoRoot, "home");
+    const isoData = join(isoRoot, "data");
+    const isoEmpty = join(isoRoot, "empty");
+    mkdirSync(isoHome, { recursive: true });
+    mkdirSync(isoData, { recursive: true });
+    mkdirSync(isoEmpty, { recursive: true });
+
+    try {
+      // Linux label accuracy
+      const linuxCtx = createContext({
+        platform: "linux",
+        home: isoHome,
+        sandboxRoot: isoHome,
+        dataDir: isoData,
+        toolDirs: [isoEmpty],
+        ollama: { baseUrl: "http://127.0.0.1:1" },
+      });
+      const linuxStatus = await getTranscribeStatus(linuxCtx);
+      const linuxNative = linuxStatus.engines.find((e) => e.id === "os-native");
+      expect(linuxNative).toBeDefined();
+      expect(linuxNative!.label).toBe(
+        "OS Native Speech Recognition (macOS / Windows)",
+      );
+      expect(linuxNative!.available).toBe(false);
+
+      // Windows label accuracy
+      const winCtx = createContext({
+        platform: "win32",
+        home: isoHome,
+        sandboxRoot: isoHome,
+        dataDir: isoData,
+        toolDirs: [isoEmpty],
+        ollama: { baseUrl: "http://127.0.0.1:1" },
+      });
+      const winStatus = await getTranscribeStatus(winCtx);
+      const winNative = winStatus.engines.find((e) => e.id === "os-native");
+      expect(winNative!.label).toBe("Windows Speech Recognition");
+
+      // macOS unbundled run (no toolDirs, no FM_ENABLE_MACOS_NATIVE_SPEECH, not inside .app bundle)
+      // Must NOT falsely report os-native ready or invoke TCC-blocked swift!
+      const macUnbundledCtx = createContext({
+        platform: "darwin",
+        home: isoHome,
+        sandboxRoot: isoHome,
+        dataDir: isoData,
+        ollama: { baseUrl: "http://127.0.0.1:1" },
+      });
+      const macStatus = await getTranscribeStatus(macUnbundledCtx);
+      const macNative = macStatus.engines.find((e) => e.id === "os-native");
+      expect(macNative!.label).toBe("macOS Speech Recognition");
+      if (!isMacOsSpeechBundleAuthorized(process.execPath)) {
+        expect(macNative!.available).toBe(false);
+        expect(macNative!.path).toBeNull();
+        expect(macNative!.detail).toBe(
+          "Requires .app bundle speech permission or FM_ENABLE_MACOS_NATIVE_SPEECH=1 (use Local Whisper AI)",
+        );
+        const wavPath = join(isoHome, "guard.wav");
+        writeFileSync(wavPath, createTestWavBuffer(0.6, 16000));
+        await expect(
+          runLocalAsrEngine(macUnbundledCtx, wavPath, { engine: "os-native" }),
+        ).rejects.toMatchObject({
+          code: "ASR_ENGINE_UNAVAILABLE",
+          message: expect.stringContaining(
+            "Requires .app bundle speech permission",
+          ),
+        });
+      }
+
+      // macOS explicit test toolDirs with mock swift binary enables os-native cleanly
+      const swiftBin = join(isoRoot, "swift-bin");
+      mkdirSync(swiftBin, { recursive: true });
+      const mockSwift = join(swiftBin, "swift");
+      writeFileSync(
+        mockSwift,
+        `#!/bin/sh
+echo '{"text":"Mock Swift speech transcript.","segments":[{"start":0,"end":0.6,"text":"Mock Swift speech transcript."}]}'
+`,
+      );
+      chmodSync(mockSwift, 0o755);
+
+      const macToolCtx = createContext({
+        platform: "darwin",
+        home: isoHome,
+        sandboxRoot: isoHome,
+        dataDir: isoData,
+        toolDirs: [swiftBin],
+        ollama: { baseUrl: "http://127.0.0.1:1" },
+      });
+      const macToolStatus = await getTranscribeStatus(macToolCtx);
+      expect(
+        macToolStatus.engines.find((e) => e.id === "os-native")!.available,
+      ).toBe(true);
+      const wavPath = join(isoHome, "swift_test.wav");
+      writeFileSync(wavPath, createTestWavBuffer(0.6, 16000));
+      const swiftRes = await runLocalAsrEngine(macToolCtx, wavPath, {
+        engine: "os-native",
+      });
+      expect(swiftRes.engine).toBe("os-native:sfspeech");
+      expect(swiftRes.text).toBe("Mock Swift speech transcript.");
+
+      // macOS .app bundle Info.plist detection helper
+      const appMacOs = join(isoRoot, "Demo.app", "Contents", "MacOS");
+      mkdirSync(appMacOs, { recursive: true });
+      const fakeBundleBin = join(appMacOs, "Demo");
+      writeFileSync(fakeBundleBin, "");
+      const plistPath = join(isoRoot, "Demo.app", "Contents", "Info.plist");
+      writeFileSync(
+        plistPath,
+        "<plist><dict><key>CFBundleName</key></dict></plist>",
+      );
+      expect(isMacOsSpeechBundleAuthorized(fakeBundleBin)).toBe(false);
+      writeFileSync(
+        plistPath,
+        "<plist><dict><key>NSSpeechRecognitionUsageDescription</key><string>Transcribe audio locally</string></dict></plist>",
+      );
+      expect(isMacOsSpeechBundleAuthorized(fakeBundleBin)).toBe(true);
+      expect(isMacOsSpeechBundleAuthorized("/usr/local/bin/bun")).toBe(false);
+
+      // FM_ENABLE_MACOS_NATIVE_SPEECH=1 enables os-native on darwin host when swift is present
+      if (process.platform === "darwin" && existsSync("/usr/bin/swift")) {
+        process.env.FM_ENABLE_MACOS_NATIVE_SPEECH = "1";
+        const enabledStatus = await getTranscribeStatus(macUnbundledCtx);
+        expect(
+          enabledStatus.engines.find((e) => e.id === "os-native")!.available,
+        ).toBe(true);
+      }
+    } finally {
+      if (prevBaseUrl === undefined) delete process.env.FM_ASR_BASE_URL;
+      else process.env.FM_ASR_BASE_URL = prevBaseUrl;
+      if (prevMacEnable === undefined)
+        delete process.env.FM_ENABLE_MACOS_NATIVE_SPEECH;
+      else process.env.FM_ENABLE_MACOS_NATIVE_SPEECH = prevMacEnable;
+    }
+  });
+
+  test("9. Error paths, explicit engine error codes, UNC/Windows paths, and dotted-stem save work accurately", async () => {
+    const ctx = createContext({
+      home: homeDir,
+      sandboxRoot: homeDir,
+      dataDir,
+      toolDirs: [emptyBin],
+      ollama: { baseUrl: "http://127.0.0.1:1" },
+    });
+
+    // runLocalAsrEngine fails fast on invalid/missing paths
+    await expect(runLocalAsrEngine(ctx, "")).rejects.toMatchObject({
+      code: "BAD_PATH",
+    });
+    await expect(
+      runLocalAsrEngine(ctx, join(docsDir, "does-not-exist.wav")),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+
+    // Explicit python-whisper on non-WAV without FFmpeg preserves ASR_NEEDS_FFMPEG
+    await expect(
+      runLocalAsrEngine(ctx, join(docsDir, "clip.m4a"), {
+        engine: "python-whisper",
+      }),
+    ).rejects.toMatchObject({ code: "ASR_NEEDS_FFMPEG" });
+
+    // transcribeAudioPaths validates format/engine before creating outputDir
+    const uncreatedOutDir = join(homeDir, "never-created-out");
+    await expect(
+      transcribeAudioPaths(ctx, {
+        paths: ["docs/sample.wav"],
+        format: "docx" as any,
+        outputDir: uncreatedOutDir,
+      }),
+    ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(existsSync(uncreatedOutDir)).toBe(false);
+
+    // Windows / UNC path edge cases
+    expect(isTranscribableMediaPath("\\\\nas\\share\\clip.wav")).toBe(true);
+    expect(isTranscribableMediaPath("C:\\Users\\Demo\\dir.mp3\\README")).toBe(
+      false,
+    );
+    expect(isTranscribableMediaPath("/home/demo/.mp3")).toBe(false);
+
+    const winSandboxCtx = createContext({
+      platform: "win32",
+      home: "C:\\Users\\Demo",
+      sandboxRoot: "C:\\Users\\Demo",
+      dataDir: "C:\\Users\\Demo\\.bun_rad_studio",
+      toolDirs: [emptyBin],
+    });
+    await expect(
+      transcribeAudioPaths(winSandboxCtx, { paths: ["D:\\Other\\clip.wav"] }),
+    ).rejects.toMatchObject({ code: "PROTECTED_PATH" });
+    await expect(
+      transcribeAudioPaths(winSandboxCtx, {
+        paths: ["\\\\nas\\share\\clip.wav"],
+      }),
+    ).rejects.toMatchObject({ code: "PROTECTED_PATH" });
+
+    // Dotted filename stem in transcribe/save appends .md instead of treating .2026 as transcript ext
+    const dottedSave = await apiCall("transcribe/save", {
+      content: "# Meeting 2026\n",
+      folder: docsDir,
+      name: "meeting.2026",
+      format: "md",
+    });
+    expect(dottedSave.status).toBe(200);
+    expect(dottedSave.json.name).toBe("meeting.2026.md");
+    expect(existsSync(join(docsDir, "meeting.2026.md"))).toBe(true);
   });
 });
