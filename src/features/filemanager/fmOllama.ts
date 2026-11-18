@@ -44,6 +44,13 @@ import {
   validateName,
 } from "./fmPaths";
 import { extractReadableDocumentText } from "./fmPreview";
+import {
+  isTranscribableMediaPath,
+  transcribeAudioPaths,
+  type TranscribeEngineId,
+  type TranscribeFormat,
+  type TranscribeHooks,
+} from "./fmTranscribe";
 
 // ---------------------------------------------------------------------------------------------------------------
 // 1. Pure Bun Path & File Helpers (Zero Node `fs`, `path`, `os`, or `child_process` imports)
@@ -7290,6 +7297,7 @@ export async function runOllamaChatOrGenerate(
  */
 export type RoutedCapabilityKind =
   | "speech"
+  | "transcribe"
   | "decision"
   | "semantic_search"
   | "web_search"
@@ -7299,8 +7307,23 @@ export type RoutedCapabilityKind =
   | "thinking_chat"
   | "chat";
 
+function inferTranscribeFormatFromPrompt(pLower: string): TranscribeFormat {
+  if (/\b\.?vtt\b|\bwebvtt\b/i.test(pLower)) return "vtt";
+  if (/\b\.?srt\b|\bsubtitles?\b|\bcaptions?\b/i.test(pLower)) return "srt";
+  if (/\b\.?lrc\b|\blyrics?\b/i.test(pLower)) return "lrc";
+  if (/\bjson\b/i.test(pLower)) return "json";
+  if (/\bplain\s*text\b|\b\.?txt\b/i.test(pLower)) return "txt";
+  return "md";
+}
+
+function isAsrModelName(model?: string): boolean {
+  return Boolean(
+    model && /\b(whisper|lfm3-omni|asr|stt|parakeet|canary)\b/i.test(model),
+  );
+}
+
 /**
- * Inspects a plain-English user prompt and optional workspace file selection and routes it to the appropriate Ollama capability (speech, SystemOne decision, semantic search, web search, vision, structured JSON, tool calling, or chat).
+ * Inspects a plain-English user prompt and optional workspace file selection and routes it to the appropriate Ollama capability (speech, transcription, SystemOne decision, semantic search, web search, vision, structured JSON, tool calling, or chat).
  */
 export async function routePlainEnglishRequest(
   ctx: FmContext,
@@ -7326,6 +7349,9 @@ export async function routePlainEnglishRequest(
     stop?: string | string[];
     keepAlive?: string | number;
     systemPrompt?: string;
+    transcribeEngine?: TranscribeEngineId;
+    transcribeFormat?: TranscribeFormat;
+    transcribeHooks?: TranscribeHooks;
   },
 ): Promise<{
   routedCapability: RoutedCapabilityKind;
@@ -7335,8 +7361,29 @@ export async function routePlainEnglishRequest(
   let prompt = String(payload.prompt || "").trim();
   const paths = Array.isArray(payload.paths) ? payload.paths : [];
   const hasSelectedImages = paths.some((p) => isSupportedVisionImagePath(p));
+  const mediaPaths = paths.filter((p) => isTranscribableMediaPath(p));
+  const hasSelectedMedia = mediaPaths.length > 0;
   if (!prompt) {
     if (paths.length > 0) {
+      if (hasSelectedMedia) {
+        const format = payload.transcribeFormat ?? "md";
+        const result = await transcribeAudioPaths(
+          ctx,
+          {
+            paths: mediaPaths,
+            engine: payload.transcribeEngine,
+            model: isAsrModelName(payload.model) ? payload.model : undefined,
+            format,
+            summarize: format === "md",
+          },
+          payload.transcribeHooks,
+        );
+        return {
+          routedCapability: "transcribe",
+          routeExplanation: `Routed selected audio/video file(s) (${mediaPaths.join(", ")}) directly to AI Audio-to-Text & Subtitle Engine (${result.results[0]?.engine || "asr"}, format: ${format.toUpperCase()}).`,
+          result,
+        };
+      }
       const shouldReadAloud =
         !hasSelectedImages &&
         (payload.speakReply === true ||
@@ -7380,6 +7427,40 @@ export async function routePlainEnglishRequest(
   );
   const requestedModel =
     payload.model || (explicitModelMatch ? explicitModelMatch[1] : undefined);
+
+  // 2. Audio / Video Speech-to-Text & Subtitle Generation detection
+  const explicitTranscribePrompt =
+    /\b(transcribe|transcription|speech[\s-]to[\s-]text|stt|asr|whisper|audio[\s-]to[\s-]text|video[\s-]to[\s-]text|subtitles?|captions?|extract\s+transcript|generate\s+subtitles?)\b/i.test(
+      pLower,
+    ) || /\.(srt|vtt|lrc)\b/i.test(pLower);
+  if (hasSelectedMedia && explicitTranscribePrompt) {
+    const format =
+      payload.transcribeFormat ?? inferTranscribeFormatFromPrompt(pLower);
+    const summarize =
+      format === "md" ||
+      /\b(summar|action\s*items|chapters|key\s+points|notes)\b/i.test(pLower);
+    const saveSidecar =
+      /\b(save\s+sidecar|save\s+next|save\s+to\s+file|export\s+subtitles?)\b/i.test(
+        pLower,
+      );
+    const result = await transcribeAudioPaths(
+      ctx,
+      {
+        paths: mediaPaths,
+        engine: payload.transcribeEngine,
+        model: isAsrModelName(requestedModel) ? requestedModel : undefined,
+        format,
+        summarize,
+        saveSidecar,
+      },
+      payload.transcribeHooks,
+    );
+    return {
+      routedCapability: "transcribe",
+      routeExplanation: `Routed ${mediaPaths.length} audio/video file(s) to AI Audio-to-Text & Subtitle Engine (${result.results[0]?.engine || "asr"}, format: ${format.toUpperCase()}).`,
+      result,
+    };
+  }
 
   // 2. Speech / Read Out Loud detection (only when explicitly asking for read-aloud / TTS and not inspecting an image)
   const explicitSpeechPrompt =

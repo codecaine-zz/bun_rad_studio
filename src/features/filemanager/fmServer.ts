@@ -86,6 +86,7 @@ import {
   handleBionicStreamRequest,
   shutdownBionicForFileManager,
 } from "./fmBionic";
+import { TRANSCRIBE_OPS } from "./fmTranscribe";
 import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
@@ -837,6 +838,7 @@ Object.assign(
   PHONON_OPS,
   OLLAMA_OPS,
   BIONIC_OPS,
+  TRANSCRIBE_OPS,
 );
 
 /** List of all registered File Manager JSON API operation names. */
@@ -1764,11 +1766,14 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
               error: { code: "NOT_JSON", message: "Requests must be JSON." },
             });
           const maxBodyBytes =
-            op === "phonon/clone-voice" ||
-            op.startsWith("ollama/") ||
-            op.startsWith("bionic/")
-              ? 8 * 1024 * 1024
-              : MAX_BODY_BYTES;
+            op === "transcribe/mic"
+              ? 24 * 1024 * 1024
+              : op === "phonon/clone-voice" ||
+                  op.startsWith("ollama/") ||
+                  op.startsWith("bionic/") ||
+                  op.startsWith("transcribe/")
+                ? 8 * 1024 * 1024
+                : MAX_BODY_BYTES;
           const declared = Number(req.headers.get("content-length") ?? 0);
           if (declared > maxBodyBytes)
             return json(413, {

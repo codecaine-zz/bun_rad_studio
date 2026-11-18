@@ -54,6 +54,7 @@ import {
   type OllamaHardwareSpecs,
   type ThinkingEffortChoice,
 } from "./fmOllama";
+import { runLocalAsrEngine } from "./fmTranscribe";
 
 // ---------------------------------------------------------------------------------------------------------------
 // 1. Types & Interfaces for LM Studio Bionic
@@ -2901,6 +2902,12 @@ export async function runBionicWhisper(
 ): Promise<{ transcript: string; engine: string }> {
   const engineSpec = findLocalWhisperBinary(ctx);
   if (!engineSpec) {
+    try {
+      const localRes = await runLocalAsrEngine(ctx, mediaAbsPath);
+      if (localRes.text.trim()) {
+        return { transcript: localRes.text, engine: localRes.engine };
+      }
+    } catch {}
     throw new FmError(
       "ASR_ENGINE_UNAVAILABLE",
       "No local Whisper/ASR binary (mlx_whisper, whisper-cli, or whisper) is installed on this machine, and no companion .srt/.vtt/.txt transcript file was found alongside the media file.",
@@ -2929,7 +2936,12 @@ export async function runBionicWhisper(
           "pcm_s16le",
           wavPath,
         ],
-        { stdout: "ignore", stderr: "pipe", stdin: "ignore" },
+        {
+          stdout: "ignore",
+          stderr: "pipe",
+          stdin: "ignore",
+          windowsHide: true,
+        },
       );
       const ffTimer = setTimeout(() => {
         try {
@@ -2972,6 +2984,7 @@ export async function runBionicWhisper(
       stdout: "pipe",
       stderr: "pipe",
       stdin: "ignore",
+      windowsHide: true,
     });
     let timedOut = false;
     const timer = setTimeout(() => {
