@@ -282,7 +282,20 @@ describe("File Manager System Information API operations", () => {
     expect(res.status).toBe(200);
     expect(res.json.overview.os.hostname).toBe("RAD-WORKSTATION");
     expect(res.json.overview.cpu.brand).toBe("Ryzen 9 7950X");
+    expect(res.json.catalog.length).toBe(76);
     expect(res.json.catalog.length).toBe(SYSINFO_PROBE_CATALOG.length);
+    const catalogMethods = new Set(
+      res.json.catalog.map((c: { method: string }) => c.method),
+    );
+    for (const m of [
+      "networkRoutes",
+      "diskSpeed",
+      "inetSpeed",
+      "powerShellStart",
+      "powerShellRelease",
+    ]) {
+      expect(catalogMethods.has(m)).toBe(true);
+    }
   });
 
   test("sysinfo/section returns structured facts and tables", async () => {
@@ -304,6 +317,10 @@ describe("File Manager System Information API operations", () => {
           k === "manufacturer" && v === "Codecaine Hardware Labs",
       ),
     ).toBe(true);
+
+    const routesRes = await post("sysinfo/probe", { method: "networkRoutes" });
+    expect(routesRes.status).toBe(200);
+    expect(routesRes.json.method).toBe("networkRoutes");
 
     const badProbe = await post("sysinfo/probe", { method: "rm_rf" });
     expect(badProbe.status).toBe(400);

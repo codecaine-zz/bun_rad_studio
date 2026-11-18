@@ -187,7 +187,7 @@ In addition to `codecaine run <name>`, tools are exposed as collision-free stand
 | Command | Mode | Description |
 | :--- | :--- | :--- |
 | `codecaine-api` | CLI / GUI | REST/HTTP API test client with latency profiling |
-| `codecaine-system` | CLI / GUI | Hardware intelligence covering all 60 systeminformation APIs |
+| `codecaine-system` | CLI / GUI | Hardware intelligence covering all 76 systeminformation APIs |
 | `codecaine-calc` | CLI / GUI | Universal computing, bitwise & programmer calculator |
 | `codecaine-crypto` | CLI / GUI | Hashing (SHA256/MD5/BLAKE), UUIDs, HMAC & token inspector |
 | `codecaine-jwt` | CLI | JWT token signing, verification & expiration inspector |

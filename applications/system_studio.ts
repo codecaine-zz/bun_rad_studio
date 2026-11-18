@@ -35,8 +35,28 @@ import {
 } from "./system_studio_extras";
 
 // -------------------------------------------------------------------------------------------------
-// API Registry & Domain Metadata (All 71 Methods Across 10 Domain Categories)
+// API Registry & Domain Metadata (All 76 Methods Across 10 Domain Categories)
 // -------------------------------------------------------------------------------------------------
+
+/** Parse `diskSpeed` parameter (`"16"`, `"/tmp,64"`, or `"/tmp"`) into `[path, sizeMB]`. */
+export function parseDiskSpeedParam(
+  param?: string,
+): [string | undefined, number | undefined] {
+  const raw = String(param ?? "").trim();
+  if (!raw) return [undefined, 16];
+  if (/^\d+(\.\d+)?$/.test(raw)) {
+    return [undefined, Number(raw)];
+  }
+  const commaIdx = raw.lastIndexOf(",");
+  if (commaIdx !== -1) {
+    const left = raw.slice(0, commaIdx).trim();
+    const right = raw.slice(commaIdx + 1).trim();
+    if (/^\d+(\.\d+)?$/.test(right)) {
+      return [left || undefined, Number(right) || 16];
+    }
+  }
+  return [raw, 16];
+}
 
 export interface SiMethodMeta {
   name: string;
@@ -157,6 +177,40 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
     category: "OS & Software Environment",
     description: "Current time, system uptime, and timezone information",
     execute: async () => si.time(),
+  },
+  powerShellStart: {
+    name: "powerShellStart",
+    category: "OS & Software Environment",
+    description:
+      "Start persistent PowerShell worker pool for faster Windows queries",
+    execute: async () => {
+      await si.powerShellStart();
+      return {
+        status:
+          process.platform === "win32"
+            ? "PowerShell persistent worker pool started"
+            : "No-op on non-Windows platform",
+        active: process.platform === "win32",
+        platform: process.platform,
+      };
+    },
+  },
+  powerShellRelease: {
+    name: "powerShellRelease",
+    category: "OS & Software Environment",
+    description:
+      "Terminate and release the persistent Windows PowerShell worker pool",
+    execute: async () => {
+      await si.powerShellRelease();
+      return {
+        status:
+          process.platform === "win32"
+            ? "PowerShell persistent worker pool released"
+            : "No-op on non-Windows platform",
+        released: true,
+        platform: process.platform,
+      };
+    },
   },
 
   // 3. CPU, Load & Thermals
@@ -299,6 +353,16 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
       "Hard drive / SSD hardware specifications, SMART status & geometry",
     execute: async () => si.diskLayout(),
   },
+  diskSpeed: {
+    name: "diskSpeed",
+    category: "Disks & Filesystems",
+    description:
+      "Sequential uncached write / read disk throughput benchmark (MB/s)",
+    acceptsParam: true,
+    paramPlaceholder: "Optional path and/or size in MB (e.g. 16 or /tmp,64)",
+    defaultParam: "16",
+    execute: async (param) => si.diskSpeed(...parseDiskSpeedParam(param)),
+  },
 
   // 7. Network, Sockets & Wi-Fi
   networkInterfaceDefault: {
@@ -334,6 +398,13 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
     defaultParam: "",
     execute: async (param) => si.networkStats(param || "*"),
   },
+  networkRoutes: {
+    name: "networkRoutes",
+    category: "Network, Sockets & Wi-Fi",
+    description:
+      "System IPv4 and IPv6 routing table (destination CIDR, gateway, interface, metric & family)",
+    execute: async () => si.networkRoutes(),
+  },
   networkConnections: {
     name: "networkConnections",
     category: "Network, Sockets & Wi-Fi",
@@ -368,6 +439,24 @@ export const SI_METHODS: Record<string, SiMethodMeta> = {
     defaultParam: "5000",
     execute: async (param) =>
       si.inetPublicIp(param ? Number(param) || 5000 : undefined),
+  },
+  inetSpeed: {
+    name: "inetSpeed",
+    category: "Network, Sockets & Wi-Fi",
+    description:
+      "Internet download / upload throughput benchmark (Mbit/s over parallel streams)",
+    acceptsParam: true,
+    paramPlaceholder:
+      "Optional downloadUrl[,uploadUrl] (default: speed.cloudflare.com)",
+    defaultParam: "",
+    execute: async (param) => {
+      const raw = String(param ?? "").trim();
+      if (!raw) return si.inetSpeed();
+      const [downUrl, upUrl] = raw
+        .split(",")
+        .map((part) => part.trim() || undefined);
+      return si.inetSpeed(downUrl, upUrl);
+    },
   },
   wifiNetworks: {
     name: "wifiNetworks",
@@ -1697,7 +1786,7 @@ export function generateEnterpriseAppHtml(): string {
       <div class="brand-logo">⚡</div>
       <div class="brand-title">
         System Studio Pro
-        <span class="brand-badge">All 71 APIs</span>
+        <span class="brand-badge">All 76 APIs</span>
       </div>
       <div class="status-pill">
         <div class="status-dot"></div>
@@ -1778,7 +1867,7 @@ ${SYSTEM_STUDIO_EXTRA_QUICKBAR_HTML}
       <div class="search-box">
         <div class="search-input-wrap">
           <span class="search-icon">🔍</span>
-          <input type="text" class="search-input" id="searchApis" placeholder="Filter 71 APIs (e.g. cpu, gpu, npu, docker, wifi)..." oninput="filterMethods(this.value)">
+          <input type="text" class="search-input" id="searchApis" placeholder="Filter 76 APIs (e.g. cpu, gpu, npu, docker, wifi)..." oninput="filterMethods(this.value)">
         </div>
 
         <!-- Sidebar Tools: Expand/Collapse & Width Controls -->
@@ -1793,14 +1882,14 @@ ${SYSTEM_STUDIO_EXTRA_QUICKBAR_HTML}
 
         <!-- Category Filter Pills -->
         <div class="cat-filter-scroll" id="catFilterBar">
-          <button class="cat-pill-btn active" onclick="filterByCategory('ALL')">All (71)</button>
+          <button class="cat-pill-btn active" onclick="filterByCategory('ALL')">All (76)</button>
           <button class="cat-pill-btn" onclick="filterByCategory('Hardware & Baseboard')">Hardware (8)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('OS & Software Environment')">OS (6)</button>
+          <button class="cat-pill-btn" onclick="filterByCategory('OS & Software Environment')">OS (8)</button>
           <button class="cat-pill-btn" onclick="filterByCategory('CPU, Load & Thermals')">CPU (9)</button>
           <button class="cat-pill-btn" onclick="filterByCategory('Memory & Power / Battery')">Memory (3)</button>
           <button class="cat-pill-btn" onclick="filterByCategory('Graphics & Displays')">GPU (2)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Disks & Filesystems')">Storage (6)</button>
-          <button class="cat-pill-btn" onclick="filterByCategory('Network, Sockets & Wi-Fi')">Network (11)</button>
+          <button class="cat-pill-btn" onclick="filterByCategory('Disks & Filesystems')">Storage (7)</button>
+          <button class="cat-pill-btn" onclick="filterByCategory('Network, Sockets & Wi-Fi')">Network (13)</button>
           <button class="cat-pill-btn" onclick="filterByCategory('Processes & Services')">Processes (5)</button>
           <button class="cat-pill-btn" onclick="filterByCategory('Peripherals & Audio')">Peripherals (8)</button>
           <button class="cat-pill-btn" onclick="filterByCategory('Virtualization, Docker & Batch')">Virtualization (13)</button>
@@ -1871,7 +1960,7 @@ ${SYSTEM_STUDIO_EXTRA_JSONSEARCH_HTML}
           <div class="console-box" id="consoleBox">
             <div class="log-line">
               <span class="log-time">[${new Date().toLocaleTimeString()}]</span>
-              <span class="log-info">System Information Studio Pro initialized. All 71 methods ready.</span>
+              <span class="log-info">System Information Studio Pro initialized. All 76 methods ready.</span>
             </div>
           </div>
         </div>
@@ -1884,7 +1973,7 @@ ${SYSTEM_STUDIO_EXTRA_JSONSEARCH_HTML}
     <div class="footer-left">
       <span>Platform: <b id="footerPlatform">macOS (arm64)</b></span>
       <span>•</span>
-      <span>Total APIs: <b>71</b></span>
+      <span>Total APIs: <b>76</b></span>
       <span>•</span>
       <span>Bun Native Engine</span>
     </div>
@@ -2626,7 +2715,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
         data.forEach((item, idx) => {
           const card = document.createElement("div");
           card.className = "data-card";
-          const title = item.name || item.fs || item.device || item.iface || item.vendor || (\`Entry #\${idx + 1}\`);
+          const title = item.name || item.fs || item.device || item.iface || item.destination || item.vendor || (\`Entry #\${idx + 1}\`);
           
           let kvHtml = "";
           if (typeof item === "object") {
@@ -2968,7 +3057,7 @@ export function createSystemInformationStudio(
     generateHtml: () => generateEnterpriseAppHtml(),
     run: async () => {
       console.log(
-        "⚡ Launching System Information Studio Pro (All 71 APIs)...",
+        "⚡ Launching System Information Studio Pro (All 76 APIs)...",
       );
 
       // 1. Launch Isolated Background Telemetry Worker Engine

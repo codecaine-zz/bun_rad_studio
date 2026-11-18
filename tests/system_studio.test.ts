@@ -12,18 +12,18 @@ import {
 import { SYSINFO_PROBE_CATALOG } from "../src/features/filemanager/fmSysinfo.ts";
 import * as si from "systeminformation";
 
-describe("⚡ System Information Studio Suite (All 71 systeminformation v6 APIs)", () => {
-  it("1. Method registry and File Manager probe catalog contain all 71 systeminformation v6 public methods", () => {
+describe("⚡ System Information Studio Suite (All 76 systeminformation v6 APIs)", () => {
+  it("1. Method registry and File Manager probe catalog contain all 76 systeminformation v6 public methods", () => {
     const keys = Object.keys(SI_METHODS);
     const siExports = Object.keys(si).filter(
       (k) => typeof (si as Record<string, unknown>)[k] === "function",
     );
-    expect(siExports.length).toBe(71);
-    expect(keys.length).toBe(71);
+    expect(siExports.length).toBe(76);
+    expect(keys.length).toBe(76);
     expect(keys.sort()).toEqual([...siExports].sort());
 
     const catalogMethods = SYSINFO_PROBE_CATALOG.map((c) => c.method);
-    expect(catalogMethods.length).toBe(71);
+    expect(catalogMethods.length).toBe(76);
     expect([...catalogMethods].sort()).toEqual([...siExports].sort());
 
     // Verify all 10 domain areas exist
@@ -50,7 +50,7 @@ describe("⚡ System Information Studio Suite (All 71 systeminformation v6 APIs)
 
     expect(ver.success).toBe(true);
     expect(typeof ver.data).toBe("string");
-    expect(ver.data).toBe("6.0.0-beta.23");
+    expect(ver.data).toBe("6.0.0-beta.26");
 
     expect(sys.success).toBe(true);
     expect(sys.data).toBeDefined();
@@ -84,6 +84,14 @@ describe("⚡ System Information Studio Suite (All 71 systeminformation v6 APIs)
     expect(shell.success).toBe(true);
     expect(time.success).toBe(true);
     expect(time.data.uptime).toBeGreaterThanOrEqual(0);
+
+    const psStart = await executeSiMethod("powerShellStart");
+    expect(psStart.success).toBe(true);
+    expect(psStart.data).toBeDefined();
+
+    const psRelease = await executeSiMethod("powerShellRelease");
+    expect(psRelease.success).toBe(true);
+    expect(psRelease.data.released).toBe(true);
   }, 30_000);
 
   it("4. Category 3: CPU, Load & Thermals methods execute successfully", async () => {
@@ -143,14 +151,16 @@ describe("⚡ System Information Studio Suite (All 71 systeminformation v6 APIs)
   }, 60_000);
 
   it("6. Category 6: Storage & Filesystems execute successfully", async () => {
-    const [fsSize, fsOpen, block, stats, io, layout] = await Promise.all([
-      executeSiMethod("fsSize"),
-      executeSiMethod("fsOpenFiles"),
-      executeSiMethod("blockDevices"),
-      executeSiMethod("fsStats"),
-      executeSiMethod("disksIO"),
-      executeSiMethod("diskLayout"),
-    ]);
+    const [fsSize, fsOpen, block, stats, io, layout, dSpeed] =
+      await Promise.all([
+        executeSiMethod("fsSize"),
+        executeSiMethod("fsOpenFiles"),
+        executeSiMethod("blockDevices"),
+        executeSiMethod("fsStats"),
+        executeSiMethod("disksIO"),
+        executeSiMethod("diskLayout"),
+        executeSiMethod("diskSpeed", "16"),
+      ]);
 
     expect(fsSize.success).toBe(true);
     expect(Array.isArray(fsSize.data)).toBe(true);
@@ -160,15 +170,20 @@ describe("⚡ System Information Studio Suite (All 71 systeminformation v6 APIs)
     expect(stats.success).toBe(true);
     expect(io.success).toBe(true);
     expect(layout.success).toBe(true);
+    expect(dSpeed.success).toBe(true);
+    expect(dSpeed.data === null || typeof dSpeed.data.ms === "number").toBe(
+      true,
+    );
   }, 60_000);
 
   it("7. Category 7: Network & Wi-Fi methods execute successfully", async () => {
-    const [iface, gw, ifaces, stats, conns, wifiNet, wifiIf, wifiConn] =
+    const [iface, gw, ifaces, stats, routes, conns, wifiNet, wifiIf, wifiConn] =
       await Promise.all([
         executeSiMethod("networkInterfaceDefault"),
         executeSiMethod("networkGatewayDefault"),
         executeSiMethod("networkInterfaces"),
         executeSiMethod("networkStats"),
+        executeSiMethod("networkRoutes"),
         executeSiMethod("networkConnections"),
         executeSiMethod("wifiNetworks"),
         executeSiMethod("wifiInterfaces"),
@@ -179,6 +194,8 @@ describe("⚡ System Information Studio Suite (All 71 systeminformation v6 APIs)
     expect(gw.success).toBe(true);
     expect(ifaces.success).toBe(true);
     expect(stats.success).toBe(true);
+    expect(routes.success).toBe(true);
+    expect(Array.isArray(routes.data)).toBe(true);
     expect(conns.success).toBe(true);
     expect(wifiNet.success).toBe(true);
     expect(wifiIf.success).toBe(true);

@@ -39,7 +39,7 @@ export interface SysinfoProbeCatalogItem {
   defaultParam?: string;
 }
 
-/** Catalog of all 71 supported `systeminformation` v6 probes available in the System Info tool. */
+/** Catalog of all 76 supported `systeminformation` v6 probes available in the System Info tool. */
 export const SYSINFO_PROBE_CATALOG: SysinfoProbeCatalogItem[] = [
   // 1. System & Hardware (8)
   {
@@ -174,7 +174,7 @@ export const SYSINFO_PROBE_CATALOG: SysinfoProbeCatalogItem[] = [
     description:
       "Charge percentage, AC status, cycle count, health, and capacity in mWh.",
   },
-  // 4. Storage & Disks (6)
+  // 4. Storage & Disks (7)
   {
     method: "fsSize",
     category: "Storage",
@@ -217,6 +217,15 @@ export const SYSINFO_PROBE_CATALOG: SysinfoProbeCatalogItem[] = [
     description:
       "Physical SSD/NVMe/HDD drives, vendor, firmware, serial, interface, and SMART status.",
   },
+  {
+    method: "diskSpeed",
+    category: "Storage",
+    label: "Disk Sequential Speed Benchmark",
+    description:
+      "Sequential uncached write and read throughput benchmark in MB/s.",
+    hasParam: true,
+    defaultParam: "16",
+  },
   // 5. Graphics & Displays (2)
   {
     method: "gpu",
@@ -232,7 +241,7 @@ export const SYSINFO_PROBE_CATALOG: SysinfoProbeCatalogItem[] = [
     description:
       "Attached display monitors, native/current resolutions, refresh rates, and connections.",
   },
-  // 6. Network, Sockets & Wi-Fi (11)
+  // 6. Network, Sockets & Wi-Fi (13)
   {
     method: "networkInterfaceDefault",
     category: "Network",
@@ -262,6 +271,13 @@ export const SYSINFO_PROBE_CATALOG: SysinfoProbeCatalogItem[] = [
       "Received/transmitted bytes, throughput per second, packet drops, and errors.",
     hasParam: true,
     defaultParam: "",
+  },
+  {
+    method: "networkRoutes",
+    category: "Network",
+    label: "IPv4 / IPv6 Routing Table",
+    description:
+      "Configured network routes including destination CIDR, gateway, interface, metric, and family.",
   },
   {
     method: "networkConnections",
@@ -294,6 +310,15 @@ export const SYSINFO_PROBE_CATALOG: SysinfoProbeCatalogItem[] = [
       "External public IPv4 and IPv6 addresses with lookup latency in ms.",
     hasParam: true,
     defaultParam: "5000",
+  },
+  {
+    method: "inetSpeed",
+    category: "Network",
+    label: "Internet Bandwidth Speed Test",
+    description:
+      "Download and upload throughput benchmark in Mbit/s across 4 parallel streams.",
+    hasParam: true,
+    defaultParam: "",
   },
   {
     method: "wifiNetworks",
@@ -408,7 +433,7 @@ export const SYSINFO_PROBE_CATALOG: SysinfoProbeCatalogItem[] = [
     label: "Logged-in User Sessions",
     description: "Active user logins, TTYs, login times, and last commands.",
   },
-  // 9. OS & Software (6)
+  // 9. OS & Software (8)
   {
     method: "osInfo",
     category: "Software",
@@ -450,6 +475,19 @@ export const SYSINFO_PROBE_CATALOG: SysinfoProbeCatalogItem[] = [
     label: "System Clock & Timezone",
     description:
       "Current epoch time, uptime, timezone identifier, and UTC offset.",
+  },
+  {
+    method: "powerShellStart",
+    category: "Software",
+    label: "Start PowerShell Worker Pool",
+    description:
+      "Starts the persistent Windows PowerShell pool for faster telemetry queries.",
+  },
+  {
+    method: "powerShellRelease",
+    category: "Software",
+    label: "Release PowerShell Worker Pool",
+    description: "Terminates the persistent Windows PowerShell worker pool.",
   },
   // 10. Virtualization, Docker & Batch (13)
   {
@@ -1722,13 +1760,100 @@ export async function collectSysinfoSection(
 
   if (section === "network") {
     const isShot = process.env.SCREENSHOT_MODE === "1";
-    const [ifaces, stats, gateway] = await Promise.all([
+    const [ifaces, stats, gateway, routes] = await Promise.all([
       si.networkInterfaces().catch(() => [] as any[]),
       si.networkStats("*").catch(() => [] as any[]),
       si.networkGatewayDefault().catch(() => ""),
+      si.networkRoutes().catch(() => [] as any[]),
     ]);
     const ifaceList = Array.isArray(ifaces) ? ifaces : ifaces ? [ifaces] : [];
     const statList = Array.isArray(stats) ? stats : stats ? [stats] : [];
+    const routeList = Array.isArray(routes) ? routes : [];
+    const tables: SysinfoTable[] = [
+      {
+        title: "Network Interfaces (NICs)",
+        columns: [
+          "Interface",
+          "IPv4",
+          "IPv6",
+          "MAC",
+          "Type",
+          "Speed",
+          "MTU",
+          "State",
+        ],
+        rows: ifaceList.map((n: any) => [
+          String(n.iface || "") + (n.default ? " ★" : ""),
+          isShot
+            ? n.internal
+              ? "127.0.0.1"
+              : "192.168.1.*** (Masked)"
+            : String(n.ip4 || "—"),
+          isShot ? (n.internal ? "::1" : "fe80::***") : String(n.ip6 || "—"),
+          isShot
+            ? n.internal
+              ? "00:00:00:00:00:00"
+              : "🔒 [Protected]"
+            : String(n.mac || "—"),
+          String(n.type || (n.internal ? "loopback" : "net")),
+          n.speed ? `${n.speed} Mbps` : "—",
+          n.mtu ? String(n.mtu) : "—",
+          String(n.operstate || "up"),
+        ]),
+      },
+      {
+        title: "Live Interface Traffic",
+        columns: [
+          "Interface",
+          "State",
+          "RX Total",
+          "TX Total",
+          "RX / sec",
+          "TX / sec",
+          "Errors",
+        ],
+        rows: statList.map((s: any) => [
+          String(s.iface || ""),
+          String(s.operstate || "up"),
+          formatBytes(Number(s.rx_bytes) || 0),
+          formatBytes(Number(s.tx_bytes) || 0),
+          `${formatBytes(Math.max(0, Number(s.rx_sec) || 0))}/s`,
+          `${formatBytes(Math.max(0, Number(s.tx_sec) || 0))}/s`,
+          String((Number(s.rx_errors) || 0) + (Number(s.tx_errors) || 0)),
+        ]),
+      },
+    ];
+    if (routeList.length > 0) {
+      tables.push({
+        title: "Routing Table (IPv4 & IPv6)",
+        columns: ["Destination", "Gateway", "Interface", "Family", "Metric"],
+        rows: routeList.slice(0, 50).map((r: any) => {
+          const gw = String(r.gateway || "");
+          const isLocalGw =
+            !gw ||
+            gw === "127.0.0.1" ||
+            gw === "::1" ||
+            gw === "0.0.0.0" ||
+            gw === "::";
+          const displayGw = !gw
+            ? "—"
+            : isShot && !isLocalGw
+              ? gw.includes(":")
+                ? "fe80::***"
+                : "192.168.1.*** (Masked)"
+              : gw;
+          return [
+            String(r.destination || "—"),
+            displayGw,
+            String(r.iface || "—"),
+            String(r.family || "—"),
+            r.metric !== null && r.metric !== undefined
+              ? String(r.metric)
+              : "—",
+          ];
+        }),
+      });
+    }
     return {
       section,
       platform,
@@ -1741,62 +1866,15 @@ export async function collectSysinfoSection(
           isShot ? "192.168.1.*** (Masked)" : String(gateway || "—"),
         ],
         ["Network Interfaces", String(ifaceList.length)],
+        ["Routing Table Entries", String(routeList.length)],
       ],
-      tables: [
-        {
-          title: "Network Interfaces (NICs)",
-          columns: [
-            "Interface",
-            "IPv4",
-            "IPv6",
-            "MAC",
-            "Type",
-            "Speed",
-            "MTU",
-            "State",
-          ],
-          rows: ifaceList.map((n: any) => [
-            String(n.iface || "") + (n.default ? " ★" : ""),
-            isShot
-              ? n.internal
-                ? "127.0.0.1"
-                : "192.168.1.*** (Masked)"
-              : String(n.ip4 || "—"),
-            isShot ? (n.internal ? "::1" : "fe80::***") : String(n.ip6 || "—"),
-            isShot
-              ? n.internal
-                ? "00:00:00:00:00:00"
-                : "🔒 [Protected]"
-              : String(n.mac || "—"),
-            String(n.type || (n.internal ? "loopback" : "net")),
-            n.speed ? `${n.speed} Mbps` : "—",
-            n.mtu ? String(n.mtu) : "—",
-            String(n.operstate || "up"),
-          ]),
-        },
-        {
-          title: "Live Interface Traffic",
-          columns: [
-            "Interface",
-            "State",
-            "RX Total",
-            "TX Total",
-            "RX / sec",
-            "TX / sec",
-            "Errors",
-          ],
-          rows: statList.map((s: any) => [
-            String(s.iface || ""),
-            String(s.operstate || "up"),
-            formatBytes(Number(s.rx_bytes) || 0),
-            formatBytes(Number(s.tx_bytes) || 0),
-            `${formatBytes(Math.max(0, Number(s.rx_sec) || 0))}/s`,
-            `${formatBytes(Math.max(0, Number(s.tx_sec) || 0))}/s`,
-            String((Number(s.rx_errors) || 0) + (Number(s.tx_errors) || 0)),
-          ]),
-        },
-      ],
-      raw: { interfaces: ifaceList, stats: statList, gateway },
+      tables,
+      raw: {
+        interfaces: ifaceList,
+        stats: statList,
+        gateway,
+        routes: routeList,
+      },
     };
   }
 
@@ -2186,6 +2264,23 @@ export async function runSysinfoProbe(
       ) {
         throw new Error("Invalid target URL for inetChecksite probe.");
       }
+    } else if (method === "inetSpeed") {
+      const parts = cleanParam.split(",").map((s) => s.trim());
+      if (
+        parts.length > 2 ||
+        parts.every((s) => !s) ||
+        parts.some(
+          (s) =>
+            s !== "" &&
+            !/^https?:\/\/[a-zA-Z0-9._~:/?#[\]@!$&'()*+;=%-]+$/.test(s),
+        )
+      ) {
+        throw new Error("Invalid target URL(s) for inetSpeed probe.");
+      }
+    } else if (method === "diskSpeed") {
+      if (!/^[a-zA-Z0-9_.,\s*/:\\-]+$/.test(cleanParam)) {
+        throw new Error("Invalid path or size parameter for diskSpeed probe.");
+      }
     } else if (method === "get" || method === "observe") {
       if (!/^[a-zA-Z0-9_.,\s*:"{}-]+$/.test(cleanParam)) {
         throw new Error(`Invalid query parameter for "${method}" probe.`);
@@ -2287,6 +2382,58 @@ export async function runSysinfoProbe(
   } else if (method === "inetPublicIp") {
     const timeout = Number(cleanParam || entry.defaultParam) || 5000;
     data = await si.inetPublicIp(timeout);
+  } else if (method === "diskSpeed") {
+    const raw = cleanParam || entry.defaultParam || "16";
+    let diskPath: string | undefined;
+    let sizeMB: number | undefined = 16;
+    if (/^\d+(\.\d+)?$/.test(raw)) {
+      sizeMB = Number(raw);
+    } else {
+      const commaIdx = raw.lastIndexOf(",");
+      if (commaIdx !== -1) {
+        const left = raw.slice(0, commaIdx).trim();
+        const right = raw.slice(commaIdx + 1).trim();
+        if (/^\d+(\.\d+)?$/.test(right)) {
+          diskPath = left || undefined;
+          sizeMB = Number(right) || 16;
+        } else {
+          diskPath = raw;
+        }
+      } else {
+        diskPath = raw;
+      }
+    }
+    data = await si.diskSpeed(diskPath, sizeMB);
+  } else if (method === "inetSpeed") {
+    const raw = cleanParam || entry.defaultParam || "";
+    if (!raw) {
+      data = await si.inetSpeed();
+    } else {
+      const [downUrl, upUrl] = raw
+        .split(",")
+        .map((part) => part.trim() || undefined);
+      data = await si.inetSpeed(downUrl, upUrl);
+    }
+  } else if (method === "powerShellStart") {
+    await si.powerShellStart();
+    data = {
+      status:
+        platform === "win32"
+          ? "PowerShell persistent worker pool started"
+          : "No-op on non-Windows platform",
+      active: platform === "win32",
+      platform,
+    };
+  } else if (method === "powerShellRelease") {
+    await si.powerShellRelease();
+    data = {
+      status:
+        platform === "win32"
+          ? "PowerShell persistent worker pool released"
+          : "No-op on non-Windows platform",
+      released: true,
+      platform,
+    };
   } else {
     const fn = (si as Record<string, any>)[method];
     if (typeof fn !== "function") {
