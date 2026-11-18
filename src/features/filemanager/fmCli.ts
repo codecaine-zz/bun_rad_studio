@@ -22,6 +22,7 @@ import { APP_NAME, APP_VERSION } from "./fmServer";
 import { toolStatus } from "./fmToolDetect";
 import { listTrash, moveToTrash, restoreFromTrash } from "./fmTrash";
 import { runTtsCli } from "../../../cli_apps/tts_cli";
+import { runTranscribeCli } from "../../../cli_apps/transcribe_cli";
 
 type SortBy = "name" | "size" | "modified" | "type";
 
@@ -44,6 +45,7 @@ export interface FmCliIo {
   stderr?: (line: string) => void;
   cwd?: string;
   contextOptions?: FmContextOptions;
+  hooks?: Record<string, unknown>;
 }
 
 const CLI_SUBCOMMANDS = new Set([
@@ -68,6 +70,9 @@ const CLI_SUBCOMMANDS = new Set([
   "speech",
   "phonon",
   "say",
+  "transcribe",
+  "stt",
+  "asr",
 ]);
 
 /**
@@ -154,6 +159,9 @@ function printHelp(out: (line: string) => void): void {
   );
   out(
     "  tts, speech, phonon [args...]    Clean documents & synthesize Ollama Phonon speech to any audio format or MP4 video",
+  );
+  out(
+    "  transcribe, stt, asr [args...]   Transcribe audio/video files locally to text, Markdown, JSON, or SRT/VTT/LRC subtitles",
   );
   out("  help, --help, -h                 Show this help message");
   out("  version, --version, -v           Show version information");
@@ -639,6 +647,18 @@ export async function runFileManagerCli(
           stderr: err,
           cwd,
           contextOptions: ctxOptions,
+        });
+      }
+
+      case "transcribe":
+      case "stt":
+      case "asr": {
+        return await runTranscribeCli(subArgs, {
+          stdout: out,
+          stderr: err,
+          cwd,
+          contextOptions: ctxOptions,
+          hooks: io.hooks,
         });
       }
 
