@@ -1918,7 +1918,9 @@ describe("the Dual view's right pane has the same options as the left one", () =
     ).toBe(true);
     key($("#dual-list"), "z", MODIFIER);
     await until(
-      () => existsSync(join(other, "only-right.txt")),
+      () =>
+        existsSync(join(other, "only-right.txt")) &&
+        rowNames("#dual-list").includes("only-right.txt"),
       "undo of the rename",
     );
   });

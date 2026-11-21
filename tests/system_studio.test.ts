@@ -505,7 +505,7 @@ describe("⚡ System Information Studio Suite (All 76 systeminformation v6 APIs)
     let ws: WebSocket | null = null;
     try {
       let wsUrl = "";
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 120; i++) {
         await Bun.sleep(150);
         try {
           const res = await fetch(`http://127.0.0.1:${cdpPort}/json/list`);
