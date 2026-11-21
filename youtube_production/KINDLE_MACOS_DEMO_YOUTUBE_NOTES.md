@@ -73,5 +73,5 @@ kindle reader macos,kindle to mp4,kindle to audiobook,apple vision ocr,local ai 
 ## Privacy & Verification Checklist
 
 - Synthesized and recorded exclusively inside an isolated `/tmp/fm_kindle_yt_demo` workspace with `SCREENSHOT_MODE=1`.
-- Uses 100% synthetic demo book *"The Art of Local-First Computing"* by *"Alex Rivera"*.
+- Uses 100% synthetic demo book _"The Art of Local-First Computing"_ by _"Alex Rivera"_.
 - Zero personal usernames, real Kindle books, local IP addresses, hostnames, or hardware serials appear in any video frame, audio segment, thumbnail, or note.

@@ -333,9 +333,7 @@ function synthesizeSceneAudio(scene: StoryboardScene): {
     const combinedMaster = join(AUDIO_DIR, `master_${scene.id}_Russell.wav`);
     const hashFile = join(AUDIO_DIR, `${scene.id}_Russell.sha1`);
     const combinedHash = createHash("sha1")
-      .update(
-        `Russell|hybrid|${scene.narration}|${scene.narrationPartB}`,
-      )
+      .update(`Russell|hybrid|${scene.narration}|${scene.narrationPartB}`)
       .digest("hex");
     if (
       !existsSync(combinedMaster) ||
@@ -410,7 +408,9 @@ async function buildRealReadAlongExcerpt(
     existsSync(hashFile) &&
     readFileSync(hashFile, "utf8").trim() === clipHash
   ) {
-    console.log(`✅ Cached real Read-Along .MP4 excerpt (${partASec.toFixed(2)}s)`);
+    console.log(
+      `✅ Cached real Read-Along .MP4 excerpt (${partASec.toFixed(2)}s)`,
+    );
     return {
       mp4Path: outMp4,
       srtText: readFileSync(outSrt, "utf8"),
@@ -569,7 +569,10 @@ function materializeBooksFolderOutputs(opts: {
 
   // Chaptered .M4B audiobook with FFMETADATA1 chapters
   const metaPath = join(BUILD_DIR, "m4b_chapters.txt");
-  const totalMs = Math.max(3000, Math.round(duration(opts.partAMasterWav) * 1000));
+  const totalMs = Math.max(
+    3000,
+    Math.round(duration(opts.partAMasterWav) * 1000),
+  );
   const c1 = Math.round(totalMs * 0.25);
   const c2 = Math.round(totalMs * 0.6);
   const c3 = Math.round(totalMs * 0.85);
@@ -696,7 +699,8 @@ html,body{width:1920px;height:1080px;overflow:hidden;font-family:-apple-system,B
 function progressDots(stepNum: number): string {
   return [1, 2, 3, 4, 5, 6, 7, 8]
     .map((n) => {
-      const cls = n === stepNum ? "dot active" : n < stepNum ? "dot done" : "dot";
+      const cls =
+        n === stepNum ? "dot active" : n < stepNum ? "dot done" : "dot";
       return `<span class="${cls}"></span>`;
     })
     .join("");
@@ -1276,7 +1280,9 @@ async function spotlight(
 }
 
 async function clearSpotlight(c: Cdp) {
-  await c.eval(`(() => { const r = document.getElementById("yt-spotlight"); if (r) r.style.opacity = "0"; })()`);
+  await c.eval(
+    `(() => { const r = document.getElementById("yt-spotlight"); if (r) r.style.opacity = "0"; })()`,
+  );
 }
 
 async function hoverEl(c: Cdp, selector: string, ms = 480) {
@@ -1395,17 +1401,13 @@ async function recordLiveScene(
     await c.click(".cp-input", { ms: 250, pause: 150 });
     await c.type("Kindle", 75);
     await sleep(1100);
-    await spotlight(
-      c,
-      ".cp-list",
-      "macOS-Only Kindle Actions (Read & MP4)",
-    );
+    await spotlight(c, ".cp-list", "macOS-Only Kindle Actions (Read & MP4)");
     await saveQaFrame(c, "02_command_palette.png");
     await sleep(2200);
     await clearSpotlight(c);
 
     // Click "Kindle: Read Open Book Pages & Create Audio…"
-    await c.click('.cp-item >> Kindle: Read Open Book Pages', { pause: 700 });
+    await c.click(".cp-item >> Kindle: Read Open Book Pages", { pause: 700 });
     await c.waitFor("#phonon-kindle-panel", 6000);
     await c.click("#view-tools", { ms: 200, pause: 350 }).catch(() => {});
     await sleep(800);
@@ -1421,11 +1423,7 @@ async function recordLiveScene(
       if (d) d.scrollIntoView({ behavior: "smooth", block: "center" });
     })()`);
     await sleep(600);
-    await spotlight(
-      c,
-      "#phonon-out-dir",
-      "Auto-Synced to Active Books Folder",
-    );
+    await spotlight(c, "#phonon-out-dir", "Auto-Synced to Active Books Folder");
     await waitRemaining(t0, durationSec);
     await clearSpotlight(c);
     return;
@@ -1645,7 +1643,9 @@ async function generateThumbnail(browser: Cdp) {
   const img2 = toDataUrl(join(QA_FRAMES_DIR, "05_book_view_listen.png"));
   const rawThumbMp4 = join(BUILD_DIR, "read_along_thumb_raw.png");
   const img3 = toDataUrl(
-    existsSync(rawThumbMp4) ? rawThumbMp4 : join(QA_FRAMES_DIR, "06_read_along_mp4.png"),
+    existsSync(rawThumbMp4)
+      ? rawThumbMp4
+      : join(QA_FRAMES_DIR, "06_read_along_mp4.png"),
   );
 
   const html = `<!doctype html><html><head><meta charset="utf-8"><style>
@@ -1882,9 +1882,7 @@ async function main() {
   // Compute real word timings for Scene 5 Book View live follow-along WAV
   const listenText =
     "Chapter One: Your Files Belong on Your Machine. Local-first software keeps your reading library fast, private, and durable offline, turning open Kindle pages into synchronized audio and cinema-grade Read-Along video right on Apple Silicon.";
-  const s5RawBuf = Buffer.from(
-    await Bun.file(s6.partARawWav!).arrayBuffer(),
-  );
+  const s5RawBuf = Buffer.from(await Bun.file(s6.partARawWav!).arrayBuffer());
   const s5Parsed = parseWavPcm(s5RawBuf);
   const s5RawDurMs = Math.round(
     (s5Parsed.pcmData.length /

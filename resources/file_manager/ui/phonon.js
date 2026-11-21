@@ -4193,7 +4193,11 @@ function mountPhononStudio(root, payload) {
       class: "input phonon-select",
       "aria-label": "OCR engine",
     },
-    h("option", { value: "auto", selected: true }, "Auto (Apple Vision / Tesseract)"),
+    h(
+      "option",
+      { value: "auto", selected: true },
+      "Auto (Apple Vision / Tesseract)",
+    ),
     h("option", { value: "vision" }, "Apple Vision (macOS)"),
     h("option", { value: "tesseract" }, "Tesseract OCR"),
   );
@@ -4555,8 +4559,7 @@ function mountPhononStudio(root, payload) {
   }
 
   function readKindleFormOpts(overrides = {}) {
-    const readAllPages =
-      overrides.readAllPages === true || kindleReadAllPages;
+    const readAllPages = overrides.readAllPages === true || kindleReadAllPages;
     const pages = readAllPages
       ? 2500
       : Math.max(
@@ -4599,7 +4602,9 @@ function mountPhononStudio(root, payload) {
       kindleWindowsList = Array.isArray(res.windows) ? res.windows : [];
       const prevSelected = kindleWindowSelect.value;
       clear(kindleWindowSelect);
-      const hasKindleWindow = kindleWindowsList.some((w) => w.isKindle === true);
+      const hasKindleWindow = kindleWindowsList.some(
+        (w) => w.isKindle === true,
+      );
       if (kindleWindowsList.length === 0) {
         kindleWindowSelect.append(
           h(
@@ -4953,10 +4958,9 @@ function mountPhononStudio(root, payload) {
   async function saveCapturedKindleAsMarkdown() {
     const rawText = textArea.value.trim();
     if (!rawText) {
-      toast(
-        "Capture Kindle pages or enter text first before saving as .MD.",
-        { kind: "info" },
-      );
+      toast("Capture Kindle pages or enter text first before saving as .MD.", {
+        kind: "info",
+      });
       return;
     }
     if (!outDirManuallyEdited) {
@@ -5013,10 +5017,9 @@ function mountPhononStudio(root, payload) {
       }
       const savedName = res?.name || `${stem}.md`;
       kindleStatusBanner.textContent = `✔ Saved Markdown book: ${savedName}`;
-      toast(
-        `Saved ${savedName} in ${baseName(parent, state.sep) || parent}`,
-        { kind: "success" },
-      );
+      toast(`Saved ${savedName} in ${baseName(parent, state.sep) || parent}`, {
+        kind: "success",
+      });
       if (
         currentPath() &&
         res?.path &&
@@ -5568,7 +5571,10 @@ function mountPhononStudio(root, payload) {
       if (!kindleSupported) return;
       setKindlePanelExpanded(true, { skipAutoRefresh: true });
       kindleRefreshPromise = refreshKindleWindows();
-      kindlePanelCard.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+      kindlePanelCard.scrollIntoView?.({
+        block: "nearest",
+        behavior: "smooth",
+      });
     }
     if (p.autoCaptureMp4 || p.autoCaptureListen) {
       if (!kindleSupported) return;

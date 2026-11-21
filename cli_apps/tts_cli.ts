@@ -1832,7 +1832,8 @@ export async function runTtsCli(
         break;
       case "--window-id": {
         const wid = Math.round(Number(nextVal()) || 0);
-        if (wid <= 0) throw new Error("--window-id must be a positive integer.");
+        if (wid <= 0)
+          throw new Error("--window-id must be a positive integer.");
         kindleWindowId = wid;
         break;
       }
@@ -2201,7 +2202,12 @@ export async function runTtsCli(
       let capturedTitle = "";
       let capturedPagesCount = 0;
 
-      if (!kindleAllPages && kindlePages <= 1 && effectiveStartMode === "none" && !effectiveStopBack) {
+      if (
+        !kindleAllPages &&
+        kindlePages <= 1 &&
+        effectiveStartMode === "none" &&
+        !effectiveStopBack
+      ) {
         if (!jsonOutput) {
           out("📖 Capturing current open Kindle page via OCR…");
         }
@@ -2917,7 +2923,11 @@ export async function runTtsCli(
       cleanOpts,
       maxChunkChars: chunkSize,
     });
-    if ((skipFluff || (!kindleMode && kindleStartAt && kindleStartAt !== "none")) && cleanedDoc.cleanedText) {
+    if (
+      (skipFluff ||
+        (!kindleMode && kindleStartAt && kindleStartAt !== "none")) &&
+      cleanedDoc.cleanedText
+    ) {
       const trimmed = trimBookFrontAndBackFluff(cleanedDoc.cleanedText, {
         startMode: kindleStartAt || "intro",
         stripBackMatter: kindleStopBackMatterExplicit ?? true,

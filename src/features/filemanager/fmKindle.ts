@@ -162,7 +162,12 @@ function pruneOldSessions(): void {
   }
 }
 
-function clampNum(val: unknown, fallback: number, min: number, max: number): number {
+function clampNum(
+  val: unknown,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
   const n = typeof val === "number" ? val : Number(val);
   if (!Number.isFinite(n)) return fallback;
   return Math.max(min, Math.min(max, n));
@@ -180,7 +185,9 @@ function normalizeCaptureOptions(
   const ocrEngine: KindleOcrEngine =
     engineRaw === "vision" || engineRaw === "tesseract" ? engineRaw : "auto";
   const windowId =
-    typeof r.windowId === "number" && Number.isFinite(r.windowId) && r.windowId > 0
+    typeof r.windowId === "number" &&
+    Number.isFinite(r.windowId) &&
+    r.windowId > 0
       ? Math.round(r.windowId)
       : typeof r.windowId === "string" && /^\d+$/.test(r.windowId.trim())
         ? Number(r.windowId.trim())
@@ -205,7 +212,9 @@ function normalizeCaptureOptions(
     stripKindleChrome: r.stripKindleChrome !== false,
     unwrapLines: r.unwrapLines !== false,
     activateWindow:
-      typeof r.activateWindow === "boolean" ? r.activateWindow : defaultActivate,
+      typeof r.activateWindow === "boolean"
+        ? r.activateWindow
+        : defaultActivate,
   };
 }
 
@@ -232,9 +241,7 @@ function normalizeBatchOptions(
     r.readAllPages === true ||
     r.pages === "all" ||
     (Number.isFinite(rawPages) && rawPages === 0);
-  const pages = readAllPages
-    ? 2500
-    : Math.round(clampNum(r.pages, 5, 1, 5000));
+  const pages = readAllPages ? 2500 : Math.round(clampNum(r.pages, 5, 1, 5000));
   const sm = String(r.startMode ?? "none").toLowerCase();
   const startMode: KindleBookStartMode =
     sm === "intro" || sm === "chapter1" ? sm : "none";
@@ -328,10 +335,7 @@ export function cleanKindlePageText(
       if (isKindleChromeLine(line, edgeSet.has(i))) continue;
       // Strip trailing Kindle footer badge if somehow glued to last edge line
       if (edgeSet.has(i) && KINDLE_FOOTER_INLINE_RE.test(line.trim())) {
-        const cleaned = line
-          .trim()
-          .replace(KINDLE_FOOTER_INLINE_RE, "")
-          .trim();
+        const cleaned = line.trim().replace(KINDLE_FOOTER_INLINE_RE, "").trim();
         if (cleaned) filtered.push(cleaned);
         continue;
       }
@@ -436,10 +440,7 @@ export function stitchKindlePages(
  * to detect end-of-book or stuck page turns during multi-page capture.
  */
 export function areKindlePagesDuplicate(a: string, b: string): boolean {
-  const norm = (s: string) =>
-    s
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "");
+  const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
   const na = norm(a);
   const nb = norm(b);
   if (!na || !nb) return false;
@@ -472,11 +473,7 @@ function isSelfOrFileManagerWindow(win: {
   ownerName?: string;
   title?: string;
 }): boolean {
-  if (
-    typeof win.pid === "number" &&
-    win.pid > 0 &&
-    win.pid === process.pid
-  ) {
+  if (typeof win.pid === "number" && win.pid > 0 && win.pid === process.pid) {
     return true;
   }
   const owner = win.ownerName || "";
@@ -620,8 +617,16 @@ export function extractKindleHeaderBookTitle(
   }
   if (currentRow.length > 0) rows.push(currentRow);
 
-  const centeredCandidates: Array<{ text: string; midY: number; distFromCenter: number }> = [];
-  const fallbackCandidates: Array<{ text: string; midY: number; distFromCenter: number }> = [];
+  const centeredCandidates: Array<{
+    text: string;
+    midY: number;
+    distFromCenter: number;
+  }> = [];
+  const fallbackCandidates: Array<{
+    text: string;
+    midY: number;
+    distFromCenter: number;
+  }> = [];
 
   for (const row of rows) {
     row.sort((a, b) => a.minX - b.minX);
@@ -646,7 +651,12 @@ export function extractKindleHeaderBookTitle(
     if (tightFiltered.length === 0) continue;
 
     // Group adjacent same-row items into horizontal phrases.
-    const phrases: Array<{ text: string; midY: number; minX: number; maxX: number }> = [];
+    const phrases: Array<{
+      text: string;
+      midY: number;
+      minX: number;
+      maxX: number;
+    }> = [];
     for (const item of tightFiltered) {
       const txt = item.text.replace(/\s+/g, " ").trim();
       const prev = phrases[phrases.length - 1];
@@ -669,7 +679,11 @@ export function extractKindleHeaderBookTitle(
       return midX >= 0.2 && midX <= 0.8 && !isKindleHeaderChrome(p.text);
     });
     if (centeredPieces.length > 0) {
-      const joined = centeredPieces.map((p) => p.text).join(" ").replace(/\s+/g, " ").trim();
+      const joined = centeredPieces
+        .map((p) => p.text)
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .trim();
       if (joined && !isKindleHeaderChrome(joined)) {
         const minX = centeredPieces[0]!.minX;
         const maxX = centeredPieces[centeredPieces.length - 1]!.maxX;
@@ -788,7 +802,9 @@ export function orderKindleOcrObservations(
   twoColumn: boolean;
 } {
   const safeObs = Array.isArray(observations)
-    ? observations.filter((o) => o && typeof o.text === "string" && o.text.trim().length > 0)
+    ? observations.filter(
+        (o) => o && typeof o.text === "string" && o.text.trim().length > 0,
+      )
     : [];
   const bookTitle = extractKindleHeaderBookTitle(safeObs, crop.cropTopPct);
 
@@ -854,7 +870,9 @@ const GENERIC_KINDLE_TITLE_RE =
   /^(?:(?:amazon\s+)?kindle(?:\s+(?:cloud\s+reader|for\s+mac|reader))?|(?:codecaine\s+)?file\s+manager|google\s+chrome|chrome|safari|firefox|mozilla\s+firefox|microsoft\s+edge|arc|brave)$/i;
 
 function cleanKindleTitleCandidate(raw?: string): string {
-  let s = String(raw ?? "").replace(/\s+/g, " ").trim();
+  let s = String(raw ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!s) return "";
   s = s.replace(/^📖\s*/, "").trim();
   s = s
@@ -939,9 +957,7 @@ function isStandaloneHeadingCandidate(line: string): boolean {
   ) {
     return false;
   }
-  if (
-    /^(?:chapter|part|book)\s+\w+[:\s—–-]+\S.*\s+\d{1,4}$/i.test(clean)
-  ) {
+  if (/^(?:chapter|part|book)\s+\w+[:\s—–-]+\S.*\s+\d{1,4}$/i.test(clean)) {
     return false;
   }
   return true;
@@ -958,7 +974,11 @@ export function isTableOfContentsPage(text: string): boolean {
   if (lines.length === 0) return false;
 
   for (const line of lines.slice(0, 4)) {
-    if (/^(?:table\s+of\s+contents|brief\s+contents|detailed\s+contents|contents)$/i.test(line)) {
+    if (
+      /^(?:table\s+of\s+contents|brief\s+contents|detailed\s+contents|contents)$/i.test(
+        line,
+      )
+    ) {
       return true;
     }
   }
@@ -1147,7 +1167,9 @@ export function trimBookFrontAndBackFluff(
 } {
   const startMode = opts?.startMode ?? "intro";
   const stripBackMatter = opts?.stripBackMatter !== false;
-  const raw = String(fullText ?? "").replace(/\r\n?/g, "\n").trim();
+  const raw = String(fullText ?? "")
+    .replace(/\r\n?/g, "\n")
+    .trim();
   if (!raw) {
     return { text: "", trimmedFront: false, trimmedBack: false };
   }
@@ -1162,12 +1184,19 @@ export function trimBookFrontAndBackFluff(
       startMode === "chapter1"
         ? START_CHAPTER1_HEADING_RE
         : START_INTRO_HEADING_RE;
-    const scanLimit = Math.min(lines.length, Math.max(120, Math.floor(lines.length * 0.45)));
+    const scanLimit = Math.min(
+      lines.length,
+      Math.max(120, Math.floor(lines.length * 0.45)),
+    );
     let tocRunRemaining = 0;
     for (let i = 0; i < scanLimit; i++) {
       const line = lines[i]!;
       const cand = normalizeCandidateHeading(line);
-      if (/^(?:table\s+of\s+contents|brief\s+contents|detailed\s+contents|contents)$/i.test(cand)) {
+      if (
+        /^(?:table\s+of\s+contents|brief\s+contents|detailed\s+contents|contents)$/i.test(
+          cand,
+        )
+      ) {
         tocRunRemaining = 80;
         continue;
       }
@@ -1203,7 +1232,10 @@ export function trimBookFrontAndBackFluff(
     for (let i = minBackScan; i < lines.length; i++) {
       const line = lines[i]!;
       const cand = normalizeCandidateHeading(line);
-      if (isStandaloneHeadingCandidate(line) && BACK_MATTER_HEADING_RE.test(cand)) {
+      if (
+        isStandaloneHeadingCandidate(line) &&
+        BACK_MATTER_HEADING_RE.test(cand)
+      ) {
         endIdx = i;
         trimmedBack = true;
         stoppedHeading = cand;
@@ -1212,7 +1244,11 @@ export function trimBookFrontAndBackFluff(
     }
   }
 
-  const out = lines.slice(startIdx, endIdx).join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+  const out = lines
+    .slice(startIdx, endIdx)
+    .join("\n\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   return {
     text: out || raw,
     trimmedFront,
@@ -1591,7 +1627,11 @@ async function getCompiledSwiftBinary(
   if (!pending) {
     pending = (async () => {
       try {
-        const res = await runCmd([swiftc, "-O", scriptPath, "-o", binPath], env, 45000);
+        const res = await runCmd(
+          [swiftc, "-O", scriptPath, "-o", binPath],
+          env,
+          45000,
+        );
         if (res.code === 0 && existsSync(binPath)) {
           return binPath;
         }
@@ -1845,7 +1885,11 @@ export async function captureWindowToPng(
     const sc = Bun.which("screencapture") || "/usr/sbin/screencapture";
     const swiftExe = Bun.which("swift") || "/usr/bin/swift";
     const tryScreencapture = async () => {
-      const res = await runCmd([sc, "-l", String(window.id), "-o", "-x", outPng], env, 15000);
+      const res = await runCmd(
+        [sc, "-l", String(window.id), "-o", "-x", outPng],
+        env,
+        15000,
+      );
       if (res.code === 0 && existsSync(outPng)) {
         const st = await fsp.stat(outPng).catch(() => null);
         if (st && st.size >= 100) return { ok: true, detail: "" };
@@ -1918,7 +1962,11 @@ $bmp.Save('${outPng.replace(/'/g, "''")}', [System.Drawing.Imaging.ImageFormat]:
 $g.Dispose()
 $bmp.Dispose()
 `;
-    const res = await runCmd([ps, "-NoProfile", "-Command", psScript], env, 15000);
+    const res = await runCmd(
+      [ps, "-NoProfile", "-Command", psScript],
+      env,
+      15000,
+    );
     if (res.code !== 0 || !existsSync(outPng)) {
       throw new FmError(
         "CAPTURE_FAILED",
@@ -1930,7 +1978,11 @@ $bmp.Dispose()
 
   const importBin = Bun.which("import");
   if (importBin) {
-    const res = await runCmd([importBin, "-window", String(window.id), outPng], env, 15000);
+    const res = await runCmd(
+      [importBin, "-window", String(window.id), outPng],
+      env,
+      15000,
+    );
     if (res.code === 0 && existsSync(outPng)) return;
   }
   const scrotBin = Bun.which("scrot");
@@ -1984,7 +2036,9 @@ export async function ocrImageFile(
         );
         const visionLang = mapLanguageForVision(opts.language);
         const args = [pngPath, visionLang];
-        const argv = binPath ? [binPath, ...args] : [swiftExe, scriptPath, ...args];
+        const argv = binPath
+          ? [binPath, ...args]
+          : [swiftExe, scriptPath, ...args];
         const res = await runCmd(argv, env, 30000);
         if (res.code === 0) {
           const trimmedOut = res.stdout.trim();
@@ -2143,7 +2197,11 @@ export async function sendPageTurnKey(
           MACOS_PAGE_TURN_SWIFT,
           env,
         );
-        const args = [String(window.pid), String(code), activateWindow ? "1" : "0"];
+        const args = [
+          String(window.pid),
+          String(code),
+          activateWindow ? "1" : "0",
+        ];
         const argv = binPath
           ? [binPath, ...args]
           : [swiftExe, scriptPath, ...args];
@@ -2171,7 +2229,9 @@ export async function sendPageTurnKey(
           `  set frontmost of first application process whose unix id is ${window.pid} to true`,
         );
       } else if (window.ownerName) {
-        const escaped = window.ownerName.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+        const escaped = window.ownerName
+          .replace(/\\/g, "\\\\")
+          .replace(/"/g, '\\"');
         if (/\bkindle\b/i.test(window.ownerName)) {
           lines.push(
             `  set frontmost of (first application process whose name is "${escaped}" or name contains "Kindle") to true`,
@@ -2220,7 +2280,11 @@ $wshell = New-Object -ComObject WScript.Shell
 ${activateWindow && window.pid > 0 ? `$null = $wshell.AppActivate(${window.pid}); Start-Sleep -Milliseconds 120` : ""}
 $wshell.SendKeys('${key}')
 `;
-    const res = await runCmd([ps, "-NoProfile", "-Command", script], env, 10000);
+    const res = await runCmd(
+      [ps, "-NoProfile", "-Command", script],
+      env,
+      10000,
+    );
     if (res.code !== 0) {
       throw new FmError(
         "PAGE_TURN_FAILED",
@@ -2244,7 +2308,13 @@ $wshell.SendKeys('${key}')
     pagedown: "Page_Down",
   };
   const args = activateWindow
-    ? ["windowactivate", "--sync", String(window.id), "key", xKeyMap[turnKey] ?? "Right"]
+    ? [
+        "windowactivate",
+        "--sync",
+        String(window.id),
+        "key",
+        xKeyMap[turnKey] ?? "Right",
+      ]
     : ["key", "--window", String(window.id), xKeyMap[turnKey] ?? "Right"];
   const res = await runCmd([xdotool, ...args], env, 10000);
   if (res.code !== 0) {
@@ -2263,7 +2333,11 @@ export async function resolveTargetKindleWindow(
   ctx: FmContext,
   opts: { windowId?: number; ownerName?: string },
   deps?: KindleDeps,
-): Promise<{ window: KindleWindowInfo; allWindows: KindleWindowInfo[]; permissionHint?: string }> {
+): Promise<{
+  window: KindleWindowInfo;
+  allWindows: KindleWindowInfo[];
+  permissionHint?: string;
+}> {
   const { windows, permissionHint } = await listKindleWindows(ctx, deps);
   if (windows.length === 0) {
     throw new FmError(
@@ -2288,7 +2362,8 @@ export async function resolveTargetKindleWindow(
         w.ownerName.toLowerCase().includes(targetLower) ||
         w.title.toLowerCase().includes(targetLower),
     );
-    if (byOwner) return { window: byOwner, allWindows: windows, permissionHint };
+    if (byOwner)
+      return { window: byOwner, allWindows: windows, permissionHint };
   }
 
   const kindle = windows.find((w) => w.isKindle);
@@ -2385,7 +2460,11 @@ export async function captureSingleKindlePage(
   ctx: FmContext,
   rawOpts: KindleCaptureOptions | Record<string, unknown> = {},
   deps?: KindleDeps,
-): Promise<{ page: KindlePageResult; window: KindleWindowInfo; bookTitle: string }> {
+): Promise<{
+  page: KindlePageResult;
+  window: KindleWindowInfo;
+  bookTitle: string;
+}> {
   assertKindleSupportedPlatform(ctx);
   const opts = normalizeCaptureOptions(rawOpts, false);
   const { window } = await resolveTargetKindleWindow(ctx, opts, deps);
@@ -2409,7 +2488,9 @@ function isScannedPageUnchanged(
     return areKindlePagesDuplicate(prevText, curPage.text);
   }
   if (prevText.length === 0 && curPage.text.length === 0) {
-    return Boolean(prevHash && curPage.imageHash && prevHash === curPage.imageHash);
+    return Boolean(
+      prevHash && curPage.imageHash && prevHash === curPage.imageHash,
+    );
   }
   return false;
 }
@@ -2456,7 +2537,12 @@ async function runCaptureSessionLoop(
   const env = ctx.platform === "darwin" ? childEnv(ctx) : null;
   let previousFrontmostPid = 0;
   let turnToolArgvPrefix: string[] | null = null;
-  if (ctx.platform === "darwin" && !deps?.turnPage && opts.activateWindow && env) {
+  if (
+    ctx.platform === "darwin" &&
+    !deps?.turnPage &&
+    opts.activateWindow &&
+    env
+  ) {
     try {
       const swiftExe = Bun.which("swift") || "/usr/bin/swift";
       if (existsSync(swiftExe) || Bun.which("swift")) {
@@ -2511,28 +2597,19 @@ async function runCaptureSessionLoop(
           if (r === 1) {
             await wait(Math.max(800, opts.delayMs));
           } else if (r === 2) {
-            await sendPageTurnKey(
-              window,
-              opts.turnKey,
-              true,
-              ctx,
-              deps,
-            );
+            await sendPageTurnKey(window, opts.turnKey, true, ctx, deps);
             await wait(Math.max(opts.delayMs, 1100));
           } else {
-            await sendPageTurnKey(
-              window,
-              opts.turnKey,
-              true,
-              ctx,
-              deps,
-              { forceFallback: true },
-            );
+            await sendPageTurnKey(window, opts.turnKey, true, ctx, deps, {
+              forceFallback: true,
+            });
             await wait(Math.max(opts.delayMs, 1300));
           }
           const retryPage = await captureAndOcrPage(window, i, opts, ctx, deps);
           updateSessionBookTitle(session, retryPage);
-          if (!isScannedPageUnchanged(prevScannedText, prevScannedHash, retryPage)) {
+          if (
+            !isScannedPageUnchanged(prevScannedText, prevScannedHash, retryPage)
+          ) {
             page = retryPage;
             stillDuplicate = false;
             break;
@@ -2731,7 +2808,10 @@ export async function startKindleCaptureSession(
 export function getKindleSessionSnapshot(sessionId: string) {
   const session = activeKindleSessions.get(sessionId);
   if (!session) {
-    throw new FmError("NOT_FOUND", `Kindle capture session "${sessionId}" not found.`);
+    throw new FmError(
+      "NOT_FOUND",
+      `Kindle capture session "${sessionId}" not found.`,
+    );
   }
   const latestPage =
     session.capturedPages.length > 0
@@ -2746,7 +2826,9 @@ export function getKindleSessionSnapshot(sessionId: string) {
     readAllPages: session.readAllPages,
     skippedFrontPages: session.skippedFrontPages,
     ...(session.startHeading ? { startHeading: session.startHeading } : {}),
-    ...(session.stoppedHeading ? { stoppedHeading: session.stoppedHeading } : {}),
+    ...(session.stoppedHeading
+      ? { stoppedHeading: session.stoppedHeading }
+      : {}),
     capturedPagesCount: session.capturedPages.length,
     latestPage,
     combinedText: session.combinedText,
@@ -2761,7 +2843,10 @@ export function getKindleSessionSnapshot(sessionId: string) {
 export function stopKindleSession(sessionId: string) {
   const session = activeKindleSessions.get(sessionId);
   if (!session) {
-    throw new FmError("NOT_FOUND", `Kindle capture session "${sessionId}" not found.`);
+    throw new FmError(
+      "NOT_FOUND",
+      `Kindle capture session "${sessionId}" not found.`,
+    );
   }
   session.cancelRequested = true;
   if (session.status === "running" && session.capturedPages.length > 0) {
@@ -2806,8 +2891,11 @@ export async function getKindleStatus(
   );
   const screencaptureAvailable =
     ctx.platform === "darwin"
-      ? Boolean(Bun.which("screencapture") || existsSync("/usr/sbin/screencapture"))
-      : ctx.platform === "win32" || Boolean(Bun.which("import") || Bun.which("scrot"));
+      ? Boolean(
+          Bun.which("screencapture") || existsSync("/usr/sbin/screencapture"),
+        )
+      : ctx.platform === "win32" ||
+        Boolean(Bun.which("import") || Bun.which("scrot"));
   const osascriptAvailable =
     ctx.platform === "darwin"
       ? Boolean(Bun.which("osascript") || existsSync("/usr/bin/osascript"))

@@ -47,7 +47,10 @@ import {
   inspectKindleMobiRich,
   isNonProseKindlePreview,
 } from "../src/features/filemanager/fmPreview";
-import { API_OPERATIONS, startFileManagerServer } from "../src/features/filemanager/fmServer";
+import {
+  API_OPERATIONS,
+  startFileManagerServer,
+} from "../src/features/filemanager/fmServer";
 import { rmDir } from "./helpers/rm";
 
 const root = mkdtempSync(join(tmpdir(), "fm-kindle-test-"));
@@ -212,7 +215,9 @@ describe("Kindle pure text cleaning, stitching, deduplication & window scoring",
     expect(cleaned).not.toContain("42%");
     expect(cleaned).not.toMatch(/^\s*12\s*$/m);
     expect(cleaned).toContain("CHAPTER 1");
-    expect(cleaned).toContain("first-class commitment to clarity and steady practice.");
+    expect(cleaned).toContain(
+      "first-class commitment to clarity and steady practice.",
+    );
     expect(cleaned).toContain("carefluently and tests assumptions early.");
   });
 
@@ -225,7 +230,9 @@ describe("Kindle pure text cleaning, stitching, deduplication & window scoring",
     ].join("\n");
 
     const cleaned = cleanKindlePageText(raw);
-    expect(cleaned).toBe("The system stays simple when each module owns one job.");
+    expect(cleaned).toBe(
+      "The system stays simple when each module owns one job.",
+    );
   });
 
   test("stitchKindlePages joins mid-sentence page breaks and preserves paragraph boundaries", () => {
@@ -260,11 +267,10 @@ describe("Kindle pure text cleaning, stitching, deduplication & window scoring",
   });
 
   test("scoreKindleWindow prioritizes Amazon Kindle > Kindle Cloud Reader > generic, and filters tiny windows", () => {
-    const kindleDesktop = scoreKindleWindow(
-      "Amazon Kindle",
-      "Clean Code",
-      { width: 1200, height: 900 },
-    );
+    const kindleDesktop = scoreKindleWindow("Amazon Kindle", "Clean Code", {
+      width: 1200,
+      height: 900,
+    });
     const cloudReader = scoreKindleWindow(
       "Google Chrome",
       "Kindle Cloud Reader — Clean Code",
@@ -411,32 +417,37 @@ describe("Kindle pure text cleaning, stitching, deduplication & window scoring",
     const observations: KindleOcrObservation[] = [
       { text: "Kindle", midY: 0.985, minX: 0.45, maxX: 0.55 },
       { text: "Library", midY: 0.945, minX: 0.03, maxX: 0.11 },
-      { text: "Designing Data-Intensive", midY: 0.945, minX: 0.30, maxX: 0.52 },
-      { text: "Applications", midY: 0.945, minX: 0.53, maxX: 0.70 },
+      { text: "Designing Data-Intensive", midY: 0.945, minX: 0.3, maxX: 0.52 },
+      { text: "Applications", midY: 0.945, minX: 0.53, maxX: 0.7 },
       { text: "Aa", midY: 0.945, minX: 0.82, maxX: 0.86 },
       { text: "Search Book", midY: 0.945, minX: 0.88, maxX: 0.97 },
       { text: "42%", midY: 0.925, minX: 0.91, maxX: 0.96 },
       { text: "Page 14 of 300", midY: 0.925, minX: 0.05, maxX: 0.18 },
-      { text: "Body paragraph line outside header.", midY: 0.80, minX: 0.1, maxX: 0.9 },
+      {
+        text: "Body paragraph line outside header.",
+        midY: 0.8,
+        minX: 0.1,
+        maxX: 0.9,
+      },
     ];
     expect(extractKindleHeaderBookTitle(observations, 8)).toBe(
       "Designing Data-Intensive Applications",
     );
 
     const chromeOnly: KindleOcrObservation[] = [
-      { text: "Amazon Kindle", midY: 0.98, minX: 0.40, maxX: 0.60 },
-      { text: "Home", midY: 0.94, minX: 0.04, maxX: 0.10 },
+      { text: "Amazon Kindle", midY: 0.98, minX: 0.4, maxX: 0.6 },
+      { text: "Home", midY: 0.94, minX: 0.04, maxX: 0.1 },
       { text: "Back", midY: 0.94, minX: 0.11, maxX: 0.17 },
       { text: "Contents", midY: 0.94, minX: 0.22, maxX: 0.32 },
       { text: "Go", midY: 0.94, minX: 0.35, maxX: 0.38 },
       { text: "To", midY: 0.94, minX: 0.39, maxX: 0.42 },
-      { text: "Bookmark", midY: 0.94, minX: 0.70, maxX: 0.80 },
+      { text: "Bookmark", midY: 0.94, minX: 0.7, maxX: 0.8 },
       { text: "Sync", midY: 0.94, minX: 0.81, maxX: 0.86 },
       { text: "Notebook", midY: 0.94, minX: 0.87, maxX: 0.95 },
       { text: "Aa", midY: 0.93, minX: 0.48, maxX: 0.52 },
       { text: "42%", midY: 0.93, minX: 0.54, maxX: 0.59 },
       { text: "Location 120", midY: 0.93, minX: 0.61, maxX: 0.72 },
-      { text: "14", midY: 0.93, minX: 0.20, maxX: 0.23 },
+      { text: "14", midY: 0.93, minX: 0.2, maxX: 0.23 },
     ];
     expect(extractKindleHeaderBookTitle(chromeOnly, 8)).toBe("");
   });
@@ -447,15 +458,20 @@ describe("Kindle pure text cleaning, stitching, deduplication & window scoring",
       { text: "Clean Architecture", midY: 0.945, minX: 0.38, maxX: 0.62 },
       { text: "Aa", midY: 0.945, minX: 0.85, maxX: 0.88 },
       // Interleaved coordinates in Vision output: top row has left & right, middle row, bottom row
-      { text: "Right column first line", midY: 0.84, minX: 0.54, maxX: 0.90 },
+      { text: "Right column first line", midY: 0.84, minX: 0.54, maxX: 0.9 },
       { text: "Left column first line", midY: 0.84, minX: 0.08, maxX: 0.44 },
-      { text: "Right column second line", midY: 0.78, minX: 0.54, maxX: 0.90 },
+      { text: "Right column second line", midY: 0.78, minX: 0.54, maxX: 0.9 },
       { text: "Left column second line", midY: 0.78, minX: 0.08, maxX: 0.44 },
-      { text: "Right column third line.", midY: 0.72, minX: 0.54, maxX: 0.90 },
+      { text: "Right column third line.", midY: 0.72, minX: 0.54, maxX: 0.9 },
       { text: "Left column third line", midY: 0.72, minX: 0.08, maxX: 0.44 },
-      { text: "Right column fourth line.", midY: 0.66, minX: 0.54, maxX: 0.90 },
-      { text: "Left column fourth line ends mid", midY: 0.66, minX: 0.08, maxX: 0.44 },
-      { text: "42%", midY: 0.03, minX: 0.90, maxX: 0.95 },
+      { text: "Right column fourth line.", midY: 0.66, minX: 0.54, maxX: 0.9 },
+      {
+        text: "Left column fourth line ends mid",
+        midY: 0.66,
+        minX: 0.08,
+        maxX: 0.44,
+      },
+      { text: "42%", midY: 0.03, minX: 0.9, maxX: 0.95 },
     ];
 
     const twoCol = orderKindleOcrObservations(twoColObs, {
@@ -488,13 +504,13 @@ describe("Kindle pure text cleaning, stitching, deduplication & window scoring",
 
     const oneColObs: KindleOcrObservation[] = [
       { text: "The Pragmatic Programmer", midY: 0.95, minX: 0.35, maxX: 0.65 },
-      { text: "First full-width line", midY: 0.85, minX: 0.10, maxX: 0.88 },
-      { text: "Second", midY: 0.79, minX: 0.10, maxX: 0.25 },
+      { text: "First full-width line", midY: 0.85, minX: 0.1, maxX: 0.88 },
+      { text: "Second", midY: 0.79, minX: 0.1, maxX: 0.25 },
       { text: "full-width line", midY: 0.79, minX: 0.27, maxX: 0.85 },
-      { text: "Third full-width line.", midY: 0.73, minX: 0.10, maxX: 0.86 },
-      { text: "Fourth full-width line.", midY: 0.67, minX: 0.10, maxX: 0.86 },
-      { text: "Fifth full-width line.", midY: 0.61, minX: 0.10, maxX: 0.86 },
-      { text: "Sixth full-width line.", midY: 0.55, minX: 0.10, maxX: 0.86 },
+      { text: "Third full-width line.", midY: 0.73, minX: 0.1, maxX: 0.86 },
+      { text: "Fourth full-width line.", midY: 0.67, minX: 0.1, maxX: 0.86 },
+      { text: "Fifth full-width line.", midY: 0.61, minX: 0.1, maxX: 0.86 },
+      { text: "Sixth full-width line.", midY: 0.55, minX: 0.1, maxX: 0.86 },
     ];
 
     const oneCol = orderKindleOcrObservations(oneColObs, {
@@ -544,7 +560,10 @@ describe("Kindle pure text cleaning, stitching, deduplication & window scoring",
 
     expect(
       resolveCleanKindleBookTitle(
-        { ownerName: "Codecaine File Manager", title: "Codecaine File Manager" },
+        {
+          ownerName: "Codecaine File Manager",
+          title: "Codecaine File Manager",
+        },
         "",
       ),
     ).toBe("Kindle Book");
@@ -624,7 +643,9 @@ describe("KINDLE_OPS handlers, session lifecycle & server registration", () => {
 
     let snap: any;
     for (let i = 0; i < 40; i++) {
-      snap = await ops["kindle/session"]!(ctx, { sessionId: started.sessionId });
+      snap = await ops["kindle/session"]!(ctx, {
+        sessionId: started.sessionId,
+      });
       if (snap.status !== "running") break;
       await new Promise((r) => setTimeout(r, 15));
     }
@@ -639,7 +660,12 @@ describe("KINDLE_OPS handlers, session lifecycle & server registration", () => {
     expect(turnCount()).toBe(2);
 
     // Explicit stop-capture flow
-    const slowPages = ["Alpha page.", "Beta page.", "Gamma page.", "Delta page."];
+    const slowPages = [
+      "Alpha page.",
+      "Beta page.",
+      "Gamma page.",
+      "Delta page.",
+    ];
     let gateResolve!: () => void;
     const gate = new Promise<void>((r) => {
       gateResolve = r;
@@ -734,7 +760,12 @@ describe("CLI integration: tts_cli `kindle` and fmCli", () => {
     const lines: string[] = [];
     const code = await runTtsCli(["kindle", "--list-windows", "--json"], {
       stdout: (l) => lines.push(l),
-      contextOptions: { platform: "darwin", home, dataDir, toolDirs: [toolDir] },
+      contextOptions: {
+        platform: "darwin",
+        home,
+        dataDir,
+        toolDirs: [toolDir],
+      },
       kindleDeps: deps,
     });
     expect(code).toBe(0);
@@ -754,7 +785,12 @@ describe("CLI integration: tts_cli `kindle` and fmCli", () => {
       ["kindle", "--pages", "2", "--clean-only", "--json"],
       {
         stdout: (l) => cleanLines.push(l),
-        contextOptions: { platform: "darwin", home, dataDir, toolDirs: [toolDir] },
+        contextOptions: {
+          platform: "darwin",
+          home,
+          dataDir,
+          toolDirs: [toolDir],
+        },
         kindleDeps: deps,
       },
     );
@@ -775,7 +811,12 @@ describe("CLI integration: tts_cli `kindle` and fmCli", () => {
       {
         stdout: (l) => exportLines.push(l),
         cwd: outDir,
-        contextOptions: { platform: "darwin", home, dataDir, toolDirs: [toolDir] },
+        contextOptions: {
+          platform: "darwin",
+          home,
+          dataDir,
+          toolDirs: [toolDir],
+        },
         kindleDeps: deps2,
       },
     );
@@ -827,7 +868,9 @@ describe("CLI integration: tts_cli `kindle` and fmCli", () => {
     expect(captured.bookTitle).toBe("Deep Work");
     expect(captured.page.bookTitle).toBe("Deep Work");
     expect(captured.page.twoColumn).toBe(true);
-    expect(captured.page.text).toBe("Left column ends mid sentence on right column.");
+    expect(captured.page.text).toBe(
+      "Left column ends mid sentence on right column.",
+    );
 
     const dirOut = join(outDir, "auto_named");
     mkdirSync(dirOut, { recursive: true });
@@ -876,7 +919,8 @@ describe("CLI integration: tts_cli `kindle` and fmCli", () => {
         writeFileSync(outPng, Buffer.from("89504e470d0a1a0a", "hex"));
       },
       ocrImage: async () => {
-        const entry = batchBookPages[Math.min(batchPageIdx, batchBookPages.length - 1)]!;
+        const entry =
+          batchBookPages[Math.min(batchPageIdx, batchBookPages.length - 1)]!;
         return { ...entry, engine: "vision" as const };
       },
       turnPage: async () => {
@@ -906,7 +950,16 @@ describe("CLI integration: tts_cli `kindle` and fmCli", () => {
     mkdirSync(batchDirOut, { recursive: true });
     const batchCliLines: string[] = [];
     const batchCliCode = await runTtsCli(
-      ["kindle", "--pages", "2", "-f", "wav", "-o", `${batchDirOut}/`, "--json"],
+      [
+        "kindle",
+        "--pages",
+        "2",
+        "-f",
+        "wav",
+        "-o",
+        `${batchDirOut}/`,
+        "--json",
+      ],
       {
         stdout: (l) => batchCliLines.push(l),
         cwd: batchDirOut,
@@ -922,7 +975,9 @@ describe("CLI integration: tts_cli `kindle` and fmCli", () => {
     expect(batchCliCode).toBe(0);
     const batchCliJson = JSON.parse(batchCliLines.join("\n"));
     expect(batchCliJson.ok).toBe(true);
-    expect(batchCliJson.outputPath).toBe(join(batchDirOut, "Atomic Habits.wav"));
+    expect(batchCliJson.outputPath).toBe(
+      join(batchDirOut, "Atomic Habits.wav"),
+    );
     expect(existsSync(batchCliJson.outputPath)).toBe(true);
 
     // Also verify sendPageTurnKey honors deps.turnPage & activateWindow cleanly
@@ -943,7 +998,8 @@ describe("CLI integration: tts_cli `kindle` and fmCli", () => {
     if (!sysFfmpeg) {
       cliToolDir = join(outDir, "mp4_tools_fallback");
       mkdirSync(cliToolDir, { recursive: true });
-      const ollamaMockName = process.platform === "win32" ? "ollama.cmd" : "ollama";
+      const ollamaMockName =
+        process.platform === "win32" ? "ollama.cmd" : "ollama";
       writeFileSync(
         join(cliToolDir, ollamaMockName),
         readFileSync(join(toolDir, ollamaMockName)),
@@ -966,11 +1022,20 @@ process.exit(0);
         "utf8",
       );
       if (process.platform === "win32") {
-        writeFileSync(
-          join(cliToolDir, "ffmpeg.cmd"),
-          `@echo off\nbun "${ffmpegJs}" %*\n`,
-          "utf8",
-        );
+        const ffmpegExe = join(cliToolDir, "ffmpeg.exe");
+        const compileRes = Bun.spawnSync([
+          process.execPath,
+          "build",
+          "--compile",
+          ffmpegJs,
+          "--outfile",
+          ffmpegExe,
+        ]);
+        if (compileRes.exitCode !== 0) {
+          throw new Error(
+            `Failed to compile mock ffmpeg.exe: ${compileRes.stderr.toString()}`,
+          );
+        }
       } else {
         const sh = join(cliToolDir, "ffmpeg");
         writeFileSync(sh, `#!/bin/sh\nexec bun "${ffmpegJs}" "$@"\n`, "utf8");
@@ -1005,20 +1070,32 @@ process.exit(0);
 
     const mp4Path = join(outDir, "kindle_read_along.mp4");
     const lines: string[] = [];
-    const code = await runTtsCli(
-      ["kindle", "--pages", "1", "-f", "mp4", "-o", mp4Path, "--json"],
-      {
-        stdout: (l) => lines.push(l),
-        cwd: outDir,
-        contextOptions: {
-          platform: "darwin",
-          home,
-          dataDir,
-          toolDirs: [cliToolDir],
+    const prevPath = process.env.PATH;
+    if (process.platform === "win32" && !sysFfmpeg) {
+      process.env.PATH = `${cliToolDir};${prevPath ?? ""}`;
+    }
+    let code = 1;
+    try {
+      code = await runTtsCli(
+        ["kindle", "--pages", "1", "-f", "mp4", "-o", mp4Path, "--json"],
+        {
+          stdout: (l) => lines.push(l),
+          cwd: outDir,
+          contextOptions: {
+            platform: "darwin",
+            home,
+            dataDir,
+            toolDirs: [cliToolDir],
+          },
+          kindleDeps: mp4Deps,
         },
-        kindleDeps: mp4Deps,
-      },
-    );
+      );
+    } finally {
+      if (process.platform === "win32" && !sysFfmpeg) {
+        if (prevPath === undefined) delete process.env.PATH;
+        else process.env.PATH = prevPath;
+      }
+    }
     expect(code).toBe(0);
     const parsed = JSON.parse(lines.join("\n"));
     expect(parsed.ok).toBe(true);
@@ -1249,7 +1326,10 @@ describe("Built-in Kindle MOBI/AZW3 PalmDOC LZ77 & DRM detection", () => {
       dataDir,
       toolDirs: [],
     });
-    const mobiExtracted = await extractPlainTextFromFile(noCalibreCtx, mobiPath);
+    const mobiExtracted = await extractPlainTextFromFile(
+      noCalibreCtx,
+      mobiPath,
+    );
     expect(mobiExtracted.method).toBe("Built-in DOCUMENT Extractor");
     expect(mobiExtracted.title).toBe("Clean Architecture Guide");
     expect(mobiExtracted.text).toContain("Chapter 1: Foundations");
@@ -1258,7 +1338,10 @@ describe("Built-in Kindle MOBI/AZW3 PalmDOC LZ77 & DRM detection", () => {
     );
     expect(mobiExtracted.text).not.toContain("<html>");
 
-    const azw3Extracted = await extractPlainTextFromFile(noCalibreCtx, azw3Path);
+    const azw3Extracted = await extractPlainTextFromFile(
+      noCalibreCtx,
+      azw3Path,
+    );
     expect(azw3Extracted.method).toBe("Built-in DOCUMENT Extractor");
     expect(azw3Extracted.title).toBe("Systems Handbook");
     expect(azw3Extracted.text).toContain("Zero-dependency AZW3 inspection");
@@ -1436,10 +1519,16 @@ describe("Whole-book 283+ page resilience, retry recovery & front/back fluff ski
 
     let idx = 0;
     const sequence = [
-      { img: "img-page-1", text: "Chapter 1 begins with clear narrative prose." },
+      {
+        img: "img-page-1",
+        text: "Chapter 1 begins with clear narrative prose.",
+      },
       { img: "img-illustration-a", text: "" },
       { img: "img-illustration-b", text: "" },
-      { img: "img-page-4", text: "Chapter 2 resumes right after the illustrations." },
+      {
+        img: "img-page-4",
+        text: "Chapter 2 resumes right after the illustrations.",
+      },
     ];
 
     const blankDeps: KindleDeps = {
@@ -1450,7 +1539,11 @@ describe("Whole-book 283+ page resilience, retry recovery & front/back fluff ski
       },
       ocrImage: async () => {
         const cur = sequence[Math.min(idx, sequence.length - 1)]!;
-        return { text: cur.text, engine: "vision", bookTitle: "Illustrated Book" };
+        return {
+          text: cur.text,
+          engine: "vision",
+          bookTitle: "Illustrated Book",
+        };
       },
       turnPage: async () => {
         if (idx < sequence.length - 1) idx++;
@@ -1546,10 +1639,14 @@ describe("Whole-book 283+ page resilience, retry recovery & front/back fluff ski
     expect(introSess.stoppedHeading).toBe("Acknowledgments");
     expect(introSess.combinedText).not.toContain("ISBN");
     expect(introSess.combinedText).not.toContain("Table of Contents");
-    expect(introSess.combinedText).not.toContain("I wrote this book after many years");
+    expect(introSess.combinedText).not.toContain(
+      "I wrote this book after many years",
+    );
     expect(introSess.combinedText).toContain("Introduction");
     expect(introSess.combinedText).toContain("Chapter 1: Foundations");
-    expect(introSess.combinedText).toContain("And that brings our journey to a clean close.");
+    expect(introSess.combinedText).toContain(
+      "And that brings our journey to a clean close.",
+    );
     expect(introSess.combinedText).not.toContain("Thanks to my editor");
     expect(introSess.combinedText).not.toContain("Backpressure, 88");
 
@@ -1604,7 +1701,11 @@ describe("Whole-book 283+ page resilience, retry recovery & front/back fluff ski
       // ~1.35 MB text simulating a 283-page book
       const bigBook = Array.from(
         { length: 283 },
-        (_, i) => `Page ${i + 1}: ` + "Systems design relies on durable state and careful boundaries. ".repeat(75),
+        (_, i) =>
+          `Page ${i + 1}: ` +
+          "Systems design relies on durable state and careful boundaries. ".repeat(
+            75,
+          ),
       ).join("\n\n");
       expect(bigBook.length).toBeGreaterThan(1_100_000);
 
@@ -1754,7 +1855,9 @@ describe("Cross-OS macOS-only gating for Kindle Open-Book Reader", () => {
       );
       expect(mobiRich).not.toBeNull();
       expect(mobiRich!.plainText).not.toContain("Kindle Open-Book Reader");
-      expect(mobiRich!.plainText).not.toContain("Open this book in Amazon Kindle");
+      expect(mobiRich!.plainText).not.toContain(
+        "Open this book in Amazon Kindle",
+      );
 
       const kfxRich = await inspectKindleMobiRich(
         bufferSource(kfxContBuf),
@@ -1765,7 +1868,9 @@ describe("Cross-OS macOS-only gating for Kindle Open-Book Reader", () => {
       );
       expect(kfxRich).not.toBeNull();
       expect(kfxRich!.plainText).not.toContain("Kindle Open-Book Reader");
-      expect(kfxRich!.plainText).not.toContain("Open this book in Amazon Kindle");
+      expect(kfxRich!.plainText).not.toContain(
+        "Open this book in Amazon Kindle",
+      );
 
       const noCalibreCtx = createContext({
         platform: plat,
@@ -1837,10 +1942,18 @@ describe("Cross-OS macOS-only gating for Kindle Open-Book Reader", () => {
       expect(parsed.error).toContain("macOS");
 
       const fmKindleErr: string[] = [];
-      const fmKindleCode = await runFileManagerCli(["kindle", "--list-windows"], {
-        stderr: (l) => fmKindleErr.push(l),
-        contextOptions: { platform: plat, home, dataDir, toolDirs: [toolDir] },
-      });
+      const fmKindleCode = await runFileManagerCli(
+        ["kindle", "--list-windows"],
+        {
+          stderr: (l) => fmKindleErr.push(l),
+          contextOptions: {
+            platform: plat,
+            home,
+            dataDir,
+            toolDirs: [toolDir],
+          },
+        },
+      );
       expect(fmKindleCode).toBe(1);
       expect(fmKindleErr.join("\n")).toContain("macOS");
     }

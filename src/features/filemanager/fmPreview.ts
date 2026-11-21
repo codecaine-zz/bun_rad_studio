@@ -3177,9 +3177,7 @@ function parseKindleContentToRich(
   const raw = rawContent.replace(/\0/g, "");
   if (!raw.trim()) return { blocks: [], chapters: [], plainText: "" };
 
-  type ParsedItem =
-    | { kind: "block"; block: DocBlock }
-    | { kind: "pagebreak" };
+  type ParsedItem = { kind: "block"; block: DocBlock } | { kind: "pagebreak" };
   const items: ParsedItem[] = [];
 
   const looksLikeHtml =
@@ -3232,11 +3230,10 @@ function parseKindleContentToRich(
     const flushBuf = () => {
       if (!textBuf) return;
       if (inPre || currentType === "code") {
-        const txt = decodeKindleEntities(textBuf)
-          .replace(/\r\n/g, "\n")
-          .trim();
+        const txt = decodeKindleEntities(textBuf).replace(/\r\n/g, "\n").trim();
         textBuf = "";
-        if (txt) items.push({ kind: "block", block: { type: "code", text: txt } });
+        if (txt)
+          items.push({ kind: "block", block: { type: "code", text: txt } });
         return;
       }
       if (currentType === "p" || currentType === "quote") {
@@ -3315,11 +3312,7 @@ function parseKindleContentToRich(
         }
       } else if (tag === "li") {
         flushBuf();
-        currentType = isClose
-          ? blockquoteDepth > 0
-            ? "quote"
-            : "p"
-          : "li";
+        currentType = isClose ? (blockquoteDepth > 0 ? "quote" : "p") : "li";
       } else if (
         tag === "p" ||
         tag === "div" ||
@@ -3348,8 +3341,7 @@ function parseKindleContentToRich(
 
   const hasTopHeadings = items.some(
     (it) =>
-      it.kind === "block" &&
-      (it.block.type === "h1" || it.block.type === "h2"),
+      it.kind === "block" && (it.block.type === "h1" || it.block.type === "h2"),
   );
 
   const rawChapters: Array<{ title: string; blocks: DocBlock[] }> = [];
@@ -3632,9 +3624,7 @@ export async function inspectKindleMobiRich(
           } else if (recType === 101 && !exthPublisher) {
             exthPublisher = val;
           } else if (recType === 103 && !exthDescription) {
-            exthDescription = decodeKindleEntities(
-              val.replace(/<[^>]+>/g, " "),
-            )
+            exthDescription = decodeKindleEntities(val.replace(/<[^>]+>/g, " "))
               .replace(/\s+/g, " ")
               .trim();
           } else if (recType === 104 && !exthIsbn) {
