@@ -1070,32 +1070,20 @@ process.exit(0);
 
     const mp4Path = join(outDir, "kindle_read_along.mp4");
     const lines: string[] = [];
-    const prevPath = process.env.PATH;
-    if (process.platform === "win32" && !sysFfmpeg) {
-      process.env.PATH = `${cliToolDir};${prevPath ?? ""}`;
-    }
-    let code = 1;
-    try {
-      code = await runTtsCli(
-        ["kindle", "--pages", "1", "-f", "mp4", "-o", mp4Path, "--json"],
-        {
-          stdout: (l) => lines.push(l),
-          cwd: outDir,
-          contextOptions: {
-            platform: "darwin",
-            home,
-            dataDir,
-            toolDirs: [cliToolDir],
-          },
-          kindleDeps: mp4Deps,
+    const code = await runTtsCli(
+      ["kindle", "--pages", "1", "-f", "mp4", "-o", mp4Path, "--json"],
+      {
+        stdout: (l) => lines.push(l),
+        cwd: outDir,
+        contextOptions: {
+          platform: "darwin",
+          home,
+          dataDir,
+          toolDirs: [cliToolDir],
         },
-      );
-    } finally {
-      if (process.platform === "win32" && !sysFfmpeg) {
-        if (prevPath === undefined) delete process.env.PATH;
-        else process.env.PATH = prevPath;
-      }
-    }
+        kindleDeps: mp4Deps,
+      },
+    );
     expect(code).toBe(0);
     const parsed = JSON.parse(lines.join("\n"));
     expect(parsed.ok).toBe(true);

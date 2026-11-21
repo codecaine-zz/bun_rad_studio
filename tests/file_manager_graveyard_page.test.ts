@@ -572,6 +572,10 @@ describe("the list: search, filters, sorting, selection and paging", () => {
     const started = performance.now();
     await reloadTab();
     await until(() => rows().length === 100, "the first page");
+    await until(
+      () => qa(".grave-card", pane())[0]?.textContent?.includes("5,200"),
+      "the summary card",
+    );
     expect(performance.now() - started).toBeLessThan(5000);
     expect(qa(".grave-card", pane())[0].textContent).toContain("5,200");
     expect(pane().textContent).toContain("1–100 of 5,200");

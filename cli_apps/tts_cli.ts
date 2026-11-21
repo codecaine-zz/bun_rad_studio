@@ -3023,7 +3023,16 @@ export async function runTtsCli(
     );
 
     const ollamaExe = resolveTool(ctx, "ollama") || Bun.which("ollama") || "";
-    const ffmpegExe = resolveTool(ctx, "ffmpeg") || Bun.which("ffmpeg") || null;
+    const ffmpegExe =
+      resolveTool(ctx, "ffmpeg") ||
+      (process.platform !== ctx.platform
+        ? resolveTool(
+            { ...ctx, platform: process.platform as typeof ctx.platform },
+            "ffmpeg",
+          )
+        : null) ||
+      Bun.which("ffmpeg") ||
+      null;
 
     if (ollamaExe) {
       await ensureOllamaDaemon(ctx, ollamaExe).catch(() => {});
