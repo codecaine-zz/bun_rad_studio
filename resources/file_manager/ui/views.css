@@ -14,13 +14,17 @@
 #viewbar {
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 0.6rem;
+  width: 100%;
   padding: 0.32rem 0.65rem;
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: auto;
   scrollbar-width: none;
+  container-type: inline-size;
+  container-name: viewbar;
   background: linear-gradient(
     180deg,
     color-mix(in oklab, var(--surface-elevated, var(--panel)) 68%, var(--panel))
@@ -33,23 +37,94 @@
 #viewbar::-webkit-scrollbar {
   display: none;
 }
-@media (max-width: 1680px) and (min-width: 821px) {
+@media (max-width: 1460px) and (min-width: 821px) {
   #viewbar {
-    gap: 0.28rem;
-    padding: 0.3rem 0.48rem;
+    gap: 0.2rem;
+    padding: 0.28rem 0.42rem;
+  }
+  #viewbar #view-switch {
+    padding: 0.12rem;
+    gap: 0.1rem;
   }
   #viewbar .vb-btn {
-    padding: 0.26rem 0.44rem;
-    gap: 0.28rem;
-    font-size: 0.88rem;
+    padding: 0.24rem 0.38rem;
+    gap: 0.22rem;
+    font-size: 0.82rem;
+  }
+  #viewbar .vb-icon {
+    font-size: 0.96rem;
   }
   #viewbar #view-extras {
-    gap: 0.25rem;
+    gap: 0.22rem;
+    padding-left: 0.35rem;
   }
   #viewbar .vb-clock {
-    padding: 0.22rem 0.45rem;
-    gap: 0.28rem;
+    padding: 0.22rem 0.44rem;
+    gap: 0.24rem;
     font-size: 0.76rem;
+  }
+}
+@media (max-width: 1180px) {
+  #viewbar .vb-btn {
+    padding: 0.22rem 0.32rem;
+    gap: 0.18rem;
+    font-size: 0.79rem;
+  }
+}
+@supports (container-type: inline-size) {
+  @container viewbar (max-width: 1460px) {
+    #viewbar #view-switch {
+      padding: 0.12rem;
+      gap: 0.1rem;
+    }
+    #viewbar .vb-btn {
+      padding: 0.24rem 0.38rem;
+      gap: 0.22rem;
+      font-size: 0.82rem;
+    }
+    #viewbar .vb-icon {
+      font-size: 0.96rem;
+    }
+    #viewbar #view-extras {
+      gap: 0.22rem;
+      padding-left: 0.35rem;
+    }
+    #viewbar .vb-clock {
+      padding: 0.22rem 0.44rem;
+      gap: 0.24rem;
+      font-size: 0.76rem;
+    }
+  }
+  @container viewbar (max-width: 1180px) {
+    #viewbar .vb-btn {
+      padding: 0.22rem 0.32rem;
+      gap: 0.18rem;
+      font-size: 0.79rem;
+    }
+    #viewbar .vb-clock-date,
+    #viewbar .vb-clock-sep {
+      display: none;
+    }
+  }
+  @container viewbar (max-width: 1040px) {
+    #sidebar-toggle .vb-label,
+    #viewbar-themes .vb-label,
+    #viewbar-ollama .vb-label,
+    #viewbar-bionic .vb-label,
+    #viewbar-phonon .vb-label,
+    #viewbar-transcribe .vb-label,
+    #viewbar-palette .vb-label,
+    #focus-toggle .vb-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+    #viewbar .vb-btn {
+      position: relative;
+    }
   }
 }
 .vb-btn {
@@ -135,11 +210,23 @@
 }
 #view-extras {
   margin-left: auto;
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  padding-left: 0.45rem;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--panel) 18%,
+    var(--panel) 100%
+  );
 }
 .vb-clock {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 0.42rem;
@@ -185,10 +272,30 @@
   font-weight: 650;
   letter-spacing: 0.01em;
 }
-@media (max-width: 760px) {
+@media (max-width: 1180px) {
   .vb-clock-date,
   .vb-clock-sep {
     display: none;
+  }
+}
+@media (max-width: 1040px) {
+  #sidebar-toggle .vb-label,
+  #viewbar-themes .vb-label,
+  #viewbar-ollama .vb-label,
+  #viewbar-bionic .vb-label,
+  #viewbar-phonon .vb-label,
+  #viewbar-transcribe .vb-label,
+  #viewbar-palette .vb-label,
+  #focus-toggle .vb-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .vb-btn {
+    position: relative;
   }
 }
 

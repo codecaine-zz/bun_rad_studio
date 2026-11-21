@@ -27,6 +27,11 @@ export const isPhononSupported = () => {
   return p === "darwin" || p === "linux" || p === "win32";
 };
 export const phononSupported = isPhononSupported();
+/** Kindle Open-Book Reader (screen capture + OCR) is strictly available on macOS (`darwin`). */
+export const isKindleReaderSupported = () =>
+  (meta("fm-platform") ||
+    (typeof process !== "undefined" ? process.platform : "linux")) === "darwin";
+export const kindleReaderSupported = isKindleReaderSupported();
 
 export class ApiError extends Error {
   /** @param {string} message @param {string} code @param {number} status @param {any} [details] extra facts the server sent with the error */

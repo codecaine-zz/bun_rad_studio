@@ -1,5 +1,11 @@
 // Ollama Phonon Voice Reader, Plain-Text Format Converter, Live Follow-Along Teleprompter & Multi-Format Audio/Video Exporter.
-import { ApiError, call, getToken, isPhononSupported } from "./api.js";
+import {
+  ApiError,
+  call,
+  getToken,
+  isKindleReaderSupported,
+  isPhononSupported,
+} from "./api.js";
 import { announce, clear, h } from "./dom.js";
 import { toast } from "./menus.js";
 import { goTo, refresh, saveSettings } from "./nav.js";
@@ -17,7 +23,7 @@ import {
   parentOf,
 } from "./util.js";
 
-export { isPhononSupported };
+export { isKindleReaderSupported, isPhononSupported };
 
 function stemOf(name) {
   const dot = name.lastIndexOf(".");
@@ -416,6 +422,7 @@ function buildClientWordCues(text, durationSec = 0) {
 function mountPhononStudio(root, payload) {
   clear(root);
   root.classList.add("phonon-studio-root");
+  const kindleSupported = isKindleReaderSupported();
 
   // Studio state
   let status = null;
@@ -576,6 +583,7 @@ function mountPhononStudio(root, payload) {
   let simplifyUrls = true;
   let stripTimestamps = true;
   let unwrapLines = false;
+  let trimBookFluff = false;
 
   // Source & Chunks state
   let sourcePath = "";
@@ -584,6 +592,11 @@ function mountPhononStudio(root, payload) {
   let chunks = [];
   let chunkPage = 0;
   const CHUNKS_PER_PAGE = 80;
+  let outNameManuallyEdited = false;
+  let outDirManuallyEdited = false;
+  let bookViewMode = false;
+  let bookViewUserToggled = false;
+  let lastKindleBookTitle = "";
 
   // Live Playback state
   let isPlaying = false;
@@ -744,20 +757,50 @@ function mountPhononStudio(root, payload) {
       "Accessible High Contrast (WCAG AAA Yellow)",
     ),
   );
+  function activeBrowseFolder() {
+    return (
+      currentPath() ||
+      (state.location?.kind === "folder" && state.location.path) ||
+      state.home ||
+      ""
+    );
+  }
+
   const outNameInput = h("input", {
     id: "phonon-out-name",
     type: "text",
     class: "input",
     value: "speech",
     placeholder: "Output file name (without extension)",
+    oninput: () => {
+      outNameManuallyEdited = Boolean(outNameInput.value.trim());
+    },
+    onchange: () => {
+      outNameManuallyEdited = Boolean(outNameInput.value.trim());
+    },
   });
   const outDirInput = h("input", {
     id: "phonon-out-dir",
     type: "text",
     class: "input",
-    value: currentPath() || state.home || "",
+    value: activeBrowseFolder(),
     placeholder: "Output folder path",
+    oninput: () => {
+      outDirManuallyEdited = Boolean(outDirInput.value.trim());
+    },
+    onchange: () => {
+      outDirManuallyEdited = Boolean(outDirInput.value.trim());
+    },
   });
+
+  function syncOutDirToCurrentFolder(force = false) {
+    if (force || !outDirManuallyEdited || !outDirInput.value.trim()) {
+      const folder = activeBrowseFolder();
+      if (folder) {
+        outDirInput.value = folder;
+      }
+    }
+  }
   const masterPresetSelect = h(
     "select",
     {
@@ -885,6 +928,22 @@ function mountPhononStudio(root, payload) {
   const teleprompterProgressFill = h("div", {
     class: "phonon-teleprompter-progress-fill",
   });
+  const bookViewBtn = h(
+    "button",
+    {
+      id: "phonon-book-view-btn",
+      type: "button",
+      class: "btn phonon-sm-btn",
+      title:
+        "Toggle wide left-aligned Book View for comfortable in-app reading and follow-along listening",
+      "aria-pressed": "false",
+      onclick: () => {
+        bookViewUserToggled = true;
+        setBookViewMode(!bookViewMode);
+      },
+    },
+    "📖 Book View",
+  );
   const teleprompterSizeSelect = h(
     "select",
     {
@@ -954,7 +1013,14 @@ function mountPhononStudio(root, payload) {
     "Welcome to the Codecaine Phonon Voice Studio! Powered by Ollama and Gradium Phonon TTS on Apple Silicon MLX, you can follow along word by word as your document is read out loud, convert any file format into clean plain text, and export synchronized Read-Along Videos in MP4, WebM, MOV, or MKV alongside WAV, MP3, M4A, and FLAC audio.";
 
   function updateTeleprompterClasses() {
-    teleprompterStage.className = `phonon-teleprompter-stage theme-${selectedVideoTheme} size-${teleprompterSize}`;
+    teleprompterStage.className = `phonon-teleprompter-stage theme-${selectedVideoTheme} size-${teleprompterSize}${bookViewMode ? " is-book-view" : ""}`;
+  }
+
+  function setBookViewMode(enabled) {
+    bookViewMode = Boolean(enabled);
+    bookViewBtn.classList.toggle("primary", bookViewMode);
+    bookViewBtn.setAttribute("aria-pressed", bookViewMode ? "true" : "false");
+    updateTeleprompterClasses();
   }
 
   function updateVoiceDropdown() {
@@ -2010,10 +2076,11 @@ function mountPhononStudio(root, payload) {
     stopReading();
     sourcePath = filePath;
     sourcePathInput.value = filePath;
+    outNameManuallyEdited = false;
     const stem = stemOf(baseName(filePath, state.sep)) || "speech";
     outNameInput.value = stem;
     const parentDir = parentOf(filePath, isWindowsPath(filePath) ? "\\" : "/");
-    if (parentDir) outDirInput.value = parentDir;
+    if (parentDir && !outDirManuallyEdited) outDirInput.value = parentDir;
 
     nowPlayingStatus.textContent = `Converting "${baseName(filePath, state.sep)}" to plain text…`;
     try {
@@ -2026,6 +2093,9 @@ function mountPhononStudio(root, payload) {
         simplifyUrls,
         stripTimestamps,
         unwrapLines,
+        trimBookFluff,
+        bookStartMode: kindleStartMode === "chapter1" ? "chapter1" : "intro",
+        stripBackMatter: true,
         maxChars: maxChunkChars,
       });
       sourceFormatLabel = res.formatLabel || "Document";
@@ -2066,6 +2136,9 @@ function mountPhononStudio(root, payload) {
         simplifyUrls,
         stripTimestamps,
         unwrapLines,
+        trimBookFluff,
+        bookStartMode: kindleStartMode === "chapter1" ? "chapter1" : "intro",
+        stripBackMatter: true,
         maxChars: maxChunkChars,
       });
       textArea.value = res.text || "";
@@ -2086,6 +2159,9 @@ function mountPhononStudio(root, payload) {
   }
 
   async function saveConvertedPlainText() {
+    if (!outDirManuallyEdited) {
+      syncOutDirToCurrentFolder();
+    }
     if (!textArea.value.trim()) {
       toast("There is no plain text in the editor to save.", { kind: "info" });
       return;
@@ -2094,7 +2170,7 @@ function mountPhononStudio(root, payload) {
       const res = await call("phonon/savetxt", {
         text: textArea.value,
         sourcePath,
-        outputDir: outDirInput.value.trim() || currentPath() || state.home,
+        outputDir: outDirInput.value.trim() || activeBrowseFolder(),
         outputName: `${outNameInput.value.trim() || "plain-text"}`,
       });
       toast(`Saved plain text: ${baseName(res.path, state.sep)}`, {
@@ -2422,6 +2498,9 @@ function mountPhononStudio(root, payload) {
   // -------------------------------------------------------------------------------------------------------------
 
   async function exportEditorTextWithFormat(targetFormat) {
+    if (!outDirManuallyEdited) {
+      syncOutDirToCurrentFolder();
+    }
     const raw = textArea.value.trim();
     if (!raw) {
       toast("Enter or load some text before exporting.", { kind: "info" });
@@ -2441,7 +2520,7 @@ function mountPhononStudio(root, payload) {
         pitch,
         pauseMs,
         cleanText,
-        outputDir: outDirInput.value.trim() || currentPath() || state.home,
+        outputDir: outDirInput.value.trim() || activeBrowseFolder(),
         outputName:
           outNameInput.value.trim() || (isVid ? "read-along-video" : "speech"),
         maxChunkChars,
@@ -2504,6 +2583,9 @@ function mountPhononStudio(root, payload) {
   }
 
   async function batchConvertSelectedFiles(forceVideo = false) {
+    if (!outDirManuallyEdited) {
+      syncOutDirToCurrentFolder();
+    }
     const sel = getSelectedReadableEntries();
     if (!sel.length) {
       toast(
@@ -2533,7 +2615,7 @@ function mountPhononStudio(root, payload) {
         pitch,
         pauseMs,
         cleanText,
-        outputDir: outDirInput.value.trim() || currentPath() || "",
+        outputDir: outDirInput.value.trim() || activeBrowseFolder(),
         maxChunkChars,
         syncOffsetMs,
         aspectRatio: selectedAspectRatio,
@@ -2592,6 +2674,9 @@ function mountPhononStudio(root, payload) {
   }
 
   async function exportChapteredAudiobook(opts = {}) {
+    if (!outDirManuallyEdited) {
+      syncOutDirToCurrentFolder();
+    }
     const sel = getSelectedReadableEntries();
     const targetPath = sourcePath || sel[0]?.path || "";
     const raw = textArea.value.trim();
@@ -2629,7 +2714,7 @@ function mountPhononStudio(root, payload) {
         pitch,
         pauseMs,
         cleanText,
-        outputDir: outDirInput.value.trim() || currentPath() || "",
+        outputDir: outDirInput.value.trim() || activeBrowseFolder(),
         bookTitle: outNameInput.value.trim() || undefined,
       });
       if (res.job) emit("job-started", res.job);
@@ -2672,6 +2757,9 @@ function mountPhononStudio(root, payload) {
   }
 
   async function generateTwoHostPodcast() {
+    if (!outDirManuallyEdited) {
+      syncOutDirToCurrentFolder();
+    }
     const sel = getSelectedReadableEntries();
     const targetPath = sourcePath || sel[0]?.path || "";
     const raw = textArea.value.trim();
@@ -2705,7 +2793,7 @@ function mountPhononStudio(root, payload) {
         pauseMs,
         masterPreset: masterPreset === "none" ? "podcast" : masterPreset,
         lexicon: customLexiconRules.trim() || undefined,
-        outputDir: outDirInput.value.trim() || currentPath() || "",
+        outputDir: outDirInput.value.trim() || activeBrowseFolder(),
         title: outNameInput.value.trim() || undefined,
       });
       if (res.job) emit("job-started", res.job);
@@ -2750,6 +2838,7 @@ function mountPhononStudio(root, payload) {
   function loadStageDirectionDemo() {
     sourcePath = "";
     sourceFormatBadge.textContent = "Multi-Voice & Stage-Direction Script";
+    outNameManuallyEdited = false;
     outNameInput.value = "multi-voice-studio-demo";
     multiVoice = true;
     if (multiVoiceToggleInput) multiVoiceToggleInput.checked = true;
@@ -2780,6 +2869,7 @@ function mountPhononStudio(root, payload) {
     sourcePath = "";
     sourceFormatBadge.textContent =
       "Large Multi-Chapter Sample (18 Paragraphs)";
+    outNameManuallyEdited = false;
     outNameInput.value = "large-audiobook-sample";
     textArea.value = paragraphs.join("\n\n");
     void recomputeChunksFromEditor();
@@ -4003,6 +4093,951 @@ function mountPhononStudio(root, payload) {
     );
   };
 
+  // -----------------------------------------------------------------------------------------------------------
+  // Kindle Open-Book Page Reader & Audio Creator Panel
+  // -----------------------------------------------------------------------------------------------------------
+  let kindleExpanded = false;
+  let kindleSessionId = "";
+  let kindlePollTimer = 0;
+  let kindleStripChrome = true;
+  let kindleStopOnDuplicate = true;
+  let kindleReadAllPages = false;
+  let kindleStartMode = "intro";
+  let kindleStopAtBackMatter = true;
+  let kindleAppendMode = false;
+  let kindleAutoReadAfter = false;
+  let kindleAppendPrefix = "";
+  let kindleWindowsList = [];
+
+  const kindleWindowSelect = h("select", {
+    id: "phonon-kindle-window",
+    class: "input phonon-select",
+    "aria-label": "Target Kindle or open book window",
+  });
+  const kindlePagesInput = h("input", {
+    id: "phonon-kindle-pages",
+    type: "number",
+    class: "input phonon-kindle-num",
+    min: "1",
+    max: "5000",
+    value: "5",
+    "aria-label": "Number of Kindle pages to capture",
+  });
+  let kindleAllPagesCheckbox = null;
+  const kindleStartModeSelect = h(
+    "select",
+    {
+      id: "phonon-kindle-start-mode",
+      class: "input phonon-select",
+      "aria-label": "Book start point",
+      onchange: (e) => {
+        kindleStartMode = e.target.value || "intro";
+      },
+    },
+    h(
+      "option",
+      { value: "intro", selected: true },
+      "Start at Intro / Ch. 1 (Skip Front Fluff)",
+    ),
+    h(
+      "option",
+      { value: "chapter1" },
+      "Start at Chapter 1 Only (Skip Intro too)",
+    ),
+    h("option", { value: "none" }, "Current Page (Keep All Front Pages)"),
+  );
+  const kindleTurnKeySelect = h(
+    "select",
+    {
+      id: "phonon-kindle-turn-key",
+      class: "input phonon-select",
+      "aria-label": "Page turn key",
+    },
+    h("option", { value: "right", selected: true }, "Right Arrow →"),
+    h("option", { value: "space" }, "Space"),
+    h("option", { value: "pagedown" }, "Page Down"),
+    h("option", { value: "left" }, "Left Arrow ←"),
+  );
+  const kindleDelayInput = h("input", {
+    id: "phonon-kindle-delay",
+    type: "number",
+    class: "input phonon-kindle-num",
+    min: "250",
+    max: "10000",
+    step: "50",
+    value: "900",
+    "aria-label": "Delay after page turn in milliseconds",
+  });
+  const kindleCropTopInput = h("input", {
+    id: "phonon-kindle-crop-top",
+    type: "number",
+    class: "input phonon-kindle-num",
+    min: "0",
+    max: "35",
+    value: "8",
+    "aria-label": "Top crop percentage",
+  });
+  const kindleCropBottomInput = h("input", {
+    id: "phonon-kindle-crop-bottom",
+    type: "number",
+    class: "input phonon-kindle-num",
+    min: "0",
+    max: "35",
+    value: "8",
+    "aria-label": "Bottom crop percentage",
+  });
+  const kindleOcrEngineSelect = h(
+    "select",
+    {
+      id: "phonon-kindle-ocr-engine",
+      class: "input phonon-select",
+      "aria-label": "OCR engine",
+    },
+    h("option", { value: "auto", selected: true }, "Auto (Apple Vision / Tesseract)"),
+    h("option", { value: "vision" }, "Apple Vision (macOS)"),
+    h("option", { value: "tesseract" }, "Tesseract OCR"),
+  );
+  const kindleProgressBadge = h(
+    "span",
+    { id: "phonon-kindle-progress", class: "phonon-badge phonon-badge-muted" },
+    "Kindle OCR Ready",
+  );
+  const kindleStatusBanner = h(
+    "div",
+    { id: "phonon-kindle-status", class: "phonon-kindle-status hint" },
+    "Open Amazon Kindle or Kindle Cloud Reader to the page you want to read, then capture a single page or auto-turn multiple pages into the Phonon audio queue.",
+  );
+
+  const kindleDetectBtn = h(
+    "button",
+    {
+      id: "phonon-kindle-detect-btn",
+      type: "button",
+      class: "btn phonon-sm-btn",
+      onclick: () => void refreshKindleWindows(),
+    },
+    "🔍 Detect Kindle",
+  );
+  const kindleCaptureOneBtn = h(
+    "button",
+    {
+      id: "phonon-kindle-capture-one-btn",
+      type: "button",
+      class: "btn",
+      onclick: () => void captureSingleKindlePageUi({ exportAfter: false }),
+    },
+    "📸 Capture Current Page",
+  );
+  const kindleCaptureBatchBtn = h(
+    "button",
+    {
+      id: "phonon-kindle-capture-batch-btn",
+      type: "button",
+      class: "btn primary",
+      onclick: () => void startBatchKindleCaptureUi({ exportAfter: false }),
+    },
+    "📚 Capture Pages",
+  );
+  const kindleCaptureAllBtn = h(
+    "button",
+    {
+      id: "phonon-kindle-capture-all-btn",
+      type: "button",
+      class: "btn primary",
+      title:
+        "Read all pages of the open Kindle book automatically until the last chapter (skipping intros and back-matter fluff)",
+      onclick: () =>
+        void startBatchKindleCaptureUi({
+          exportAfter: false,
+          readAllPages: true,
+        }),
+    },
+    "📖 Read All Pages",
+  );
+  const kindleStopBtn = h(
+    "button",
+    {
+      id: "phonon-kindle-stop-btn",
+      type: "button",
+      class: "btn",
+      disabled: true,
+      onclick: () => void stopKindleCaptureUi(),
+    },
+    "⏹ Stop Capture",
+  );
+  const kindleCaptureListenBtn = h(
+    "button",
+    {
+      id: "phonon-kindle-capture-listen-btn",
+      type: "button",
+      class: "btn primary",
+      title:
+        "Capture open Kindle pages, open the Follow-Along Reader Stage, and start reading aloud word-by-word",
+      onclick: () => void captureKindleAndListenUi(),
+    },
+    "🔊 Capture, Read & Listen",
+  );
+  const kindleCaptureAudioBtn = h(
+    "button",
+    {
+      id: "phonon-kindle-capture-audio-btn",
+      type: "button",
+      class: "btn primary",
+      title:
+        "Capture the requested open Kindle pages and immediately export them as an audio file in the current File Manager folder",
+      onclick: () => void captureKindleAndSaveAudioUi(),
+    },
+    "🎙️ Capture & Save Audio",
+  );
+  const kindleCaptureMp4Btn = h(
+    "button",
+    {
+      id: "phonon-kindle-capture-mp4-btn",
+      type: "button",
+      class: "btn primary",
+      title:
+        "Capture open Kindle pages and render a 1080p synchronized Read-Along .MP4 video with subtitles into the current File Manager folder",
+      onclick: () => void captureKindleAndSaveMp4Ui(),
+    },
+    "🎬 Capture & Read-Along .MP4",
+  );
+  const kindleSaveMdBtn = h(
+    "button",
+    {
+      id: "phonon-kindle-save-md-btn",
+      type: "button",
+      class: "btn",
+      title:
+        "Save the captured Kindle text as a <Book Title>.md file in the current File Manager folder",
+      onclick: () => void saveCapturedKindleAsMarkdown(),
+    },
+    "📄 Save Book as .MD",
+  );
+
+  const kindleCollapseBtn = h(
+    "button",
+    {
+      id: "phonon-kindle-collapse-btn",
+      type: "button",
+      class: "btn phonon-sm-btn",
+      onclick: () => setKindlePanelExpanded(!kindleExpanded),
+    },
+    "▼ Expand",
+  );
+
+  const kindleBodyEl = h(
+    "div",
+    { class: "phonon-kindle-body", hidden: true },
+    h(
+      "div",
+      { class: "phonon-inline-row" },
+      h(
+        "label",
+        { class: "phonon-label", for: "phonon-kindle-window" },
+        "Target Window",
+      ),
+      kindleWindowSelect,
+      kindleDetectBtn,
+    ),
+    h(
+      "div",
+      { class: "phonon-grid-4" },
+      h(
+        "div",
+        { class: "phonon-field" },
+        h(
+          "label",
+          { class: "phonon-label", for: "phonon-kindle-pages" },
+          "Pages to Read",
+        ),
+        kindlePagesInput,
+      ),
+      h(
+        "div",
+        { class: "phonon-field" },
+        h(
+          "label",
+          { class: "phonon-label", for: "phonon-kindle-turn-key" },
+          "Page-Turn Key",
+        ),
+        kindleTurnKeySelect,
+      ),
+      h(
+        "div",
+        { class: "phonon-field" },
+        h(
+          "label",
+          { class: "phonon-label", for: "phonon-kindle-delay" },
+          "Turn Delay (ms)",
+        ),
+        kindleDelayInput,
+      ),
+      h(
+        "div",
+        { class: "phonon-field" },
+        h(
+          "label",
+          { class: "phonon-label", for: "phonon-kindle-ocr-engine" },
+          "OCR Engine",
+        ),
+        kindleOcrEngineSelect,
+      ),
+    ),
+    h(
+      "div",
+      { class: "phonon-grid-2" },
+      h(
+        "div",
+        { class: "phonon-field" },
+        h(
+          "label",
+          { class: "phonon-label", for: "phonon-kindle-start-mode" },
+          "Book Start Point",
+        ),
+        kindleStartModeSelect,
+      ),
+      h(
+        "div",
+        { class: "phonon-field phonon-kindle-toggles-align" },
+        h("span", { class: "phonon-label" }, "Whole-Book & Chapter Filtering"),
+        h(
+          "div",
+          { class: "phonon-inline-row" },
+          makeToggle(
+            "Read All Pages (Whole Book)",
+            kindleReadAllPages,
+            (v) => {
+              kindleReadAllPages = v;
+              kindlePagesInput.disabled = v;
+            },
+            (inputEl) => {
+              kindleAllPagesCheckbox = inputEl;
+              inputEl.id = "phonon-kindle-all-pages-toggle";
+            },
+          ),
+          makeToggle(
+            "Stop at Last Chapter (Skip Back Fluff)",
+            kindleStopAtBackMatter,
+            (v) => {
+              kindleStopAtBackMatter = v;
+            },
+          ),
+        ),
+      ),
+    ),
+    h(
+      "div",
+      { class: "phonon-cleanup-bar" },
+      h(
+        "label",
+        { class: "phonon-kindle-crop-label" },
+        "Top Crop %",
+        kindleCropTopInput,
+      ),
+      h(
+        "label",
+        { class: "phonon-kindle-crop-label" },
+        "Bottom Crop %",
+        kindleCropBottomInput,
+      ),
+      makeToggle("Strip Kindle headers/footers", kindleStripChrome, (v) => {
+        kindleStripChrome = v;
+      }),
+      makeToggle(
+        "Stop at end of book / duplicate page",
+        kindleStopOnDuplicate,
+        (v) => {
+          kindleStopOnDuplicate = v;
+        },
+      ),
+      makeToggle("Append to current text", kindleAppendMode, (v) => {
+        kindleAppendMode = v;
+      }),
+      makeToggle("Auto-read aloud when done", kindleAutoReadAfter, (v) => {
+        kindleAutoReadAfter = v;
+      }),
+    ),
+    h(
+      "div",
+      { class: "phonon-inline-row" },
+      kindleCaptureOneBtn,
+      kindleCaptureBatchBtn,
+      kindleCaptureAllBtn,
+      kindleStopBtn,
+      kindleCaptureListenBtn,
+      kindleCaptureAudioBtn,
+      kindleCaptureMp4Btn,
+      kindleSaveMdBtn,
+    ),
+    kindleStatusBanner,
+  );
+
+  const kindlePanelCard = h(
+    "section",
+    {
+      id: "phonon-kindle-panel",
+      class: "phonon-card phonon-kindle-card",
+    },
+    h(
+      "div",
+      { class: "phonon-card-head" },
+      h(
+        "div",
+        { class: "phonon-inline-row" },
+        h(
+          "h3",
+          { class: "phonon-card-title" },
+          "📖 Kindle Open-Book Reader (Screen OCR → Voice & Audio)",
+        ),
+        kindleProgressBadge,
+      ),
+      kindleCollapseBtn,
+    ),
+    kindleBodyEl,
+  );
+
+  function setKindlePanelExpanded(expanded, opts = {}) {
+    if (!kindleSupported) return;
+    kindleExpanded = Boolean(expanded);
+    kindleBodyEl.hidden = !kindleExpanded;
+    kindleCollapseBtn.textContent = kindleExpanded ? "▲ Collapse" : "▼ Expand";
+    if (
+      kindleExpanded &&
+      !opts.skipAutoRefresh &&
+      kindleWindowsList.length === 0
+    ) {
+      void refreshKindleWindows({ silent: true });
+    }
+  }
+
+  function setKindleBusy(busy) {
+    kindleCaptureOneBtn.disabled = busy;
+    kindleCaptureBatchBtn.disabled = busy;
+    kindleCaptureAllBtn.disabled = busy;
+    kindleCaptureListenBtn.disabled = busy;
+    kindleCaptureAudioBtn.disabled = busy;
+    kindleCaptureMp4Btn.disabled = busy;
+    kindleSaveMdBtn.disabled = busy;
+    kindleDetectBtn.disabled = busy;
+    kindleStopBtn.disabled = !busy || !kindleSessionId;
+  }
+
+  function selectedKindleWindowId() {
+    const val = Number(kindleWindowSelect.value);
+    return Number.isFinite(val) && val > 0 ? val : undefined;
+  }
+
+  function sanitizeTitleForFilename(title) {
+    const raw = String(title || "")
+      .replace(/^📖\s*/u, "")
+      .trim()
+      .replace(
+        /^(?:(?:Amazon\s+Kindle|Kindle\s+Cloud\s+Reader|Kindle)\s*[—–\-:]\s*)+/i,
+        "",
+      )
+      .replace(/\s*[—–\-]\s*(?:Amazon\s+Kindle|Kindle\s+Cloud\s+Reader)$/i, "")
+      .trim();
+    const genericRe =
+      /^((amazon\s+)?kindle(\s+cloud\s+reader)?|codecaine\s+file\s+manager|file\s+manager)$/i;
+    if (!raw || genericRe.test(raw)) {
+      return "kindle-book";
+    }
+    const clean = raw
+      .replace(/[<>:"\/\\|?*\x00-\x1f]+/g, " ")
+      .replace(/\s+/g, " ")
+      .replace(/^[.\s]+|[.\s]+$/g, "")
+      .slice(0, 80)
+      .replace(/^[.\s]+|[.\s]+$/g, "");
+    if (!clean || genericRe.test(clean)) {
+      return "kindle-book";
+    }
+    return clean;
+  }
+
+  function readKindleFormOpts(overrides = {}) {
+    const readAllPages =
+      overrides.readAllPages === true || kindleReadAllPages;
+    const pages = readAllPages
+      ? 2500
+      : Math.max(
+          1,
+          Math.min(5000, Math.round(Number(kindlePagesInput.value) || 5)),
+        );
+    const delayMs = Math.max(
+      250,
+      Math.min(10000, Math.round(Number(kindleDelayInput.value) || 900)),
+    );
+    const cropTopPct = Math.max(
+      0,
+      Math.min(35, Number(kindleCropTopInput.value) || 0),
+    );
+    const cropBottomPct = Math.max(
+      0,
+      Math.min(35, Number(kindleCropBottomInput.value) || 0),
+    );
+    return {
+      windowId: selectedKindleWindowId(),
+      pages,
+      readAllPages,
+      turnKey: kindleTurnKeySelect.value || "right",
+      delayMs,
+      cropTopPct,
+      cropBottomPct,
+      ocrEngine: kindleOcrEngineSelect.value || "auto",
+      stripKindleChrome: kindleStripChrome,
+      stopOnDuplicate: readAllPages ? true : kindleStopOnDuplicate,
+      startMode: kindleStartMode || "intro",
+      stopAtBackMatter: kindleStopAtBackMatter,
+    };
+  }
+
+  async function refreshKindleWindows(opts = {}) {
+    if (!kindleSupported) return;
+    const silent = Boolean(opts.silent);
+    try {
+      const res = await call("kindle/windows");
+      kindleWindowsList = Array.isArray(res.windows) ? res.windows : [];
+      const prevSelected = kindleWindowSelect.value;
+      clear(kindleWindowSelect);
+      const hasKindleWindow = kindleWindowsList.some((w) => w.isKindle === true);
+      if (kindleWindowsList.length === 0) {
+        kindleWindowSelect.append(
+          h(
+            "option",
+            { value: "" },
+            "No open windows detected — open Kindle & click Detect",
+          ),
+        );
+        kindleProgressBadge.textContent = "No Kindle Window Found";
+        kindleProgressBadge.className = "phonon-badge phonon-badge-muted";
+      } else {
+        if (!hasKindleWindow) {
+          kindleWindowSelect.append(
+            h(
+              "option",
+              { value: "", selected: true },
+              "Auto-detect open Kindle window…",
+            ),
+          );
+        }
+        for (const w of kindleWindowsList) {
+          const prefix = w.isKindle ? "📖 " : "";
+          const baseLabel = w.title
+            ? `${prefix}${w.ownerName} — ${w.title}`
+            : `${prefix}${w.ownerName} (Window #${w.id})`;
+          const spaceTag =
+            w.onScreen === false ? " (Full Screen / Other Space)" : "";
+          kindleWindowSelect.append(
+            h("option", { value: String(w.id) }, `${baseLabel}${spaceTag}`),
+          );
+        }
+        if (
+          prevSelected &&
+          kindleWindowsList.some((w) => String(w.id) === prevSelected)
+        ) {
+          kindleWindowSelect.value = prevSelected;
+        } else if (!hasKindleWindow) {
+          kindleWindowSelect.value = "";
+        }
+        const kindleCount = kindleWindowsList.filter((w) => w.isKindle).length;
+        kindleProgressBadge.textContent =
+          kindleCount > 0
+            ? `${kindleCount} Kindle window${kindleCount === 1 ? "" : "s"} detected`
+            : `${kindleWindowsList.length} window${kindleWindowsList.length === 1 ? "" : "s"} ready`;
+        kindleProgressBadge.className =
+          kindleCount > 0
+            ? "phonon-badge phonon-badge-accent"
+            : "phonon-badge phonon-badge-muted";
+      }
+      if (res.permissionHint) {
+        kindleStatusBanner.textContent = `⚠️ ${res.permissionHint}`;
+      } else if (!silent) {
+        const top = kindleWindowsList[0];
+        if (!top) {
+          kindleStatusBanner.textContent =
+            "No open windows found. Open Amazon Kindle or Kindle Cloud Reader and click Detect Kindle.";
+        } else if (!hasKindleWindow) {
+          kindleStatusBanner.textContent = `No Kindle window detected (${kindleWindowsList.length} other window${kindleWindowsList.length === 1 ? "" : "s"} listed). Open Amazon Kindle or choose a window explicitly.`;
+        } else {
+          kindleStatusBanner.textContent = `Detected ${kindleWindowsList.length} open window${kindleWindowsList.length === 1 ? "" : "s"}. Selected: ${top.title || top.ownerName}.`;
+        }
+      }
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Could not scan open desktop windows.";
+      kindleStatusBanner.textContent = `⚠️ ${msg}`;
+      if (!silent) toast(msg, { kind: "error" });
+    }
+  }
+
+  function applyCapturedKindleText(newText, bookTitle, isAppend) {
+    syncOutDirToCurrentFolder();
+    const cleaned = String(newText || "").trim();
+    if (bookTitle) {
+      const safeTitle = sanitizeTitleForFilename(bookTitle);
+      if (safeTitle && safeTitle !== "kindle-book") {
+        lastKindleBookTitle = safeTitle;
+      }
+    }
+    if (isAppend && kindleAppendPrefix) {
+      textArea.value = cleaned
+        ? `${kindleAppendPrefix}\n\n${cleaned}`
+        : kindleAppendPrefix;
+    } else {
+      textArea.value = cleaned;
+      if (!isAppend && !outNameManuallyEdited && bookTitle) {
+        outNameInput.value = sanitizeTitleForFilename(bookTitle);
+      }
+    }
+    if (cleaned && !bookViewUserToggled) {
+      setBookViewMode(true);
+    }
+  }
+
+  async function runPostKindleCaptureAction(opts = {}) {
+    if (opts.listenAfter) {
+      if (!bookViewUserToggled) setBookViewMode(true);
+      teleprompterStage.scrollIntoView?.({
+        block: "center",
+        behavior: "smooth",
+      });
+      await startOrResumeReading();
+    } else if (opts.exportMp4) {
+      const vidFmt = VIDEO_EXT_SET.has(selectedFormat) ? selectedFormat : "mp4";
+      selectedFormat = vidFmt;
+      formatSelect.value = vidFmt;
+      const { all } = allFormatsList();
+      const cur = all.find((f) => f.id === vidFmt);
+      formatHintEl.textContent = cur ? cur.desc : "";
+      void saveSettings({ phononFormat: vidFmt });
+      await exportEditorTextWithFormat(vidFmt);
+    } else if (opts.exportAudio || opts.exportAfter) {
+      const fmt = VIDEO_EXT_SET.has(selectedFormat)
+        ? "mp3"
+        : selectedFormat || "mp3";
+      await exportEditorTextWithFormat(fmt);
+    } else if (kindleAutoReadAfter) {
+      if (!bookViewUserToggled) setBookViewMode(true);
+      teleprompterStage.scrollIntoView?.({
+        block: "center",
+        behavior: "smooth",
+      });
+      await startOrResumeReading();
+    }
+  }
+
+  async function captureSingleKindlePageUi(opts = {}) {
+    if (!kindleSupported) return;
+    const form = readKindleFormOpts();
+    kindleAppendPrefix = kindleAppendMode ? textArea.value.trim() : "";
+    setKindleBusy(true);
+    kindleStatusBanner.textContent =
+      "📸 Capturing current open book page and running OCR…";
+    try {
+      const res = await call("kindle/capture-page", form);
+      const page = res.page;
+      const winTitle =
+        res.window?.title ||
+        res.window?.ownerName ||
+        page?.windowTitle ||
+        "Kindle Book";
+      const bookTitle = res.bookTitle || page?.bookTitle || winTitle;
+      if (!page?.text?.trim()) {
+        kindleStatusBanner.textContent =
+          "⚠️ Captured the window, but OCR found no readable text. Adjust crop percentages or ensure the Kindle page is visible and Screen Recording permission is granted.";
+        toast("No text detected on the captured page.", { kind: "info" });
+        return;
+      }
+      applyCapturedKindleText(page.text, bookTitle, kindleAppendMode);
+      sourcePath = "";
+      const engineName =
+        page.engine === "vision" ? "Apple Vision" : "Tesseract";
+      const spreadNote = page.twoColumn ? " (2-Column Spread)" : "";
+      sourceFormatBadge.textContent = `Format: Kindle Page OCR (${engineName})${spreadNote}`;
+      kindleProgressBadge.textContent = `1 page · ${page.wordCount.toLocaleString()} words`;
+      kindleProgressBadge.className = "phonon-badge phonon-badge-accent";
+      kindleStatusBanner.textContent = `✔ Captured page via ${engineName}${spreadNote} (${page.wordCount.toLocaleString()} words in ${page.durationMs}ms).`;
+      await recomputeChunksFromEditor();
+      await runPostKindleCaptureAction(opts);
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Could not capture Kindle page.";
+      kindleStatusBanner.textContent = `❌ ${msg}`;
+      toast(msg, { kind: "error" });
+    } finally {
+      setKindleBusy(false);
+    }
+  }
+
+  async function startBatchKindleCaptureUi(opts = {}) {
+    if (!kindleSupported) return;
+    if (kindlePollTimer) {
+      clearTimeout(kindlePollTimer);
+      kindlePollTimer = 0;
+    }
+    const form = readKindleFormOpts({ readAllPages: opts.readAllPages });
+    kindleAppendPrefix = kindleAppendMode ? textArea.value.trim() : "";
+    setKindleBusy(true);
+    kindleStopBtn.disabled = false;
+    kindleStatusBanner.textContent = form.readAllPages
+      ? "📖 Starting whole-book Kindle capture (skipping front intros, stopping at last chapter)…"
+      : `📚 Starting ${form.pages}-page Kindle capture…`;
+    try {
+      const started = await call("kindle/start-capture", form);
+      kindleSessionId = started.sessionId;
+      kindleStopBtn.disabled = false;
+      const winTitle =
+        started.window?.title || started.window?.ownerName || "Kindle Book";
+      let pollFailures = 0;
+      let lastRenderedPagesCount = -1;
+
+      const poll = async () => {
+        if (!kindleSessionId) return;
+        try {
+          const snap = await call("kindle/session", {
+            sessionId: kindleSessionId,
+          });
+          pollFailures = 0;
+          const bookTitle =
+            snap.bookTitle ||
+            snap.latestPage?.bookTitle ||
+            started.bookTitle ||
+            winTitle;
+          if (
+            snap.combinedText &&
+            snap.capturedPagesCount !== lastRenderedPagesCount
+          ) {
+            lastRenderedPagesCount = snap.capturedPagesCount;
+            applyCapturedKindleText(
+              snap.combinedText,
+              bookTitle,
+              kindleAppendMode,
+            );
+          }
+          const engineTag = snap.latestPage?.engine
+            ? ` · ${snap.latestPage.engine === "vision" ? "Apple Vision" : "Tesseract"}`
+            : "";
+          const spreadNote = snap.latestPage?.twoColumn
+            ? " (2-Column Spread)"
+            : "";
+          kindleProgressBadge.textContent = snap.readAllPages
+            ? `Read All: ${snap.capturedPagesCount} page${snap.capturedPagesCount === 1 ? "" : "s"} · ${snap.wordCount.toLocaleString()} words`
+            : `Page ${snap.capturedPagesCount}/${snap.totalPages} · ${snap.wordCount.toLocaleString()} words`;
+          kindleProgressBadge.className = "phonon-badge phonon-badge-accent";
+
+          if (snap.status === "running") {
+            if (snap.phase === "skipping_front") {
+              kindleStatusBanner.textContent = `⏭️ Skipping front-matter/intro page ${snap.currentPage} (skipped ${snap.skippedFrontPages} so far)…`;
+            } else if (snap.phase === "retrying") {
+              kindleStatusBanner.textContent = `🔄 Page ${snap.currentPage} unchanged — retrying page turn…`;
+            } else {
+              const targetNote = snap.readAllPages
+                ? `${snap.currentPage}`
+                : `${snap.currentPage} of ${snap.totalPages}`;
+              const skippedNote = snap.skippedFrontPages
+                ? ` · skipped ${snap.skippedFrontPages} intro`
+                : "";
+              kindleStatusBanner.textContent = `⏳ Reading page ${targetNote} (${snap.wordCount.toLocaleString()} words captured${skippedNote}${engineTag}${spreadNote})…`;
+            }
+            kindlePollTimer = setTimeout(poll, 600);
+            return;
+          }
+
+          kindleSessionId = "";
+          kindlePollTimer = 0;
+          setKindleBusy(false);
+
+          if (snap.status === "error") {
+            const errMsg = snap.error || "Kindle capture failed.";
+            kindleStatusBanner.textContent = `❌ ${errMsg}`;
+            toast(errMsg, { kind: "error" });
+            if (snap.combinedText) await recomputeChunksFromEditor();
+            return;
+          }
+
+          if (snap.combinedText) {
+            applyCapturedKindleText(
+              snap.combinedText,
+              bookTitle,
+              kindleAppendMode,
+            );
+          }
+          sourcePath = "";
+          sourceFormatBadge.textContent = `Format: Kindle Pages OCR (${snap.capturedPagesCount} pages)${spreadNote}`;
+          const skippedSummary = snap.skippedFrontPages
+            ? ` · skipped ${snap.skippedFrontPages} intro page${snap.skippedFrontPages === 1 ? "" : "s"}`
+            : "";
+          const reasonNote = snap.stoppedReason
+            ? ` (${snap.stoppedReason})`
+            : "";
+          kindleStatusBanner.textContent = `✔ Captured ${snap.capturedPagesCount} page${snap.capturedPagesCount === 1 ? "" : "s"} (${snap.wordCount.toLocaleString()} words)${skippedSummary}${spreadNote}${reasonNote}`;
+          toast(
+            `Captured ${snap.capturedPagesCount} Kindle page${snap.capturedPagesCount === 1 ? "" : "s"} (${snap.wordCount.toLocaleString()} words).`,
+            { kind: "success" },
+          );
+          await recomputeChunksFromEditor();
+          if (snap.combinedText?.trim()) {
+            await runPostKindleCaptureAction(opts);
+          }
+        } catch (err) {
+          pollFailures++;
+          if (pollFailures <= 3 && kindleSessionId) {
+            kindleStatusBanner.textContent = `⏳ Temporary connection hiccup while polling (${pollFailures}/3) — retrying…`;
+            kindlePollTimer = setTimeout(poll, 1000);
+            return;
+          }
+          kindleSessionId = "";
+          kindlePollTimer = 0;
+          setKindleBusy(false);
+          const msg =
+            err instanceof ApiError
+              ? err.message
+              : "Lost Kindle capture session.";
+          kindleStatusBanner.textContent = `❌ ${msg}`;
+        }
+      };
+      kindlePollTimer = setTimeout(poll, 450);
+    } catch (err) {
+      kindleSessionId = "";
+      setKindleBusy(false);
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Could not start Kindle page capture.";
+      kindleStatusBanner.textContent = `❌ ${msg}`;
+      toast(msg, { kind: "error" });
+    }
+  }
+
+  async function stopKindleCaptureUi() {
+    if (!kindleSupported || !kindleSessionId) return;
+    kindleStopBtn.disabled = true;
+    kindleStatusBanner.textContent = "⏹ Stopping capture after current page…";
+    try {
+      await call("kindle/stop-capture", { sessionId: kindleSessionId });
+    } catch {}
+  }
+
+  async function captureKindlePagesWithAction(opts = {}) {
+    if (kindleReadAllPages || opts.readAllPages) {
+      await startBatchKindleCaptureUi({ ...opts, readAllPages: true });
+      return;
+    }
+    const pages = Math.max(
+      1,
+      Math.min(5000, Math.round(Number(kindlePagesInput.value) || 5)),
+    );
+    if (pages === 1) {
+      await captureSingleKindlePageUi(opts);
+    } else {
+      await startBatchKindleCaptureUi(opts);
+    }
+  }
+
+  async function captureKindleAndListenUi() {
+    await captureKindlePagesWithAction({ listenAfter: true });
+  }
+
+  async function captureKindleAndSaveAudioUi() {
+    await captureKindlePagesWithAction({ exportAudio: true });
+  }
+
+  async function captureKindleAndSaveMp4Ui() {
+    await captureKindlePagesWithAction({ exportMp4: true });
+  }
+
+  async function saveCapturedKindleAsMarkdown() {
+    const rawText = textArea.value.trim();
+    if (!rawText) {
+      toast(
+        "Capture Kindle pages or enter text first before saving as .MD.",
+        { kind: "info" },
+      );
+      return;
+    }
+    if (!outDirManuallyEdited) {
+      syncOutDirToCurrentFolder();
+    }
+    const parent = outDirInput.value.trim() || activeBrowseFolder();
+    if (!parent) {
+      toast("Open a destination folder in the File Manager first.", {
+        kind: "error",
+      });
+      return;
+    }
+    const typedName = outNameInput.value.trim();
+    const baseCandidate =
+      typedName && typedName !== "speech"
+        ? typedName
+        : lastKindleBookTitle || typedName || "Kindle Book";
+    const stem =
+      sanitizeTitleForFilename(baseCandidate.replace(/\.md$/i, "")) ||
+      "kindle-book";
+    const heading =
+      lastKindleBookTitle &&
+      lastKindleBookTitle !== "Kindle Book" &&
+      !outNameManuallyEdited
+        ? lastKindleBookTitle
+        : stem;
+    const content = rawText.startsWith("# ")
+      ? `${rawText}\n`
+      : `# ${heading}\n\n${rawText}\n`;
+
+    setKindleBusy(true);
+    try {
+      let res;
+      try {
+        res = await call("newfile", {
+          parent,
+          name: `${stem}.md`,
+          content,
+        });
+      } catch (err) {
+        if (err instanceof ApiError && err.code === "EXISTS") {
+          const stamp = new Date()
+            .toISOString()
+            .replace(/[:.]/g, "-")
+            .slice(0, 19);
+          res = await call("newfile", {
+            parent,
+            name: `${stem}-${stamp}.md`,
+            content,
+          });
+        } else {
+          throw err;
+        }
+      }
+      const savedName = res?.name || `${stem}.md`;
+      kindleStatusBanner.textContent = `✔ Saved Markdown book: ${savedName}`;
+      toast(
+        `Saved ${savedName} in ${baseName(parent, state.sep) || parent}`,
+        { kind: "success" },
+      );
+      if (
+        currentPath() &&
+        res?.path &&
+        isInside(res.path, currentPath(), state.sep, state.sep === "\\")
+      ) {
+        void refresh().then(() => selectKeys([res.path]));
+      } else {
+        void refresh();
+      }
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Could not save Kindle book as Markdown.";
+      kindleStatusBanner.textContent = `❌ ${msg}`;
+      toast(msg, { kind: "error" });
+    } finally {
+      setKindleBusy(false);
+    }
+  }
+
   const converterCard = h(
     "section",
     { class: "phonon-card" },
@@ -4065,6 +5100,22 @@ function mountPhononStudio(root, payload) {
         },
         "📚 Load Large Text Sample",
       ),
+      ...(kindleSupported
+        ? [
+            h(
+              "button",
+              {
+                id: "phonon-kindle-toggle-btn",
+                type: "button",
+                class: "btn",
+                title:
+                  "Capture open pages from Amazon Kindle or Kindle Cloud Reader via screen OCR and convert to audio",
+                onclick: () => setKindlePanelExpanded(!kindleExpanded),
+              },
+              "📖 Read Open Kindle Book",
+            ),
+          ]
+        : []),
       h(
         "button",
         {
@@ -4100,6 +5151,9 @@ function mountPhononStudio(root, payload) {
       makeToggle("Unwrap Line Breaks", unwrapLines, (v) => {
         unwrapLines = v;
       }),
+      makeToggle("Skip Book Fluff (Intro → Last Ch.)", trimBookFluff, (v) => {
+        trimBookFluff = v;
+      }),
       h(
         "button",
         {
@@ -4127,6 +5181,8 @@ function mountPhononStudio(root, payload) {
             stopReading();
             textArea.value = "";
             sourcePath = "";
+            outNameManuallyEdited = false;
+            lastKindleBookTitle = "";
             sourceFormatBadge.textContent = "Format: Direct Text";
             void recomputeChunksFromEditor();
           },
@@ -4194,6 +5250,7 @@ function mountPhononStudio(root, payload) {
         h(
           "div",
           { class: "phonon-inline-row" },
+          bookViewBtn,
           teleprompterSizeSelect,
           makeToggle("Auto-Scroll", teleprompterAutoScroll, (v) => {
             teleprompterAutoScroll = v;
@@ -4252,14 +5309,20 @@ function mountPhononStudio(root, payload) {
             h(
               "button",
               {
+                id: "phonon-use-current-dir-btn",
                 type: "button",
                 class: "btn phonon-sm-btn",
                 title: "Use the folder currently open in the File Manager",
                 onclick: () => {
-                  outDirInput.value = currentPath() || state.home || "";
+                  outDirManuallyEdited = false;
+                  syncOutDirToCurrentFolder(true);
+                  const dir = outDirInput.value.trim();
+                  if (dir) {
+                    toast(`Output folder synced to: ${dir}`, { kind: "info" });
+                  }
                 },
               },
-              "Current Folder",
+              "📍 Current Folder",
             ),
           ),
         ),
@@ -4450,7 +5513,10 @@ function mountPhononStudio(root, payload) {
             class: "btn",
             title: "Open the destination folder in the File Manager",
             onclick: () => {
-              const dir = outDirInput.value.trim();
+              if (!outDirManuallyEdited) {
+                syncOutDirToCurrentFolder();
+              }
+              const dir = outDirInput.value.trim() || activeBrowseFolder();
               if (dir) {
                 emit("workspace-go", "files");
                 void goTo(dir);
@@ -4478,7 +5544,13 @@ function mountPhononStudio(root, payload) {
     ),
   );
 
-  root.append(bannerBox, voiceCard, converterCard, playerAndExportCard);
+  root.append(
+    bannerBox,
+    voiceCard,
+    ...(kindleSupported ? [kindlePanelCard] : []),
+    converterCard,
+    playerAndExportCard,
+  );
 
   // Initialize data
   textArea.value = DEFAULT_SAMPLE_TEXT;
@@ -4488,9 +5560,32 @@ function mountPhononStudio(root, payload) {
   // Handle payload (when opened from right-click menu or command palette with a file or text)
   function applyPayload(p) {
     if (!p || typeof p !== "object") return;
+    const wantsKindle = Boolean(
+      p.focusKindle || p.autoCaptureListen || p.autoCaptureMp4,
+    );
+    let kindleRefreshPromise = null;
+    if (wantsKindle) {
+      if (!kindleSupported) return;
+      setKindlePanelExpanded(true, { skipAutoRefresh: true });
+      kindleRefreshPromise = refreshKindleWindows();
+      kindlePanelCard.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    }
+    if (p.autoCaptureMp4 || p.autoCaptureListen) {
+      if (!kindleSupported) return;
+      void Promise.resolve(kindleRefreshPromise).then(() => {
+        if (p.autoCaptureMp4) {
+          return captureKindleAndSaveMp4Ui();
+        }
+        if (p.autoCaptureListen) {
+          return captureKindleAndListenUi();
+        }
+      });
+      return;
+    }
     if (typeof p.text === "string" && p.text.trim()) {
       if (typeof p.path === "string" && p.path.trim()) {
         sourcePath = p.path.trim();
+        outNameManuallyEdited = false;
         outNameInput.value = stemOf(baseName(sourcePath, state.sep));
       }
       textArea.value = p.text.trim();
@@ -4520,7 +5615,7 @@ function mountPhononStudio(root, payload) {
           void exportEditorTextWithFormat("mp4");
         }
       });
-    } else {
+    } else if (!wantsKindle) {
       const sel = getSelectedReadableEntries().filter((e) =>
         canReadWithPhonon(e),
       );
@@ -4533,13 +5628,15 @@ function mountPhononStudio(root, payload) {
   applyPayload(payload);
 
   const offFolder = on("view", () => {
-    if (!outDirInput.value.trim() && currentPath()) {
-      outDirInput.value = currentPath();
-    }
+    syncOutDirToCurrentFolder();
+  });
+  const offPane = on("pane", () => {
+    syncOutDirToCurrentFolder();
   });
 
   return {
     show(nextPayload) {
+      syncOutDirToCurrentFolder();
       void refreshStatus();
       applyPayload(nextPayload);
     },
@@ -4549,13 +5646,25 @@ function mountPhononStudio(root, payload) {
       samplePreviewAudioEl.pause();
     },
     onPayload(nextPayload) {
+      syncOutDirToCurrentFolder();
       applyPayload(nextPayload);
     },
     dispose() {
       stopReading();
+      if (kindlePollTimer) {
+        clearTimeout(kindlePollTimer);
+        kindlePollTimer = 0;
+      }
+      if (kindleSessionId) {
+        void call("kindle/stop-capture", { sessionId: kindleSessionId }).catch(
+          () => {},
+        );
+        kindleSessionId = "";
+      }
       cleanupRecordingAudioGraph();
       samplePreviewAudioEl.pause();
       offFolder?.();
+      offPane?.();
     },
   };
 }

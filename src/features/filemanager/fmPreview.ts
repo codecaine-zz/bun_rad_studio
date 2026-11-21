@@ -2944,6 +2944,949 @@ async function inspectPdfRich(
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// Kindle MOBI / AZW / AZW3 / AZW4 / PRC / PalmDOC & KFX Inspector
+// ---------------------------------------------------------------------------------------------------------------
+
+const PALMDOC_MAX_RECORD_OUT = 64 * 1024;
+const PALMDOC_MAX_TOTAL_OUT = 2 * 1024 * 1024;
+const NON_PROSE_KINDLE_PREVIEWS = new WeakSet<RichPreview>();
+
+/** Returns true when a Kindle preview represents a DRM/KFX/HuffCDIC notice rather than book prose. */
+export function isNonProseKindlePreview(rich: RichPreview): boolean {
+  return NON_PROSE_KINDLE_PREVIEWS.has(rich);
+}
+
+const KINDLE_HTML_NAMED_ENTITIES: Record<string, string> = {
+  nbsp: " ",
+  ensp: " ",
+  emsp: " ",
+  thinsp: " ",
+  mdash: "—",
+  ndash: "–",
+  minus: "−",
+  hellip: "…",
+  lsquo: "‘",
+  rsquo: "’",
+  sbquo: "‚",
+  ldquo: "“",
+  rdquo: "”",
+  bdquo: "„",
+  laquo: "«",
+  raquo: "»",
+  lsaquo: "‹",
+  rsaquo: "›",
+  copy: "©",
+  reg: "®",
+  trade: "™",
+  bull: "•",
+  middot: "·",
+  deg: "°",
+  times: "×",
+  divide: "÷",
+  plusmn: "±",
+  frac12: "½",
+  frac14: "¼",
+  frac34: "¾",
+  sect: "§",
+  para: "¶",
+  dagger: "†",
+  Dagger: "‡",
+  prime: "′",
+  Prime: "″",
+  euro: "€",
+  pound: "£",
+  yen: "¥",
+  cent: "¢",
+  aacute: "á",
+  Aacute: "Á",
+  agrave: "à",
+  Agrave: "À",
+  acirc: "â",
+  Acirc: "Â",
+  auml: "ä",
+  Auml: "Ä",
+  atilde: "ã",
+  Atilde: "Ã",
+  aring: "å",
+  Aring: "Å",
+  aelig: "æ",
+  AElig: "Æ",
+  ccedil: "ç",
+  Ccedil: "Ç",
+  eacute: "é",
+  Eacute: "É",
+  egrave: "è",
+  Egrave: "È",
+  ecirc: "ê",
+  Ecirc: "Ê",
+  euml: "ë",
+  Euml: "Ë",
+  iacute: "í",
+  Iacute: "Í",
+  igrave: "ì",
+  Igrave: "Ì",
+  icirc: "î",
+  Icirc: "Î",
+  iuml: "ï",
+  Iuml: "Ï",
+  ntilde: "ñ",
+  Ntilde: "Ñ",
+  oacute: "ó",
+  Oacute: "Ó",
+  ograve: "ò",
+  Ograve: "Ò",
+  ocirc: "ô",
+  Ocirc: "Ô",
+  ouml: "ö",
+  Ouml: "Ö",
+  otilde: "õ",
+  Otilde: "Õ",
+  oelig: "œ",
+  OElig: "Œ",
+  uacute: "ú",
+  Uacute: "Ú",
+  ugrave: "ù",
+  Ugrave: "Ù",
+  ucirc: "û",
+  Ucirc: "Û",
+  uuml: "ü",
+  Uuml: "Ü",
+  yacute: "ý",
+  yuml: "ÿ",
+  szlig: "ß",
+};
+
+function decodeKindleEntities(s: string): string {
+  return decodeEntities(
+    s.replace(/&([a-zA-Z]{2,10});/g, (m, name: string) =>
+      Object.prototype.hasOwnProperty.call(KINDLE_HTML_NAMED_ENTITIES, name)
+        ? KINDLE_HTML_NAMED_ENTITIES[name]!
+        : m,
+    ),
+  );
+}
+
+/**
+ * Decompresses a single PalmDOC LZ77-compressed record buffer byte-by-byte,
+ * capping decompressed output at 64 KB (or `maxOutBytes` when smaller).
+ */
+export function decompressPalmDocLz77(
+  buf: Uint8Array,
+  maxOutBytes = PALMDOC_MAX_RECORD_OUT,
+): Buffer {
+  const cap = Math.max(0, Math.min(maxOutBytes, PALMDOC_MAX_RECORD_OUT));
+  if (cap === 0 || buf.length === 0) return Buffer.alloc(0);
+  const out: number[] = [];
+  let i = 0;
+  while (i < buf.length && out.length < cap) {
+    const b = buf[i++]!;
+    if (b === 0x00) {
+      out.push(0x00);
+    } else if (b <= 0x08) {
+      for (let k = 0; k < b && i < buf.length && out.length < cap; k++) {
+        out.push(buf[i++]!);
+      }
+    } else if (b <= 0x7f) {
+      out.push(b);
+    } else if (b <= 0xbf) {
+      if (i >= buf.length) break;
+      const nextByte = buf[i++]!;
+      const pair = (b << 8) | nextByte;
+      const distance = (pair >> 3) & 0x7ff;
+      const length = (pair & 0x07) + 3;
+      if (distance > 0 && distance <= out.length) {
+        for (let k = 0; k < length && out.length < cap; k++) {
+          out.push(out[out.length - distance]!);
+        }
+      }
+    } else {
+      out.push(0x20);
+      if (out.length < cap) {
+        out.push(b ^ 0x80);
+      }
+    }
+  }
+  return Buffer.from(out);
+}
+
+function trimMobiTrailingData(rec: Buffer, extraDataFlags: number): Buffer {
+  if (!extraDataFlags || rec.length === 0) return rec;
+  let end = rec.length;
+  let flags = extraDataFlags >> 1;
+  while (flags > 0 && end > 0) {
+    if (flags & 1) {
+      let entrySize = 0;
+      let bitpos = 0;
+      let pos = end - 1;
+      while (pos >= 0 && bitpos < 28) {
+        const v = rec[pos]!;
+        entrySize |= (v & 0x7f) << bitpos;
+        bitpos += 7;
+        pos--;
+        if ((v & 0x80) !== 0) break;
+      }
+      if (entrySize <= 0 || entrySize > end) return rec;
+      end -= entrySize;
+    }
+    flags >>= 1;
+  }
+  if ((extraDataFlags & 1) !== 0 && end > 0) {
+    const mb = (rec[end - 1]! & 0x03) + 1;
+    if (mb <= end) {
+      end -= mb;
+    }
+  }
+  return rec.subarray(0, end);
+}
+
+function decodeKindleBytes(
+  buf: Uint8Array,
+  encoding: number,
+  hasMobi: boolean,
+): string {
+  if (buf.length === 0) return "";
+  if (encoding === 65001) {
+    return new TextDecoder("utf-8", { fatal: false }).decode(buf);
+  }
+  if (!hasMobi) {
+    try {
+      return new TextDecoder("utf-8", { fatal: true }).decode(buf);
+    } catch {
+      // Fall back to Windows-1252 when a pure PalmDOC file is not valid UTF-8.
+    }
+  }
+  return new TextDecoder("windows-1252", { fatal: false }).decode(buf);
+}
+
+const KINDLE_CHAPTER_PARA_RE =
+  /^(?:chapter|prologue|epilogue|part|book|section|act|scene|introduction|foreword|preface|afterword|acknowledg|dedication|contents|table of contents)\b/i;
+
+function parseKindleContentToRich(
+  rawContent: string,
+  bookTitle?: string,
+): {
+  blocks: DocBlock[];
+  chapters: Array<{ title: string; blocks: DocBlock[] }>;
+  plainText: string;
+} {
+  const maxChapters = 120;
+  const maxBlocksPerChapter = 4000;
+  const maxPreviewBlocks = 2500;
+  const maxPlainTextChars = 1_500_000;
+
+  const raw = rawContent.replace(/\0/g, "");
+  if (!raw.trim()) return { blocks: [], chapters: [], plainText: "" };
+
+  type ParsedItem =
+    | { kind: "block"; block: DocBlock }
+    | { kind: "pagebreak" };
+  const items: ParsedItem[] = [];
+
+  const looksLikeHtml =
+    /<(?:html|body|p|h[1-6]|div|br|li|blockquote|pre|mbp:pagebreak)\b/i.test(
+      raw,
+    );
+
+  if (!looksLikeHtml) {
+    const paras = raw.replace(/\r\n/g, "\n").split(/\n\s*\n+/);
+    for (const para of paras) {
+      const text = para.replace(/\s+/g, " ").trim();
+      if (!text) continue;
+      if (
+        text.length <= 90 &&
+        (KINDLE_CHAPTER_PARA_RE.test(text) ||
+          (text.length <= 70 &&
+            text === text.toUpperCase() &&
+            /[A-Z]/.test(text)))
+      ) {
+        items.push({ kind: "block", block: { type: "h2", text } });
+      } else {
+        items.push({ kind: "block", block: { type: "p", text } });
+      }
+    }
+  } else {
+    const bodyOpen = /<body\b[^>]*>/i.exec(raw);
+    let html = bodyOpen ? raw.slice(bodyOpen.index + bodyOpen[0].length) : raw;
+    const bodyCloseIdx = html.search(/<\/body\s*>/i);
+    if (bodyCloseIdx >= 0) html = html.slice(0, bodyCloseIdx);
+
+    html = html
+      .replace(/<!--[\s\S]*?-->/g, "")
+      .replace(
+        /<(script|style|head|svg|noscript|guide|ncx|metadata|dc-metadata)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,
+        "",
+      )
+      .replace(/<title\b[^>]*>[\s\S]*?<\/title\s*>/gi, "")
+      .replace(/<\/(?:td|th)\s*>/gi, " ")
+      .replace(/<\/tr\s*>/gi, "\n")
+      .replace(/<br\b[^>]*\/?>/gi, "\n")
+      .replace(/<hr\b[^>]*\/?>/gi, "\n\n")
+      .replace(/<[^>]*$/, "");
+
+    type BlockType = "h1" | "h2" | "h3" | "p" | "li" | "quote" | "code";
+    let currentType: BlockType = "p";
+    let blockquoteDepth = 0;
+    let inPre = false;
+    let textBuf = "";
+
+    const flushBuf = () => {
+      if (!textBuf) return;
+      if (inPre || currentType === "code") {
+        const txt = decodeKindleEntities(textBuf)
+          .replace(/\r\n/g, "\n")
+          .trim();
+        textBuf = "";
+        if (txt) items.push({ kind: "block", block: { type: "code", text: txt } });
+        return;
+      }
+      if (currentType === "p" || currentType === "quote") {
+        const parts = textBuf.split(/\n{2,}/);
+        textBuf = "";
+        for (const part of parts) {
+          const txt = decodeKindleEntities(part).replace(/\s+/g, " ").trim();
+          if (txt) {
+            items.push({
+              kind: "block",
+              block: { type: currentType, text: txt },
+            });
+          }
+        }
+        return;
+      }
+      const txt = decodeKindleEntities(textBuf).replace(/\s+/g, " ").trim();
+      textBuf = "";
+      if (txt) {
+        items.push({ kind: "block", block: { type: currentType, text: txt } });
+      }
+    };
+
+    const tagRe = /<(\/?)([a-zA-Z][a-zA-Z0-9:-]*)\b[^>]*\/?>/g;
+    let lastIdx = 0;
+    let m: RegExpExecArray | null;
+    while ((m = tagRe.exec(html)) !== null) {
+      if (m.index > lastIdx) {
+        textBuf += html.slice(lastIdx, m.index);
+      }
+      lastIdx = m.index + m[0].length;
+      const isClose = m[1] === "/";
+      const tag = m[2]!.toLowerCase();
+
+      if (tag === "mbp:pagebreak") {
+        if (!isClose) {
+          flushBuf();
+          items.push({ kind: "pagebreak" });
+          currentType = blockquoteDepth > 0 ? "quote" : "p";
+        }
+      } else if (
+        tag === "h1" ||
+        tag === "h2" ||
+        tag === "h3" ||
+        tag === "h4" ||
+        tag === "h5" ||
+        tag === "h6"
+      ) {
+        flushBuf();
+        currentType = isClose
+          ? blockquoteDepth > 0
+            ? "quote"
+            : "p"
+          : tag === "h1"
+            ? "h1"
+            : tag === "h2"
+              ? "h2"
+              : "h3";
+      } else if (tag === "blockquote") {
+        flushBuf();
+        if (!isClose) {
+          blockquoteDepth++;
+          currentType = "quote";
+        } else {
+          blockquoteDepth = Math.max(0, blockquoteDepth - 1);
+          currentType = blockquoteDepth > 0 ? "quote" : "p";
+        }
+      } else if (tag === "pre") {
+        flushBuf();
+        if (!isClose) {
+          inPre = true;
+          currentType = "code";
+        } else {
+          inPre = false;
+          currentType = blockquoteDepth > 0 ? "quote" : "p";
+        }
+      } else if (tag === "li") {
+        flushBuf();
+        currentType = isClose
+          ? blockquoteDepth > 0
+            ? "quote"
+            : "p"
+          : "li";
+      } else if (
+        tag === "p" ||
+        tag === "div" ||
+        tag === "section" ||
+        tag === "article" ||
+        tag === "tr"
+      ) {
+        flushBuf();
+        if (
+          !isClose &&
+          tag === "div" &&
+          /page-break-(?:before|after)\s*:\s*always|mbp_pagebreak/i.test(m[0])
+        ) {
+          items.push({ kind: "pagebreak" });
+        }
+        if (!inPre) {
+          currentType = blockquoteDepth > 0 ? "quote" : "p";
+        }
+      }
+    }
+    if (lastIdx < html.length) {
+      textBuf += html.slice(lastIdx);
+    }
+    flushBuf();
+  }
+
+  const hasTopHeadings = items.some(
+    (it) =>
+      it.kind === "block" &&
+      (it.block.type === "h1" || it.block.type === "h2"),
+  );
+
+  const rawChapters: Array<{ title: string; blocks: DocBlock[] }> = [];
+  let curTitle = "";
+  let curBlocks: DocBlock[] = [];
+  let curHasBody = false;
+
+  const finalizeChapter = () => {
+    if (curBlocks.length === 0 || rawChapters.length >= maxChapters) {
+      curTitle = "";
+      curBlocks = [];
+      curHasBody = false;
+      return;
+    }
+    const chTitle =
+      curTitle ||
+      (rawChapters.length === 0 && bookTitle
+        ? bookTitle
+        : `Section ${rawChapters.length + 1}`);
+    rawChapters.push({ title: chTitle, blocks: curBlocks });
+    curTitle = "";
+    curBlocks = [];
+    curHasBody = false;
+  };
+
+  for (const it of items) {
+    if (it.kind === "pagebreak") {
+      finalizeChapter();
+      continue;
+    }
+    let blk = it.block;
+    const isSplitHeading =
+      blk.type === "h1" ||
+      blk.type === "h2" ||
+      (!hasTopHeadings && blk.type === "h3");
+    if (isSplitHeading && curHasBody) {
+      finalizeChapter();
+    }
+    if (rawChapters.length >= maxChapters) break;
+
+    if (
+      (blk.type === "h1" || blk.type === "h2" || blk.type === "h3") &&
+      !curTitle
+    ) {
+      curTitle = blk.text;
+    } else if (
+      blk.type === "p" &&
+      curBlocks.length === 0 &&
+      !curTitle &&
+      blk.text.length <= 90 &&
+      (KINDLE_CHAPTER_PARA_RE.test(blk.text) ||
+        (blk.text.length <= 70 &&
+          blk.text === blk.text.toUpperCase() &&
+          /[A-Z]/.test(blk.text)))
+    ) {
+      blk = { type: "h2", text: blk.text };
+      curTitle = blk.text;
+    }
+
+    if (curBlocks.length < maxBlocksPerChapter) {
+      curBlocks.push(blk);
+    }
+    if (blk.type !== "h1" && blk.type !== "h2" && blk.type !== "h3") {
+      curHasBody = true;
+    }
+  }
+  finalizeChapter();
+
+  const cleanedChapters = filterEpubBackMatterAndDuplicates(
+    rawChapters,
+    bookTitle,
+  );
+  const allBlocks: DocBlock[] = [];
+  const plainParts: string[] = [];
+  let plainLen = 0;
+
+  for (const ch of cleanedChapters) {
+    for (const b of ch.blocks) {
+      if (allBlocks.length < maxPreviewBlocks) {
+        allBlocks.push(b);
+      }
+      if (plainLen < maxPlainTextChars) {
+        const piece =
+          b.type === "table"
+            ? b.rows.map((r) => r.join("\t")).join("\n")
+            : b.text;
+        if (piece) {
+          plainParts.push(piece);
+          plainLen += piece.length + 2;
+        }
+      }
+    }
+  }
+
+  let plainText = plainParts.join("\n\n");
+  if (plainText.length > maxPlainTextChars) {
+    plainText = plainText.slice(0, maxPlainTextChars);
+  }
+
+  return {
+    blocks: allBlocks,
+    chapters: cleanedChapters,
+    plainText,
+  };
+}
+
+/**
+ * Inspects Kindle e-books (`.mobi`, `.azw`, `.azw3`, `.azw4`, `.prc`, `.kfx`) and PalmDOC
+ * (`BOOKMOBI` / `TEXtREAd`) containers, returning structured blocks, chapters, metadata, or a clear
+ * DRM/KFX notice without requiring external Calibre binaries.
+ */
+export async function inspectKindleMobiRich(
+  src: Source,
+  absPath: string,
+  head: Buffer,
+  hasThumb = false,
+  platform: string = process.platform,
+): Promise<RichDocumentPreview | null> {
+  const baseName = nodePath.basename(absPath);
+  const ext = extensionOf(baseName);
+  const lastExt = ext.includes(".") ? ext.slice(ext.lastIndexOf(".") + 1) : ext;
+  const stemTitle = baseName.replace(/\.[^.]+$/, "") || baseName;
+
+  const magic60 = head.length >= 68 ? ascii(head, 60, 8) : "";
+  const isPalmKindle = magic60 === "BOOKMOBI" || magic60 === "TEXtREAd";
+  const isContMagic =
+    head.length >= 4 &&
+    ascii(head, 0, 4) === "CONT" &&
+    (["kfx", "azw", "azw3", "azw4", "azw8", "mobi", "prc"].includes(lastExt) ||
+      head.subarray(0, 64).includes(0));
+  const isDrmIonMagic =
+    ["kfx", "azw", "azw3", "azw4", "azw8"].includes(lastExt) &&
+    ((head.length >= 8 && ascii(head, 1, 6) === "DRMION") ||
+      (head.length >= 6 && ascii(head, 0, 6) === "DRMION") ||
+      (head.length >= 4 &&
+        head[0] === 0xe0 &&
+        head[1] === 0x01 &&
+        head[2] === 0x00 &&
+        head[3] === 0xea));
+
+  if (!isPalmKindle && !isContMagic && !isDrmIonMagic && lastExt !== "kfx") {
+    return null;
+  }
+
+  if (!isPalmKindle && (isContMagic || isDrmIonMagic || lastExt === "kfx")) {
+    const blocks: DocBlock[] = [
+      { type: "h1", text: stemTitle || "Amazon Kindle Book (.KFX)" },
+      {
+        type: "p",
+        text: "This Amazon Kindle (.KFX) book uses a DRM / KFX container format, so its text cannot be extracted directly.",
+      },
+      {
+        type: "p",
+        text:
+          platform === "darwin"
+            ? "Open this book in Amazon Kindle and use Voice Reader → 📖 Kindle Open-Book Reader to read aloud or export Audio / .M4B / Read-Along .MP4."
+            : "Use a DRM-free EPUB, PDF, or TXT copy (or convert DRM-free KFX files with Calibre ebook-convert) to preview or read aloud in Voice Reader.",
+      },
+    ];
+    const preview: RichDocumentPreview = {
+      kind: "document",
+      formatLabel: "Amazon Kindle Book (.KFX)",
+      title: stemTitle,
+      meta: [
+        ["Protection", "Kindle DRM / KFX Container"],
+        ...(src.size > 0
+          ? [["Size", humanBytes(src.size)] as [string, string]]
+          : []),
+      ],
+      blocks,
+      plainText: blocks.map((b) => ("text" in b ? b.text : "")).join("\n\n"),
+      hasThumb,
+    };
+    NON_PROSE_KINDLE_PREVIEWS.add(preview);
+    return preview;
+  }
+
+  if (head.length < 78) return null;
+  const numRecords = be16(head, 76);
+  if (numRecords === 0) return null;
+
+  const entryCount = Math.min(numRecords, 350);
+  const tableEnd = 78 + entryCount * 8;
+  const tableBuf =
+    head.length >= tableEnd
+      ? head.subarray(78, tableEnd)
+      : await src.read(78, entryCount * 8);
+  const actualEntries = Math.floor(tableBuf.length / 8);
+  if (actualEntries < 1) return null;
+
+  const offsets: number[] = [];
+  for (let i = 0; i < actualEntries; i++) {
+    offsets.push(be32(tableBuf, i * 8));
+  }
+
+  const rec0Start = offsets[0]!;
+  if (rec0Start < 78 || rec0Start >= src.size) return null;
+  const rec0RawEnd =
+    offsets.length > 1 && offsets[1]! > rec0Start
+      ? Math.min(src.size, offsets[1]!)
+      : src.size;
+  const rec0Len = Math.min(Math.max(0, rec0RawEnd - rec0Start), 512 * 1024);
+  if (rec0Len < 16) return null;
+  const rec0 =
+    rec0Start + rec0Len <= head.length
+      ? head.subarray(rec0Start, rec0Start + rec0Len)
+      : await src.read(rec0Start, rec0Len);
+  if (rec0.length < 16) return null;
+
+  const compression = be16(rec0, 0);
+  const textRecordCount = be16(rec0, 8);
+  const hasMobi = rec0.length >= 20 && ascii(rec0, 16, 4) === "MOBI";
+  const encryptionType =
+    (hasMobi || magic60 === "BOOKMOBI") && rec0.length >= 14
+      ? be16(rec0, 12)
+      : 0;
+
+  let encoding = 1252;
+  let mobiFullName = "";
+  let extraDataFlags = 0;
+  let exthTitle = "";
+  const exthAuthors: string[] = [];
+  let exthPublisher = "";
+  let exthDescription = "";
+  let exthIsbn = "";
+  let exthPubDate = "";
+  let exthLanguage = "";
+
+  if (hasMobi && rec0.length >= 24) {
+    const mobiHeaderLen = be32(rec0, 20);
+    if (rec0.length >= 32) {
+      const enc = be32(rec0, 28);
+      if (enc === 65001 || enc === 1252) encoding = enc;
+    }
+    if (rec0.length >= 92) {
+      const fullNameOffset = be32(rec0, 84);
+      const fullNameLength = be32(rec0, 88);
+      if (
+        fullNameOffset > 0 &&
+        fullNameLength > 0 &&
+        fullNameLength <= 4096 &&
+        fullNameOffset + fullNameLength <= rec0.length
+      ) {
+        mobiFullName = decodeKindleBytes(
+          rec0.subarray(fullNameOffset, fullNameOffset + fullNameLength),
+          encoding,
+          true,
+        )
+          .replace(/\0+/g, "")
+          .trim();
+      }
+    }
+    if (mobiHeaderLen >= 228 && rec0.length >= 244) {
+      extraDataFlags = be16(rec0, 242);
+    }
+    const exthFlags =
+      mobiHeaderLen >= 116 && rec0.length >= 132 ? be32(rec0, 128) : 0;
+    const exthStart = 16 + mobiHeaderLen;
+    if (
+      (exthFlags & 0x40) !== 0 &&
+      exthStart + 12 <= rec0.length &&
+      ascii(rec0, exthStart, 4) === "EXTH"
+    ) {
+      const exthRecordCount = Math.min(be32(rec0, exthStart + 8), 500);
+      let pos = exthStart + 12;
+      for (let r = 0; r < exthRecordCount && pos + 8 <= rec0.length; r++) {
+        const recType = be32(rec0, pos);
+        const recLen = be32(rec0, pos + 4);
+        if (recLen < 8 || pos + recLen > rec0.length) break;
+        const val = decodeKindleBytes(
+          rec0.subarray(pos + 8, pos + recLen),
+          encoding,
+          true,
+        )
+          .replace(/\0+/g, "")
+          .trim();
+        if (val) {
+          if (recType === 100 && !exthAuthors.includes(val)) {
+            exthAuthors.push(val);
+          } else if (recType === 101 && !exthPublisher) {
+            exthPublisher = val;
+          } else if (recType === 103 && !exthDescription) {
+            exthDescription = decodeKindleEntities(
+              val.replace(/<[^>]+>/g, " "),
+            )
+              .replace(/\s+/g, " ")
+              .trim();
+          } else if (recType === 104 && !exthIsbn) {
+            exthIsbn = val;
+          } else if (recType === 106 && !exthPubDate) {
+            exthPubDate = val;
+          } else if (recType === 503 && !exthTitle) {
+            exthTitle = val;
+          } else if (recType === 524 && !exthLanguage) {
+            exthLanguage = val;
+          }
+        }
+        pos += recLen;
+      }
+    }
+  }
+
+  const rawPdbBytes = head.subarray(0, 32);
+  const nulAt = rawPdbBytes.indexOf(0);
+  const pdbNameRaw = decodeKindleBytes(
+    nulAt >= 0 ? rawPdbBytes.subarray(0, nulAt) : rawPdbBytes,
+    encoding,
+    hasMobi,
+  ).trim();
+  const pdbTitle =
+    pdbNameRaw.includes("_") && !pdbNameRaw.includes(" ")
+      ? pdbNameRaw.replace(/_/g, " ").trim()
+      : pdbNameRaw;
+
+  const title = exthTitle || mobiFullName || pdbTitle || stemTitle;
+  const author = exthAuthors.join(", ") || undefined;
+  const formatLabel =
+    magic60 === "TEXtREAd" && !hasMobi
+      ? "Kindle / PalmDOC E-Book (.PRC)"
+      : "Kindle E-Book (MOBI/AZW3)";
+
+  const buildMeta = (
+    extra: Array<[string, string]> = [],
+  ): Array<[string, string]> => {
+    const m: Array<[string, string]> = [];
+    if (title) m.push(["Title", title]);
+    if (author) m.push(["Author", author]);
+    if (exthPublisher) m.push(["Publisher", exthPublisher]);
+    if (exthLanguage) m.push(["Language", exthLanguage]);
+    if (exthPubDate) m.push(["Published", exthPubDate.slice(0, 10)]);
+    if (exthIsbn) m.push(["ISBN", exthIsbn]);
+    if (exthDescription) m.push(["Description", clip(exthDescription, 240)]);
+    m.push(...extra);
+    if (src.size > 0) m.push(["Size", humanBytes(src.size)]);
+    return m;
+  };
+
+  if (encryptionType !== 0) {
+    const drmLabel =
+      encryptionType === 1
+        ? "Old Mobipocket DRM"
+        : encryptionType === 2
+          ? "Mobipocket / Kindle DRM"
+          : `Kindle DRM (type ${encryptionType})`;
+    const blocks: DocBlock[] = [
+      { type: "h1", text: title },
+      {
+        type: "p",
+        text: `This Kindle e-book is encrypted with ${drmLabel} (encryption type ${encryptionType}), so its text records cannot be decrypted directly.`,
+      },
+      {
+        type: "p",
+        text:
+          platform === "darwin"
+            ? "Open this book in Amazon Kindle and use Voice Reader → 📖 Kindle Open-Book Reader to read aloud or export Audio / .M4B / Read-Along .MP4."
+            : "Use a DRM-free EPUB, MOBI, PDF, or TXT copy to preview or read aloud in Voice Reader.",
+      },
+    ];
+    const preview: RichDocumentPreview = {
+      kind: "document",
+      formatLabel,
+      ...(title ? { title } : {}),
+      ...(author ? { author } : {}),
+      meta: buildMeta([["Encryption", "Kindle DRM Protected"]]),
+      blocks,
+      plainText: blocks.map((b) => ("text" in b ? b.text : "")).join("\n\n"),
+      hasThumb,
+    };
+    NON_PROSE_KINDLE_PREVIEWS.add(preview);
+    return preview;
+  }
+
+  if (compression === 17480) {
+    const blocks: DocBlock[] = [
+      { type: "h1", text: title },
+      {
+        type: "p",
+        text: "This Kindle e-book uses HuffCDIC Huffman dictionary compression, which is not supported by the built-in zero-dependency decompressor without Calibre.",
+      },
+      {
+        type: "p",
+        text:
+          platform === "darwin"
+            ? "Install Calibre (ebook-convert) to extract text automatically, or open the book in Amazon Kindle and use Voice Reader → 📖 Kindle Open-Book Reader."
+            : "Install Calibre (ebook-convert) to extract text automatically.",
+      },
+    ];
+    const preview: RichDocumentPreview = {
+      kind: "document",
+      formatLabel,
+      ...(title ? { title } : {}),
+      ...(author ? { author } : {}),
+      meta: buildMeta([
+        ["Compression", "HuffCDIC (Kindle Huffman)"],
+        ["Text records", String(textRecordCount)],
+      ]),
+      blocks,
+      plainText: blocks.map((b) => ("text" in b ? b.text : "")).join("\n\n"),
+      hasThumb,
+    };
+    NON_PROSE_KINDLE_PREVIEWS.add(preview);
+    return preview;
+  }
+
+  if (compression !== 1 && compression !== 2) {
+    const blocks: DocBlock[] = [
+      { type: "h1", text: title },
+      {
+        type: "p",
+        text: `This Kindle / PalmDB e-book uses unsupported compression mode (${compression}).`,
+      },
+    ];
+    const preview: RichDocumentPreview = {
+      kind: "document",
+      formatLabel,
+      ...(title ? { title } : {}),
+      ...(author ? { author } : {}),
+      meta: buildMeta([["Compression", `Unknown (${compression})`]]),
+      blocks,
+      plainText: blocks.map((b) => ("text" in b ? b.text : "")).join("\n\n"),
+      hasThumb,
+    };
+    NON_PROSE_KINDLE_PREVIEWS.add(preview);
+    return preview;
+  }
+
+  const maxTextRec = Math.min(
+    textRecordCount,
+    Math.max(0, numRecords - 1),
+    actualEntries - 1,
+    250,
+  );
+  const decompChunks: Buffer[] = [];
+  let totalDecompBytes = 0;
+
+  for (let idx = 1; idx <= maxTextRec; idx++) {
+    if (totalDecompBytes >= PALMDOC_MAX_TOTAL_OUT) break;
+    const recStart = offsets[idx]!;
+    const nextCandidate =
+      idx + 1 < offsets.length ? offsets[idx + 1]! : src.size;
+    const rawNext =
+      nextCandidate > recStart
+        ? Math.min(src.size, nextCandidate)
+        : idx === numRecords - 1
+          ? src.size
+          : 0;
+    if (recStart < 78 || recStart >= src.size || rawNext <= recStart) continue;
+
+    const recLen = Math.min(rawNext - recStart, 256 * 1024);
+    const rawRec =
+      recStart + recLen <= head.length
+        ? head.subarray(recStart, recStart + recLen)
+        : await src.read(recStart, recLen);
+    if (rawRec.length === 0) continue;
+
+    const remaining = PALMDOC_MAX_TOTAL_OUT - totalDecompBytes;
+    let decomp =
+      compression === 2
+        ? decompressPalmDocLz77(
+            rawRec,
+            Math.min(PALMDOC_MAX_RECORD_OUT, remaining),
+          )
+        : Buffer.from(
+            rawRec.subarray(
+              0,
+              Math.min(rawRec.length, PALMDOC_MAX_RECORD_OUT, remaining),
+            ),
+          );
+    if (extraDataFlags !== 0) {
+      decomp = trimMobiTrailingData(decomp, extraDataFlags);
+    }
+    if (decomp.length > remaining) {
+      decomp = decomp.subarray(0, remaining);
+    }
+    if (decomp.length > 0) {
+      decompChunks.push(decomp);
+      totalDecompBytes += decomp.length;
+    }
+  }
+
+  const fullRawBuf = Buffer.concat(decompChunks);
+
+  // AZW4 (Kindle Print Replica) embeds a PDF stream inside PalmDB records.
+  if (fullRawBuf.length >= 8 && ascii(fullRawBuf, 0, 16).includes("%PDF-")) {
+    const { text: pdfText, outline } = extractPdfStreamsText(
+      fullRawBuf.toString("latin1"),
+    );
+    const pdfBlocks: DocBlock[] = pdfText
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .slice(0, 2500)
+      .map((text) => ({ type: "p", text }));
+    return {
+      kind: "document",
+      formatLabel,
+      ...(title ? { title } : {}),
+      ...(author ? { author } : {}),
+      meta: buildMeta([
+        ["Compression", compression === 2 ? "PalmDOC LZ77" : "Uncompressed"],
+        ["Embedded payload", "Print Replica PDF (.AZW4)"],
+        ...(outline.length
+          ? [["Outline items", String(outline.length)] as [string, string]]
+          : []),
+      ]),
+      blocks: pdfBlocks,
+      plainText: pdfText,
+      hasThumb,
+    };
+  }
+
+  const rawText = decodeKindleBytes(fullRawBuf, encoding, hasMobi);
+  const parsed = parseKindleContentToRich(rawText, title);
+
+  const meta = buildMeta([
+    ["Compression", compression === 2 ? "PalmDOC LZ77" : "Uncompressed"],
+    ["Encoding", encoding === 65001 ? "UTF-8" : "Windows-1252"],
+    ["Text records", String(textRecordCount)],
+    ...(parsed.chapters.length > 0
+      ? [["Chapters", String(parsed.chapters.length)] as [string, string]]
+      : []),
+  ]);
+
+  return {
+    kind: "document",
+    formatLabel,
+    ...(title ? { title } : {}),
+    ...(author ? { author } : {}),
+    meta,
+    blocks: parsed.blocks,
+    chapters: parsed.chapters,
+    plainText: parsed.plainText,
+    hasThumb,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // SQLite Rich Table & Sample Row Inspector
 // ---------------------------------------------------------------------------------------------------------------
 
@@ -4342,7 +5285,7 @@ export async function inspectRichPreview(
     head[1] === 0x4b &&
     (head[2] === 3 || head[2] === 5 || head[2] === 7);
   if (
-    isZipMagic ||
+    (isZipMagic && lastExt !== "kfx") ||
     [
       "zip",
       "docx",
@@ -4623,6 +5566,15 @@ export async function inspectRichPreview(
     };
   }
 
+  // 8b. Kindle E-Book (.mobi, .azw, .azw3, .azw4, .prc, .kfx / BOOKMOBI / TEXtREAd / CONT)
+  const kindleRich = await inspectKindleMobiRich(
+    src,
+    path,
+    head,
+    hasThumb,
+  ).catch(() => null);
+  if (kindleRich) return kindleRich;
+
   // 9. 3D Models (.obj, .stl, .ply, .gltf, .glb)
   if (["obj", "stl", "ply", "gltf", "glb"].includes(lastExt)) {
     return parseModel3dRich(head, headText, lastExt);
@@ -4795,6 +5747,12 @@ export async function extractReadableDocumentText(
       "odt",
       "rtf",
       "fb2",
+      "mobi",
+      "azw",
+      "azw3",
+      "azw4",
+      "prc",
+      "kfx",
       "pdf",
       "pptx",
       "ppsx",
@@ -4826,6 +5784,17 @@ export async function extractReadableDocumentText(
           false,
         ).catch(() => null);
         if (rich) {
+          if (NON_PROSE_KINDLE_PREVIEWS.has(rich)) return null;
+          if (
+            rich.kind === "document" &&
+            rich.meta.some(
+              ([k, v]) =>
+                (k === "Protection" || k === "Encryption") &&
+                /DRM|KFX Container/i.test(v),
+            )
+          ) {
+            return null;
+          }
           let full = "";
           if (rich.kind === "document") {
             full = formatDocRich(rich);

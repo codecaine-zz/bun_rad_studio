@@ -21,7 +21,7 @@ import {
 import { showOperationHistory } from "./opHistory.js";
 import * as ops from "./ops.js";
 import { activePane, currentPath } from "./pane.js";
-import { isPhononSupported } from "./phonon.js";
+import { isKindleReaderSupported, isPhononSupported } from "./phonon.js";
 import { canTranscribeWithAi } from "./transcribe.js";
 import { listPowerTabs, openPower } from "./power.js";
 import {
@@ -432,6 +432,31 @@ export function buildPaletteCatalog() {
         "ollama phonon tts text to speech voice reader read out loud audio mp3 wav flac audiobook",
       run: () => openPower("phonon"),
     });
+    if (isKindleReaderSupported()) {
+      add({
+        id: "act.kindleAudioReader",
+        category: "actions",
+        icon: "📖",
+        title: "Kindle: Read Open Book Pages & Create Audio…",
+        subtitle:
+          "Capture open Amazon Kindle or Cloud Reader pages via OCR, clean text, read aloud, or export MP3/M4B/WAV audio",
+        keywords:
+          "kindle book read pages ocr screen capture audio mp3 m4b audiobook voice reader",
+        run: () => openPower("phonon", { focusKindle: true }),
+      });
+      add({
+        id: "act.kindleReadAlongMp4",
+        category: "actions",
+        icon: "🎬",
+        title: "Kindle: Capture & Export Read-Along Video (.MP4)…",
+        subtitle:
+          "Capture open Amazon Kindle pages via OCR, auto-detect book title, and render a 1080p synchronized Read-Along .MP4 video into the current folder",
+        keywords:
+          "kindle book video mp4 read along karaoke subtitles ocr screen capture phonon",
+        run: () =>
+          openPower("phonon", { focusKindle: true, autoCaptureMp4: true }),
+      });
+    }
   }
   add({
     id: "act.transcribeAudio",

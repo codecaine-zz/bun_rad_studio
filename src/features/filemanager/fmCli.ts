@@ -70,6 +70,7 @@ const CLI_SUBCOMMANDS = new Set([
   "speech",
   "phonon",
   "say",
+  "kindle",
   "transcribe",
   "stt",
   "asr",
@@ -120,7 +121,10 @@ function resolveUserPath(ctx: FmContext, raw: string, cwd: string): string {
   return p.isAbsolute(trimmed) ? p.resolve(trimmed) : p.resolve(cwd, trimmed);
 }
 
-function printHelp(out: (line: string) => void): void {
+function printHelp(
+  out: (line: string) => void,
+  platform: string = process.platform,
+): void {
   out(
     `${APP_NAME} v${APP_VERSION} — Desktop Studio & Command-Line File Manager`,
   );
@@ -160,6 +164,11 @@ function printHelp(out: (line: string) => void): void {
   out(
     "  tts, speech, phonon [args...]    Clean documents & synthesize Ollama Phonon speech to any audio format or MP4 video",
   );
+  if (platform === "darwin") {
+    out(
+      "  kindle [args...]                 Capture open Kindle book pages via OCR and speak or export audio",
+    );
+  }
   out(
     "  transcribe, stt, asr [args...]   Transcribe audio/video files locally to text, Markdown, JSON, or SRT/VTT/LRC subtitles",
   );
@@ -232,7 +241,7 @@ export async function runFileManagerCli(
     first === "-h" ||
     first.toLowerCase() === "help"
   ) {
-    printHelp(out);
+    printHelp(out, ctxOptions.platform ?? process.platform);
     return 0;
   }
 
@@ -643,6 +652,15 @@ export async function runFileManagerCli(
       case "phonon":
       case "say": {
         return await runTtsCli(subArgs, {
+          stdout: out,
+          stderr: err,
+          cwd,
+          contextOptions: ctxOptions,
+        });
+      }
+
+      case "kindle": {
+        return await runTtsCli(["kindle", ...subArgs], {
           stdout: out,
           stderr: err,
           cwd,

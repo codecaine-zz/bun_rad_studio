@@ -89,12 +89,23 @@ import {
   type PhononAudioFormat,
 } from "../src/features/filemanager/fmSettings.ts";
 import { resolveTool } from "../src/features/filemanager/fmToolDetect.ts";
+import {
+  captureKindlePagesBatch,
+  captureSingleKindlePage,
+  isKindleSupportedPlatform,
+  listKindleWindows,
+  trimBookFrontAndBackFluff,
+  type KindleBookStartMode,
+  type KindleDeps,
+  type KindleOcrEngine,
+  type KindlePageTurnKey,
+} from "../src/features/filemanager/fmKindle.ts";
 
 // ============================================================================
 // SimpleCLI Flag Registration (for --help & File Manager CLI Utilities Catalog)
 // ============================================================================
 
-export function buildTtsCliApp(): SimpleCLI {
+export function buildTtsCliApp(platform: string = process.platform): SimpleCLI {
   const app = SimpleCLI.newApp("tts-cli", "1.0.0").setDescription(
     "Ollama Text-to-Speech, Document Cleaner & Multi-Format Audio/MP4 Video Exporter",
   );
@@ -394,6 +405,86 @@ export function buildTtsCliApp(): SimpleCLI {
     "Show Ollama, Phonon model, LLM cleaner, and FFmpeg status",
   );
   app.addFlagBool("json", "j", false, "Format CLI output as structured JSON");
+  app.addFlagString(
+    "start-at",
+    "",
+    "none",
+    "Skip front-matter fluff and start at: intro, chapter1, or none",
+  );
+  app.addFlagBool(
+    "skip-fluff",
+    "",
+    false,
+    "Skip front-matter intros and back-matter fluff (acknowledgments/appendix/notes/index)",
+  );
+  if (isKindleSupportedPlatform(platform)) {
+    app.addFlagBool(
+      "list-windows",
+      "",
+      false,
+      "List detected Kindle & open desktop windows for `kindle` mode",
+    );
+    app.addFlagInt(
+      "window-id",
+      "",
+      0,
+      "Target desktop window ID for `kindle` capture mode",
+    );
+    app.addFlagString(
+      "pages",
+      "",
+      "1",
+      "Number of open Kindle pages to capture and read (1..5000, or 'all')",
+    );
+    app.addFlagBool(
+      "all-pages",
+      "",
+      false,
+      "Read all open Kindle pages until the last chapter / end of book",
+    );
+    app.addFlagBool(
+      "no-stop-back-matter",
+      "",
+      false,
+      "Do not automatically stop at back-matter fluff headings during whole-book Kindle capture",
+    );
+    app.addFlagString(
+      "turn-key",
+      "",
+      "right",
+      "Page turn key for multi-page Kindle capture: right, space, pagedown, left",
+    );
+    app.addFlagInt(
+      "delay",
+      "",
+      900,
+      "Delay in milliseconds after each Kindle page turn (250..10000)",
+    );
+    app.addFlagInt(
+      "crop-top",
+      "",
+      8,
+      "Percentage of top Kindle window margin to crop before OCR (0..35)",
+    );
+    app.addFlagInt(
+      "crop-bottom",
+      "",
+      8,
+      "Percentage of bottom Kindle window margin to crop before OCR (0..35)",
+    );
+    app.addFlagString(
+      "ocr",
+      "",
+      "auto",
+      "OCR engine for Kindle capture: auto, vision, or tesseract",
+    );
+    app.addFlagBool(
+      "no-stop-duplicate",
+      "",
+      false,
+      "Do not auto-stop multi-page Kindle capture when consecutive pages match",
+    );
+  }
 
   return app;
 }
@@ -1110,9 +1201,14 @@ export interface TtsCliIo {
   cwd?: string;
   stdinText?: string;
   contextOptions?: FmContextOptions;
+  kindleDeps?: KindleDeps;
 }
 
-function printRichHelp(out: (line: string) => void): void {
+function printRichHelp(
+  out: (line: string) => void,
+  platform: string = process.platform,
+): void {
+  const kindleSupported = isKindleSupportedPlatform(platform);
   out("🎙️  Ollama Phonon TTS & Document-to-Audio/MP4 Studio CLI (v1.0.0)");
   out(
     "   Clean documents (Markdown, PDF, DOCX, EPUB, HTML, SRT, TXT) with Ollama & export to any audio or Read-Along video format.",
@@ -1138,6 +1234,11 @@ function printRichHelp(out: (line: string) => void): void {
   out(
     "  podcast <file|text>    Generate a 2-host conversational AI podcast (stereo panned + transcript) from any document",
   );
+  if (kindleSupported) {
+    out(
+      "  kindle [options]       Capture open Kindle book pages via screen OCR, turn pages, and speak or export audio",
+    );
+  }
   out(
     "  voices                 List all 38+ built-in Ollama Phonon voices and custom cloned voices",
   );
@@ -1176,6 +1277,9 @@ function printRichHelp(out: (line: string) => void): void {
   );
   out(
     "  -u, --unwrap-lines         Unwrap single line breaks inside paragraphs (great for PDFs and plain text)",
+  );
+  out(
+    "      --skip-fluff           Trim front-matter intros & back-matter fluff from any book/document",
   );
   out(
     "  -T, --save-txt <path>      Save the cleaned plain text alongside the audio/video export",
@@ -1271,6 +1375,46 @@ function printRichHelp(out: (line: string) => void): void {
   );
   out("  -j, --json                 Output structured JSON result");
   out("");
+  if (kindleSupported) {
+    out("KINDLE OPEN-BOOK CAPTURE OPTIONS (`kindle` subcommand):");
+    out(
+      "      --list-windows         List detected Kindle & open desktop windows and exit",
+    );
+    out(
+      "      --window-id <id>       Target a specific window ID (default: auto-detect Kindle)",
+    );
+    out(
+      "      --pages <1..5000|all>  Number of pages to capture (default: 1; pass 'all' for whole book)",
+    );
+    out(
+      "      --all-pages            Read all pages until the last chapter / end of book",
+    );
+    out(
+      "      --start-at <mode>      Skip front-matter fluff: intro, chapter1, or none",
+    );
+    out(
+      "      --no-stop-back-matter  Keep back-matter pages (notes, index, appendix) during whole-book capture",
+    );
+    out(
+      "      --turn-key <key>       Page-turn key: right (default), space, pagedown, left",
+    );
+    out(
+      "      --delay <ms>           Delay after turning each page in ms (default: 900)",
+    );
+    out(
+      "      --crop-top <pct>       Top margin crop percentage before OCR (default: 8)",
+    );
+    out(
+      "      --crop-bottom <pct>    Bottom margin crop percentage before OCR (default: 8)",
+    );
+    out(
+      "      --ocr <engine>         OCR engine: auto (default), vision (macOS), tesseract",
+    );
+    out(
+      "      --no-stop-duplicate    Continue capturing even if consecutive pages match",
+    );
+    out("");
+  }
   out("EXAMPLES:");
   out("  $ bun run cli:tts -i README.md -o readme.mp3 --voice Zoey");
   out(
@@ -1286,6 +1430,12 @@ function printRichHelp(out: (line: string) => void): void {
   out(
     '  $ bun run cli:tts speak -t "Meeting scheduled for 2026-11-13 at https://ollama.com/blog" --voice Freya',
   );
+  if (kindleSupported) {
+    out(
+      "  $ bun run cli:tts kindle --pages 5 --voice Zoey -f mp3 -o kindle_chapter.mp3",
+    );
+    out("  $ bun run cli:tts kindle --list-windows");
+  }
   out("  $ bun run cli:tts voices");
   out("  $ bun run cli:tts formats");
 }
@@ -1296,6 +1446,7 @@ const KNOWN_SUBCOMMANDS = new Set([
   "speak",
   "audiobook",
   "podcast",
+  "kindle",
   "voices",
   "formats",
   "status",
@@ -1350,7 +1501,7 @@ export async function runTtsCli(
     cliArgs.includes("--help") ||
     cliArgs.includes("-h")
   ) {
-    printRichHelp(out);
+    printRichHelp(out, io.contextOptions?.platform ?? process.platform);
     return 0;
   }
 
@@ -1408,6 +1559,20 @@ export async function runTtsCli(
   let showVoices = subcommand === "voices";
   let showFormats = subcommand === "formats";
   let showStatus = subcommand === "status";
+  let kindleMode = subcommand === "kindle";
+  let kindleListWindows = false;
+  let kindleWindowId: number | undefined;
+  let kindlePages = 1;
+  let kindleAllPages = false;
+  let kindleStartAt: KindleBookStartMode | "" = "";
+  let kindleStopBackMatterExplicit: boolean | undefined;
+  let skipFluff = false;
+  let kindleTurnKey: KindlePageTurnKey = "right";
+  let kindleDelayMs = 900;
+  let kindleCropTopPct = 8;
+  let kindleCropBottomPct = 8;
+  let kindleOcrEngine: KindleOcrEngine = "auto";
+  let kindleStopOnDuplicate = true;
   let jsonOutput = false;
   const positionals: string[] = [];
 
@@ -1661,6 +1826,89 @@ export async function runTtsCli(
       case "--json":
         jsonOutput = true;
         break;
+      case "--list-windows":
+        kindleListWindows = true;
+        kindleMode = true;
+        break;
+      case "--window-id": {
+        const wid = Math.round(Number(nextVal()) || 0);
+        if (wid <= 0) throw new Error("--window-id must be a positive integer.");
+        kindleWindowId = wid;
+        break;
+      }
+      case "--pages": {
+        const rawP = nextVal().trim().toLowerCase();
+        if (rawP === "all") {
+          kindleAllPages = true;
+          kindlePages = 2500;
+        } else {
+          kindlePages = Math.max(
+            1,
+            Math.min(5000, Math.round(Number(rawP) || 1)),
+          );
+        }
+        break;
+      }
+      case "--all-pages":
+        kindleAllPages = true;
+        kindlePages = 2500;
+        break;
+      case "--start-at": {
+        const val = nextVal().trim().toLowerCase();
+        if (val !== "intro" && val !== "chapter1" && val !== "none") {
+          throw new Error(
+            `Invalid --start-at "${val}". Choose from: intro, chapter1, none`,
+          );
+        }
+        kindleStartAt = val;
+        break;
+      }
+      case "--skip-fluff":
+        skipFluff = true;
+        break;
+      case "--no-stop-back-matter":
+        kindleStopBackMatterExplicit = false;
+        break;
+      case "--turn-key": {
+        const val = nextVal().toLowerCase();
+        if (
+          val !== "right" &&
+          val !== "space" &&
+          val !== "pagedown" &&
+          val !== "left"
+        ) {
+          throw new Error(
+            `Invalid --turn-key "${val}". Choose from: right, space, pagedown, left`,
+          );
+        }
+        kindleTurnKey = val;
+        break;
+      }
+      case "--delay":
+        kindleDelayMs = Math.max(
+          250,
+          Math.min(10000, Math.round(Number(nextVal()) || 900)),
+        );
+        break;
+      case "--crop-top":
+        kindleCropTopPct = Math.max(0, Math.min(35, Number(nextVal()) || 0));
+        break;
+      case "--crop-bottom":
+        kindleCropBottomPct = Math.max(0, Math.min(35, Number(nextVal()) || 0));
+        break;
+      case "--ocr": {
+        const val = nextVal().toLowerCase();
+        if (val !== "auto" && val !== "vision" && val !== "tesseract") {
+          throw new Error(
+            `Invalid --ocr "${val}". Choose from: auto, vision, tesseract`,
+          );
+        }
+        kindleOcrEngine = val;
+        break;
+      }
+      case "--no-stop-duplicate":
+        kindleStopOnDuplicate = false;
+        break;
       default:
         if (arg.startsWith("-")) {
           err(`❌ Unknown option: ${arg}. Run with --help for usage.`);
@@ -1876,6 +2124,168 @@ export async function runTtsCli(
       out(`   • Timbre Profile:     ${cloned.voice.profile.timbreLabel}`);
       out(`   • Use with:           --voice "${cloned.voice.id}"`);
       return 0;
+    }
+
+    // ------------------------------------------------------------------------
+    // 4B. KINDLE OPEN-BOOK CAPTURE (`kindle` / `--list-windows`)
+    // ------------------------------------------------------------------------
+    if (kindleMode) {
+      if (!isKindleSupportedPlatform(ctx.platform)) {
+        const msg = "Kindle Open-Book Reader is only available on macOS.";
+        if (jsonOutput) {
+          out(
+            JSON.stringify(
+              { ok: false, code: "UNSUPPORTED_PLATFORM", error: msg },
+              null,
+              2,
+            ),
+          );
+        } else {
+          err(`❌ ${msg}`);
+        }
+        return 1;
+      }
+      if (kindleListWindows) {
+        const listed = await listKindleWindows(ctx, io.kindleDeps);
+        if (jsonOutput) {
+          out(
+            JSON.stringify(
+              {
+                ok: true,
+                count: listed.windows.length,
+                kindleCount: listed.windows.filter((w) => w.isKindle).length,
+                windows: listed.windows,
+                ...(listed.permissionHint
+                  ? { permissionHint: listed.permissionHint }
+                  : {}),
+              },
+              null,
+              2,
+            ),
+          );
+          return 0;
+        }
+        out(
+          `📖 Detected Open Desktop Windows (${listed.windows.length} total, ${listed.windows.filter((w) => w.isKindle).length} Kindle)`,
+        );
+        for (const w of listed.windows) {
+          const tag = w.isKindle ? "[KINDLE]" : "[WINDOW]";
+          out(
+            `  ${tag.padEnd(8)} ID=${String(w.id).padEnd(8)} ${w.ownerName}${w.title ? ` — ${w.title}` : ""} (${Math.round(w.bounds.width)}×${Math.round(w.bounds.height)})`,
+          );
+        }
+        if (listed.permissionHint) {
+          out(`\n⚠️  ${listed.permissionHint}`);
+        }
+        return 0;
+      }
+
+      const effectiveStartMode: KindleBookStartMode =
+        kindleStartAt || (skipFluff || kindleAllPages ? "intro" : "none");
+      const effectiveStopBack =
+        kindleStopBackMatterExplicit ??
+        (kindleAllPages || skipFluff || effectiveStartMode !== "none");
+
+      const captureOpts = {
+        ...(kindleWindowId !== undefined ? { windowId: kindleWindowId } : {}),
+        ocrEngine: kindleOcrEngine,
+        cropTopPct: kindleCropTopPct,
+        cropBottomPct: kindleCropBottomPct,
+        stripKindleChrome: true,
+        unwrapLines: true,
+        startMode: effectiveStartMode,
+        stopAtBackMatter: effectiveStopBack,
+      };
+
+      let capturedText = "";
+      let capturedTitle = "";
+      let capturedPagesCount = 0;
+
+      if (!kindleAllPages && kindlePages <= 1 && effectiveStartMode === "none" && !effectiveStopBack) {
+        if (!jsonOutput) {
+          out("📖 Capturing current open Kindle page via OCR…");
+        }
+        const res = await captureSingleKindlePage(
+          ctx,
+          captureOpts,
+          io.kindleDeps,
+        );
+        capturedText = res.page.text;
+        capturedTitle =
+          res.bookTitle ||
+          res.page.bookTitle ||
+          res.window.title ||
+          res.window.ownerName ||
+          res.page.windowTitle;
+        capturedPagesCount = capturedText ? 1 : 0;
+        if (!jsonOutput && capturedText) {
+          out(
+            `   ✔ Captured 1 page from "${capturedTitle}" via ${res.page.engine} (${res.page.wordCount} words)`,
+          );
+        }
+      } else {
+        if (!jsonOutput) {
+          out(
+            kindleAllPages
+              ? `📖 Capturing whole Kindle book (start: ${effectiveStartMode}, stop at back matter: ${effectiveStopBack}, turn key: ${kindleTurnKey}, delay: ${kindleDelayMs}ms)…`
+              : `📖 Capturing up to ${kindlePages} open Kindle pages (turn key: ${kindleTurnKey}, delay: ${kindleDelayMs}ms)…`,
+          );
+        }
+        const sess = await captureKindlePagesBatch(
+          ctx,
+          {
+            ...captureOpts,
+            pages: kindlePages,
+            readAllPages: kindleAllPages,
+            turnKey: kindleTurnKey,
+            delayMs: kindleDelayMs,
+            stopOnDuplicate: kindleAllPages ? true : kindleStopOnDuplicate,
+          },
+          io.kindleDeps,
+          (progressSess) => {
+            if (!jsonOutput) {
+              const latest =
+                progressSess.capturedPages[
+                  progressSess.capturedPages.length - 1
+                ];
+              if (latest) {
+                out(
+                  `   • Page ${progressSess.capturedPages.length}/${progressSess.totalPages}: ${latest.wordCount} words (${latest.engine})`,
+                );
+              }
+            }
+          },
+        );
+        capturedText = sess.combinedText;
+        capturedTitle = sess.bookTitle || sess.windowTitle;
+        capturedPagesCount = sess.capturedPages.length;
+        if (!jsonOutput && sess.stoppedReason) {
+          out(`   ℹ️  ${sess.stoppedReason}`);
+        }
+      }
+
+      if (!capturedText.trim()) {
+        throw new Error(
+          `Captured ${capturedPagesCount} page(s) from "${capturedTitle || "Kindle"}", but no readable text was detected by OCR.`,
+        );
+      }
+
+      inlineText = capturedText;
+      if (!title) {
+        title = capturedTitle || "Kindle Book";
+      }
+      if (
+        !formatFlag &&
+        !outputPath &&
+        !cleanOnly &&
+        !speakMode &&
+        !podcastMode
+      ) {
+        const hasFfmpeg = Boolean(
+          resolveTool(ctx, "ffmpeg") || Bun.which("ffmpeg"),
+        );
+        formatFlag = hasFfmpeg ? "mp3" : "wav";
+      }
     }
 
     // ------------------------------------------------------------------------
@@ -2507,6 +2917,26 @@ export async function runTtsCli(
       cleanOpts,
       maxChunkChars: chunkSize,
     });
+    if ((skipFluff || (!kindleMode && kindleStartAt && kindleStartAt !== "none")) && cleanedDoc.cleanedText) {
+      const trimmed = trimBookFrontAndBackFluff(cleanedDoc.cleanedText, {
+        startMode: kindleStartAt || "intro",
+        stripBackMatter: kindleStopBackMatterExplicit ?? true,
+      });
+      if (trimmed.text) {
+        const reChunks = splitTextForPhonon(trimmed.text, {
+          maxChars: chunkSize,
+          mergeShortParagraphs: true,
+        });
+        cleanedDoc.cleanedText = trimmed.text;
+        cleanedDoc.cleanedCharCount = trimmed.text.length;
+        cleanedDoc.wordCount = reChunks.reduce((s, c) => s + c.wordCount, 0);
+        cleanedDoc.chunkCount = reChunks.length;
+        cleanedDoc.estimatedSeconds = Math.max(
+          1,
+          Math.round((cleanedDoc.wordCount / 155) * 60),
+        );
+      }
+    }
 
     // Save cleaned plain text if `--save-txt` was requested, or if `--clean-only` + `--output` was given
     if (saveTxtPath) {

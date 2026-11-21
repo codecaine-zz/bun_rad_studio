@@ -46,6 +46,10 @@ import {
   streamDownloadWithSha256,
   verifyDownloadedArchiveIntegrity,
 } from "./fmNativeFs";
+import {
+  trimBookFrontAndBackFluff,
+  type KindleBookStartMode,
+} from "./fmKindle";
 
 async function publishStagedFile(
   srcPath: string,
@@ -70,6 +74,7 @@ import {
   extractFullEpubRich,
   inspectPackageDirectoryRich,
   inspectRichPreview,
+  isNonProseKindlePreview,
   stripBackMatterPromoAndDuplicateChapters,
   type DocBlock,
   type RichPreview,
@@ -3177,6 +3182,29 @@ export async function extractPlainTextFromFile(
         false,
       ).catch(() => null);
       if (rich) {
+        if (isNonProseKindlePreview(rich)) {
+          const fallbackMsg =
+            ctx.platform === "darwin"
+              ? `"${name}" uses Kindle DRM or unsupported compression. Open it in Amazon Kindle and use Voice Reader → 📖 Kindle Open-Book Reader.`
+              : `"${name}" uses Kindle DRM or unsupported compression and cannot be extracted directly.`;
+          let errMsg =
+            rich.kind === "document" && rich.plainText
+              ? rich.plainText
+              : fallbackMsg;
+          if (ctx.platform !== "darwin") {
+            errMsg = errMsg
+              .replace(
+                /\n*\s*Open this book in Amazon Kindle and use Voice Reader[^\n]*/gi,
+                "",
+              )
+              .replace(
+                /,?\s*or open the book in Amazon Kindle and use Voice Reader[^\n.]*\.?/gi,
+                ".",
+              )
+              .trim();
+          }
+          throw new FmError("DRM_PROTECTED", errMsg || fallbackMsg);
+        }
         const extracted = richPreviewToPlainText(rich);
         if (extracted && extracted.text.trim()) {
           rawText = extracted.text;
@@ -14925,38 +14953,62 @@ export const PHONON_OPS: Record<string, FmHandler> = {
         maxChars,
       };
     if (typeof rec.path === "string" && rec.path.trim()) {
-      const extracted = await extractPlainTextFromFile(
+      let extracted = await extractPlainTextFromFile(
         ctx,
         rec.path,
-        cleanOpts,
+        rec.trimBookFluff === true ? { ...cleanOpts, clean: false } : cleanOpts,
       );
-      const chunks = splitTextForPhonon(extracted.text, { maxChars });
+      let finalText = extracted.text;
+      let wordCount = extracted.wordCount;
+      if (rec.trimBookFluff === true) {
+        const smRaw = String(rec.bookStartMode ?? "intro").toLowerCase();
+        const startMode: KindleBookStartMode =
+          smRaw === "chapter1" || smRaw === "none" ? smRaw : "intro";
+        const trimmed = trimBookFrontAndBackFluff(finalText, {
+          startMode,
+          stripBackMatter: rec.stripBackMatter !== false,
+        });
+        finalText = cleanOpts.clean
+          ? cleanTextForSpeech(trimmed.text, cleanOpts)
+          : trimmed.text;
+      }
+      const chunks = splitTextForPhonon(finalText, { maxChars });
+      if (rec.trimBookFluff === true) {
+        wordCount = chunks.reduce((acc, c) => acc + c.wordCount, 0);
+      }
       // Cap returned full text at 600 KB in JSON response if huge, while still returning all chunk objects
       const maxInlineText = 600 * 1024;
-      const textTruncated = extracted.text.length > maxInlineText;
+      const textTruncated = finalText.length > maxInlineText;
       return {
         ...extracted,
-        text: textTruncated
-          ? extracted.text.slice(0, maxInlineText)
-          : extracted.text,
+        text: textTruncated ? finalText.slice(0, maxInlineText) : finalText,
         rawText:
           extracted.rawText.length > maxInlineText
             ? extracted.rawText.slice(0, maxInlineText)
             : extracted.rawText,
+        charCount: finalText.length,
+        wordCount,
         chunkCount: chunks.length,
-        estimatedSeconds: Math.max(
-          1,
-          Math.round((extracted.wordCount / 155) * 60),
-        ),
+        estimatedSeconds: Math.max(1, Math.round((wordCount / 155) * 60)),
         textTruncated,
         chunks,
       };
     }
     if (typeof rec.text === "string") {
       const rawText = rec.text;
+      let baseText = rawText;
+      if (rec.trimBookFluff === true) {
+        const smRaw = String(rec.bookStartMode ?? "intro").toLowerCase();
+        const startMode: KindleBookStartMode =
+          smRaw === "chapter1" || smRaw === "none" ? smRaw : "intro";
+        baseText = trimBookFrontAndBackFluff(baseText, {
+          startMode,
+          stripBackMatter: rec.stripBackMatter !== false,
+        }).text;
+      }
       const text = cleanOpts.clean
-        ? cleanTextForSpeech(rawText, cleanOpts)
-        : rawText.replace(/\r\n?/g, "\n").trim();
+        ? cleanTextForSpeech(baseText, cleanOpts)
+        : baseText.replace(/\r\n?/g, "\n").trim();
       const chunks = splitTextForPhonon(text, { maxChars });
       const wordCount = chunks.reduce((acc, c) => acc + c.wordCount, 0);
       return {

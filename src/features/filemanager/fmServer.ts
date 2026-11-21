@@ -87,6 +87,7 @@ import {
   shutdownBionicForFileManager,
 } from "./fmBionic";
 import { TRANSCRIBE_OPS } from "./fmTranscribe";
+import { KINDLE_OPS } from "./fmKindle";
 import type { HostedPeer, HostedSession } from "../../simplegui_host";
 import { dbState } from "./fmDbState";
 import { watchOperations } from "./fmWatchOps";
@@ -839,6 +840,7 @@ Object.assign(
   OLLAMA_OPS,
   BIONIC_OPS,
   TRANSCRIBE_OPS,
+  KINDLE_OPS,
 );
 
 /** List of all registered File Manager JSON API operation names. */
@@ -1766,10 +1768,11 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
               error: { code: "NOT_JSON", message: "Requests must be JSON." },
             });
           const maxBodyBytes =
-            op === "transcribe/mic"
+            op === "transcribe/mic" ||
+            op.startsWith("phonon/") ||
+            op.startsWith("kindle/")
               ? 24 * 1024 * 1024
-              : op === "phonon/clone-voice" ||
-                  op.startsWith("ollama/") ||
+              : op.startsWith("ollama/") ||
                   op.startsWith("bionic/") ||
                   op.startsWith("transcribe/")
                 ? 8 * 1024 * 1024

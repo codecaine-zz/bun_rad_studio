@@ -439,6 +439,7 @@
 
 .phonon-teleprompter-line {
   width: 100%;
+  box-sizing: border-box;
   text-align: center;
   padding: 0.38rem 0.65rem;
   border-radius: 8px;
@@ -447,6 +448,34 @@
     background-color 0.15s ease,
     border-color 0.15s ease,
     opacity 0.15s ease;
+}
+
+.phonon-teleprompter-stage.is-book-view {
+  align-items: stretch;
+  text-align: left;
+  min-height: 320px;
+  max-height: 460px;
+  padding: 1.2rem 1.8rem;
+}
+
+.phonon-teleprompter-stage.is-book-view .phonon-teleprompter-cues {
+  align-items: flex-start;
+  text-align: left;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.phonon-teleprompter-stage.is-book-view .phonon-teleprompter-line {
+  text-align: left;
+  line-height: 1.78;
+}
+
+.phonon-teleprompter-stage.is-book-view .phonon-teleprompter-context {
+  text-align: left;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .phonon-teleprompter-line.is-active-cue {
@@ -694,6 +723,26 @@
 .phonon-sm-btn {
   padding: 0.26rem 0.58rem;
   font-size: 0.79rem;
+  line-height: 1.25;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#phonon-out-dir {
+  flex: 1 1 140px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+#phonon-use-current-dir-btn {
+  flex: 0 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* AI Voice Recorder & Custom Voice Cloning Studio */
@@ -943,4 +992,53 @@
 
 .phonon-hidden-file-input {
   display: none !important;
+}
+
+/* Kindle Open-Book Page Reader Panel */
+.phonon-kindle-card {
+  border-color: color-mix(
+    in srgb,
+    var(--accent, #38bdf8) 38%,
+    var(--border, rgba(128, 128, 128, 0.28))
+  );
+}
+
+.phonon-kindle-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.phonon-kindle-body[hidden] {
+  display: none !important;
+}
+
+.phonon-kindle-num {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.phonon-kindle-crop-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.79rem;
+  font-weight: 600;
+}
+
+.phonon-kindle-crop-label > .phonon-kindle-num {
+  width: 68px;
+}
+
+.phonon-kindle-toggles-align {
+  justify-content: flex-end;
+}
+
+.phonon-kindle-status {
+  font-size: 0.81rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 7px;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.2));
+  background: var(--surface-sunken, var(--bg, rgba(0, 0, 0, 0.16)));
 }
