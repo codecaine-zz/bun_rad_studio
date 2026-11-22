@@ -6,7 +6,7 @@ require_relative "codecaine-utility-suite"
 class Codecaine < CodecaineUtilitySuite
   desc "Short alias formula for Codecaine Utility Suite"
   homepage "https://github.com/codecaine-zz/bun_rad_studio"
-  version "1.6.3"
+  version "1.6.4"
   license "MIT"
 
   head do
@@ -16,11 +16,11 @@ class Codecaine < CodecaineUtilitySuite
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/codecaine-zz/bun_rad_studio/releases/download/v1.6.3/bun-rad-studio-v1.6.3-macos-arm64.tar.gz"
-      sha256 "32cf217a35485db386a8354f92d903e73f94faf74c82f5378ec9ed80882d9526"
+      url "https://github.com/codecaine-zz/bun_rad_studio/releases/download/v1.6.4/bun-rad-studio-v1.6.4-macos-arm64.tar.gz"
+      sha256 "8001e86715e7263d6915bed5707f6cfc05e247abf94afc1613d259f7b3f3834d"
     else
-      url "https://github.com/codecaine-zz/bun_rad_studio/releases/download/v1.6.3/bun-rad-studio-v1.6.3-macos-x64.tar.gz"
-      sha256 "4325fb3ff9a0915398f4a78f5fdbde853f9b9aaad53406b7bb3515af16674a17"
+      url "https://github.com/codecaine-zz/bun_rad_studio/releases/download/v1.6.4/bun-rad-studio-v1.6.4-macos-x64.tar.gz"
+      sha256 "d8da838ea1d8c2102b33831c6f20ba93462f0dea0a1fd42d2b5617bc58f77e91"
     end
   end
 
@@ -29,11 +29,11 @@ class Codecaine < CodecaineUtilitySuite
     depends_on "gtk4"
 
     if Hardware::CPU.arm?
-      url "https://github.com/codecaine-zz/bun_rad_studio/releases/download/v1.6.3/bun-rad-studio-v1.6.3-linux-arm64.tar.gz"
-      sha256 "8667a173ba3f27aa342ae3c3c0d25e584b56d0f97dfd908f9276dccf40e63b33"
+      url "https://github.com/codecaine-zz/bun_rad_studio/releases/download/v1.6.4/bun-rad-studio-v1.6.4-linux-arm64.tar.gz"
+      sha256 "3c99cfb2fc42745f8f571db514e1f6b05a234ae873f0905d77432fec934ea5c1"
     else
-      url "https://github.com/codecaine-zz/bun_rad_studio/releases/download/v1.6.3/bun-rad-studio-v1.6.3-linux-x64.tar.gz"
-      sha256 "de8082bca073d1af92cfd408c905ec11cbe9ae9499118d528144e9b5c6ea44e2"
+      url "https://github.com/codecaine-zz/bun_rad_studio/releases/download/v1.6.4/bun-rad-studio-v1.6.4-linux-x64.tar.gz"
+      sha256 "bdb472d89eda974e23d94c2708976dd071dd9744d5f6cf6178c7fc4c1426baa9"
     end
   end
 
