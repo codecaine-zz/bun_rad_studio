@@ -922,10 +922,32 @@ function countWords(text: string): number {
 // ---------------------------------------------------------------------------------------------------------------
 
 const START_INTRO_HEADING_RE =
-  /^(?:introduction|prologue|intro(?:\s+chapter)?|chapter\s+(?:1|one|i)\b(?:\s*[:—–.-].*)?|part\s+(?:1|one|i)\b(?:\s*[:—–.-].*)?|book\s+(?:1|one|i)\b(?:\s*[:—–.-].*)?|1[.:]\s+[A-Z].{2,70})$/i;
+  /^(?:introduction|prologue|intro(?:\s+chapter)?|(?:chapter|ch\.?|part|book|section|act|day|episode|scene|letter|entry|lesson|unit|module)\s+(?:0?1|one|first|i)\b(?:\s*[:—–.-].*)?|1[.:]\s+[A-Z].{2,70})$/i;
 
 const START_CHAPTER1_HEADING_RE =
-  /^(?:chapter\s+(?:1|one|i)\b(?:\s*[:—–.-].*)?|book\s+(?:1|one|i)\b(?:\s*[:—–.-].*)?|1[.:]\s+[A-Z].{2,70})$/i;
+  /^(?:(?:chapter|ch\.?|book|section|act|day|episode|scene|letter|entry|lesson|unit|module)\s+(?:0?1|one|first|i)\b(?:\s*[:—–.-].*)?|1[.:]\s+[A-Z].{2,70})$/i;
+
+// Bare spelled-out chapter-1 headings used by many novels (e.g., "ONE", "One", "ONE — Title", "First")
+const BARE_CHAPTER1_WORD_RE = /^(?:one|first)(?:\s*[:—–.-]\s*\S.*)?$/i;
+// Bare numeric or Roman chapter-1 headings (e.g., "1", "01", "I", "I — Title", "1 — Title")
+const BARE_CHAPTER1_NUM_OR_ROMAN_RE = /^(?:0?1|i)(?:\s*[:—–.-]\s*\S.*)?$/i;
+
+// Spelled-out chapter words ("one".."ninety-nine", "first".."twentieth") for books like "The Rising" (ONE, TWO, THREE...)
+const SPELLED_NUMBER_WORD_PATTERN =
+  "(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|(?:twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[\\s-]+(?:one|two|three|four|five|six|seven|eight|nine))?|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth)";
+
+const BARE_SPELLED_CHAPTER_RE = new RegExp(
+  `^${SPELLED_NUMBER_WORD_PATTERN}(?:\\s*[:—–.-]\\s*\\S.*)?$`,
+  "i",
+);
+
+const SUBSEQUENT_CHAPTER_HEADING_RE = new RegExp(
+  `^(?:(?:chapter|ch\\.?|part|book|section|act|day|episode|scene|letter|entry|lesson|unit|module)\\s+(?:\\d{1,3}|[ivxlcdm]{1,6}|${SPELLED_NUMBER_WORD_PATTERN})\\b(?:\\s*[:—–.-].*)?|${SPELLED_NUMBER_WORD_PATTERN}(?:\\s*[:—–.-]\\s*\\S.*)?)$`,
+  "i",
+);
+
+const BARE_ARABIC_OR_ROMAN_CHAPTER_RE =
+  /^(?:[1-9]\d{0,2}|0[1-9]|(?:x{0,3}(?:ix|iv|v?i{1,3})|x{1,3}))(?:\s*[:—–.-]\s*\S.*)?$/i;
 
 const FRONT_MATTER_HEADING_RE =
   /^(?:title\s+page|half\s+title|copyright(?:\s+page)?|dedication|epigraph|praise(?:\s+for\b.*)?|advance\s+praise(?:\s+for\b.*)?|foreword|preface|acknowledgm?ents|list\s+of\s+(?:figures|tables|illustrations|abbreviations)|note\s+to\s+the\s+reader|a\s+note\s+to\s+readers|how\s+to\s+use\s+this\s+book|about\s+the\s+authors?|author\s+note|contents|table\s+of\s+contents|brief\s+contents|detailed\s+contents|also\s+by\b.*|other\s+(?:books|titles)\s+by\b.*)$/i;
@@ -963,6 +985,102 @@ function isStandaloneHeadingCandidate(line: string): boolean {
   return true;
 }
 
+function countTrailingProse(lines: string[], afterIndex: number): {
+  wordsAfter: number;
+  sentencesAfter: number;
+} {
+  // Inspect only the next few paragraphs so full-book scans don't count later chapters as prose for a stray page number
+  const tail = lines.slice(afterIndex + 1, afterIndex + 4).join("\n");
+  if (!tail.trim()) return { wordsAfter: 0, sentencesAfter: 0 };
+  return {
+    wordsAfter: countWords(tail),
+    sentencesAfter: (tail.match(/[.!?](?:\s|$)/g) ?? []).length,
+  };
+}
+
+/**
+ * Checks whether `lines[i]` is a valid start-of-book heading for `startMode`
+ * (including standard "Chapter 1" / "Introduction" AND bare novel headings
+ * such as "ONE", "One", "1", "I", or subsequent numbered chapters like "TWO",
+ * "THREE", "2", "II" when followed by real narrative prose).
+ */
+function matchBookStartHeading(
+  lines: string[],
+  index: number,
+  startMode: KindleBookStartMode,
+  opts?: {
+    allowSubsequentChapterWithProse?: boolean;
+    pageHasFrontSignal?: boolean;
+    fullBookMode?: boolean;
+  },
+): string | null {
+  const line = lines[index];
+  if (!line || !isStandaloneHeadingCandidate(line)) return null;
+  const cand = normalizeCandidateHeading(line);
+  const startRe =
+    startMode === "chapter1" ? START_CHAPTER1_HEADING_RE : START_INTRO_HEADING_RE;
+  if (startRe.test(cand)) {
+    return cand;
+  }
+
+  // Never treat bare numbers/words on a copyright/ISBN page as a chapter heading
+  if (opts?.pageHasFrontSignal) return null;
+
+  const isLastLine = index === lines.length - 1;
+  const hasSubtitle = /[:—–.-]\s*\S/.test(cand);
+  const nextLine = !isLastLine ? normalizeCandidateHeading(lines[index + 1]!) : "";
+  const nextIsTocOrFront =
+    Boolean(nextLine) &&
+    (BARE_SPELLED_CHAPTER_RE.test(nextLine) ||
+      BARE_ARABIC_OR_ROMAN_CHAPTER_RE.test(nextLine) ||
+      FRONT_MATTER_HEADING_RE.test(nextLine));
+
+  // Bare "ONE" / "One" / "First" (works both on a chapter-divider page and above prose)
+  if (BARE_CHAPTER1_WORD_RE.test(cand)) {
+    if (nextIsTocOrFront && !hasSubtitle) return null;
+    if (opts?.fullBookMode) {
+      const nextWords = countWords(nextLine);
+      if (hasSubtitle || nextWords >= 12) return cand;
+      return null;
+    }
+    if (!isLastLine || lines.length <= 2 || hasSubtitle) {
+      return cand;
+    }
+  }
+
+  // Bare "1" / "01" / "I" (require subtitle or following text so stray page numbers don't false-match)
+  if (BARE_CHAPTER1_NUM_OR_ROMAN_RE.test(cand)) {
+    if (nextIsTocOrFront && !hasSubtitle) return null;
+    if (hasSubtitle || !isLastLine) {
+      const { wordsAfter, sentencesAfter } = countTrailingProse(lines, index);
+      const nextWords = countWords(nextLine);
+      if (
+        hasSubtitle ||
+        (opts?.fullBookMode
+          ? nextWords >= 15 && sentencesAfter >= 1
+          : wordsAfter >= 15 || sentencesAfter >= 1)
+      ) {
+        return cand;
+      }
+    }
+  }
+
+  // Subsequent numbered chapters ("TWO", "THREE", "Chapter 2", "2", "II") followed by narrative prose
+  if (opts?.allowSubsequentChapterWithProse && !isLastLine && !nextIsTocOrFront) {
+    const isNumberedHeading =
+      SUBSEQUENT_CHAPTER_HEADING_RE.test(cand) ||
+      BARE_ARABIC_OR_ROMAN_CHAPTER_RE.test(cand);
+    if (isNumberedHeading) {
+      const { wordsAfter, sentencesAfter } = countTrailingProse(lines, index);
+      if (wordsAfter >= 25 && sentencesAfter >= 2) {
+        return cand;
+      }
+    }
+  }
+
+  return null;
+}
+
 /**
  * Returns true if an OCR page or section looks like a Table of Contents page.
  */
@@ -992,9 +1110,11 @@ export function isTableOfContentsPage(text: string): boolean {
         line,
       );
     const shortChapterListItem =
-      /^(?:chapter|part|book|appendix)\s+(?:\d+|[ivxlcdm]+|one|two|three|four|five)\b/i.test(
+      (/^(?:chapter|part|book|appendix)\s+(?:\d+|[ivxlcdm]+|one|two|three|four|five)\b/i.test(
         line,
-      ) && !/[.!?]$/.test(line);
+      ) ||
+        BARE_SPELLED_CHAPTER_RE.test(line)) &&
+      !/[.!?]$/.test(line);
     if (hasLeaderOrPageNum || shortChapterListItem) {
       tocLineCount++;
     }
@@ -1029,7 +1149,7 @@ export function classifyKindlePageRole(
     .filter(Boolean);
 
   if (!state.hasStartedBody && state.startMode !== "none") {
-    if (state.skippedFrontPages >= 60) {
+    if (state.skippedFrontPages >= 25) {
       return { action: "keep", keptText: trimmed };
     }
     if (!trimmed) {
@@ -1048,15 +1168,14 @@ export function classifyKindlePageRole(
       };
     }
 
-    const startRe =
-      state.startMode === "chapter1"
-        ? START_CHAPTER1_HEADING_RE
-        : START_INTRO_HEADING_RE;
+    const hasFrontProseSignal = FRONT_MATTER_PROSE_SIGNAL_RE.test(trimmed);
 
     for (let i = 0; i < lines.length; i++) {
-      const candidate = normalizeCandidateHeading(lines[i]!);
-      if (!isStandaloneHeadingCandidate(lines[i]!)) continue;
-      if (startRe.test(candidate)) {
+      const matched = matchBookStartHeading(lines, i, state.startMode, {
+        allowSubsequentChapterWithProse: true,
+        pageHasFrontSignal: hasFrontProseSignal,
+      });
+      if (matched) {
         const keptLines = lines.slice(i);
         // Also check if back matter starts later on this very same page/spread
         if (state.stopAtBackMatter) {
@@ -1077,7 +1196,7 @@ export function classifyKindlePageRole(
         return {
           action: "start_here",
           keptText: keptLines.join("\n\n").trim(),
-          matchedHeading: candidate,
+          matchedHeading: matched,
         };
       }
     }
@@ -1105,12 +1224,11 @@ export function classifyKindlePageRole(
       };
     }
 
-    if (FRONT_MATTER_PROSE_SIGNAL_RE.test(trimmed)) {
+    if (hasFrontProseSignal) {
       return {
         action: "skip_front",
         keptText: "",
         matchedHeading: "Copyright / Front Matter",
-        entersFrontSection: true,
       };
     }
 
@@ -1125,6 +1243,11 @@ export function classifyKindlePageRole(
     }
 
     if (state.inFrontMatterSection) {
+      // Escape hatch for books whose chapters use image-only or unnumbered headings:
+      // once we've skipped 10+ front pages and hit dense narrative prose with no front signals, start keeping.
+      if (state.skippedFrontPages >= 10 && words >= 120 && sentenceCount >= 5) {
+        return { action: "keep", keptText: trimmed };
+      }
       return {
         action: "skip_front",
         keptText: "",
@@ -1180,15 +1303,13 @@ export function trimBookFrontAndBackFluff(
   let startHeading: string | undefined;
 
   if (startMode !== "none") {
-    const startRe =
-      startMode === "chapter1"
-        ? START_CHAPTER1_HEADING_RE
-        : START_INTRO_HEADING_RE;
     const scanLimit = Math.min(
       lines.length,
       Math.max(120, Math.floor(lines.length * 0.45)),
     );
     let tocRunRemaining = 0;
+    let fallbackIdx = -1;
+    let fallbackHeading: string | undefined;
     for (let i = 0; i < scanLimit; i++) {
       const line = lines[i]!;
       const cand = normalizeCandidateHeading(line);
@@ -1212,14 +1333,37 @@ export function trimBookFrontAndBackFluff(
         }
         tocRunRemaining = 0;
       }
-      if (isStandaloneHeadingCandidate(line) && startRe.test(cand)) {
+      const prevContext = lines.slice(Math.max(0, i - 2), i).join("\n");
+      const nearCopyright = FRONT_MATTER_PROSE_SIGNAL_RE.test(prevContext);
+      const primaryMatch = matchBookStartHeading(lines, i, startMode, {
+        allowSubsequentChapterWithProse: false,
+        pageHasFrontSignal: nearCopyright,
+        fullBookMode: true,
+      });
+      if (primaryMatch) {
         if (i > 0) {
           startIdx = i;
           trimmedFront = true;
-          startHeading = cand;
+          startHeading = primaryMatch;
         }
         break;
       }
+      if (fallbackIdx === -1) {
+        const subMatch = matchBookStartHeading(lines, i, startMode, {
+          allowSubsequentChapterWithProse: true,
+          pageHasFrontSignal: nearCopyright,
+          fullBookMode: true,
+        });
+        if (subMatch) {
+          fallbackIdx = i;
+          fallbackHeading = subMatch;
+        }
+      }
+    }
+    if (!trimmedFront && startIdx === 0 && fallbackIdx > 0 && fallbackHeading) {
+      startIdx = fallbackIdx;
+      trimmedFront = true;
+      startHeading = fallbackHeading;
     }
   }
 
@@ -2472,19 +2616,54 @@ export async function captureSingleKindlePage(
   return { page, window, bookTitle: page.bookTitle };
 }
 
+const KINDLE_END_OF_BOOK_SCREEN_RE =
+  /\b(?:before\s+you\s+go|rate\s+this\s+book|rate\s*(?:&|and)\s*review|what\s+did\s+you\s+think\??|share\s+your\s+thoughts\s+on\s+goodreads|mark\s+as\s+read|customers\s+who\s+(?:read|bought)\s+this|readers\s+also\s+enjoyed|next\s+in\s+(?:this\s+)?series|you(?:'|’)ve\s+reached\s+the\s+end|end\s+of\s+(?:this\s+)?(?:book|sample)|return\s+to\s+library|back\s+to\s+library|buy\s+now\s+on\s+amazon)\b/i;
+
+/**
+ * Detects Amazon Kindle's end-of-book overlay/recommendation screens ("Before you go…",
+ * "Rate this book", "Mark as Read", "Return to Library", "Customers who read this…")
+ * so Read All Pages stops cleanly instead of looping past the final page.
+ */
+export function isKindleEndOfBookScreen(
+  rawText: string,
+  cleanedText = "",
+): boolean {
+  const combined = `${rawText || ""}\n${cleanedText || ""}`.trim();
+  if (!combined) return false;
+  if (!KINDLE_END_OF_BOOK_SCREEN_RE.test(combined)) return false;
+  // Guard against a long narrative chapter that happens to quote "before you go" in dialogue:
+  // real Kindle end screens are UI cards with < 160 cleaned words OR contain multiple end-screen phrases.
+  const cleanedWords = countWords(cleanedText || rawText || "");
+  if (cleanedWords <= 160) return true;
+  const matches =
+    combined.match(
+      /\b(?:before\s+you\s+go|rate\s+this\s+book|mark\s+as\s+read|goodreads|customers\s+who\s+(?:read|bought)|readers\s+also\s+enjoyed|next\s+in\s+(?:this\s+)?series|return\s+to\s+library|back\s+to\s+library|about\s+the\s+author)\b/gi,
+    ) ?? [];
+  return new Set(matches.map((m) => m.toLowerCase())).size >= 2;
+}
+
 function isScannedPageUnchanged(
   prevText: string,
   prevHash: string | undefined,
   curPage: KindlePageResult,
 ): boolean {
   if (prevText.length > 0 && curPage.text.length > 0) {
-    // Only use fuzzy >=95% Dice similarity on substantial pages (>=80 chars); short pages must match exactly when normalized
     const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
     const na = norm(prevText);
     const nb = norm(curPage.text);
     if (!na || !nb) return false;
     if (na === nb) return true;
-    if (na.length < 80 || nb.length < 80) return false;
+    if (na.length < 80 || nb.length < 80) {
+      // Allow tiny OCR jitter on short end pages ONLY when digits match (so "page 1" != "page 2")
+      const digitsA = na.replace(/\D+/g, "");
+      const digitsB = nb.replace(/\D+/g, "");
+      if (digitsA !== digitsB) return false;
+      return (
+        na.length >= 12 &&
+        nb.length >= 12 &&
+        areKindlePagesDuplicate(prevText, curPage.text)
+      );
+    }
     return areKindlePagesDuplicate(prevText, curPage.text);
   }
   if (prevText.length === 0 && curPage.text.length === 0) {
@@ -2533,6 +2712,8 @@ async function runCaptureSessionLoop(
   let hasPrevScanned = false;
   let prevScannedText = "";
   let prevScannedHash: string | undefined;
+  let consecutiveEmptyPages = 0;
+  const recentScannedPages: Array<{ text: string; hash?: string }> = [];
 
   const env = ctx.platform === "darwin" ? childEnv(ctx) : null;
   let previousFrontmostPid = 0;
@@ -2629,9 +2810,59 @@ async function runCaptureSessionLoop(
         }
       }
 
+      if (
+        hasStartedBody &&
+        session.capturedPages.length > 0 &&
+        opts.stopOnDuplicate &&
+        isKindleEndOfBookScreen(page.rawText, page.text)
+      ) {
+        session.status = "completed";
+        session.phase = "done";
+        session.stoppedReason = "Reached Kindle end-of-book screen.";
+        onProgress?.(session);
+        return;
+      }
+
+      if (hasStartedBody && session.capturedPages.length > 0 && opts.stopOnDuplicate) {
+        if (!page.text.trim()) {
+          consecutiveEmptyPages++;
+          if (consecutiveEmptyPages >= 3) {
+            session.status = "completed";
+            session.phase = "done";
+            session.stoppedReason =
+              "Reached end of book (consecutive blank pages).";
+            onProgress?.(session);
+            return;
+          }
+        } else {
+          consecutiveEmptyPages = 0;
+          // Catch 2-page oscillation at end of book (e.g. final page <-> Kindle overlay or HUD bounce: A -> B -> A)
+          if (
+            recentScannedPages.length >= 2 &&
+            recentScannedPages
+              .slice(0, -1)
+              .some((prev) =>
+                isScannedPageUnchanged(prev.text, prev.hash, page),
+              )
+          ) {
+            page.duplicate = true;
+            session.status = "completed";
+            session.phase = "done";
+            session.stoppedReason =
+              "Reached end of book (page repeated after turn).";
+            onProgress?.(session);
+            return;
+          }
+        }
+      }
+
       prevScannedText = page.text;
       prevScannedHash = page.imageHash;
       hasPrevScanned = true;
+      if (page.text.trim()) {
+        recentScannedPages.push({ text: page.text, hash: page.imageHash });
+        if (recentScannedPages.length > 3) recentScannedPages.shift();
+      }
 
       const role = classifyKindlePageRole(page.text, {
         startMode: opts.startMode,

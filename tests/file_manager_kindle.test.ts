@@ -22,6 +22,7 @@ import {
   cleanKindlePageText,
   createKindleOps,
   extractKindleHeaderBookTitle,
+  isKindleEndOfBookScreen,
   isKindleSupportedPlatform,
   isTableOfContentsPage,
   KINDLE_OPS,
@@ -1676,6 +1677,242 @@ describe("Whole-book 283+ page resilience, retry recovery & front/back fluff ski
     expect(extracted.text).toContain("Chapter 1: Foundations");
     expect(extracted.text).not.toContain("Welcome to Great Systems");
     expect(extracted.text).not.toContain("Backpressure, 88");
+  });
+
+  test("Read All Pages & trimBookFrontAndBackFluff handle spelled-out (ONE, TWO, THREE), numeric (1, 2, 3), and Roman (I, II, III) chapter books", async () => {
+    const ctx = createContext({ home, dataDir, toolDirs: [toolDir], platform: "darwin" });
+    const kindleWin: KindleWindowInfo = {
+      id: 4202,
+      ownerName: "Kindle",
+      title: "The Rising",
+      pid: 9912,
+      bounds: { x: 0, y: 0, width: 1728, height: 1084 },
+      isKindle: true,
+      score: 120,
+      onScreen: false,
+    };
+
+    const novelPages = [
+      "The Rising\n\nA Novel",
+      "Copyright © 2003 Author. All rights reserved. ISBN 978-0-000-00001-1.\n1",
+      "For everyone who stayed up past midnight.",
+      "ONE\nTWO\nTHREE\nFOUR\nFIVE",
+      "Preface\n\nThis edition restores several scenes from the original draft.",
+      "ONE\n\nThe storm rolled over the ridge just before dawn. Jim listened to the rain hammering the porch roof and checked the locks one more time.",
+      "TWO\n\nBy morning the highway was quiet except for the distant hum of a generator. Nobody had driven past the turnoff since Tuesday.",
+      "THREE\n\nThey packed the truck in silence and headed south toward the river crossing. Every mile felt longer than the last.\n\nAbout the Author\n\nThe author lives in Pennsylvania and writes fiction.",
+      "Also by the Author\n\nCity of the Dead\nDark Hollow",
+    ];
+
+    expect(isTableOfContentsPage(novelPages[3]!)).toBe(true);
+    expect(isTableOfContentsPage(novelPages[5]!)).toBe(false);
+
+    let cursor = 0;
+    const makeMock = (pages: string[], startAt = 0) => {
+      cursor = startAt;
+      return {
+        listWindows: async () => ({ windows: [kindleWin] }),
+        captureWindow: async (_w: KindleWindowInfo, outPng: string) => {
+          writeFileSync(outPng, Buffer.from(`novel-${cursor}`, "utf8"));
+        },
+        ocrImage: async () => ({
+          text: pages[Math.min(cursor, pages.length - 1)]!,
+          engine: "vision" as const,
+          bookTitle: "The Rising",
+        }),
+        turnPage: async () => {
+          if (cursor < pages.length - 1) cursor++;
+        },
+        sleep: async () => {},
+      };
+    };
+
+    // 1. Full book read from Cover with startMode="intro" -> skips front fluff, starts at ONE, reads ONE/TWO/THREE, stops before About the Author
+    const fullSess = await captureKindlePagesBatch(
+      ctx,
+      {
+        readAllPages: true,
+        startMode: "intro",
+        stopAtBackMatter: true,
+        delayMs: 250,
+      },
+      makeMock(novelPages, 0),
+    );
+    expect(fullSess.status).toBe("completed");
+    expect(fullSess.skippedFrontPages).toBe(5);
+    expect(fullSess.startHeading).toBe("ONE");
+    expect(fullSess.stoppedHeading).toBe("About the Author");
+    expect(fullSess.capturedPages.length).toBe(3);
+    expect(fullSess.combinedText).toContain("The storm rolled over the ridge");
+    expect(fullSess.combinedText).toContain("By morning the highway was quiet");
+    expect(fullSess.combinedText).toContain("They packed the truck in silence");
+    expect(fullSess.combinedText).not.toContain("ISBN");
+    expect(fullSess.combinedText).not.toContain("original draft");
+    expect(fullSess.combinedText).not.toContain("lives in Pennsylvania");
+
+    // 2. Starting mid-book at TWO with Read All Pages (startMode="intro") -> starts immediately at TWO and reads through THREE
+    const midSess = await captureKindlePagesBatch(
+      ctx,
+      {
+        readAllPages: true,
+        startMode: "intro",
+        stopAtBackMatter: true,
+        delayMs: 250,
+      },
+      makeMock(novelPages, 6),
+    );
+    expect(midSess.status).toBe("completed");
+    expect(midSess.skippedFrontPages).toBe(0);
+    expect(midSess.capturedPages.length).toBe(2);
+    expect(midSess.combinedText).toContain("By morning the highway was quiet");
+    expect(midSess.combinedText).toContain("They packed the truck in silence");
+
+    // 3. Bare Roman numeral chapters (I, II, III) after Copyright with stray page number "1"
+    const romanPages = [
+      "Copyright © 2024 Press. All rights reserved. ISBN 978-0-000-00002-8.\n1",
+      "I\n\nThe valley lay silent under a silver mist. Two travelers paused at the edge of the timberline to check their compass.",
+      "II\n\nBy noon they reached the stone bridge. Water rushed beneath the arches as the wind shifted north.",
+      "Acknowledgments\n\nMany thanks to our readers.",
+    ];
+    const romanSess = await captureKindlePagesBatch(
+      ctx,
+      {
+        readAllPages: true,
+        startMode: "chapter1",
+        stopAtBackMatter: true,
+        delayMs: 250,
+      },
+      makeMock(romanPages, 0),
+    );
+    expect(romanSess.skippedFrontPages).toBe(1);
+    expect(romanSess.startHeading).toBe("I");
+    expect(romanSess.capturedPages.length).toBe(2);
+    expect(romanSess.combinedText).toContain("The valley lay silent");
+    expect(romanSess.combinedText).toContain("By noon they reached the stone bridge");
+    expect(romanSess.combinedText).not.toContain("Many thanks");
+
+    // 4. trimBookFrontAndBackFluff trims a full ONE/TWO/THREE novel cleanly
+    const trimmed = trimBookFrontAndBackFluff(novelPages.join("\n\n"), {
+      startMode: "chapter1",
+      stripBackMatter: true,
+    });
+    expect(trimmed.trimmedFront).toBe(true);
+    expect(trimmed.trimmedBack).toBe(true);
+    expect(trimmed.startHeading).toBe("ONE");
+    expect(trimmed.stoppedHeading).toBe("About the Author");
+    expect(trimmed.text).toContain("The storm rolled over the ridge");
+    expect(trimmed.text).not.toContain("ISBN");
+    expect(trimmed.text).not.toContain("lives in Pennsylvania");
+  });
+
+  test("Read All Pages stops cleanly on Kindle end-of-book screens, flashing blank pages, short-page OCR jitter, and A/B oscillation", async () => {
+    const ctx = createContext({ home, dataDir, toolDirs: [toolDir], platform: "darwin" });
+    const kindleWin: KindleWindowInfo = {
+      id: 4203,
+      ownerName: "Kindle",
+      title: "The Rising",
+      pid: 9913,
+      bounds: { x: 0, y: 0, width: 1728, height: 1084 },
+      isKindle: true,
+      score: 120,
+      onScreen: false,
+    };
+
+    expect(
+      isKindleEndOfBookScreen(
+        "Before you go...\nRate this book\nMark as Read\nReturn to Library",
+      ),
+    ).toBe(true);
+    expect(
+      isKindleEndOfBookScreen(
+        "Before you go, Jim said, make sure you check the generator and lock the cellar door. ".repeat(
+          15,
+        ),
+      ),
+    ).toBe(false);
+
+    const makeSequenceMock = (frames: Array<{ text: string; hash: string }>) => {
+      let idx = 0;
+      return {
+        listWindows: async () => ({ windows: [kindleWin] }),
+        captureWindow: async (_w: KindleWindowInfo, outPng: string) => {
+          const f = frames[Math.min(idx, frames.length - 1)]!;
+          writeFileSync(outPng, Buffer.from(f.hash, "utf8"));
+        },
+        ocrImage: async () => {
+          const f = frames[Math.min(idx, frames.length - 1)]!;
+          return { text: f.text, engine: "vision" as const, bookTitle: "The Rising" };
+        },
+        turnPage: async () => {
+          if (idx < frames.length - 1) idx++;
+        },
+        sleep: async () => {},
+      };
+    };
+
+    // 1. Kindle "Before you go / Rate this book" screen stops cleanly without appending UI text
+    const endScreenSess = await captureKindlePagesBatch(
+      ctx,
+      { readAllPages: true, startMode: "none", stopAtBackMatter: false, delayMs: 250 },
+      makeSequenceMock([
+        { text: "ONE\n\nFinal chapter prose ends on a quiet note.", hash: "p1" },
+        { text: "Before you go...\nRate this book\nMark as Read\nReturn to Library", hash: "p2" },
+        { text: "Before you go...\nRate this book\nMark as Read\nReturn to Library", hash: "p3" },
+      ]),
+    );
+    expect(endScreenSess.status).toBe("completed");
+    expect(endScreenSess.stoppedReason).toContain("end-of-book screen");
+    expect(endScreenSess.capturedPages.length).toBe(1);
+    expect(endScreenSess.combinedText).not.toContain("Rate this book");
+
+    // 2. Consecutive blank pages with changing imageHash (flashing HUD) stop cleanly after 3 blanks
+    const blankSess = await captureKindlePagesBatch(
+      ctx,
+      { readAllPages: true, startMode: "none", stopAtBackMatter: false, delayMs: 250 },
+      makeSequenceMock([
+        { text: "ONE\n\nLast real page of text.", hash: "b1" },
+        { text: "", hash: "hud-on-1" },
+        { text: "", hash: "hud-off-2" },
+        { text: "", hash: "hud-on-3" },
+        { text: "", hash: "hud-off-4" },
+      ]),
+    );
+    expect(blankSess.status).toBe("completed");
+    expect(blankSess.stoppedReason).toContain("consecutive blank pages");
+
+    // 3. Short final page (<80 chars) with 1-char OCR jitter stops cleanly
+    const jitterSess = await captureKindlePagesBatch(
+      ctx,
+      {
+        readAllPages: true,
+        startMode: "none",
+        stopAtBackMatter: false,
+        delayMs: 250,
+        maxDuplicateRetries: 1,
+      },
+      makeSequenceMock([
+        { text: "The sun rose quietly over the empty harbor.", hash: "j1" },
+        { text: "The sun rose quietly over the empty harbor. l", hash: "j2" },
+        { text: "The sun rose quietly over the empty harbor.", hash: "j3" },
+      ]),
+    );
+    expect(jitterSess.status).toBe("completed");
+    expect(jitterSess.capturedPages.length).toBe(1);
+    expect(jitterSess.stoppedReason).toContain("duplicate");
+
+    // 4. 2-page oscillation (A -> B -> A) at end of book stops cleanly
+    const bounceSess = await captureKindlePagesBatch(
+      ctx,
+      { readAllPages: true, startMode: "none", stopAtBackMatter: false, delayMs: 250 },
+      makeSequenceMock([
+        { text: "Final narrative paragraph of the novel.", hash: "o1" },
+        { text: "End card overlay widget.", hash: "o2" },
+        { text: "Final narrative paragraph of the novel.", hash: "o3" },
+        { text: "End card overlay widget.", hash: "o4" },
+      ]),
+    );
+    expect(bounceSess.status).toBe("completed");
+    expect(bounceSess.stoppedReason).toContain("repeated after turn");
   });
 
   test("File Manager server accepts >1 MB phonon/chunk body for full 283-page books without HTTP 413", async () => {
