@@ -985,7 +985,10 @@ function isStandaloneHeadingCandidate(line: string): boolean {
   return true;
 }
 
-function countTrailingProse(lines: string[], afterIndex: number): {
+function countTrailingProse(
+  lines: string[],
+  afterIndex: number,
+): {
   wordsAfter: number;
   sentencesAfter: number;
 } {
@@ -1018,7 +1021,9 @@ function matchBookStartHeading(
   if (!line || !isStandaloneHeadingCandidate(line)) return null;
   const cand = normalizeCandidateHeading(line);
   const startRe =
-    startMode === "chapter1" ? START_CHAPTER1_HEADING_RE : START_INTRO_HEADING_RE;
+    startMode === "chapter1"
+      ? START_CHAPTER1_HEADING_RE
+      : START_INTRO_HEADING_RE;
   if (startRe.test(cand)) {
     return cand;
   }
@@ -1028,7 +1033,9 @@ function matchBookStartHeading(
 
   const isLastLine = index === lines.length - 1;
   const hasSubtitle = /[:—–.-]\s*\S/.test(cand);
-  const nextLine = !isLastLine ? normalizeCandidateHeading(lines[index + 1]!) : "";
+  const nextLine = !isLastLine
+    ? normalizeCandidateHeading(lines[index + 1]!)
+    : "";
   const nextIsTocOrFront =
     Boolean(nextLine) &&
     (BARE_SPELLED_CHAPTER_RE.test(nextLine) ||
@@ -1066,7 +1073,11 @@ function matchBookStartHeading(
   }
 
   // Subsequent numbered chapters ("TWO", "THREE", "Chapter 2", "2", "II") followed by narrative prose
-  if (opts?.allowSubsequentChapterWithProse && !isLastLine && !nextIsTocOrFront) {
+  if (
+    opts?.allowSubsequentChapterWithProse &&
+    !isLastLine &&
+    !nextIsTocOrFront
+  ) {
     const isNumberedHeading =
       SUBSEQUENT_CHAPTER_HEADING_RE.test(cand) ||
       BARE_ARABIC_OR_ROMAN_CHAPTER_RE.test(cand);
@@ -2823,7 +2834,11 @@ async function runCaptureSessionLoop(
         return;
       }
 
-      if (hasStartedBody && session.capturedPages.length > 0 && opts.stopOnDuplicate) {
+      if (
+        hasStartedBody &&
+        session.capturedPages.length > 0 &&
+        opts.stopOnDuplicate
+      ) {
         if (!page.text.trim()) {
           consecutiveEmptyPages++;
           if (consecutiveEmptyPages >= 3) {

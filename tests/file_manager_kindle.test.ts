@@ -1680,7 +1680,12 @@ describe("Whole-book 283+ page resilience, retry recovery & front/back fluff ski
   });
 
   test("Read All Pages & trimBookFrontAndBackFluff handle spelled-out (ONE, TWO, THREE), numeric (1, 2, 3), and Roman (I, II, III) chapter books", async () => {
-    const ctx = createContext({ home, dataDir, toolDirs: [toolDir], platform: "darwin" });
+    const ctx = createContext({
+      home,
+      dataDir,
+      toolDirs: [toolDir],
+      platform: "darwin",
+    });
     const kindleWin: KindleWindowInfo = {
       id: 4202,
       ownerName: "Kindle",
@@ -1788,7 +1793,9 @@ describe("Whole-book 283+ page resilience, retry recovery & front/back fluff ski
     expect(romanSess.startHeading).toBe("I");
     expect(romanSess.capturedPages.length).toBe(2);
     expect(romanSess.combinedText).toContain("The valley lay silent");
-    expect(romanSess.combinedText).toContain("By noon they reached the stone bridge");
+    expect(romanSess.combinedText).toContain(
+      "By noon they reached the stone bridge",
+    );
     expect(romanSess.combinedText).not.toContain("Many thanks");
 
     // 4. trimBookFrontAndBackFluff trims a full ONE/TWO/THREE novel cleanly
@@ -1806,7 +1813,12 @@ describe("Whole-book 283+ page resilience, retry recovery & front/back fluff ski
   });
 
   test("Read All Pages stops cleanly on Kindle end-of-book screens, flashing blank pages, short-page OCR jitter, and A/B oscillation", async () => {
-    const ctx = createContext({ home, dataDir, toolDirs: [toolDir], platform: "darwin" });
+    const ctx = createContext({
+      home,
+      dataDir,
+      toolDirs: [toolDir],
+      platform: "darwin",
+    });
     const kindleWin: KindleWindowInfo = {
       id: 4203,
       ownerName: "Kindle",
@@ -1831,7 +1843,9 @@ describe("Whole-book 283+ page resilience, retry recovery & front/back fluff ski
       ),
     ).toBe(false);
 
-    const makeSequenceMock = (frames: Array<{ text: string; hash: string }>) => {
+    const makeSequenceMock = (
+      frames: Array<{ text: string; hash: string }>,
+    ) => {
       let idx = 0;
       return {
         listWindows: async () => ({ windows: [kindleWin] }),
@@ -1841,7 +1855,11 @@ describe("Whole-book 283+ page resilience, retry recovery & front/back fluff ski
         },
         ocrImage: async () => {
           const f = frames[Math.min(idx, frames.length - 1)]!;
-          return { text: f.text, engine: "vision" as const, bookTitle: "The Rising" };
+          return {
+            text: f.text,
+            engine: "vision" as const,
+            bookTitle: "The Rising",
+          };
         },
         turnPage: async () => {
           if (idx < frames.length - 1) idx++;
@@ -1853,11 +1871,25 @@ describe("Whole-book 283+ page resilience, retry recovery & front/back fluff ski
     // 1. Kindle "Before you go / Rate this book" screen stops cleanly without appending UI text
     const endScreenSess = await captureKindlePagesBatch(
       ctx,
-      { readAllPages: true, startMode: "none", stopAtBackMatter: false, delayMs: 250 },
+      {
+        readAllPages: true,
+        startMode: "none",
+        stopAtBackMatter: false,
+        delayMs: 250,
+      },
       makeSequenceMock([
-        { text: "ONE\n\nFinal chapter prose ends on a quiet note.", hash: "p1" },
-        { text: "Before you go...\nRate this book\nMark as Read\nReturn to Library", hash: "p2" },
-        { text: "Before you go...\nRate this book\nMark as Read\nReturn to Library", hash: "p3" },
+        {
+          text: "ONE\n\nFinal chapter prose ends on a quiet note.",
+          hash: "p1",
+        },
+        {
+          text: "Before you go...\nRate this book\nMark as Read\nReturn to Library",
+          hash: "p2",
+        },
+        {
+          text: "Before you go...\nRate this book\nMark as Read\nReturn to Library",
+          hash: "p3",
+        },
       ]),
     );
     expect(endScreenSess.status).toBe("completed");
@@ -1868,7 +1900,12 @@ describe("Whole-book 283+ page resilience, retry recovery & front/back fluff ski
     // 2. Consecutive blank pages with changing imageHash (flashing HUD) stop cleanly after 3 blanks
     const blankSess = await captureKindlePagesBatch(
       ctx,
-      { readAllPages: true, startMode: "none", stopAtBackMatter: false, delayMs: 250 },
+      {
+        readAllPages: true,
+        startMode: "none",
+        stopAtBackMatter: false,
+        delayMs: 250,
+      },
       makeSequenceMock([
         { text: "ONE\n\nLast real page of text.", hash: "b1" },
         { text: "", hash: "hud-on-1" },
@@ -1903,7 +1940,12 @@ describe("Whole-book 283+ page resilience, retry recovery & front/back fluff ski
     // 4. 2-page oscillation (A -> B -> A) at end of book stops cleanly
     const bounceSess = await captureKindlePagesBatch(
       ctx,
-      { readAllPages: true, startMode: "none", stopAtBackMatter: false, delayMs: 250 },
+      {
+        readAllPages: true,
+        startMode: "none",
+        stopAtBackMatter: false,
+        delayMs: 250,
+      },
       makeSequenceMock([
         { text: "Final narrative paragraph of the novel.", hash: "o1" },
         { text: "End card overlay widget.", hash: "o2" },
