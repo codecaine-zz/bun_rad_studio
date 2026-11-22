@@ -1,6 +1,16 @@
 # Changelog
 
-All notable changes. Version 1.6.3 is the thirtieth release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9, 1.5.0, 1.5.1, 1.5.2, 1.5.3, 1.5.4, 1.5.7, 1.5.8, 1.5.9, 1.6.0, 1.6.1 and 1.6.2 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+All notable changes. Version 1.6.4 is the thirty-first release (1.0.0, 1.1.0, 1.2.0, 1.2.1, 1.2.2, 1.3.0, 1.3.1, 1.3.2, 1.4.0, 1.4.1, 1.4.2, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 1.4.7, 1.4.8, 1.4.9, 1.5.0, 1.5.1, 1.5.2, 1.5.3, 1.5.4, 1.5.7, 1.5.8, 1.5.9, 1.6.0, 1.6.1, 1.6.2 and 1.6.3 came first); changes made after a release are listed under **Unreleased**. Each entry points to the record of what was observed and how it was checked in [discrepancies](docs/documentation-maintenance/discrepancies.md). History before 13 October 2026 is only in git.
+
+## 1.6.4 (22 November 2026)
+
+### Added
+
+- **macOS-Exclusive Kindle Open-Book Reader, Whole-Book Fluff Skipping & Read-Along `.MP4` Export (`src/features/filemanager/fmKindle.ts`, `resources/file_manager/ui/phonon.js`, `resources/file_manager/ui/phonon.css`, `resources/file_manager/ui/commandPalette.js`, `src/features/filemanager/fmPreview.ts`, `src/features/filemanager/fmPhonon.ts`, `src/features/filemanager/fmServer.ts`, `src/features/filemanager/fmCli.ts`, `cli_apps/tts_cli.ts`, `tests/file_manager_kindle.test.ts`).** Detect open Amazon Kindle and Kindle Cloud Reader windows across macOS Full-Screen Spaces (`CGWindowListCopyWindowInfo` / `CGWindowListCreateImage`), run 2-column Apple Vision OCR (`VNRecognizeTextRequest`) with automatic book-title extraction, support whole-book capture up to 5,000 pages (`Read All Pages`), skip front-matter fluff (`Book Start Point`: `Introduction`, `Chapter 1`, bare spelled-out `ONE`/`TWO`/`THREE`, numeric `1`/`2`/`3`, and Roman `I`/`II`/`III` chapters), stop cleanly before back-matter fluff or Amazon Kindle's *"Before you go / Rate this book"* end-of-book screen (plus flashing blank pages, short-page OCR jitter, and `A → B → A` oscillation), restore previous app focus automatically, read word-by-word inside `📖 Book View`, and export `.MP3`/`.M4B`/`.WAV`/`.MD` or synchronized 1080p Read-Along `.MP4` directly into the active folder. Strictly gated to macOS (`isKindleReaderSupported` / `isKindleSupportedPlatform`) so Linux and Windows builds stay completely clean.
+
+### Fixed
+
+- **Responsive Topbar `#viewbar` & Upper-Right Clock (`resources/file_manager/ui/views.css`).** Added `container-type: inline-size; container-name: viewbar`, progressive `@container viewbar` + `@media` compaction tiers (`1460px`, `1180px`, `1040px`, `820px`), and sticky right-edge pinning on `#view-extras` so `#fm-clock` never clips off-screen at `1280×820` or narrower window widths.
 
 ## 1.6.3 (18 November 2026)
 

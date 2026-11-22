@@ -60,7 +60,7 @@ Eight UI suites (`tests/word_search_page.node.mjs`, `tests/maze_generator_page.n
 
 ## Side effects to know about
 
-- A full `bun test` run leaves `git status` clean ([D-006](../documentation-maintenance/discrepancies.md#d-006), fixed). Interactive GUI tests (`tests/enterprise_gui_interactive.test.ts`, `tests/sys_utils_gui_interactive.test.ts`, `tests/subprocess_pipe_studio.test.ts`) bind ephemeral `127.0.0.1` listeners, stub `copyToClipboard`, and write exports only inside `mkdtempSync` temporary directories rather than `dist/`. The Homebrew test checks and idempotently verifies the `bin/` wrappers (`1.6.3`).
+- A full `bun test` run leaves `git status` clean ([D-006](../documentation-maintenance/discrepancies.md#d-006), fixed). Interactive GUI tests (`tests/enterprise_gui_interactive.test.ts`, `tests/sys_utils_gui_interactive.test.ts`, `tests/subprocess_pipe_studio.test.ts`) bind ephemeral `127.0.0.1` listeners, stub `copyToClipboard`, and write exports only inside `mkdtempSync` temporary directories rather than `dist/`. The Homebrew test checks and idempotently verifies the `bin/` wrappers (`1.6.4`).
 - The macro/codegen tests write to a temporary folder (`STUDIO_MACRO_STORE_DIR`), not to your real settings.
 - The OS-keychain test writes one entry under a unique test service name and deletes it again. On a machine without a credential store it falls back to checking the in-memory store.
 
