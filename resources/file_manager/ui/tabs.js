@@ -2,6 +2,7 @@
 import {
   $,
   activeIconPackStyle,
+  debounce,
   h,
   clear,
   announce,
@@ -11,15 +12,89 @@ import {
 import { attachDropTarget } from "./dnd.js";
 import { showMenu } from "./menus.js";
 import { state, on, emit, currentPath, inTrash } from "./state.js";
-import { goTo, showTrash } from "./nav.js";
+import { goTo, saveSettings, showTrash } from "./nav.js";
 import { copyPathOf, isFavorite, toggleFavorite } from "./ops.js";
 import { hooks, setActivePane } from "./pane.js";
 import { selectKeys } from "./selection.js";
 import { hintOf } from "./keymap.js";
 import { baseName } from "./util.js";
 
+const MAX_CLOSED_TABS = 12;
+const MAX_SESSION_TABS = 24;
+
 let nextTabSeq = 1;
 let tabSwitchSeq = 0;
+let restoringSession = false;
+let sessionRestoreAttempted = false;
+let lastPersistedSessionKey = "";
+
+function getStartupPathOverride() {
+  if (typeof document === "undefined") return "";
+  const raw =
+    document.querySelector('meta[name="fm-start"]')?.getAttribute("content") ??
+    "";
+  if (!raw || /^__FM_.*__$/.test(raw)) return "";
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function serializeSessionTabs() {
+  const sessionTabs = [];
+  for (const t of state.tabs) {
+    if (sessionTabs.length >= MAX_SESSION_TABS) break;
+    if (t.location?.kind === "trash") {
+      const entry = { kind: "trash" };
+      if (t.quickFilter) entry.quickFilter = t.quickFilter;
+      if (t.kindFilter && t.kindFilter !== "all")
+        entry.kindFilter = t.kindFilter;
+      if (typeof t.scrollTop === "number" && t.scrollTop > 0)
+        entry.scrollTop = Math.round(t.scrollTop);
+      sessionTabs.push(entry);
+    } else if (t.location?.path) {
+      const entry = { kind: "folder", path: t.location.path };
+      if (t.quickFilter) entry.quickFilter = t.quickFilter;
+      if (t.kindFilter && t.kindFilter !== "all")
+        entry.kindFilter = t.kindFilter;
+      if (typeof t.scrollTop === "number" && t.scrollTop > 0)
+        entry.scrollTop = Math.round(t.scrollTop);
+      sessionTabs.push(entry);
+    }
+  }
+  const activeIdx = state.tabs.findIndex((t) => t.id === state.activeTabId);
+  const activeTabIndex =
+    sessionTabs.length > 0
+      ? Math.max(
+          0,
+          Math.min(activeIdx < 0 ? 0 : activeIdx, sessionTabs.length - 1),
+        )
+      : 0;
+  return { sessionTabs, activeTabIndex };
+}
+
+const persistSessionTabs = debounce(() => {
+  if (restoringSession || typeof document === "undefined") return;
+  const payload = serializeSessionTabs();
+  if (payload.sessionTabs.length === 0) return;
+  const key = JSON.stringify(payload);
+  if (key === lastPersistedSessionKey) return;
+  lastPersistedSessionKey = key;
+  saveSettings(payload).catch(() => {});
+}, 350);
+
+function schedulePersistTabs() {
+  if (restoringSession) return;
+  if (
+    !sessionRestoreAttempted &&
+    Array.isArray(state.settings?.sessionTabs) &&
+    state.settings.sessionTabs.length > 1
+  ) {
+    return;
+  }
+  persistSessionTabs();
+}
 
 function cloneLoc(loc) {
   return loc?.kind === "trash"
@@ -126,6 +201,11 @@ async function activateTabObject(tab) {
   const wrap = $("#list-wrap");
   if (wrap && typeof tab.scrollTop === "number") wrap.scrollTop = tab.scrollTop;
   renderTabs();
+  const activeBtn = $("#tabbar")?.querySelector(
+    `.fm-tab[data-tab-id="${tab.id}"] .fm-tab-select`,
+  );
+  activeBtn?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  schedulePersistTabs();
   return true;
 }
 
@@ -213,13 +293,15 @@ export async function closeTab(tabId = state.activeTabId) {
     tagFilter: closedTab.tagFilter || "",
     scrollTop: closedTab.scrollTop ?? 0,
   });
-  if (state.closedTabs.length > 20) state.closedTabs.shift();
+  if (state.closedTabs.length > MAX_CLOSED_TABS)
+    state.closedTabs.splice(0, state.closedTabs.length - MAX_CLOSED_TABS);
   state.tabs.splice(idx, 1);
   if (closingActive) {
     const next = state.tabs[Math.min(idx, state.tabs.length - 1)];
     if (next) await activateTabObject(next);
   } else {
     renderTabs();
+    schedulePersistTabs();
   }
   announce(`Closed ${closedLabel} tab.`);
 }
@@ -249,13 +331,14 @@ export async function closeOtherTabs(keepTabId = state.activeTabId) {
       });
     }
   }
-  if (state.closedTabs.length > 20)
-    state.closedTabs.splice(0, state.closedTabs.length - 20);
+  if (state.closedTabs.length > MAX_CLOSED_TABS)
+    state.closedTabs.splice(0, state.closedTabs.length - MAX_CLOSED_TABS);
   state.tabs = [keep];
   if (state.activeTabId !== keep.id) {
     await activateTabObject(keep);
   } else {
     renderTabs();
+    schedulePersistTabs();
   }
   announce(`Closed other tabs; kept ${tabLabel(keep.location)}.`);
 }
@@ -280,14 +363,15 @@ export async function closeTabsToRight(tabId = state.activeTabId) {
       scrollTop: t.scrollTop ?? 0,
     });
   }
-  if (state.closedTabs.length > 20)
-    state.closedTabs.splice(0, state.closedTabs.length - 20);
+  if (state.closedTabs.length > MAX_CLOSED_TABS)
+    state.closedTabs.splice(0, state.closedTabs.length - MAX_CLOSED_TABS);
   state.tabs = state.tabs.slice(0, idx + 1);
   if (!state.tabs.some((t) => t.id === state.activeTabId)) {
     const keep = state.tabs[state.tabs.length - 1];
     if (keep) await activateTabObject(keep);
   } else {
     renderTabs();
+    schedulePersistTabs();
   }
   announce(
     `Closed ${removed.length} tab${removed.length === 1 ? "" : "s"} to the right.`,
@@ -331,18 +415,100 @@ export async function reopenClosedTab() {
   return restored;
 }
 
+/** Restores saved `sessionTabs` from `state.settings` on initial boot unless an explicit startup path override differs. */
+export async function restoreSessionTabs() {
+  sessionRestoreAttempted = true;
+  if (state.tabs.length > 1) return false;
+  const saved = Array.isArray(state.settings?.sessionTabs)
+    ? state.settings.sessionTabs
+    : [];
+  if (saved.length <= 1) return false;
+  const valid = saved
+    .slice(0, MAX_SESSION_TABS)
+    .filter(
+      (t) =>
+        t &&
+        (t.kind === "trash" ||
+          (t.kind === "folder" && typeof t.path === "string" && t.path.trim())),
+    );
+  if (valid.length <= 1) return false;
+  const rawIdx =
+    typeof state.settings?.activeTabIndex === "number" &&
+    Number.isFinite(state.settings.activeTabIndex)
+      ? Math.floor(state.settings.activeTabIndex)
+      : 0;
+  const activeIdx = Math.max(0, Math.min(rawIdx, valid.length - 1));
+  const activeSaved = valid[activeIdx];
+  const startupOverride = getStartupPathOverride();
+  if (
+    startupOverride &&
+    (activeSaved.kind !== "folder" || activeSaved.path !== startupOverride)
+  ) {
+    return false;
+  }
+  restoringSession = true;
+  try {
+    state.tabs = valid.map((t) => ({
+      id: nextTabSeq++,
+      location:
+        t.kind === "trash"
+          ? { kind: "trash" }
+          : { kind: "folder", path: t.path },
+      search: null,
+      history: [],
+      future: [],
+      selection: [],
+      quickFilter: typeof t.quickFilter === "string" ? t.quickFilter : "",
+      kindFilter:
+        typeof t.kindFilter === "string" && t.kindFilter ? t.kindFilter : "all",
+      tagFilter: "",
+      scrollTop: typeof t.scrollTop === "number" ? t.scrollTop : 0,
+    }));
+    const target = state.tabs[activeIdx] ?? state.tabs[0];
+    state.activeTabId = target.id;
+    lastPersistedSessionKey = JSON.stringify(serializeSessionTabs());
+    await activateTabObject(target);
+    return true;
+  } finally {
+    restoringSession = false;
+  }
+}
+
 export function renderTabs() {
   const bar = $("#tabbar");
   if (!bar) return;
+  bar.removeAttribute("role");
   ensureInitialTab();
   const active =
     state.tabs.find((t) => t.id === state.activeTabId) ?? state.tabs[0];
+  let locationChanged = false;
   if (active && (state.location.kind === "trash" || state.location.path)) {
+    const prevKey =
+      active.location?.kind === "trash"
+        ? "trash"
+        : `folder:${active.location?.path || ""}`;
+    const nextKey =
+      state.location.kind === "trash"
+        ? "trash"
+        : `folder:${state.location.path || ""}`;
+    locationChanged = prevKey !== nextKey;
     active.location = cloneLoc(state.location);
     active.history = [...state.history];
     active.future = [...state.future];
   }
   clear(bar);
+  const tablist = h("div", {
+    class: "fm-tablist",
+    role: "tablist",
+    focusgroup: "tablist nomemory",
+    "aria-label": "Open folder tabs",
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "0.28rem",
+      flex: "0 0 auto",
+    },
+  });
   for (const tab of state.tabs) {
     const isCurrent = tab.id === state.activeTabId;
     const label = tabLabel(tab.location);
@@ -357,8 +523,7 @@ export function renderTabs() {
       "div",
       {
         class: `fm-tab${isCurrent ? " active" : ""}`,
-        role: "tab",
-        "aria-selected": isCurrent ? "true" : "false",
+        role: "presentation",
         dataset: { tabId: String(tab.id), path: tab.location?.path || "" },
         oncontextmenu: (e) => {
           e.preventDefault();
@@ -437,6 +602,10 @@ export function renderTabs() {
         {
           type: "button",
           class: "fm-tab-select",
+          role: "tab",
+          "aria-selected": isCurrent ? "true" : "false",
+          tabindex: isCurrent ? "0" : "-1",
+          focusgroupstart: isCurrent,
           title: tabTitle(tab.location),
           "aria-label": `${label} tab`,
           onclick: () => switchTab(tab.id),
@@ -485,9 +654,10 @@ export function renderTabs() {
     if (!isTrash && tab.location?.path) {
       attachDropTarget(item, { getPath: () => tab.location.path });
     }
-    bar.append(item);
+    tablist.append(item);
   }
   bar.append(
+    tablist,
     h(
       "button",
       {
@@ -511,15 +681,22 @@ export function renderTabs() {
       "+",
     ),
   );
+  if (locationChanged) schedulePersistTabs();
 }
 
 export function wireTabs() {
   const bar = $("#tabbar");
+  bar?.removeAttribute("role");
   bar?.addEventListener("dblclick", (e) => {
     if (e.target === bar) void openNewTab();
   });
   bar?.addEventListener("keydown", async (e) => {
     if (e.isComposing || e.keyCode === 229) return;
+    if (
+      typeof HTMLElement !== "undefined" &&
+      "focusGroup" in HTMLElement.prototype
+    )
+      return;
     const tabEl =
       e.target instanceof Element ? e.target.closest(".fm-tab") : null;
     if (!tabEl || state.tabs.length <= 1) return;
@@ -541,6 +718,18 @@ export function wireTabs() {
         ?.focus();
     }
   });
-  on("view", renderTabs);
+  on("view", () => {
+    if (
+      !sessionRestoreAttempted &&
+      state.tabs.length <= 1 &&
+      Array.isArray(state.settings?.sessionTabs) &&
+      state.settings.sessionTabs.length > 1
+    ) {
+      void restoreSessionTabs();
+      return;
+    }
+    sessionRestoreAttempted = true;
+    renderTabs();
+  });
   renderTabs();
 }

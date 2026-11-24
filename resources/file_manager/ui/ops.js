@@ -1,6 +1,6 @@
 // Everything the person can do to files, with Undo. Each operation calls the server, explains problems in plain
 // words, offers Undo where it is possible, and refreshes the view.
-import { ApiError, call } from "./api.js";
+import { ApiError, call, getToken } from "./api.js";
 import { copyItemButton, readFromClipboard } from "./copyclip.js";
 import {
   chooseConflict,
@@ -1082,6 +1082,72 @@ export async function dropOnto(destPath, sources, copy) {
 
 export async function dropOnTrash(sources) {
   await trashItems(sources);
+}
+
+/** Uploads external OS files dropped onto a folder target via `POST /api/upload-drop`, refreshes the pane, and shows a summary toast. */
+export async function dropExternalFiles(destPath, files) {
+  const list = Array.from(files ?? []).filter(Boolean);
+  if (!destPath || !list.length) return { uploaded: [], failed: [] };
+  const uploaded = [];
+  const failed = [];
+  await busy(async () => {
+    for (const file of list) {
+      const name =
+        typeof file.name === "string" && file.name.trim()
+          ? file.name.trim()
+          : "dropped-file";
+      try {
+        const query = new URLSearchParams({ dir: destPath, name });
+        const res = await fetch(`/api/upload-drop?${query}`, {
+          method: "POST",
+          headers: {
+            "x-fm-token": getToken(),
+            "Content-Type": file.type || "application/octet-stream",
+          },
+          body: file,
+        });
+        let data = null;
+        try {
+          data = await res.json();
+        } catch {}
+        if (!res.ok || !data || data.ok === false) {
+          failed.push(data?.error?.message ?? `Couldn't add "${name}".`);
+        } else {
+          uploaded.push({
+            path: data.path,
+            name: data.name,
+            size: data.size ?? 0,
+          });
+        }
+      } catch {
+        failed.push(`Couldn't add "${name}".`);
+      }
+    }
+    if (uploaded.length) {
+      const addedPaths = uploaded.map((u) => u.path);
+      pushUndo(`add ${plural(uploaded.length, "dropped file")}`, async () =>
+        ensureOk(
+          (await trashPaths(addedPaths)).failed.map((m) => ({
+            ok: false,
+            message: m,
+          })),
+          "undo",
+        ),
+      );
+      await refresh({ keepSelection: false });
+      toast(
+        uploaded.length === 1
+          ? `Added "${uploaded[0].name}" to "${baseName(destPath, state.sep) || destPath}".`
+          : `Added ${plural(uploaded.length, "file")} to "${baseName(destPath, state.sep) || destPath}".`,
+        {
+          kind: "success",
+          action: { label: "Undo", run: undo },
+        },
+      );
+    }
+    if (failed.length) await reportFailures(failed, "added");
+  });
+  return { uploaded, failed };
 }
 
 // ---------------------------------------------------------------------------------------------------------------

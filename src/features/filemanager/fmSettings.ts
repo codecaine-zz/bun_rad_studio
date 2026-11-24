@@ -217,7 +217,23 @@ export interface Settings {
   phononSyncOffsetMs: number;
   /** Broadcast / audiobook DSP mastering preset ("none" | "podcast" | "acx" | "broadcast"). */
   phononMasterPreset: PhononMasterPresetSetting;
+  /** Saved folder tabs from the previous session for automatic restore on startup. */
+  sessionTabs: SessionTab[];
+  /** Index of the active tab within `sessionTabs` (clamped non-negative integer). */
+  activeTabIndex: number;
 }
+
+/** A single persisted folder or Recycle Bin tab entry in `sessionTabs`. */
+export interface SessionTab {
+  kind: "folder" | "trash";
+  path?: string;
+  quickFilter?: string;
+  kindFilter?: string;
+  scrollTop?: number;
+}
+
+/** Maximum number of persisted session tabs stored in settings (`24`). */
+export const MAX_SESSION_TABS = 24;
 
 export const PHONON_MASTER_PRESET_SETTINGS = [
   "none",
@@ -909,6 +925,8 @@ export const DEFAULT_SETTINGS: Settings = {
   phononPitch: 0,
   phononSyncOffsetMs: 0,
   phononMasterPreset: "none",
+  sessionTabs: [],
+  activeTabIndex: 0,
 };
 
 /** Maximum number of pinned favorite folders stored in settings (`100`). */
@@ -1084,6 +1102,50 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
     if (!isPath(key) || !isPaletteKey(value)) continue;
     folderThemes[p.resolve(key)] = value;
   }
+  const sessionTabs: SessionTab[] = [];
+  for (const rawTab of Array.isArray(r.sessionTabs) ? r.sessionTabs : []) {
+    if (sessionTabs.length >= MAX_SESSION_TABS) break;
+    if (!rawTab || typeof rawTab !== "object" || Array.isArray(rawTab))
+      continue;
+    const t = rawTab as Record<string, unknown>;
+    if (t.kind !== "folder" && t.kind !== "trash") continue;
+    const entry: SessionTab =
+      t.kind === "trash" ? { kind: "trash" } : { kind: "folder" };
+    if (t.kind === "folder") {
+      if (!isPath(t.path)) continue;
+      entry.path = p.resolve(t.path);
+    }
+    if (typeof t.quickFilter === "string") {
+      // eslint-disable-next-line no-control-regex
+      const qf = t.quickFilter
+        .replace(/[\x00-\x1f\x7f]/g, " ")
+        .trim()
+        .slice(0, 200);
+      if (qf) entry.quickFilter = qf;
+    }
+    if (
+      typeof t.kindFilter === "string" &&
+      /^[a-z]{1,20}$/.test(t.kindFilter)
+    ) {
+      entry.kindFilter = t.kindFilter;
+    }
+    if (
+      typeof t.scrollTop === "number" &&
+      Number.isFinite(t.scrollTop) &&
+      t.scrollTop >= 0
+    ) {
+      entry.scrollTop = Math.round(Math.min(10_000_000, t.scrollTop));
+    }
+    sessionTabs.push(entry);
+  }
+  const rawActiveTabIndex =
+    typeof r.activeTabIndex === "number" && Number.isFinite(r.activeTabIndex)
+      ? Math.max(0, Math.floor(r.activeTabIndex))
+      : DEFAULT_SETTINGS.activeTabIndex;
+  const activeTabIndex =
+    sessionTabs.length > 0
+      ? Math.min(rawActiveTabIndex, sessionTabs.length - 1)
+      : 0;
   return {
     favorites,
     favoriteNames: names,
@@ -1447,6 +1509,8 @@ export function sanitizeSettings(raw: unknown, ctx: FmContext): Settings {
       PHONON_MASTER_PRESET_SETTINGS,
       DEFAULT_SETTINGS.phononMasterPreset,
     ),
+    sessionTabs,
+    activeTabIndex,
   };
 }
 

@@ -23,6 +23,8 @@ import {
 import { injectGameMasterFx } from "../../shared/gameMasterFx";
 import {
   absolutePath,
+  assertCreatable,
+  assertFolder,
   createContext,
   pathApi,
   type FmContext,
@@ -133,11 +135,14 @@ import { openViaAssociation, openWithOperations } from "./fmOpenWith";
 import {
   FmError,
   classify,
+  cleanName,
   describeFsError,
   parseTypedPath,
   extensionOf,
   isDocumentPackageName,
   isSameOrInside,
+  uniqueName,
+  validateName,
 } from "./fmPaths";
 import {
   addRecent,
@@ -180,6 +185,8 @@ export const APP_NAME = "Codecaine File Manager";
 export const APP_VERSION = "1.3.0";
 /** Maximum allowed byte size for JSON API request bodies (1 MiB). */
 export const MAX_BODY_BYTES = 1024 * 1024;
+/** Maximum allowed byte size for external drag-and-drop file uploads (32 MiB, matching `maxRequestBodySize`). */
+export const MAX_UPLOAD_DROP_BYTES = 32 * 1024 * 1024;
 const MAX_RAW_BYTES = 100 * 1024 * 1024;
 
 /** Configuration options for starting the local File Manager HTTP and WebSocket server. */
@@ -1734,6 +1741,112 @@ export function startFileManagerServer(options: FileManagerServerOptions = {}) {
           }
           return new Response(Bun.file(real), {
             headers: secureHeaders({ "Content-Type": picture!, ...preview }),
+          });
+        }
+
+        if (req.method === "POST" && path === "/api/upload-drop") {
+          if (!tokenMatches(req.headers.get("x-fm-token"), token))
+            return json(401, {
+              ok: false,
+              error: {
+                code: "NO_TOKEN",
+                message: "Not allowed. Reload the File Manager window.",
+              },
+            });
+          const declared = Number(req.headers.get("content-length") ?? 0);
+          if (declared > MAX_UPLOAD_DROP_BYTES)
+            return json(413, {
+              ok: false,
+              error: {
+                code: "TOO_LARGE",
+                message: "That dropped file is too large (32 MB limit).",
+              },
+            });
+          const contentType = (
+            req.headers.get("content-type") ?? ""
+          ).toLowerCase();
+          let rawDir: unknown =
+            url.searchParams.get("dir") ?? req.headers.get("x-fm-dir");
+          let rawName: unknown =
+            url.searchParams.get("name") ?? req.headers.get("x-fm-name");
+          let bytes: Uint8Array;
+          if (contentType.includes("multipart/form-data")) {
+            let form: FormData;
+            try {
+              form = await req.formData();
+            } catch {
+              return json(400, {
+                ok: false,
+                error: {
+                  code: "BAD_REQUEST",
+                  message: "Could not read the uploaded file data.",
+                },
+              });
+            }
+            const dirField = form.get("dir");
+            if (typeof dirField === "string" && dirField) rawDir = dirField;
+            const nameField = form.get("name");
+            const fileField = form.get("file");
+            if (!(fileField instanceof Blob)) {
+              return json(400, {
+                ok: false,
+                error: {
+                  code: "BAD_REQUEST",
+                  message: "No file data was provided.",
+                },
+              });
+            }
+            if (typeof nameField === "string" && nameField) {
+              rawName = nameField;
+            } else if (
+              "name" in fileField &&
+              typeof fileField.name === "string" &&
+              fileField.name
+            ) {
+              rawName = fileField.name;
+            }
+            bytes = new Uint8Array(await fileField.arrayBuffer());
+          } else {
+            bytes = new Uint8Array(await req.arrayBuffer());
+          }
+          if (bytes.byteLength > MAX_UPLOAD_DROP_BYTES)
+            return json(413, {
+              ok: false,
+              error: {
+                code: "TOO_LARGE",
+                message: "That dropped file is too large (32 MB limit).",
+              },
+            });
+          const dir = absolutePath(ctx, rawDir);
+          await assertFolder(dir, "The destination folder");
+          assertCreatable(ctx, dir);
+          const base =
+            typeof rawName === "string"
+              ? nodePath.posix.basename(rawName.replace(/\\/g, "/"))
+              : "";
+          const cleaned = cleanName(base);
+          const nameReason = validateName(cleaned, ctx.platform);
+          if (nameReason) throw new FmError("BAD_NAME", nameReason);
+          const taken = new Set(await fsp.readdir(dir));
+          const finalName = uniqueName(cleaned, (n) => taken.has(n));
+          const p = pathApi(ctx);
+          const destPath = p.join(dir, finalName);
+          const tmpPath = p.join(
+            dir,
+            `.fm-drop-${randomBytes(6).toString("hex")}.tmp`,
+          );
+          try {
+            await fsp.writeFile(tmpPath, bytes, { flag: "wx" });
+            await fsp.rename(tmpPath, destPath);
+          } catch (err) {
+            await fsp.unlink(tmpPath).catch(() => {});
+            throw err;
+          }
+          return json(200, {
+            ok: true,
+            path: destPath,
+            name: finalName,
+            size: bytes.byteLength,
           });
         }
 
