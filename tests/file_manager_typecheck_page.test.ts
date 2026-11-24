@@ -232,7 +232,7 @@ describe("badges in the file list", () => {
     expect(Math.max(...checkRequests.map((r) => r.length))).toBeLessThanOrEqual(
       100,
     );
-    doc.querySelector("#list .more .btn").click();
+    doc.querySelector("#list-wrap .more .btn").click();
     await settle(900);
     expect(doc.querySelectorAll("#list .row").length).toBe(620);
     expect(doc.querySelectorAll("#list .type-badge").length).toBe(620);
