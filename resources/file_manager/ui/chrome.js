@@ -40,23 +40,63 @@ export function hideUntilFits(items, hide, fits, keep = 1) {
   return hidden;
 }
 
+let isFitting = false;
+let toolbarObserver = null;
+
 /** Shows as many toolbar buttons as fit in one row, and puts the rest in the More menu. */
 export function fitToolbar() {
-  if (typeof document === "undefined") return; // a timer left over from a page that was torn down
+  if (typeof document === "undefined" || isFitting) return; // a timer left over from a page that was torn down, or re-entrant call
   const bar = $("#toolbar");
   const more = $("#tool-more");
   if (!bar || !more) return;
-  const buttons = [...bar.querySelectorAll(".tool")];
-  for (const b of buttons) b.classList.remove("overflowed");
-  more.hidden = true;
-  const fits = () => bar.scrollWidth <= bar.clientWidth + 1;
-  if (!bar.clientWidth || fits()) return;
-  more.hidden = false;
-  hideUntilFits(
-    buttons.filter((b) => !b.hidden),
-    (b) => b.classList.add("overflowed"),
-    fits,
-  );
+  isFitting = true;
+  try {
+    const buttons = [...bar.querySelectorAll(".tool")];
+    for (const b of buttons) b.classList.remove("overflowed");
+    more.hidden = true;
+    const barWidth = bar.clientWidth;
+    const barScrollWidth = bar.scrollWidth;
+    if (!barWidth || barScrollWidth <= barWidth + 1) return;
+
+    more.hidden = false;
+    const visibleButtons = buttons.filter((b) => !b.hidden);
+    // Single read pass: measure toolbar width, More button width, and all visible button widths BEFORE mutating `.overflowed`.
+    const availWidth = bar.clientWidth;
+    const moreWidth =
+      more.offsetWidth || more.getBoundingClientRect?.().width || 0;
+    const widths = visibleButtons.map(
+      (b) => b.offsetWidth || b.getBoundingClientRect?.().width || 0,
+    );
+    const hasMeasuredWidths = widths.some((w) => w > 0);
+
+    if (hasMeasuredWidths) {
+      const totalButtonsWidth = widths.reduce((sum, w) => sum + w, 0);
+      const overhead = Math.max(0, barScrollWidth - totalButtonsWidth);
+      const effectiveAvail =
+        availWidth < barWidth
+          ? availWidth
+          : Math.max(0, availWidth - moreWidth);
+      let used = totalButtonsWidth + overhead;
+      const toOverflow = [];
+      for (let i = visibleButtons.length - 1; i >= 1; i--) {
+        if (used <= effectiveAvail + 1) break;
+        toOverflow.push(visibleButtons[i]);
+        used -= widths[i];
+      }
+      // Single write pass: mutate classes without interleaving layout reads.
+      for (const b of toOverflow) b.classList.add("overflowed");
+    } else {
+      // Fallback for layout-less test environments (e.g., JSDOM) where individual button widths are 0.
+      hideUntilFits(
+        visibleButtons,
+        (b) => b.classList.add("overflowed"),
+        () => bar.scrollWidth <= bar.clientWidth + 1,
+      );
+    }
+  } finally {
+    toolbarObserver?.takeRecords?.();
+    isFitting = false;
+  }
 }
 
 /** Clicks a toolbar button that is hidden in More. A button that opens a menu anchors it to itself, so it is parked, unseen, where More is. */
@@ -361,13 +401,17 @@ export function wireChrome() {
   const queue = debounce(fitToolbar, 30);
   if (typeof ResizeObserver === "function")
     new ResizeObserver(queue).observe($("#toolbar-row"));
-  if (typeof MutationObserver === "function")
-    new MutationObserver(queue).observe($("#toolbar"), {
+  if (typeof MutationObserver === "function") {
+    toolbarObserver = new MutationObserver(() => {
+      if (!isFitting) queue();
+    });
+    toolbarObserver.observe($("#toolbar"), {
       childList: true,
       subtree: true,
       attributes: true,
       attributeFilter: ["hidden"],
     });
+  }
   for (const ev of ["workspace", "settings", "power"]) on(ev, queue);
   window.addEventListener("resize", queue);
   queue();

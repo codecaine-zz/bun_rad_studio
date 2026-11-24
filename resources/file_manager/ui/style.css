@@ -864,10 +864,23 @@ button.crumb-sep:focus-visible {
   outline-color: color-mix(in oklab, var(--accent) 55%, var(--border));
 }
 .row.cut {
-  opacity: 0.5;
+  font-style: italic;
+  background: color-mix(in oklab, var(--panel, transparent) 35%, transparent);
 }
-.row.hidden-item {
-  opacity: 0.7;
+.row.cut .icon,
+.row.cut .c-icon,
+.row.cut .meta,
+.row.cut .c-where,
+.row.cut .c-date,
+.row.cut .c-type,
+.row.cut .c-size,
+.row.cut .c-ext,
+.row.cut .c-perms {
+  opacity: 0.55;
+}
+.row.hidden-item .icon,
+.row.hidden-item .c-icon {
+  opacity: 0.75;
 }
 .row.broken .name-text {
   text-decoration: line-through;
@@ -990,6 +1003,21 @@ button.crumb-sep:focus-visible {
   text-align: center;
 }
 
+.view-details .row:nth-child(n + 40),
+.view-list .row:nth-child(n + 40) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto none auto 30px;
+}
+@supports not (content-visibility: auto) {
+  .view-details .row:nth-child(n + 40),
+  .view-list .row:nth-child(n + 40) {
+    contain: layout style paint;
+  }
+}
+
+.list-more-host[hidden] {
+  display: none;
+}
 .more {
   grid-column: 1 / -1;
   display: flex;

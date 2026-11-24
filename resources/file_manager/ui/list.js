@@ -4,6 +4,7 @@ import { ApiError } from "./api.js";
 import { showBackgroundMenu, showEntryMenu } from "./contextmenu.js";
 import { attachDropTarget, drag, endDrag, startDrag } from "./dnd.js";
 import {
+  activeIconPackStyle,
   classifyFolderTopic,
   classifyIconKind,
   clear,
@@ -50,7 +51,8 @@ const PAGE = 500;
 const views = new Map();
 
 function viewOf(pane) {
-  if (!views.has(pane)) views.set(pane, { rows: new Map(), renaming: null });
+  if (!views.has(pane))
+    views.set(pane, { rows: new Map(), renaming: null, lastBucket: null });
 
   return views.get(pane);
 }
@@ -198,8 +200,18 @@ function makeRow(pane, entry, index, cutSet = undefined) {
         ? "rwxr-xr-x"
         : "rw-r--r--");
   const iconKind = classifyIconKind(entry.name, isFolderVisual);
-  const folderTopic = isFolderVisual ? classifyFolderTopic(entry.name) : "";
   const sysIcon = resolveSystemIcon(entry.name, isFolderVisual);
+  const folderTopic = isFolderVisual
+    ? sysIcon?.topic && sysIcon.topic !== "general"
+      ? sysIcon.topic
+      : classifyFolderTopic(entry.name)
+    : "";
+  const folderFxOnly =
+    typeof document !== "undefined" &&
+    document.documentElement?.dataset?.folderFxOnly === "true";
+  const appliedPack =
+    !isFolderVisual && folderFxOnly ? "default" : activeIconPackStyle();
+  const appliedName = entry.name || "";
   const row = h(
     "div",
     {
@@ -211,7 +223,7 @@ function makeRow(pane, entry, index, cutSet = undefined) {
       dataset: {
         key: entry.path,
         index: String(index),
-        entryName: entry.name || "",
+        entryName: appliedName,
         isDir: isFolderVisual ? "1" : "0",
         iconKind,
         defaultIcon: entry.icon || "",
@@ -234,11 +246,13 @@ function makeRow(pane, entry, index, cutSet = undefined) {
         dataset: {
           iconKind,
           isFolder: isFolderVisual ? "1" : "0",
+          appliedPack,
+          appliedName,
           ...(folderTopic ? { folderTopic, topic: folderTopic } : {}),
           ...(sysIcon?.id ? { systemIcon: sysIcon.id } : {}),
         },
       },
-      iconForEntry(entry),
+      iconForEntry(entry, appliedPack),
     ),
     h(
       "span",
@@ -301,42 +315,36 @@ function makeRow(pane, entry, index, cutSet = undefined) {
   return row;
 }
 
-export function renderList(pane = left) {
-  const container = list(pane);
-  if (!container) return;
-  const view = viewOf(pane);
-  const entries = visibleEntries(pane);
-  const trash = inTrash(pane);
-  const cols = Array.isArray(state.settings.columns)
-    ? state.settings.columns
-    : [];
-  const groupBy = !trash ? state.settings.groupBy || "none" : "none";
-  view.rows.clear();
-  view.renaming = null;
-  container.className = `view-${state.settings.view}${pane.search ? " searching" : ""}${trash ? " in-trash" : ""}${groupBy !== "none" ? " grouped" : ""}`;
-  container.dataset.cols = cols.join(",");
-  container.setAttribute(
-    "aria-label",
-    pane.side === "right"
-      ? "Files and folders in the right pane"
-      : trash
-        ? "Recycle Bin"
-        : pane.search
-          ? "Search results"
-          : "Files and folders",
-  );
-  const limit = pane.shown || PAGE;
-  pane.shown = Math.min(Math.max(limit, PAGE), entries.length);
-  const frag = document.createDocumentFragment();
-  const slice = entries.slice(0, pane.shown);
-  const cutSet =
-    state.clipboard?.mode === "cut" &&
+function activeCutSet() {
+  return state.clipboard?.mode === "cut" &&
     Array.isArray(state.clipboard.paths) &&
     state.clipboard.paths.length > 0
-      ? new Set(state.clipboard.paths)
-      : null;
-  let lastBucket = null;
-  slice.forEach((e, i) => {
+    ? new Set(state.clipboard.paths)
+    : null;
+}
+
+function moreHostFor(container, create = false) {
+  const next = container.nextElementSibling;
+  if (next && next.classList.contains("list-more-host")) return next;
+  if (!create || !container.parentNode) return null;
+  const host = h("div", { class: "list-more-host" });
+  container.after(host);
+  return host;
+}
+
+function buildRowsFragment(
+  pane,
+  entries,
+  startIndex,
+  endIndex,
+  groupBy,
+  cutSet,
+  initialLastBucket = null,
+) {
+  const frag = document.createDocumentFragment();
+  let lastBucket = initialLastBucket;
+  for (let i = startIndex; i < endIndex; i++) {
+    const e = entries[i];
     if (groupBy !== "none") {
       const bucket = groupBucketFor(e, groupBy);
       if (bucket && bucket !== lastBucket) {
@@ -355,42 +363,122 @@ export function renderList(pane = left) {
       }
     }
     frag.append(makeRow(pane, e, i, cutSet));
-  });
-  if (entries.length > pane.shown) {
-    frag.append(
-      h(
-        "div",
-        { class: "more" },
-        h("span", {}, summarizeCount(entries.length, pane.shown)),
-        h(
-          "button",
-          {
-            type: "button",
-            class: "btn",
-            onclick: () => {
-              pane.shown += PAGE;
-              renderList(pane);
-            },
-          },
-          `Show ${Math.min(PAGE, entries.length - pane.shown)} more`,
-        ),
-        h(
-          "button",
-          {
-            type: "button",
-            class: "btn",
-            onclick: () => {
-              pane.shown = entries.length;
-              renderList(pane);
-            },
-          },
-          "Show all",
-        ),
-      ),
-    );
   }
+  return { frag, lastBucket };
+}
+
+function appendMoreRows(pane, nextShown) {
+  const container = list(pane);
+  if (!container) return;
+  const view = viewOf(pane);
+  const entries = visibleEntries(pane);
+  const prevShown = pane.shown || 0;
+  const targetShown = Math.min(Math.max(nextShown, prevShown), entries.length);
+  if (targetShown <= prevShown || container.children.length === 0) {
+    pane.shown = targetShown;
+    renderList(pane);
+    return;
+  }
+  const trash = inTrash(pane);
+  const groupBy = !trash ? state.settings.groupBy || "none" : "none";
+  const cutSet = activeCutSet();
+  const { frag, lastBucket } = buildRowsFragment(
+    pane,
+    entries,
+    prevShown,
+    targetShown,
+    groupBy,
+    cutSet,
+    view.lastBucket,
+  );
+  pane.shown = targetShown;
+  view.lastBucket = lastBucket;
+  syncVisibleIcons(frag);
+  container.append(frag);
+  renderMoreFooter(pane, container, entries);
+  syncSelection(pane);
+}
+
+function renderMoreFooter(pane, container, entries) {
+  if (entries.length <= pane.shown) {
+    const existing = moreHostFor(container, false);
+    if (existing) {
+      clear(existing);
+      existing.hidden = true;
+    }
+    return;
+  }
+  const host = moreHostFor(container, true);
+  if (!host) return;
+  host.hidden = false;
+  clear(host).append(
+    h(
+      "div",
+      { class: "more" },
+      h("span", {}, summarizeCount(entries.length, pane.shown)),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn",
+          onclick: () => appendMoreRows(pane, pane.shown + PAGE),
+        },
+        `Show ${Math.min(PAGE, entries.length - pane.shown)} more`,
+      ),
+      h(
+        "button",
+        {
+          type: "button",
+          class: "btn",
+          onclick: () => appendMoreRows(pane, visibleEntries(pane).length),
+        },
+        "Show all",
+      ),
+    ),
+  );
+}
+
+export function renderList(pane = left) {
+  const container = list(pane);
+  if (!container) return;
+  const view = viewOf(pane);
+  const entries = visibleEntries(pane);
+  const trash = inTrash(pane);
+  const cols = Array.isArray(state.settings.columns)
+    ? state.settings.columns
+    : [];
+  const groupBy = !trash ? state.settings.groupBy || "none" : "none";
+  view.rows.clear();
+  view.renaming = null;
+  view.lastBucket = null;
+  container.className = `view-${state.settings.view}${pane.search ? " searching" : ""}${trash ? " in-trash" : ""}${groupBy !== "none" ? " grouped" : ""}`;
+  container.dataset.cols = cols.join(",");
+  container.setAttribute(
+    "aria-label",
+    pane.side === "right"
+      ? "Files and folders in the right pane"
+      : trash
+        ? "Recycle Bin"
+        : pane.search
+          ? "Search results"
+          : "Files and folders",
+  );
+  const limit = pane.shown || PAGE;
+  pane.shown = Math.min(Math.max(limit, PAGE), entries.length);
+  const cutSet = activeCutSet();
+  const { frag, lastBucket } = buildRowsFragment(
+    pane,
+    entries,
+    0,
+    pane.shown,
+    groupBy,
+    cutSet,
+    null,
+  );
+  view.lastBucket = lastBucket;
   clear(container).append(frag);
   syncVisibleIcons(container);
+  renderMoreFooter(pane, container, entries);
 
   const empty = part(pane, "empty");
   const [title, text] = emptyMessage(pane);
@@ -919,6 +1007,19 @@ export function iconsPerLine(pane = left) {
   const rows = [...viewOf(pane).rows.values()];
   const first = rows[0];
   if (!first) return 1;
+  const container = list(pane);
+  if (container && typeof getComputedStyle === "function") {
+    const gtc = getComputedStyle(container)?.gridTemplateColumns?.trim();
+    if (gtc && gtc !== "none" && !gtc.includes("(")) {
+      const tracks = gtc.split(/\s+/).filter(Boolean);
+      if (
+        tracks.length > 0 &&
+        tracks.every((t) => /^\d+(\.\d+)?px$/i.test(t))
+      ) {
+        return Math.max(1, tracks.length);
+      }
+    }
+  }
   if (
     state.settings.view === "list" &&
     rows.length > 1 &&
