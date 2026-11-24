@@ -118,6 +118,12 @@ export function infoPlist(app: MacApp, iconFile: string): string {
   <key>LSMinimumSystemVersion</key><string>11.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
+  <key>NSSpeechRecognitionUsageDescription</key><string>${xmlEscape(app.title)} uses speech recognition to transcribe audio and video files locally.</string>
+  <key>NSMicrophoneUsageDescription</key><string>${xmlEscape(app.title)} uses the microphone to record voice notes for local transcription.</string>
+  <key>NSAppleEventsUsageDescription</key><string>${xmlEscape(app.title)} uses Apple Events to integrate with Finder and open files in macOS applications.</string>
+  <key>NSDocumentsFolderUsageDescription</key><string>${xmlEscape(app.title)} needs access to your Documents folder to browse and manage your files.</string>
+  <key>NSDesktopFolderUsageDescription</key><string>${xmlEscape(app.title)} needs access to your Desktop folder to browse and manage your files.</string>
+  <key>NSDownloadsFolderUsageDescription</key><string>${xmlEscape(app.title)} needs access to your Downloads folder to browse and manage your files.</string>
   <key>NSAppTransportSecurity</key>
   <dict>
     <key>NSAllowsLocalNetworking</key><true/>

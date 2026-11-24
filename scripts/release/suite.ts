@@ -67,7 +67,11 @@ export function unload() {}
 export const WEBVIEW_VERSION = "0.12.0";
 `;
 
-const FILE_MANAGER_WORKER = "fmFindWorker.ts";
+export const FILE_MANAGER_WORKERS = [
+  "fmFindWorker.ts",
+  "fmConvWorker.ts",
+  "fmSdWorker.ts",
+] as const;
 const FILE_MANAGER_DB_STUDIOS = [
   "sqlite-studio.js",
   "mysql-studio.js",
@@ -75,7 +79,7 @@ const FILE_MANAGER_DB_STUDIOS = [
   "redis-studio.js",
 ];
 
-/** Copies an app and the separately bundled worker it loads relative to its own URL. */
+/** Copies an app and the separately bundled workers it loads relative to its own URL. */
 export function copyAppBundle(
   app: SourceApp,
   destination: string,
@@ -84,10 +88,9 @@ export function copyAppBundle(
   const source = join(outRoot, app.kind === "gui" ? "apps" : "cli");
   cpSync(join(source, `${app.name}.js`), join(destination, `${app.name}.js`));
   if (app.name === "file-manager-studio") {
-    cpSync(
-      join(source, FILE_MANAGER_WORKER),
-      join(destination, FILE_MANAGER_WORKER),
-    );
+    for (const workerFile of FILE_MANAGER_WORKERS) {
+      cpSync(join(source, workerFile), join(destination, workerFile));
+    }
     for (const dbStudio of FILE_MANAGER_DB_STUDIOS) {
       const dbPath = join(source, dbStudio);
       if (existsSync(dbPath)) {
@@ -222,23 +225,23 @@ export async function bundleApps(
               .slice(0, 300) || "the bundler failed",
           );
         if (app.name === "file-manager-studio") {
-          // Keep the filename used by fmFindRun's relative URL; the contents include all worker dependencies.
-          const worker = await Bun.build({
-            entrypoints: [
-              join(ROOT, "src/features/filemanager", FILE_MANAGER_WORKER),
-            ],
-            target: "bun",
-            minify: true,
-            outdir: dir,
-            naming: { entry: FILE_MANAGER_WORKER },
-          });
-          if (!worker.success)
-            throw new Error(
-              worker.logs
-                .map((l) => l.message)
-                .join("; ")
-                .slice(0, 300) || "the Find worker bundler failed",
-            );
+          // Keep the filenames used by relative Worker URLs; each bundle includes all worker dependencies.
+          for (const workerFile of FILE_MANAGER_WORKERS) {
+            const worker = await Bun.build({
+              entrypoints: [join(ROOT, "src/features/filemanager", workerFile)],
+              target: "bun",
+              minify: true,
+              outdir: dir,
+              naming: { entry: workerFile },
+            });
+            if (!worker.success)
+              throw new Error(
+                worker.logs
+                  .map((l) => l.message)
+                  .join("; ")
+                  .slice(0, 300) || `the ${workerFile} bundler failed`,
+              );
+          }
         }
         return null;
       } catch (err: any) {

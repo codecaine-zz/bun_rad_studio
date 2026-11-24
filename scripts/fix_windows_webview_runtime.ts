@@ -11,7 +11,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { delimiter, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 
 export const PE_MACHINE_X64 = 0x8664;
@@ -152,30 +152,87 @@ function prependWindowsDllSearchPath(dir: string) {
   }
 }
 
+function getFallbackWebViewRuntimeDir(): string {
+  if (process.env.LOCALAPPDATA) {
+    return join(
+      process.env.LOCALAPPDATA,
+      "CodecaineFileManager",
+      "webview-runtime",
+    );
+  }
+  return join(tmpdir(), "CodecaineFileManager", "webview-runtime");
+}
+
+function getStandaloneWebViewLoaderDirs(rootDir: string): string[] {
+  const dirs: string[] = [];
+  const seen = new Set<string>();
+  const add = (dir: string | undefined) => {
+    if (!dir) return;
+    const trimmed = dir.trim();
+    if (!trimmed || seen.has(trimmed)) return;
+    seen.add(trimmed);
+    dirs.push(trimmed);
+  };
+
+  if (process.env.WEBVIEW_PATH) {
+    add(dirname(process.env.WEBVIEW_PATH));
+  }
+  if (process.execPath) {
+    const execDir = dirname(process.execPath);
+    add(join(execDir, "lib"));
+    add(join(execDir, "..", "lib"));
+  }
+  add(join(rootDir, "lib"));
+  return dirs;
+}
+
 /**
- * Ensures `node_modules/webview-bun/build/WebView2Loader.dll` is a valid x64 (0x8664) DLL if present,
- * removing any wrong-architecture (ARM64 / x86) copy that would break `libwebview.dll` (which is x64).
+ * Ensures a valid x64 (0x8664) `WebView2Loader.dll` is available on Windows.
+ * Checks `WEBVIEW_PATH`'s directory and sibling `lib/` directories before touching
+ * `node_modules/webview-bun/build`, avoiding writes inside read-only install folders,
+ * and falls back to `%LOCALAPPDATA%/CodecaineFileManager/webview-runtime` (or `os.tmpdir()`)
+ * when `node_modules` cannot be created or written.
  */
 export function ensureValidWindowsWebViewLoader(
   rootDir = process.cwd(),
 ): string | undefined {
-  const webviewBuildDir = join(rootDir, "node_modules", "webview-bun", "build");
-  const target = join(webviewBuildDir, "WebView2Loader.dll");
+  for (const dir of getStandaloneWebViewLoaderDirs(rootDir)) {
+    const candidate = join(dir, "WebView2Loader.dll");
+    if (existsSync(candidate) && isPeX64(candidate)) {
+      prependWindowsDllSearchPath(dir);
+      return candidate;
+    }
+  }
 
+  let webviewBuildDir = join(rootDir, "node_modules", "webview-bun", "build");
   try {
-    mkdirSync(webviewBuildDir, { recursive: true });
+    try {
+      mkdirSync(webviewBuildDir, { recursive: true });
+    } catch {
+      webviewBuildDir = getFallbackWebViewRuntimeDir();
+      mkdirSync(webviewBuildDir, { recursive: true });
+    }
+    const target = join(webviewBuildDir, "WebView2Loader.dll");
     prependWindowsDllSearchPath(webviewBuildDir);
 
-    // Remove any non-x64 (ARM64 0xaa64 or x86 0x014c) DLL sitting inside webview-bun/build
-    for (const entry of readdirSync(webviewBuildDir, { withFileTypes: true })) {
-      if (entry.isFile() && entry.name.toLowerCase().endsWith(".dll")) {
-        const fullDll = join(webviewBuildDir, entry.name);
-        if (!isPeX64(fullDll)) {
-          rmSync(fullDll, { force: true });
-          console.log(`[windows-webview] Removed non-x64 DLL at ${fullDll}`);
+    // Remove any non-x64 (ARM64 0xaa64 or x86 0x014c) DLL sitting inside webviewBuildDir
+    try {
+      for (const entry of readdirSync(webviewBuildDir, {
+        withFileTypes: true,
+      })) {
+        if (entry.isFile() && entry.name.toLowerCase().endsWith(".dll")) {
+          const fullDll = join(webviewBuildDir, entry.name);
+          if (!isPeX64(fullDll)) {
+            try {
+              rmSync(fullDll, { force: true });
+              console.log(
+                `[windows-webview] Removed non-x64 DLL at ${fullDll}`,
+              );
+            } catch {}
+          }
         }
       }
-    }
+    } catch {}
 
     if (existsSync(target) && isPeX64(target)) {
       return target;
@@ -189,11 +246,23 @@ export function ensureValidWindowsWebViewLoader(
       return undefined;
     }
 
-    copyFileSync(source, target);
-    console.log(
-      `[windows-webview] Copied x64 WebView2Loader.dll: ${source} -> ${target}`,
-    );
-    return target;
+    try {
+      copyFileSync(source, target);
+      console.log(
+        `[windows-webview] Copied x64 WebView2Loader.dll: ${source} -> ${target}`,
+      );
+      return target;
+    } catch {
+      const fallbackDir = getFallbackWebViewRuntimeDir();
+      mkdirSync(fallbackDir, { recursive: true });
+      prependWindowsDllSearchPath(fallbackDir);
+      const fallbackTarget = join(fallbackDir, "WebView2Loader.dll");
+      copyFileSync(source, fallbackTarget);
+      console.log(
+        `[windows-webview] Copied x64 WebView2Loader.dll: ${source} -> ${fallbackTarget}`,
+      );
+      return fallbackTarget;
+    }
   } catch (err: any) {
     console.warn(
       `[windows-webview] Note: Unable to verify/copy WebView2Loader.dll (${err?.message ?? err}).`,

@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -37,6 +38,7 @@ import {
 import { DESIGNS, SYMBOL_NAMES } from "../scripts/release/iconDesigns";
 import { ICON_RENDERER } from "../scripts/release/iconRenderer";
 import {
+  FILE_MANAGER_WORKERS,
   archiveSuite,
   bundleApps,
   installScript,
@@ -45,6 +47,10 @@ import {
   unixLauncher,
   windowsLauncher,
 } from "../scripts/release/suite";
+import {
+  PE_MACHINE_X64,
+  ensureValidWindowsWebViewLoader,
+} from "../scripts/fix_windows_webview_runtime";
 import {
   bundleId,
   infoPlist,
@@ -129,6 +135,28 @@ describe("what gets built", () => {
     expect(
       apps.some((a) => a.name === "rad-designer" && a.entry === "index.ts"),
     ).toBe(true);
+  });
+  test("every filemanager worker referenced via new Worker(new URL(...)) is listed in FILE_MANAGER_WORKERS", () => {
+    const fmDir = join(ROOT, "src", "features", "filemanager");
+    const fmFiles = readdirSync(fmDir).filter(
+      (f) => f.startsWith("fm") && f.endsWith(".ts"),
+    );
+    const referenced = new Set<string>();
+    const workerUrlRe =
+      /new\s+Worker\(\s*new\s+URL\(\s*["']\.\/([^"']+)["']\s*,\s*import\.meta\.url\s*\)/g;
+    for (const file of fmFiles) {
+      const src = readFileSync(join(fmDir, file), "utf8");
+      for (const match of src.matchAll(workerUrlRe)) {
+        if (match[1]) referenced.add(match[1]);
+      }
+    }
+    expect(referenced.size).toBeGreaterThanOrEqual(3);
+    for (const workerFile of referenced) {
+      expect(
+        (FILE_MANAGER_WORKERS as readonly string[]).includes(workerFile),
+        `${workerFile} must be included in FILE_MANAGER_WORKERS`,
+      ).toBe(true);
+    }
   });
 });
 
@@ -374,11 +402,22 @@ describe("macOS apps", () => {
       "dev.bunradstudio.file-manager-studio",
     );
     const app = apps.find((a) => a.title.includes("&"))!;
+    const plist = infoPlist(app, "AppIcon");
+    for (const key of [
+      "NSSpeechRecognitionUsageDescription",
+      "NSMicrophoneUsageDescription",
+      "NSAppleEventsUsageDescription",
+      "NSDocumentsFolderUsageDescription",
+      "NSDesktopFolderUsageDescription",
+      "NSDownloadsFolderUsageDescription",
+    ]) {
+      expect(plist).toContain(`<key>${key}</key>`);
+    }
     if (process.platform === "darwin") {
       const dir = mkdtempSync(join(tmpdir(), "plist-"));
       temp.push(dir);
       const file = join(dir, "Info.plist");
-      writeFileSync(file, infoPlist(app, "AppIcon"));
+      writeFileSync(file, plist);
       expect(Bun.spawnSync(["plutil", "-lint", file]).exitCode).toBe(0);
     }
   });
@@ -523,5 +562,34 @@ describe("Linux AppArmor & .deb postinst hardening ([V-SEC-05])", () => {
     const notesText = releaseNotes([], []);
     expect(notesText).toContain(rpmFileName("x86_64"));
     expect(notesText).toContain(rpmFileName("aarch64"));
+  });
+});
+
+describe("Windows standalone WebView2 loader", () => {
+  test("prefers valid x64 WebView2Loader.dll in WEBVIEW_PATH dir without creating node_modules", () => {
+    const dir = mkdtempSync(join(tmpdir(), "wv2-standalone-"));
+    temp.push(dir);
+    const libDir = join(dir, "lib");
+    const installRoot = join(dir, "install-root");
+    mkdirSync(libDir, { recursive: true });
+    mkdirSync(installRoot, { recursive: true });
+    const buf = Buffer.alloc(128);
+    buf.write("MZ", 0, "ascii");
+    buf.writeUInt32LE(0x40, 0x3c);
+    buf.write("PE\0\0", 0x40, "ascii");
+    buf.writeUInt16LE(PE_MACHINE_X64, 0x44);
+    const loaderPath = join(libDir, "WebView2Loader.dll");
+    writeFileSync(loaderPath, buf);
+
+    const prevWebviewPath = process.env.WEBVIEW_PATH;
+    process.env.WEBVIEW_PATH = join(libDir, "libwebview.dll");
+    try {
+      const found = ensureValidWindowsWebViewLoader(installRoot);
+      expect(found).toBe(loaderPath);
+      expect(existsSync(join(installRoot, "node_modules"))).toBe(false);
+    } finally {
+      if (prevWebviewPath === undefined) delete process.env.WEBVIEW_PATH;
+      else process.env.WEBVIEW_PATH = prevWebviewPath;
+    }
   });
 });

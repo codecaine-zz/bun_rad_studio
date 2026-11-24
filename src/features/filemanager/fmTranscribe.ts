@@ -1243,8 +1243,9 @@ async function probeOllamaStatus(ctx: FmContext): Promise<{
 }
 
 /**
- * Returns true when `execPath` lives inside a macOS `.app/Contents/MacOS/` bundle whose
- * `../Info.plist` declares `NSSpeechRecognitionUsageDescription` (preventing TCC SIGABRT crashes
+ * Returns true when `execPath` lives inside a macOS `.app/Contents/MacOS/` or
+ * `.app/Contents/Resources/runtime/` bundle whose `Info.plist` declares
+ * `NSSpeechRecognitionUsageDescription` (preventing TCC SIGABRT crashes
  * when running unbundled CLI or server binaries).
  */
 export function isMacOsSpeechBundleAuthorized(
@@ -1252,7 +1253,8 @@ export function isMacOsSpeechBundleAuthorized(
 ): boolean {
   if (!execPath) return false;
   const norm = String(execPath).replace(/\\/g, "/");
-  const match = /^(.*\.app\/Contents)\/MacOS\/[^/]+$/.exec(norm);
+  const match =
+    /^(.*\.app\/Contents)\/(?:MacOS|Resources\/runtime)\/[^/]+$/.exec(norm);
   if (!match) return false;
   const plistPath = `${match[1]}/Info.plist`;
   try {

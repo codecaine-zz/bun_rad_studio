@@ -980,22 +980,39 @@ echo '{"text":"Mock Swift speech transcript.","segments":[{"start":0,"end":0.6,"
         expect(swiftRes.text).toBe("Mock Swift speech transcript.");
       }
 
-      // macOS .app bundle Info.plist detection helper
+      // macOS .app bundle Info.plist detection helper (Contents/MacOS and Contents/Resources/runtime)
       const appMacOs = join(isoRoot, "Demo.app", "Contents", "MacOS");
+      const appRuntime = join(
+        isoRoot,
+        "Demo.app",
+        "Contents",
+        "Resources",
+        "runtime",
+      );
       mkdirSync(appMacOs, { recursive: true });
+      mkdirSync(appRuntime, { recursive: true });
       const fakeBundleBin = join(appMacOs, "Demo");
+      const fakeRuntimeBun = join(appRuntime, "bun");
       writeFileSync(fakeBundleBin, "");
+      writeFileSync(fakeRuntimeBun, "");
       const plistPath = join(isoRoot, "Demo.app", "Contents", "Info.plist");
       writeFileSync(
         plistPath,
         "<plist><dict><key>CFBundleName</key></dict></plist>",
       );
       expect(isMacOsSpeechBundleAuthorized(fakeBundleBin)).toBe(false);
+      expect(isMacOsSpeechBundleAuthorized(fakeRuntimeBun)).toBe(false);
       writeFileSync(
         plistPath,
         "<plist><dict><key>NSSpeechRecognitionUsageDescription</key><string>Transcribe audio locally</string></dict></plist>",
       );
       expect(isMacOsSpeechBundleAuthorized(fakeBundleBin)).toBe(true);
+      expect(isMacOsSpeechBundleAuthorized(fakeRuntimeBun)).toBe(true);
+      expect(
+        isMacOsSpeechBundleAuthorized(
+          join(isoRoot, "Demo.app", "Contents", "Resources", "other", "bun"),
+        ),
+      ).toBe(false);
       expect(isMacOsSpeechBundleAuthorized("/usr/local/bin/bun")).toBe(false);
 
       // FM_ENABLE_MACOS_NATIVE_SPEECH=1 enables os-native on darwin host when swift is present
