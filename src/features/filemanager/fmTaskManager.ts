@@ -1607,6 +1607,25 @@ export async function collectTaskSnapshot(
   );
 }
 
+function maskHomePathsForScreenshot(value: string): string {
+  if (!value) return value;
+  let out = value;
+  try {
+    const home = os.homedir();
+    if (home && home.length > 1) {
+      const replacement = home.includes("\\")
+        ? "C:\\Users\\developer"
+        : "/Users/developer";
+      out = out.split(home).join(replacement);
+    }
+  } catch {
+    /* ignore */
+  }
+  out = out.replace(/(\/Users\/|\/home\/)([^/\s:'"]+)/g, "$1developer");
+  out = out.replace(/([A-Za-z]:\\Users\\)([^\\\s:'"]+)/gi, "$1developer");
+  return out;
+}
+
 function finalizeTaskSnapshot(
   platform: Platform,
   processes: TaskProcessItem[],
@@ -1617,10 +1636,27 @@ function finalizeTaskSnapshot(
   totalMemBytes: number,
   freeMemBytes: number,
 ) {
+  const isShot = process.env.SCREENSHOT_MODE === "1";
+  const maskedCurrentUser = isShot ? "developer" : currentUser;
+  const finalProcesses = isShot
+    ? processes.map((p) => {
+        const maskedUser =
+          p.isUserApp || normalizeUserMatch(p.user, currentUser)
+            ? "developer"
+            : p.user;
+        return {
+          ...p,
+          user: maskedUser,
+          command: maskHomePathsForScreenshot(p.command),
+          exePath: p.exePath ? maskHomePathsForScreenshot(p.exePath) : null,
+          ...(p.windowTitle ? { windowTitle: "[Masked Window]" } : {}),
+        };
+      })
+    : processes;
   const cpus = os.cpus();
   const cpuCores = Math.max(1, cpus.length);
   const cpuModel = (cpus[0]?.model || "CPU").trim();
-  const totalProcCpu = processes.reduce((acc, p) => acc + p.cpu, 0);
+  const totalProcCpu = finalProcesses.reduce((acc, p) => acc + p.cpu, 0);
   const cpuPercent = Math.min(
     100,
     Math.round((totalProcCpu / cpuCores) * 10) / 10,
@@ -1634,12 +1670,12 @@ function finalizeTaskSnapshot(
 
   let listeningPortCount = 0;
   for (const ports of portMap.values()) listeningPortCount += ports.length;
-  const devServerCount = processes.filter((p) => p.isDevServer).length;
+  const devServerCount = finalProcesses.filter((p) => p.isDevServer).length;
 
   return {
     platform,
     profile: getTaskPlatformProfile(platform),
-    processes,
+    processes: finalProcesses,
     telemetry: {
       cpuPercent,
       cpuCores,
@@ -1649,13 +1685,13 @@ function finalizeTaskSnapshot(
       memPercent,
       loadAvg1m,
       uptimeSec: Math.floor(os.uptime()),
-      totalProcesses: processes.length,
+      totalProcesses: finalProcesses.length,
       listeningPortCount,
       devServerCount,
     },
     selfPid,
     parentPid,
-    currentUser,
+    currentUser: maskedCurrentUser,
   };
 }
 
@@ -1715,6 +1751,13 @@ export async function inspectTaskProcess(
       openFilesCount = files.length;
       openFilesSample = [...new Set(files)].slice(0, 12);
     }
+  }
+
+  const isShot = process.env.SCREENSHOT_MODE === "1";
+  if (isShot) {
+    if (cwd) cwd = maskHomePathsForScreenshot(cwd);
+    if (exePath) exePath = maskHomePathsForScreenshot(exePath);
+    openFilesSample = openFilesSample.map((f) => maskHomePathsForScreenshot(f));
   }
 
   const safetyCtx: TaskSafetyContext = {

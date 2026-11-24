@@ -217,6 +217,33 @@ export async function lookupCore(
   token: string | undefined,
   skipNetwork?: () => boolean,
 ): Promise<Core> {
+  if (target.kind === "myip" && process.env.SCREENSHOT_MODE === "1") {
+    const demoIp = "203.0.113.42";
+    const cls = classifyAny(demoIp);
+    return {
+      target,
+      ip: demoIp,
+      domain: undefined,
+      resolved: [],
+      isPrivate: false,
+      type: cls.type,
+      rfc: cls.rfc,
+      scope: cls.scope,
+      source: "demo (screenshot mode)",
+      warnings: [],
+      data: {
+        ip: demoIp,
+        hostname: "demo-workstation.example.net",
+        city: "San Francisco",
+        region: "California",
+        country: "US",
+        loc: "37.7749,-122.4194",
+        org: "AS64512 Example Demo Network",
+        postal: "94105",
+        timezone: "America/Los_Angeles",
+      },
+    };
+  }
   let domain: string | undefined;
   let resolved: string[] = [];
   let ip: string | null = null;

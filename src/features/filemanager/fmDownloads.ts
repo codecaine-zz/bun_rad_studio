@@ -1011,13 +1011,7 @@ export class DownloadManager {
     // Everything is checked before anything is added, so one bad address doesn't leave the others half-added.
     const added: DlItem[] = [];
     for (const req of requests) {
-      const checkedUrl =
-        req.start === false
-          ? assertSafeDownloadUrlSync(req.url, {
-              ...this.options,
-              allowLoopback: true,
-            })
-          : assertSafeDownloadUrlSync(req.url, this.options);
+      const checkedUrl = assertSafeDownloadUrlSync(req.url, this.options);
       const { url: clean, auth } = splitCredentials(checkedUrl.toString());
       const folder = req.folder?.trim() || this.settings.folder;
       const name = safeFileName(req.name || nameFromUrl(clean));
@@ -1427,9 +1421,17 @@ export class DownloadManager {
         chunkSize,
         ...encodeProgress(done, chunkSize, size),
       };
+      const stateFile = `${item.path}.dlstate`;
+      const tmpStateFile = `${stateFile}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
       try {
-        fs.writeFileSync(`${item.path}.dlstate`, JSON.stringify(state));
+        fs.writeFileSync(tmpStateFile, JSON.stringify(state));
+        fs.renameSync(tmpStateFile, stateFile);
       } catch {
+        try {
+          fs.rmSync(tmpStateFile, { force: true });
+        } catch {
+          /* ignore cleanup failure */
+        }
         /* progress just isn't saved this time */
       }
     };

@@ -771,6 +771,101 @@ export function platformLabel(platform: Platform): string {
       : "macOS";
 }
 
+const isScreenshotMode = (): boolean => process.env.SCREENSHOT_MODE === "1";
+
+function maskHomePath(value: string): string {
+  if (!isScreenshotMode() || !value) return value;
+  let out = value;
+  try {
+    const home = os.homedir();
+    if (home && home.length > 1) {
+      const replacement = home.includes("\\")
+        ? "C:\\Users\\developer"
+        : "/Users/developer";
+      out = out.split(home).join(replacement);
+    }
+  } catch {
+    /* ignore */
+  }
+  out = out.replace(/(\/Users\/|\/home\/)([^/\s:'"]+)/g, "$1developer");
+  out = out.replace(/([A-Za-z]:\\Users\\)([^\\\s:'"]+)/gi, "$1developer");
+  return out;
+}
+
+function maskHostnameText(value: string): string {
+  if (!isScreenshotMode() || !value) return value;
+  try {
+    const host = os.hostname();
+    if (host && host.length > 2) {
+      const escaped = host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      return value.replace(new RegExp(escaped, "gi"), "studio-workstation");
+    }
+  } catch {
+    /* ignore */
+  }
+  return value;
+}
+
+function maskSysinfoValue(
+  value: unknown,
+  keyHint = "",
+  seen = new WeakSet<object>(),
+): unknown {
+  if (!isScreenshotMode()) return value;
+  if (typeof value === "string") {
+    const k = keyHint.toLowerCase();
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === "—" || trimmed === "-") return value;
+    if (
+      /^(serial|serialnum|serialnumber|uuid|hardware|systemuuid|os)$/.test(k)
+    ) {
+      return "🔒 [Protected / Masked]";
+    }
+    if (/^(mac|macdevice|machost|bssid)$/.test(k)) {
+      return trimmed === "00:00:00:00:00:00" ? value : "🔒 [Protected]";
+    }
+    if (k === "hostname") return "studio-workstation";
+    if (k === "fqdn") return "studio-workstation.local";
+    if (/^(user|username|owner)$/.test(k)) return "developer";
+    if (k === "homedir") return "/Users/developer";
+    if (k === "uri") return "ipp://printer.local/ipp/print";
+    if (k === "ssid") return "Studio-WiFi-Demo";
+    if (/^(ip|ip4|ip4subnet|gateway|localaddress|peeraddress|v4)$/.test(k)) {
+      if (
+        trimmed === "local" ||
+        trimmed === "127.0.0.1" ||
+        trimmed === "0.0.0.0"
+      ) {
+        return value;
+      }
+      return k === "v4" ? "203.0.113.42" : "192.168.1.*** (Masked)";
+    }
+    if (/^(ip6|ip6subnet|v6)$/.test(k)) {
+      if (trimmed === "::1" || trimmed === "::") return value;
+      return k === "v6" ? "2001:db8::42" : "fe80::***";
+    }
+    let sanitized = maskHostnameText(maskHomePath(value));
+    sanitized = sanitized.replace(
+      /\b(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}\b/g,
+      (m) => (m === "00:00:00:00:00:00" ? m : "🔒 [Protected]"),
+    );
+    return sanitized;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => maskSysinfoValue(item, keyHint, seen));
+  }
+  if (value && typeof value === "object") {
+    if (seen.has(value)) return value;
+    seen.add(value);
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = maskSysinfoValue(v, k, seen);
+    }
+    return out;
+  }
+  return value;
+}
+
 /** Builds platform-specific OS and hardware summary highlights for Windows, Linux, or macOS. */
 export function buildPlatformHighlights(
   platform: Platform,
@@ -1037,9 +1132,9 @@ export async function collectSysinfoOverview(
   const disks = (Array.isArray(fsSize) ? fsSize : [])
     .slice(0, 16)
     .map((d: any) => ({
-      fs: String(d.fs || ""),
+      fs: maskHomePath(String(d.fs || "")),
       type: String(d.type || ""),
-      mount: String(d.mount || d.fs || ""),
+      mount: maskHomePath(String(d.mount || d.fs || "")),
       sizeBytes: Number(d.size) || 0,
       usedBytes: Number(d.used) || 0,
       availableBytes: Number(d.available) || 0,
@@ -1396,15 +1491,25 @@ export async function collectSysinfoSection(
         ["Thunderbolt / USB4 Buses", String(tbList.length)],
       ],
       tables,
-      raw: {
-        system,
-        bios,
-        baseboard,
-        chassis,
-        uuid,
-        pci: pciList,
-        thunderbolt: tbList,
-      },
+      raw: isShot
+        ? (maskSysinfoValue({
+            system,
+            bios,
+            baseboard,
+            chassis,
+            uuid,
+            pci: pciList,
+            thunderbolt: tbList,
+          }) as Record<string, unknown>)
+        : {
+            system,
+            bios,
+            baseboard,
+            chassis,
+            uuid,
+            pci: pciList,
+            thunderbolt: tbList,
+          },
     };
   }
 
@@ -1656,6 +1761,7 @@ export async function collectSysinfoSection(
   }
 
   if (section === "disks") {
+    const isShot = isScreenshotMode();
     const [fsSize, blockDevices, diskLayout, disksIO] = await Promise.all([
       si.fsSize().catch(() => [] as any[]),
       si.blockDevices().catch(() => [] as any[]),
@@ -1699,8 +1805,8 @@ export async function collectSysinfoSection(
             "Access",
           ],
           rows: (Array.isArray(fsSize) ? fsSize : []).map((d: any) => [
-            String(d.mount || d.fs || ""),
-            String(d.fs || ""),
+            maskHomePath(String(d.mount || d.fs || "")),
+            maskHomePath(String(d.fs || "")),
             String(d.type || ""),
             formatBytes(Number(d.size) || 0),
             formatBytes(Number(d.used) || 0),
@@ -1747,14 +1853,21 @@ export async function collectSysinfoSection(
               String(b.name || ""),
               String(b.type || ""),
               String(b.fsType || "—"),
-              String(b.mount || "—"),
+              maskHomePath(String(b.mount || "—")),
               formatBytes(Number(b.size) || 0),
               String(b.label || "—"),
               b.removable ? "Yes" : "No",
             ]),
         },
       ],
-      raw: { fsSize, blockDevices, diskLayout, disksIO },
+      raw: isShot
+        ? (maskSysinfoValue({
+            fsSize,
+            blockDevices,
+            diskLayout,
+            disksIO,
+          }) as Record<string, unknown>)
+        : { fsSize, blockDevices, diskLayout, disksIO },
     };
   }
 
@@ -1869,12 +1982,19 @@ export async function collectSysinfoSection(
         ["Routing Table Entries", String(routeList.length)],
       ],
       tables,
-      raw: {
-        interfaces: ifaceList,
-        stats: statList,
-        gateway,
-        routes: routeList,
-      },
+      raw: isShot
+        ? (maskSysinfoValue({
+            interfaces: ifaceList,
+            stats: statList,
+            gateway,
+            routes: routeList,
+          }) as Record<string, unknown>)
+        : {
+            interfaces: ifaceList,
+            stats: statList,
+            gateway,
+            routes: routeList,
+          },
     };
   }
 
@@ -1990,6 +2110,7 @@ export async function collectSysinfoSection(
   }
 
   if (section === "peripherals") {
+    const isShot = isScreenshotMode();
     const [
       rawBattery,
       usb,
@@ -2017,6 +2138,22 @@ export async function collectSysinfoSection(
     const hasBattery = Array.isArray(rawBattery)
       ? rawBattery.length > 0
       : Boolean((rawBattery as any)?.hasBattery);
+    const btList = Array.isArray(bt) ? bt : [];
+    const maskedBtList = isShot
+      ? btList.map((b: any, idx: number) => ({
+          ...b,
+          name: `Bluetooth Device #${idx + 1}`,
+          macDevice: b.macDevice ? "🔒 [Protected]" : "",
+          macHost: b.macHost ? "🔒 [Protected]" : "",
+        }))
+      : btList;
+    const printerList = Array.isArray(printers) ? printers : [];
+    const maskedPrinters = isShot
+      ? printerList.map((p: any) => ({
+          ...p,
+          uri: p.uri ? "ipp://printer.local/ipp/print" : "",
+        }))
+      : printerList;
     const camList = Array.isArray(cameras) ? cameras : [];
     const kbList = Array.isArray(keyboards) ? keyboards : [];
     const mouseList = Array.isArray(mice) ? mice : [];
@@ -2045,7 +2182,7 @@ export async function collectSysinfoSection(
           "Connected",
           "Battery",
         ],
-        rows: (Array.isArray(bt) ? bt : [])
+        rows: maskedBtList
           .slice(0, 25)
           .map((b: any) => [
             String(b.name || "Bluetooth Device"),
@@ -2059,7 +2196,7 @@ export async function collectSysinfoSection(
       {
         title: "Configured Printers",
         columns: ["Name", "Model", "URI", "Default", "Local", "Status"],
-        rows: (Array.isArray(printers) ? printers : []).map((p: any) => [
+        rows: maskedPrinters.map((p: any) => [
           String(p.name || "Printer"),
           String(p.model || "—"),
           String(p.uri || "—"),
@@ -2076,21 +2213,27 @@ export async function collectSysinfoSection(
           String(c.name || c.model || "Camera"),
           String(c.vendor || "—"),
           String(c.connection || "—"),
-          String(c.serial || "—"),
+          isShot && c.serial
+            ? "🔒 [Protected / Masked]"
+            : String(c.serial || "—"),
         ]),
         ...kbList.map((k: any) => [
           "Keyboard",
           String(k.name || k.model || "Keyboard"),
           String(k.vendor || "—"),
           String(k.connection || "—"),
-          String(k.serial || "—"),
+          isShot && k.serial
+            ? "🔒 [Protected / Masked]"
+            : String(k.serial || "—"),
         ]),
         ...mouseList.map((m: any) => [
           "Mouse / Trackpad",
           String(m.name || m.model || "Pointing Device"),
           String(m.vendor || "—"),
           String(m.connection || "—"),
-          String(m.serial || "—"),
+          isShot && m.serial
+            ? "🔒 [Protected / Masked]"
+            : String(m.serial || "—"),
         ]),
       ];
       tables.push({
@@ -2108,7 +2251,9 @@ export async function collectSysinfoSection(
           String(s.name || "Serial Port"),
           String(s.manufacturer || "—"),
           String(s.type || "—"),
-          String(s.serialNumber || "—"),
+          isShot && s.serialNumber
+            ? "🔒 [Protected / Masked]"
+            : String(s.serialNumber || "—"),
         ]),
       });
     }
@@ -2130,27 +2275,39 @@ export async function collectSysinfoSection(
           battery.cycleCount ? String(battery.cycleCount) : "—",
         ],
         ["USB Devices", String(Array.isArray(usb) ? usb.length : 0)],
-        ["Bluetooth Devices", String(Array.isArray(bt) ? bt.length : 0)],
-        ["Printers", String(Array.isArray(printers) ? printers.length : 0)],
+        ["Bluetooth Devices", String(btList.length)],
+        ["Printers", String(printerList.length)],
         ["Cameras / Webcams", String(camList.length)],
         ["Keyboards / Mice", `${kbList.length} / ${mouseList.length}`],
         ["Serial / UART Ports", String(serialList.length)],
       ],
       tables,
-      raw: {
-        battery: rawBattery,
-        usb,
-        bluetooth: bt,
-        printers,
-        camera: camList,
-        keyboard: kbList,
-        mouse: mouseList,
-        serialPorts: serialList,
-      },
+      raw: isShot
+        ? (maskSysinfoValue({
+            battery: rawBattery,
+            usb,
+            bluetooth: maskedBtList,
+            printers: maskedPrinters,
+            camera: camList,
+            keyboard: kbList,
+            mouse: mouseList,
+            serialPorts: serialList,
+          }) as Record<string, unknown>)
+        : {
+            battery: rawBattery,
+            usb,
+            bluetooth: bt,
+            printers,
+            camera: camList,
+            keyboard: kbList,
+            mouse: mouseList,
+            serialPorts: serialList,
+          },
     };
   }
 
   // software
+  const isShotSoftware = isScreenshotMode();
   const [osInfo, versions, users, focusedProc, npmPackages] = await Promise.all(
     [
       si.osInfo().catch(() => ({}) as any),
@@ -2180,7 +2337,12 @@ export async function collectSysinfoSection(
       ],
       ["Kernel / Build", String(osInfo.kernel || os.release())],
       ["Architecture", String(osInfo.arch || os.arch())],
-      ["Hostname", String(osInfo.hostname || os.hostname())],
+      [
+        "Hostname",
+        isShotSoftware
+          ? "studio-workstation"
+          : String(osInfo.hostname || os.hostname()),
+      ],
       ["Bun Runtime", typeof Bun !== "undefined" ? Bun.version : "—"],
       ["Node Compatibility", process.versions.node || "—"],
       [
@@ -2208,22 +2370,32 @@ export async function collectSysinfoSection(
           "Last Command",
         ],
         rows: (Array.isArray(users) ? users : []).map((u: any) => [
-          String(u.user || ""),
+          isShotSoftware ? "developer" : String(u.user || ""),
           String(u.tty || "—"),
           String(u.date || "—"),
           String(u.time || "—"),
-          String(u.ip || "local"),
-          String(u.command || "—"),
+          isShotSoftware && u.ip && u.ip !== "local"
+            ? "192.168.1.*** (Masked)"
+            : String(u.ip || "local"),
+          maskHomePath(String(u.command || "—")),
         ]),
       },
     ],
-    raw: {
-      osInfo,
-      versions,
-      users,
-      processFocused: focusedProc,
-      npm: npmPackages,
-    },
+    raw: isShotSoftware
+      ? (maskSysinfoValue({
+          osInfo,
+          versions,
+          users,
+          processFocused: focusedProc,
+          npm: npmPackages,
+        }) as Record<string, unknown>)
+      : {
+          osInfo,
+          versions,
+          users,
+          processFocused: focusedProc,
+          npm: npmPackages,
+        },
   };
 }
 
@@ -2380,8 +2552,12 @@ export async function runSysinfoProbe(
       (cleanParam || entry.defaultParam) !== "false",
     );
   } else if (method === "inetPublicIp") {
-    const timeout = Number(cleanParam || entry.defaultParam) || 5000;
-    data = await si.inetPublicIp(timeout);
+    if (isScreenshotMode()) {
+      data = { v4: "203.0.113.42", v6: "2001:db8::42", latencyMs: 12 };
+    } else {
+      const timeout = Number(cleanParam || entry.defaultParam) || 5000;
+      data = await si.inetPublicIp(timeout);
+    }
   } else if (method === "diskSpeed") {
     const raw = cleanParam || entry.defaultParam || "16";
     let diskPath: string | undefined;
@@ -2443,6 +2619,17 @@ export async function runSysinfoProbe(
     data = entry.hasParam ? await fn(arg || undefined) : await fn();
   }
   const elapsedMs = Math.max(1, Math.round(performance.now() - started));
+
+  if (isScreenshotMode()) {
+    if (method === "bluetoothDevices" && Array.isArray(data)) {
+      data = data.map((item: any, idx: number) =>
+        item && typeof item === "object"
+          ? { ...item, name: `Bluetooth Device #${idx + 1}` }
+          : item,
+      );
+    }
+    data = maskSysinfoValue(data);
+  }
 
   const flat = flattenData(data, "", {}, 600);
   const flatRows: Array<[string, string]> = Object.entries(flat).map(

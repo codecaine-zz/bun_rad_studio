@@ -2156,6 +2156,17 @@ export async function executeDbMacro(
           ? rawObj.name
           : "Ad-hoc Macro",
     });
+    const matchedBuiltin = allMacros.find(
+      (m) =>
+        m.builtin === true &&
+        m.id === macro.id &&
+        m.mode === macro.mode &&
+        m.code === macro.code &&
+        JSON.stringify(m.actions) === JSON.stringify(macro.actions),
+    );
+    if (matchedBuiltin) {
+      macro.builtin = true;
+    }
   } else {
     throw new FmError("BAD_REQUEST", "Provide a macro to run.");
   }
@@ -2187,19 +2198,40 @@ export async function executeDbMacro(
     );
   }
 
-  // Require explicit confirmation before executing visual RunCode steps on non-builtin macros
-  const hasEnabledRunCodeStep =
-    macro.mode === "actions" &&
-    !macro.builtin &&
-    macro.actions.some((a) => a.enabled !== false && a.action === "RunCode");
+  // Require explicit confirmation before executing custom JS code (mode === "code", visual RunCode, or RunMacro -> code) on non-builtin macros
+  const referencesUnconfirmedCode = (
+    m: DbMacro,
+    visited = new Set<string>(),
+  ): boolean => {
+    if (m.builtin) return false;
+    if (m.mode === "code") return true;
+    if (visited.has(m.id)) return false;
+    visited.add(m.id);
+    for (const a of m.actions) {
+      if (a.enabled === false) continue;
+      if (a.action === "RunCode") return true;
+      if (a.action === "RunMacro") {
+        const subRef = String(a.params.macroName ?? "").trim();
+        const sub = allMacros.find(
+          (candidate) =>
+            candidate.id === subRef ||
+            candidate.name.toLowerCase() === subRef.toLowerCase(),
+        );
+        if (sub && referencesUnconfirmedCode(sub, visited)) return true;
+      }
+    }
+    return false;
+  };
   if (
-    hasEnabledRunCodeStep &&
+    referencesUnconfirmedCode(macro) &&
     req.confirmCode !== true &&
     req.confirmWrites !== true
   ) {
     throw new FmError(
       "NEEDS_CONFIRM",
-      `Macro '${macro.name}' contains a RunCode JavaScript step. Confirm before executing custom code.`,
+      macro.mode === "code"
+        ? `Macro '${macro.name}' executes custom Bun JavaScript code. Confirm before running.`
+        : `Macro '${macro.name}' contains a RunCode or nested code macro step. Confirm before executing custom code.`,
       { reason: "run_code", name: macro.name, engine: target.engine },
     );
   }
@@ -3333,17 +3365,16 @@ export async function executeDbMacro(
 
     const runCodeSnippet = async (
       codeSource: string,
-      requireExplicitConfirm = false,
+      isBuiltin = Boolean(macro.builtin),
     ): Promise<unknown> => {
       if (
-        requireExplicitConfirm &&
-        !macro.builtin &&
+        !isBuiltin &&
         req.confirmCode !== true &&
         req.confirmWrites !== true
       ) {
         throw new FmError(
           "NEEDS_CONFIRM",
-          `Executing RunCode in '${macro.name}' requires explicit confirmation.`,
+          `Executing custom code in '${macro.name}' requires explicit confirmation.`,
           { reason: "run_code", name: macro.name, engine: target.engine },
         );
       }
@@ -3425,13 +3456,17 @@ export async function executeDbMacro(
       });
     };
 
-    const executeRunCodeStep = async (codeSource: string): Promise<unknown> => {
-      return await runCodeSnippet(codeSource, true);
+    const executeRunCodeStep = async (
+      codeSource: string,
+      isBuiltin = Boolean(macro.builtin),
+    ): Promise<unknown> => {
+      return await runCodeSnippet(codeSource, isBuiltin);
     };
 
     const runActionRows = async (
       rows: DbMacroActionRow[],
       depth: number,
+      isBuiltin = Boolean(macro.builtin),
     ): Promise<unknown> => {
       let lastResult: unknown = undefined;
       for (let i = 0; i < rows.length; i++) {
@@ -3590,7 +3625,7 @@ export async function executeDbMacro(
             primaryEnv.DoCmd.Beep();
             break;
           case "RunCode":
-            lastResult = await executeRunCodeStep(p.code ?? "");
+            lastResult = await executeRunCodeStep(p.code ?? "", isBuiltin);
             break;
           case "RunMacro":
             lastResult = await primaryEnv.DoCmd.RunMacro(
@@ -3656,16 +3691,16 @@ export async function executeDbMacro(
         );
       Object.assign(inputParams, overrideParams);
       if (sub.mode === "actions") {
-        return await runActionRows(sub.actions, depth);
+        return await runActionRows(sub.actions, depth, Boolean(sub.builtin));
       }
-      return await runCodeSnippet(sub.code);
+      return await runCodeSnippet(sub.code, Boolean(sub.builtin));
     };
 
     const execPromise = (async () => {
       if (macro.mode === "actions") {
-        return await runActionRows(macro.actions, 1);
+        return await runActionRows(macro.actions, 1, Boolean(macro.builtin));
       }
-      return await runCodeSnippet(macro.code);
+      return await runCodeSnippet(macro.code, Boolean(macro.builtin));
     })();
 
     const effectiveMacroTimeoutMs =

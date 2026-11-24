@@ -1685,12 +1685,27 @@ export async function updateSettings(
         ? { ...next, backspaceGoesUp: true }
         : next;
     const body = JSON.stringify(stored, null, 2);
+    const targetFile = settingsFile(ctx);
     await fsp.writeFile(tmp, body, { mode: 0o600 });
     try {
-      await fsp.rename(tmp, settingsFile(ctx));
-    } catch {
-      await fsp.writeFile(settingsFile(ctx), body, { mode: 0o600 });
+      for (let attempt = 0; ; attempt++) {
+        try {
+          await fsp.rename(tmp, targetFile);
+          break;
+        } catch (err) {
+          const code =
+            err instanceof Error && "code" in err
+              ? String((err as NodeJS.ErrnoException).code)
+              : "";
+          if (!["EPERM", "EACCES", "EBUSY"].includes(code) || attempt >= 10) {
+            throw err;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+      }
+    } catch (err) {
       await fsp.rm(tmp, { force: true }).catch(() => {});
+      throw err;
     }
     return next;
   });

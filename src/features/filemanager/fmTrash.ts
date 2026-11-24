@@ -103,13 +103,28 @@ async function writeIndex(
 ): Promise<void> {
   await fsp.mkdir(ctx.trashRoot, { recursive: true });
   const data = JSON.stringify(records, null, 2);
-  const tmp = `${indexFile(ctx)}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
+  const targetFile = indexFile(ctx);
+  const tmp = `${targetFile}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
   await fsp.writeFile(tmp, data, { mode: 0o600 });
   try {
-    await fsp.rename(tmp, indexFile(ctx));
-  } catch {
-    await fsp.writeFile(indexFile(ctx), data, { mode: 0o600 });
+    for (let attempt = 0; ; attempt++) {
+      try {
+        await fsp.rename(tmp, targetFile);
+        break;
+      } catch (err) {
+        const code =
+          err instanceof Error && "code" in err
+            ? String((err as NodeJS.ErrnoException).code)
+            : "";
+        if (!["EPERM", "EACCES", "EBUSY"].includes(code) || attempt >= 10) {
+          throw err;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 25));
+      }
+    }
+  } catch (err) {
     await fsp.rm(tmp, { force: true }).catch(() => {});
+    throw err;
   }
 }
 

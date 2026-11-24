@@ -525,11 +525,42 @@ export function maskAnswer(input: unknown) {
 
 /** Lists all local network interfaces on this computer with their canonical IP addresses, MACs, netmasks, and types. */
 export function interfacesAnswer() {
-  const list = getLocalInterfaces().map((i) => ({
-    ...i,
-    address: canonicalIp(i.address),
-    type: classifyAny(i.address).type,
-  }));
+  const isShot = process.env.SCREENSHOT_MODE === "1";
+  let nonInternalV4 = 0;
+  let nonInternalV6 = 0;
+  let macSeq = 0;
+  const list = getLocalInterfaces().map((i) => {
+    const rawAddr = canonicalIp(i.address);
+    if (!isShot) {
+      return {
+        ...i,
+        address: rawAddr,
+        type: classifyAny(rawAddr).type,
+      };
+    }
+    const maskedAddress = i.internal
+      ? i.family === "IPv6"
+        ? "::1"
+        : "127.0.0.1"
+      : i.family === "IPv6"
+        ? `2001:db8::${++nonInternalV6}`
+        : `192.0.2.${10 + ++nonInternalV4}`;
+    const maskedMac = i.internal
+      ? "00:00:00:00:00:00"
+      : `02:00:00:00:00:${(++macSeq).toString(16).padStart(2, "0")}`;
+    const maskedNetmask = i.internal
+      ? i.netmask
+      : i.family === "IPv6"
+        ? "ffff:ffff:ffff:ffff::"
+        : "255.255.255.0";
+    return {
+      ...i,
+      address: maskedAddress,
+      mac: maskedMac,
+      netmask: maskedNetmask,
+      type: classifyAny(maskedAddress).type,
+    };
+  });
   const rows = list.map((i) => [
     i.name,
     i.address,

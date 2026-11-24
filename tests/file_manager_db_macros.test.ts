@@ -528,6 +528,7 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
   test("5. executes Bun JS macros on Scratch SQLite with CurrentDb, DoCmd, DLookup/DCount/DSum/DAvg/DMin/DMax, OpenRecordset, and TempVars", async () => {
     const runRes = await call("db/macros/run", {
       target: { kind: "memory" },
+      confirmCode: true,
       macro: {
         name: "Scratch Access VBA Suite",
         mode: "bun",
@@ -608,6 +609,7 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
     const dryRes = await call("db/macros/run", {
       target: { kind: "sqliteFile", path: sqliteFilePath },
       dryRun: true,
+      confirmCode: true,
       macro: {
         name: "Dry Run Insert",
         mode: "bun",
@@ -634,6 +636,7 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
     const failTx = await call("db/macros/run", {
       target: { kind: "sqliteFile", path: sqliteFilePath },
       transaction: true,
+      confirmCode: true,
       macro: {
         name: "Failing Transaction",
         mode: "bun",
@@ -658,6 +661,7 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
     const commitRes = await call("db/macros/run", {
       target: { kind: "sqliteFile", path: sqliteFilePath },
       transaction: true,
+      confirmCode: true,
       macro: {
         name: "Commit Insert",
         mode: "bun",
@@ -707,6 +711,7 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
     // 1. Missing [Enter Minimum Spent] prompt fails with promptsRequired list
     const missingPrompt = await call("db/macros/run", {
       target: { kind: "profile", profileId: sqliteProfileId },
+      confirmCode: true,
       macro: {
         name: "Parameterized Query",
         mode: "bun",
@@ -721,6 +726,7 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
     const withPrompt = await call("db/macros/run", {
       target: { kind: "profile", profileId: sqliteProfileId },
       params: { "Minimum Spent": "1000" },
+      confirmCode: true,
       macro: {
         name: "Parameterized Query",
         mode: "bun",
@@ -737,6 +743,7 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
     // 2. Redis macro execution + cross-connection access via connections.use()
     const redisRun = await call("db/macros/run", {
       target: { kind: "profile", profileId: redisProfileId },
+      confirmCode: true,
       macro: {
         name: "Sync SQLite VIPs to Redis Cache",
         mode: "bun",
@@ -798,6 +805,7 @@ describe("File Manager Databases: Bun JS Macros Backend", () => {
     // 4. Secret redaction guarantee
     const redactRun = await call("db/macros/run", {
       target: { kind: "profile", profileId: redisProfileId },
+      confirmCode: true,
       macro: {
         name: "Secret Redaction Check",
         mode: "bun",

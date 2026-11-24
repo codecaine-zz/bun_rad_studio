@@ -1760,13 +1760,26 @@ async function getCompiledSwiftBinary(
   env: Record<string, string>,
 ): Promise<{ binPath: string | null; scriptPath: string }> {
   const hash = createHash("sha256").update(source).digest("hex").slice(0, 12);
-  const workDir = nodePath.join(tmpdir(), "bun-rad-kindle-swift");
-  await fsp.mkdir(workDir, { recursive: true });
+  const uid = typeof process.getuid === "function" ? process.getuid() : null;
+  const workDir = nodePath.join(
+    tmpdir(),
+    `bun-rad-kindle-swift-${uid ?? "user"}`,
+  );
+  await fsp.mkdir(workDir, { recursive: true, mode: 0o700 });
+  const dirStat = await fsp.lstat(workDir);
+  if (
+    dirStat.isSymbolicLink() ||
+    !dirStat.isDirectory() ||
+    (uid !== null && dirStat.uid !== uid)
+  ) {
+    throw new Error("Refusing to use untrusted Kindle Swift cache directory.");
+  }
+  await fsp.chmod(workDir, 0o700).catch(() => {});
   const scriptPath = nodePath.join(workDir, `${name}-${hash}.swift`);
   const binPath = nodePath.join(workDir, `${name}-${hash}`);
 
   if (!existsSync(scriptPath)) {
-    await fsp.writeFile(scriptPath, source, "utf8");
+    await fsp.writeFile(scriptPath, source, { encoding: "utf8", mode: 0o600 });
   }
 
   if (existsSync(binPath)) {
