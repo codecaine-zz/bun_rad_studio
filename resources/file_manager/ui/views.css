@@ -627,19 +627,29 @@ body:not(.ready) #stage {
   box-shadow: inset 0 1px 0 color-mix(in oklab, #ffffff 12%, transparent);
 }
 .status-clock {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-left: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
+  border-radius: 0.3rem;
+  margin: 0;
+  font-family: inherit;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   color: var(--muted);
   font-size: 0.78rem;
+  line-height: inherit;
   padding: 0.1rem 0.35rem 0.1rem 0.65rem;
-  border-left: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
-  border-radius: 0.3rem;
   cursor: pointer;
   user-select: none;
 }
 .status-clock:hover {
   color: var(--text);
   background: var(--hover);
+}
+.status-clock:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 1px;
 }
 
 /* ------------------------------------------------------------------------- Home */
@@ -1976,9 +1986,39 @@ button.crumb-sep:hover {
   color: var(--accent-text);
 }
 
+.qb-more {
+  display: none;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+  flex: none;
+  padding: 0.18rem 0.55rem;
+  border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
+  border-radius: 0.42rem;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.76rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.qb-more:hover {
+  background: var(--hover);
+  border-color: var(--accent);
+}
+.qb-more:focus-visible {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 1px;
+}
+.qb-more[hidden] {
+  display: none;
+}
+
 @container files (max-width: 620px) {
   .qb-controls {
     display: none;
+  }
+  .qb-more {
+    display: inline-flex;
   }
 }
 

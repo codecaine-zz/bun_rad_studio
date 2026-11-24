@@ -499,6 +499,110 @@ function buttonSpecs() {
 }
 
 const buttons = new Map();
+const rovingWired = new WeakSet();
+
+function toolbarFocusableItems(bar) {
+  if (!bar) return [];
+  const items = [...bar.querySelectorAll(".tool")].filter(
+    (btn) =>
+      !btn.hidden &&
+      !btn.disabled &&
+      !btn.classList.contains("overflowed") &&
+      !btn.closest("[hidden]"),
+  );
+  const more = $("#tool-more");
+  if (more && !more.hidden && !more.disabled && !more.closest("[hidden]")) {
+    items.push(more);
+  }
+  return items;
+}
+
+export function syncToolbarRovingTabindex() {
+  if (
+    typeof HTMLElement === "undefined" ||
+    "focusGroup" in HTMLElement.prototype
+  ) {
+    return;
+  }
+  const bar = $("#toolbar");
+  if (!bar) return;
+  const items = toolbarFocusableItems(bar);
+  if (!items.length) return;
+  const active =
+    items.find((b) => b === document.activeElement) ??
+    items.find((b) => b.getAttribute("tabindex") === "0") ??
+    items[0];
+  for (const btn of bar.querySelectorAll(".tool")) {
+    btn.setAttribute("tabindex", btn === active ? "0" : "-1");
+  }
+  const more = $("#tool-more");
+  if (more) {
+    more.setAttribute("tabindex", more === active ? "0" : "-1");
+  }
+}
+
+export function wireToolbarRovingTabindex() {
+  if (
+    typeof HTMLElement === "undefined" ||
+    "focusGroup" in HTMLElement.prototype
+  ) {
+    return;
+  }
+  const bar = $("#toolbar");
+  if (!bar) return;
+  const host = bar.closest("#toolbar-row") ?? bar;
+  syncToolbarRovingTabindex();
+  if (rovingWired.has(host)) return;
+  rovingWired.add(host);
+
+  host.addEventListener("focusin", (e) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    const items = toolbarFocusableItems(bar);
+    if (!items.includes(target)) return;
+    for (const btn of items) {
+      btn.setAttribute("tabindex", btn === target ? "0" : "-1");
+    }
+  });
+
+  host.addEventListener("keydown", (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const target = e.target;
+    if (!(target instanceof HTMLElement)) return;
+    const items = toolbarFocusableItems(bar);
+    const idx = items.indexOf(target);
+    if (idx < 0 || !items.length) return;
+
+    const isRtl =
+      typeof getComputedStyle === "function" &&
+      getComputedStyle(bar).direction === "rtl";
+
+    let nextIdx = -1;
+    if (e.key === "ArrowRight") {
+      nextIdx = isRtl
+        ? (idx - 1 + items.length) % items.length
+        : (idx + 1) % items.length;
+    } else if (e.key === "ArrowLeft") {
+      nextIdx = isRtl
+        ? (idx + 1) % items.length
+        : (idx - 1 + items.length) % items.length;
+    } else if (e.key === "Home") {
+      nextIdx = 0;
+    } else if (e.key === "End") {
+      nextIdx = items.length - 1;
+    } else {
+      return;
+    }
+
+    e.preventDefault();
+    const nextBtn = items[nextIdx];
+    if (!nextBtn) return;
+    for (const btn of items) {
+      btn.setAttribute("tabindex", btn === nextBtn ? "0" : "-1");
+    }
+    nextBtn.focus();
+  });
+}
 
 export function buildToolbar() {
   const bar = $("#toolbar");
@@ -536,6 +640,7 @@ export function buildToolbar() {
     bar.append(g);
   }
   updateToolbar();
+  wireToolbarRovingTabindex();
 }
 
 export function updateToolbar() {
@@ -567,6 +672,7 @@ export function updateToolbar() {
     const groupHidden = ![...g.children].some((c) => !c.hidden);
     if (g.hidden !== groupHidden) g.hidden = groupHidden;
   });
+  syncToolbarRovingTabindex();
   updateAddressButtons();
 }
 

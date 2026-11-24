@@ -158,7 +158,12 @@
       </div>
 
       <div id="toolbar-row">
-        <header id="toolbar" role="toolbar" aria-label="Actions"></header>
+        <header
+          id="toolbar"
+          role="toolbar"
+          focusgroup="toolbar wrap"
+          aria-label="Actions"
+        ></header>
         <button
           id="tool-more"
           type="button"
@@ -330,6 +335,15 @@
                   + Template
                 </button>
               </div>
+              <button
+                id="qb-more"
+                type="button"
+                class="qb-more"
+                aria-haspopup="menu"
+                aria-label="View options"
+              >
+                ⚙ Options ▾
+              </button>
             </div>
             <div id="list-head" class="list-head" hidden>
               <span class="h-icon"></span>
@@ -686,11 +700,12 @@
             role="group"
             aria-label="How files are shown"
           ></span
-          ><time
+          ><button
             id="status-clock"
+            type="button"
             class="status-clock"
-            aria-label="Current date and time"
-          ></time
+            aria-label="Current date and time — open World Time Zones"
+          ></button
           ><span class="busy-indicator">Working…</span></span
         >
       </footer>

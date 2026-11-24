@@ -555,6 +555,7 @@ async function renderBody(entry, mine) {
             class: "btn ql-mini-btn",
             dataset: { qlImgZoomOut: "" },
             title: "Zoom out (−)",
+            "aria-label": "Zoom out",
             onclick: () => {
               zoom = Math.max(0.25, +(zoom - 0.25).toFixed(2));
               applyTransform();
@@ -570,6 +571,7 @@ async function renderBody(entry, mine) {
             class: "btn ql-mini-btn",
             dataset: { qlImgZoomIn: "" },
             title: "Zoom in (+)",
+            "aria-label": "Zoom in",
             onclick: () => {
               zoom = Math.min(8, +(zoom + 0.25).toFixed(2));
               applyTransform();
@@ -602,6 +604,7 @@ async function renderBody(entry, mine) {
             class: "btn ql-mini-btn",
             dataset: { qlImgRotLeft: "" },
             title: "Rotate 90° counter-clockwise (⇧R)",
+            "aria-label": "Rotate left",
             onclick: () => {
               rot = (rot - 90) % 360;
               applyTransform();
@@ -616,6 +619,7 @@ async function renderBody(entry, mine) {
             class: "btn ql-mini-btn",
             dataset: { qlImgRotRight: "" },
             title: "Rotate 90° clockwise (R)",
+            "aria-label": "Rotate right",
             onclick: () => {
               rot = (rot + 90) % 360;
               applyTransform();
@@ -630,6 +634,7 @@ async function renderBody(entry, mine) {
             class: "btn ql-mini-btn",
             dataset: { qlImgFlipH: "" },
             title: "Flip horizontally (H)",
+            "aria-label": "Flip horizontal",
             onclick: () => {
               flipX *= -1;
               applyTransform();
@@ -644,6 +649,7 @@ async function renderBody(entry, mine) {
             class: "btn ql-mini-btn",
             dataset: { qlImgFlipV: "" },
             title: "Flip vertically (V)",
+            "aria-label": "Flip vertical",
             onclick: () => {
               flipY *= -1;
               applyTransform();

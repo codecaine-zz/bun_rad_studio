@@ -40,7 +40,9 @@ import { hintOf } from "./keymap.js";
 import {
   clearSelection,
   focusIndex,
+  invertSelection,
   matchEntriesByPattern,
+  selectAll,
   selectByPattern,
   selectKeys,
   selectSameKindOrExt,
@@ -1369,6 +1371,74 @@ export function wireQuickbar() {
 
   const tplBtn = $("#qb-template-btn");
   tplBtn?.addEventListener("click", () => void showNewTemplateDialog());
+
+  const moreBtn = $("#qb-more");
+  moreBtn?.addEventListener("click", () => {
+    const trash = inTrash(left);
+    const curGroup = state.settings.groupBy || "none";
+    const curDensity = state.settings.rowDensity || "comfortable";
+    const items = [];
+    if (!trash) {
+      items.push({
+        icon: "📐",
+        label: "Calculate Folder Sizes",
+        tip: "Calculate total byte sizes for folders in this view",
+        action: () => void calculateFolderSizes(activePane()),
+      });
+      items.push({ separator: true });
+    }
+    items.push({ header: "Selection" });
+    items.push({
+      icon: "🎯",
+      label: "Select by Pattern…",
+      tip: "Select or deselect items by pattern, extension, size, or date",
+      action: () => void showSelectByPatternDialog(),
+    });
+    items.push({
+      icon: "☑️",
+      label: "Select All",
+      tip: "Select all visible items in the active pane",
+      action: () => selectAll(activePane()),
+    });
+    items.push({
+      icon: "⇄",
+      label: "Invert Selection",
+      tip: "Invert the current selection in the active pane",
+      action: () => invertSelection(activePane()),
+    });
+    if (!trash) {
+      items.push({ separator: true });
+      items.push({ header: "Group By" });
+      for (const g of GROUP_BY_DEFS) {
+        items.push({
+          label: `Group: ${g.label}`,
+          checked: curGroup === g.id,
+          tip: g.tip,
+          action: () => saveSettings({ groupBy: g.id }),
+        });
+      }
+    }
+    items.push({ separator: true });
+    items.push({ header: "Row Density" });
+    for (const d of ROW_DENSITY_DEFS) {
+      items.push({
+        label: `Density: ${d.label}`,
+        checked: curDensity === d.id,
+        tip: d.tip,
+        action: () => saveSettings({ rowDensity: d.id }),
+      });
+    }
+    if (!trash) {
+      items.push({ separator: true });
+      items.push({
+        icon: "✨",
+        label: "New from Template…",
+        tip: "Create a new file from a starter template",
+        action: () => void showNewTemplateDialog(),
+      });
+    }
+    showMenu(items, { anchor: moreBtn, label: "View options" });
+  });
 
   on("focus-quick-filter", () => focusQuickFilter());
   on("quick-filter-clear", () => clearQuickFilters({ focusList: true }));
