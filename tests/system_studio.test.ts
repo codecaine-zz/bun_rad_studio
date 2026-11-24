@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { spawn } from "child_process";
-import { existsSync, mkdtempSync, rmSync } from "fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "fs";
 import { homedir, hostname, tmpdir, userInfo } from "os";
 import { join } from "path";
 import {
@@ -56,9 +56,20 @@ describe("⚡ System Information Studio Suite (All 76 systeminformation v6 APIs)
       executeSiMethod("thunderbolt"),
     ]);
 
+    const expectedSiVersion = (
+      JSON.parse(
+        readFileSync(
+          join(
+            import.meta.dir,
+            "../node_modules/systeminformation/package.json",
+          ),
+          "utf8",
+        ),
+      ) as { version: string }
+    ).version;
     expect(ver.success).toBe(true);
     expect(typeof ver.data).toBe("string");
-    expect(ver.data).toBe("6.0.0-beta.26");
+    expect(ver.data).toBe(expectedSiVersion);
 
     expect(sys.success).toBe(true);
     expect(sys.data).toBeDefined();

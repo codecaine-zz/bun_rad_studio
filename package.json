@@ -279,15 +279,15 @@
   "devDependencies": {
     "@types/bun": "latest",
     "jsdom": "^29.1.1",
-    "resedit": "^3.0.2"
+    "resedit": "^3.1.1"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "prettier": "^3.9.10",
-    "sql-formatter": "^15.9.0",
-    "systeminformation": "^6.0.0-beta.26",
+    "prettier": "^3.10.1",
+    "sql-formatter": "^15.10.0",
+    "systeminformation": "^6.0.0-beta.29",
     "webview-bun": "^2.4.0"
   },
   "patchedDependencies": {

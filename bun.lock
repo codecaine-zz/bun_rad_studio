@@ -5,15 +5,15 @@
     "": {
       "name": "bun_rad_studio",
       "dependencies": {
-        "prettier": "^3.9.10",
-        "sql-formatter": "^15.9.0",
-        "systeminformation": "^6.0.0-beta.26",
+        "prettier": "^3.10.1",
+        "sql-formatter": "^15.10.0",
+        "systeminformation": "^6.0.0-beta.29",
         "webview-bun": "^2.4.0",
       },
       "devDependencies": {
         "@types/bun": "latest",
         "jsdom": "^29.1.1",
-        "resedit": "^3.0.2",
+        "resedit": "^3.1.1",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -86,9 +86,9 @@
 
     "parse5": ["parse5@8.0.1", "", { "dependencies": { "entities": "^8.0.0" } }, "sha512-z1e/HMG90obSGeidlli3hj7cbocou0/wa5HacvI3ASx34PecNjNQeaHNo5WIZpWofN9kgkqV1q5YvXe3F0FoPw=="],
 
-    "pe-library": ["pe-library@2.0.1", "", {}, "sha512-/qjYFqNSlq59B5DI36am++5/3gMgh02QnzpYigrwrW6s+QpU0mHf09/iA4wjTu21UUxodyV7ZCetV5MiDhaN/A=="],
+    "pe-library": ["pe-library@2.0.3", "", {}, "sha512-+iR+uRyBpBfhnxgP2ia1hh1rQ2Gu+TzCV75E0nSql/pWGQw/BwY2QUaOWX8/qIsrQiqVdYaOIIYRfrBuRu4PXw=="],
 
-    "prettier": ["prettier@3.9.10", "", { "bin": { "prettier": "bin/prettier.cjs" } }, "sha512-skGHTH1Yb9QvaTC4hWnRTzEYtCpApF0UMBPz+t/0ZPzP8ihefo/btKd+QA7pUE0fEwA1SbS/NmhyEcstdXOIdA=="],
+    "prettier": ["prettier@3.10.1", "", { "bin": { "prettier": "bin/prettier.cjs" } }, "sha512-70vp3ZUYoPlFbF9uiTdXHUUCGEIp7d4+6p+8DYbkm2jP7x/3i/paXVF6dopSI3zd/CEitrZN1rc4i85xWmmXlg=="],
 
     "punycode": ["punycode@2.3.1", "", {}, "sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg=="],
 
@@ -98,7 +98,7 @@
 
     "require-from-string": ["require-from-string@2.0.2", "", {}, "sha512-Xf0nWe6RseziFMu+Ap9biiUbmplq6S9/p+7w7YXP/JBHhrUDDUhwa+vANyubuqfZWTveU//DYVGsDG7RKL/vEw=="],
 
-    "resedit": ["resedit@3.1.0", "", { "dependencies": { "pe-library": "^2.0.1" } }, "sha512-i6CN8E6FzTpzsGq/oUnm2GTWhddpZEbnAE+zeNwqTppucTK7xd178q1xWEMrFb+nLnCh+geDqZ4QwhFN8VEgVQ=="],
+    "resedit": ["resedit@3.1.1", "", { "dependencies": { "pe-library": "^2.0.3" } }, "sha512-YP6HNcXm2VIZN9Fl2iq8En3RpEfBFtKY2lKd1HLpnwjokr6nk39pnTO5Eby8OeQVjhRI4qZeUt4brWf43K/EGg=="],
 
     "ret": ["ret@0.1.15", "", {}, "sha512-TTlYpa+OL+vMMNG24xSlQGEJ3B/RzEfUlLct7b5G/ytav+wPrplCpVMFuwzXbkecJrb6IYo1iFb0S9v37754mg=="],
 
@@ -106,11 +106,11 @@
 
     "source-map-js": ["source-map-js@1.2.2", "", {}, "sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw=="],
 
-    "sql-formatter": ["sql-formatter@15.9.0", "", { "dependencies": { "argparse": "^2.0.1", "nearley": "^2.20.1" }, "bin": { "sql-formatter": "bin/sql-formatter-cli.cjs" } }, "sha512-3A/N+v+mA5/PDU+FlO4uTFE0L/Mmg63c/Ny161Qv2b1Mxp9IX8War+LLmq17LA/Kgu4KXAR7iutK2JaHWJMMtw=="],
+    "sql-formatter": ["sql-formatter@15.10.0", "", { "dependencies": { "argparse": "^2.0.1", "nearley": "^2.20.1" }, "bin": { "sql-formatter": "bin/sql-formatter-cli.cjs" } }, "sha512-9cdsDFzPQukym8i9Eedc72L9y/2wEi2pQZVE/3eXthFjDOnvvmzCIk+N6miWbBixdWXU2qdV92V7PLnvlNgEfA=="],
 
     "symbol-tree": ["symbol-tree@3.2.4", "", {}, "sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw=="],
 
-    "systeminformation": ["systeminformation@6.0.0-beta.26", "", { "os": "!aix", "bin": { "systeminformation": "dist/cli.js" } }, "sha512-ImU+O03AHHcqRf9q6pzoB77OKzBSIlraMMa7coC8QflWI9vdSv66MBRY5Xf2F5Aaoedud3LjLOza5UmwAcU3Yw=="],
+    "systeminformation": ["systeminformation@6.0.0-beta.29", "", { "os": "!aix", "bin": { "systeminformation": "dist/cli.js" } }, "sha512-SXWEYxjAAVPOsI18X/s1ppF7F+1cUcOxRNsdJ76hPEuz/i2gwawulvYpXE+DJXAQ8fWBCZGoFwz5VoDBe1Kbdg=="],
 
     "tldts": ["tldts@7.4.18", "", { "dependencies": { "tldts-core": "^7.4.18" }, "bin": { "tldts": "bin/cli.js" } }, "sha512-somxA8xKAUzlAxl0TX/jMSYIbRNFIVGnI96pVGJPeMc5BsHmfVXn6mOJT6U++ELnl04eGfzpfcEuZe8WiASkXg=="],
 

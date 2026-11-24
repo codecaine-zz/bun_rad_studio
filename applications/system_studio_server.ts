@@ -222,7 +222,7 @@ if (import.meta.main) {
   console.log(`⚡ Local URL:    http://127.0.0.1:${server.port}`);
   console.log(`⚡ Network URL:  http://localhost:${server.port}`);
   console.log(
-    `⚡ All 76 systeminformation APIs available in browser workstation.`,
+    `⚡ All ${Object.keys(SI_METHODS).length} systeminformation APIs available in browser workstation.`,
   );
   console.log(
     `⚡ -----------------------------------------------------------------\n`,

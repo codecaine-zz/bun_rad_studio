@@ -11,6 +11,7 @@
 import "../src/shared/siBunCompat.ts";
 import type { Webview, SizeHint } from "webview-bun";
 import * as si from "systeminformation";
+import siPkg from "systeminformation/package.json";
 import * as os from "os";
 import { writeFileSync, existsSync, mkdirSync } from "fs";
 import { resolve, join } from "path";
@@ -1167,8 +1168,14 @@ export async function fetchTelemetryKpis() {
 // -------------------------------------------------------------------------------------------------
 
 export function generateEnterpriseAppHtml(): string {
+  const allMethods = Object.values(SI_METHODS);
+  const totalMethodCount = Object.keys(SI_METHODS).length;
+  const catCount = (cat: string) =>
+    allMethods.filter((m) => m.category === cat).length;
+  const siVersion = siPkg.version;
+
   const methodsJson = JSON.stringify(
-    Object.values(SI_METHODS).map((m) => ({
+    allMethods.map((m) => ({
       name: m.name,
       category: m.category,
       description: m.description,
@@ -2329,7 +2336,7 @@ export function generateEnterpriseAppHtml(): string {
       <div class="brand-logo" aria-hidden="true">⚡</div>
       <div class="brand-title">
         System Studio Pro
-        <span class="brand-badge">All 76 APIs</span>
+        <span class="brand-badge">All ${totalMethodCount} APIs</span>
       </div>
       <div class="status-pill">
         <div class="status-dot" aria-hidden="true"></div>
@@ -2410,7 +2417,7 @@ ${SYSTEM_STUDIO_EXTRA_QUICKBAR_HTML}
       <div class="search-box">
         <div class="search-input-wrap">
           <span class="search-icon" aria-hidden="true">🔍</span>
-          <input type="text" class="search-input" id="searchApis" aria-label="Filter 76 systeminformation APIs" placeholder="Filter 76 APIs (e.g. cpu, gpu, npu, docker, wifi)..." oninput="filterMethods(this.value)">
+          <input type="text" class="search-input" id="searchApis" aria-label="Filter ${totalMethodCount} systeminformation APIs" placeholder="Filter ${totalMethodCount} APIs (e.g. cpu, gpu, npu, docker, wifi)..." oninput="filterMethods(this.value)">
         </div>
 
         <!-- Sidebar Tools: Expand/Collapse & Width Controls -->
@@ -2425,17 +2432,17 @@ ${SYSTEM_STUDIO_EXTRA_QUICKBAR_HTML}
 
         <!-- Category Filter Pills -->
         <div class="cat-filter-scroll" id="catFilterBar" role="group" aria-label="Filter APIs by category">
-          <button type="button" class="cat-pill-btn active" data-cat="ALL" aria-pressed="true" onclick="filterByCategory('ALL')">All (76)</button>
-          <button type="button" class="cat-pill-btn" data-cat="Hardware & Baseboard" aria-pressed="false" onclick="filterByCategory('Hardware & Baseboard')">Hardware (8)</button>
-          <button type="button" class="cat-pill-btn" data-cat="OS & Software Environment" aria-pressed="false" onclick="filterByCategory('OS & Software Environment')">OS (8)</button>
-          <button type="button" class="cat-pill-btn" data-cat="CPU, Load & Thermals" aria-pressed="false" onclick="filterByCategory('CPU, Load & Thermals')">CPU (9)</button>
-          <button type="button" class="cat-pill-btn" data-cat="Memory & Power / Battery" aria-pressed="false" onclick="filterByCategory('Memory & Power / Battery')">Memory (3)</button>
-          <button type="button" class="cat-pill-btn" data-cat="Graphics & Displays" aria-pressed="false" onclick="filterByCategory('Graphics & Displays')">GPU (2)</button>
-          <button type="button" class="cat-pill-btn" data-cat="Disks & Filesystems" aria-pressed="false" onclick="filterByCategory('Disks & Filesystems')">Storage (7)</button>
-          <button type="button" class="cat-pill-btn" data-cat="Network, Sockets & Wi-Fi" aria-pressed="false" onclick="filterByCategory('Network, Sockets & Wi-Fi')">Network (13)</button>
-          <button type="button" class="cat-pill-btn" data-cat="Processes & Services" aria-pressed="false" onclick="filterByCategory('Processes & Services')">Processes (5)</button>
-          <button type="button" class="cat-pill-btn" data-cat="Peripherals & Audio" aria-pressed="false" onclick="filterByCategory('Peripherals & Audio')">Peripherals (8)</button>
-          <button type="button" class="cat-pill-btn" data-cat="Virtualization, Docker & Batch" aria-pressed="false" onclick="filterByCategory('Virtualization, Docker & Batch')">Virtualization (13)</button>
+          <button type="button" class="cat-pill-btn active" data-cat="ALL" aria-pressed="true" onclick="filterByCategory('ALL')">All (${totalMethodCount})</button>
+          <button type="button" class="cat-pill-btn" data-cat="Hardware & Baseboard" aria-pressed="false" onclick="filterByCategory('Hardware & Baseboard')">Hardware (${catCount("Hardware & Baseboard")})</button>
+          <button type="button" class="cat-pill-btn" data-cat="OS & Software Environment" aria-pressed="false" onclick="filterByCategory('OS & Software Environment')">OS (${catCount("OS & Software Environment")})</button>
+          <button type="button" class="cat-pill-btn" data-cat="CPU, Load & Thermals" aria-pressed="false" onclick="filterByCategory('CPU, Load & Thermals')">CPU (${catCount("CPU, Load & Thermals")})</button>
+          <button type="button" class="cat-pill-btn" data-cat="Memory & Power / Battery" aria-pressed="false" onclick="filterByCategory('Memory & Power / Battery')">Memory (${catCount("Memory & Power / Battery")})</button>
+          <button type="button" class="cat-pill-btn" data-cat="Graphics & Displays" aria-pressed="false" onclick="filterByCategory('Graphics & Displays')">GPU (${catCount("Graphics & Displays")})</button>
+          <button type="button" class="cat-pill-btn" data-cat="Disks & Filesystems" aria-pressed="false" onclick="filterByCategory('Disks & Filesystems')">Storage (${catCount("Disks & Filesystems")})</button>
+          <button type="button" class="cat-pill-btn" data-cat="Network, Sockets & Wi-Fi" aria-pressed="false" onclick="filterByCategory('Network, Sockets & Wi-Fi')">Network (${catCount("Network, Sockets & Wi-Fi")})</button>
+          <button type="button" class="cat-pill-btn" data-cat="Processes & Services" aria-pressed="false" onclick="filterByCategory('Processes & Services')">Processes (${catCount("Processes & Services")})</button>
+          <button type="button" class="cat-pill-btn" data-cat="Peripherals & Audio" aria-pressed="false" onclick="filterByCategory('Peripherals & Audio')">Peripherals (${catCount("Peripherals & Audio")})</button>
+          <button type="button" class="cat-pill-btn" data-cat="Virtualization, Docker & Batch" aria-pressed="false" onclick="filterByCategory('Virtualization, Docker & Batch')">Virtualization (${catCount("Virtualization, Docker & Batch")})</button>
         </div>
       </div>
 
@@ -2503,7 +2510,7 @@ ${SYSTEM_STUDIO_EXTRA_JSONSEARCH_HTML}
           <div class="console-box" id="consoleBox">
             <div class="log-line">
               <span class="log-time">[${new Date().toLocaleTimeString()}]</span>
-              <span class="log-info">System Information Studio Pro initialized. All 76 methods ready.</span>
+              <span class="log-info">System Information Studio Pro initialized. All ${totalMethodCount} methods ready.</span>
             </div>
           </div>
         </div>
@@ -2516,7 +2523,7 @@ ${SYSTEM_STUDIO_EXTRA_JSONSEARCH_HTML}
     <div class="footer-left">
       <span>Platform: <b id="footerPlatform">${initialPlatformLabel}</b></span>
       <span>•</span>
-      <span>Total APIs: <b>76</b></span>
+      <span>Total APIs: <b>${totalMethodCount}</b></span>
       <span>•</span>
       <span>Bun Native Engine</span>
     </div>
@@ -2532,6 +2539,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
     const ALL_CATEGORIES = ${categoriesJson};
     const IS_SCREENSHOT_MODE = ${process.env.SCREENSHOT_MODE === "1" ? "true" : "false"};
     const STUDIO_BUN_VERSION = ${JSON.stringify(Bun.version)};
+    const STUDIO_SI_VERSION = ${JSON.stringify(siVersion)};
 
     let activeMethod = "system";
     let activeResult = null;
@@ -2601,7 +2609,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
       const nowMs = 1795000000000 + demoTick * 1000;
 
       const staticSnap = {
-        version: "6.0.0-beta.26",
+        version: STUDIO_SI_VERSION,
         system: {
           manufacturer: "Studio Hardware",
           model: "Workstation Pro (Demo)",
@@ -2688,7 +2696,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
         osInfo: staticSnap.os,
         versions: staticSnap.versions,
         software: staticSnap.software,
-        npm: [{ name: "systeminformation", version: "6.0.0-beta.26", path: "/Users/developer/workspace/node_modules/systeminformation" }],
+        npm: [{ name: "systeminformation", version: STUDIO_SI_VERSION, path: "/Users/developer/workspace/node_modules/systeminformation" }],
         shell: "/bin/zsh",
         time: dynamicSnap.time,
         powerShellStart: { status: "No-op in demo environment", active: false, platform: "darwin" },
@@ -3977,7 +3985,7 @@ export function createSystemInformationStudio(
     generateHtml: () => generateEnterpriseAppHtml(),
     run: async () => {
       console.log(
-        "⚡ Launching System Information Studio Pro (All 76 APIs)...",
+        `⚡ Launching System Information Studio Pro (All ${Object.keys(SI_METHODS).length} APIs)...`,
       );
 
       // 1. Launch Isolated Background Telemetry Worker Engine

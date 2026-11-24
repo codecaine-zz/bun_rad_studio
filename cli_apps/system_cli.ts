@@ -14,6 +14,8 @@ import {
   SI_CATEGORIES,
 } from "../applications/system_studio.ts";
 
+const SI_METHOD_COUNT = Object.keys(SI_METHODS).length;
+
 const app = SimpleCLI.newApp("system-cli", "2.0.0").setDescription(
   "Cross-Platform Hardware Telemetry, Subsystem Explorer & Package Registry Inspector",
 );
@@ -65,7 +67,7 @@ app.addFlagBool(
   "list-apis",
   "l",
   false,
-  "List all 76 supported systeminformation APIs",
+  `List all ${SI_METHOD_COUNT} supported systeminformation APIs`,
 );
 
 if (!app.parseCli()) process.exit(0);
@@ -159,8 +161,8 @@ async function main() {
       console.log(JSON.stringify(SI_METHODS, null, 2));
     } else {
       app.panel(
-        "Available SystemInformation APIs (76 Total)",
-        "Organized across 10 domain categories",
+        `Available SystemInformation APIs (${SI_METHOD_COUNT} Total)`,
+        `Organized across ${SI_CATEGORIES.length} domain categories`,
       );
       for (const cat of SI_CATEGORIES) {
         const methodsInCat = Object.values(SI_METHODS).filter(
@@ -293,8 +295,7 @@ async function main() {
       "System Uptime": telemetryData.uptimeHours,
       "Bun Engine": `v${telemetryData.bunVersion}`,
       "Node Engine": telemetryData.nodeCompatVersion,
-      "API Surface":
-        "76 systeminformation methods available (run `system-cli -l`)",
+      "API Surface": `${SI_METHOD_COUNT} systeminformation methods available (run \`system-cli -l\`)`,
     });
   }
 }
