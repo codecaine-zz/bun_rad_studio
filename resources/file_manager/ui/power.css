@@ -6,6 +6,7 @@
   flex: 1 1 0;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
   background: var(--bg);
   container-type: inline-size;
   container-name: power;
@@ -25,6 +26,8 @@
   background: var(--panel);
   border-bottom: 1px solid var(--border);
   flex: none;
+  min-width: 0;
+  overflow: hidden;
 }
 .power-title {
   font-weight: 600;
@@ -757,4 +760,22 @@
 .cliutil-console-out {
   max-height: 260px;
   min-height: 56px;
+}
+@container power (max-width: 640px) {
+  .power-head {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .power-actions {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .power-scroll {
+    order: 2;
+  }
+  #power-tabs {
+    order: 2;
+    flex: 1 1 calc(100% - 4.5rem);
+    min-width: 0;
+  }
 }

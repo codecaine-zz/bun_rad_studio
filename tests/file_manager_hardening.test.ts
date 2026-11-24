@@ -418,5 +418,51 @@ describe("P1 SCREENSHOT_MODE=1 privacy masking", () => {
         expect(iface.mac).toBe("🔒 [Protected]");
       }
     }
+
+    const routesTable = net.tables.find((t) =>
+      t.title.startsWith("Routing Table"),
+    );
+    if (routesTable) {
+      for (const row of routesTable.rows) {
+        const dest = String(row[0] ?? "");
+        expect(dest).not.toMatch(/\b192\.168\.\d+\.\d+\b/);
+        expect(dest).not.toMatch(/\b169\.254\.\d+\.\d+\b/);
+        expect(dest).not.toMatch(/\b10\.\d+\.\d+\.\d+\b/);
+      }
+    }
+    const rawRoutes = ((net.raw as any).routes ?? []) as any[];
+    for (const rt of rawRoutes) {
+      const dest = String(rt?.destination ?? "");
+      expect(dest).not.toMatch(/\b192\.168\.\d+\.\d+\b/);
+      expect(dest).not.toMatch(/\b169\.254\.\d+\.\d+\b/);
+    }
+  });
+
+  test("fmTaskManager masks os.hostname() in command and exePath under SCREENSHOT_MODE=1", async () => {
+    process.env.SCREENSHOT_MODE = "1";
+    const realHost = os.hostname().trim();
+    if (!realHost || realHost.length < 4) return;
+    const snap = await collectTaskSnapshot("darwin", {
+      currentUser: "alice_real",
+      execCommand: async (cmd) => {
+        if (cmd[0] === "lsof") {
+          return { exitCode: 0, stdout: "", stderr: "" };
+        }
+        return {
+          exitCode: 0,
+          stdout: [
+            "  PID  PPID  %CPU %MEM    RSS STAT USER       ELAPSED COMMAND",
+            ` 4201     1   1.0  0.5  20480 S    alice_real   00:10 /opt/agent/${realHost}/bin/worker --host ${realHost}`,
+          ].join("\n"),
+          stderr: "",
+        };
+      },
+    });
+    const proc = snap.processes.find((p) => p.pid === "4201");
+    expect(proc).toBeTruthy();
+    expect(proc!.command.toLowerCase()).not.toContain(realHost.toLowerCase());
+    expect((proc!.exePath ?? "").toLowerCase()).not.toContain(
+      realHost.toLowerCase(),
+    );
   });
 });

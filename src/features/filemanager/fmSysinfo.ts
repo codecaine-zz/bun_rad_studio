@@ -830,13 +830,25 @@ function maskSysinfoValue(
     if (k === "homedir") return "/Users/developer";
     if (k === "uri") return "ipp://printer.local/ipp/print";
     if (k === "ssid") return "Studio-WiFi-Demo";
-    if (/^(ip|ip4|ip4subnet|gateway|localaddress|peeraddress|v4)$/.test(k)) {
+    if (
+      /^(ip|ip4|ip4subnet|gateway|destination|localaddress|peeraddress|v4)$/.test(
+        k,
+      )
+    ) {
       if (
         trimmed === "local" ||
+        trimmed === "default" ||
         trimmed === "127.0.0.1" ||
-        trimmed === "0.0.0.0"
+        trimmed === "0.0.0.0" ||
+        trimmed === "0.0.0.0/0" ||
+        trimmed === "::" ||
+        trimmed === "::/0" ||
+        trimmed === "::1"
       ) {
         return value;
+      }
+      if (trimmed.includes(":")) {
+        return k === "v6" ? "2001:db8::42" : "fe80::***";
       }
       return k === "v4" ? "203.0.113.42" : "192.168.1.*** (Masked)";
     }
@@ -1942,22 +1954,28 @@ export async function collectSysinfoSection(
         columns: ["Destination", "Gateway", "Interface", "Family", "Metric"],
         rows: routeList.slice(0, 50).map((r: any) => {
           const gw = String(r.gateway || "");
-          const isLocalGw =
-            !gw ||
-            gw === "127.0.0.1" ||
-            gw === "::1" ||
-            gw === "0.0.0.0" ||
-            gw === "::";
-          const displayGw = !gw
-            ? "—"
-            : isShot && !isLocalGw
-              ? gw.includes(":")
-                ? "fe80::***"
-                : "192.168.1.*** (Masked)"
-              : gw;
+          const rawDest = String(r.destination || "").trim();
+          const isSafeRouteAddr = (addr: string) =>
+            !addr ||
+            addr === "default" ||
+            addr === "local" ||
+            addr === "127.0.0.1" ||
+            addr === "::1" ||
+            addr === "0.0.0.0" ||
+            addr === "0.0.0.0/0" ||
+            addr === "::" ||
+            addr === "::/0";
+          const maskRouteAddr = (addr: string) =>
+            !addr
+              ? "—"
+              : isShot && !isSafeRouteAddr(addr)
+                ? addr.includes(":")
+                  ? "fe80::***"
+                  : "192.168.1.*** (Masked)"
+                : addr;
           return [
-            String(r.destination || "—"),
-            displayGw,
+            maskRouteAddr(rawDest),
+            maskRouteAddr(gw),
             String(r.iface || "—"),
             String(r.family || "—"),
             r.metric !== null && r.metric !== undefined

@@ -1623,6 +1623,23 @@ function maskHomePathsForScreenshot(value: string): string {
   }
   out = out.replace(/(\/Users\/|\/home\/)([^/\s:'"]+)/g, "$1developer");
   out = out.replace(/([A-Za-z]:\\Users\\)([^\\\s:'"]+)/gi, "$1developer");
+  try {
+    const host = os.hostname().trim();
+    if (host && host.length >= 3) {
+      const hostEsc = host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      out = out.replace(
+        new RegExp(hostEsc, "gi"),
+        host.includes(".") ? "studio-workstation.local" : "studio-workstation",
+      );
+      const shortHost = host.split(".")[0]?.trim() || "";
+      if (shortHost && shortHost.length >= 4 && shortHost !== host) {
+        const shortEsc = shortHost.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        out = out.replace(new RegExp(shortEsc, "gi"), "studio-workstation");
+      }
+    }
+  } catch {
+    /* ignore */
+  }
   return out;
 }
 
