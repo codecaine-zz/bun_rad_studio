@@ -3406,71 +3406,169 @@ export async function convertWavFileToAiffNative(
   wavPath: string,
   aiffPath: string,
 ): Promise<void> {
-  const wavBuf = await fsp.readFile(wavPath);
-  const { sampleRate, numChannels, bitsPerSample, pcmData } =
-    parseWavPcm(wavBuf);
-  const bytesPerSample = bitsPerSample >> 3;
-  const numSampleFrames = Math.floor(
-    pcmData.length / (numChannels * bytesPerSample),
-  );
-
-  // AIFF uses big-endian signed 16-bit samples
-  const bePcm = Buffer.from(pcmData);
-  if (bytesPerSample === 2) {
-    bePcm.swap16();
-  }
-
-  // Encode sampleRate as 80-bit IEEE 754 extended precision float
-  const srExtended = Buffer.alloc(10);
-  let sr = sampleRate;
-  let exp = 16383 + 31;
-  while (sr < 0x80000000 && exp > 0) {
-    sr *= 2;
-    exp--;
-  }
-  srExtended.writeUInt16BE(exp, 0);
-  srExtended.writeUInt32BE(Math.floor(sr) >>> 0, 2);
-  srExtended.writeUInt32BE(0, 6);
-
-  // COMM chunk (18 bytes body) + SSND chunk (8 + bePcm.length bytes body)
-  const commSize = 18;
-  const ssndSize = 8 + bePcm.length;
-  const formSize = 4 + (8 + commSize) + (8 + ssndSize);
-  const header = Buffer.alloc(12 + 8 + commSize + 8 + 8);
-  let o = 0;
-  header.write("FORM", o, "ascii");
-  o += 4;
-  header.writeUInt32BE(formSize, o);
-  o += 4;
-  header.write("AIFF", o, "ascii");
-  o += 4;
-  header.write("COMM", o, "ascii");
-  o += 4;
-  header.writeUInt32BE(commSize, o);
-  o += 4;
-  header.writeUInt16BE(numChannels, o);
-  o += 2;
-  header.writeUInt32BE(numSampleFrames, o);
-  o += 4;
-  header.writeUInt16BE(bitsPerSample, o);
-  o += 2;
-  srExtended.copy(header, o);
-  o += 10;
-  header.write("SSND", o, "ascii");
-  o += 4;
-  header.writeUInt32BE(ssndSize, o);
-  o += 4;
-  header.writeUInt32BE(0, o);
-  o += 4; // offset
-  header.writeUInt32BE(0, o);
-  o += 4; // blockSize
-
-  const outHandle = await fsp.open(aiffPath, "w");
+  const inHandle = await fsp.open(wavPath, "r");
   try {
-    await outHandle.write(header, 0, header.length, 0);
-    await outHandle.write(bePcm, 0, bePcm.length, header.length);
+    const { size: fileSize } = await inHandle.stat();
+    if (fileSize < 44) {
+      throw new FmError(
+        "BAD_WAV",
+        "Phonon did not return valid WAV audio data.",
+      );
+    }
+
+    const riffHead = Buffer.alloc(12);
+    const { bytesRead: riffRead } = await inHandle.read(riffHead, 0, 12, 0);
+    if (
+      riffRead < 12 ||
+      riffHead.subarray(0, 4).toString("ascii") !== "RIFF" ||
+      riffHead.subarray(8, 12).toString("ascii") !== "WAVE"
+    ) {
+      throw new FmError(
+        "BAD_WAV",
+        "Phonon did not return valid WAV audio data.",
+      );
+    }
+
+    let sampleRate = 24000;
+    let numChannels = 1;
+    let bitsPerSample = 16;
+    let pcmOffset = 44;
+    let pcmLength = fileSize - 44;
+    let offset = 12;
+    const chunkHeader = Buffer.alloc(8);
+    const fmtBuf = Buffer.alloc(16);
+
+    while (offset + 8 <= fileSize) {
+      const { bytesRead: hdrRead } = await inHandle.read(
+        chunkHeader,
+        0,
+        8,
+        offset,
+      );
+      if (hdrRead < 8) break;
+      const chunkId = chunkHeader.subarray(0, 4).toString("ascii");
+      const chunkSize = chunkHeader.readUInt32LE(4);
+      const bodyStart = offset + 8;
+      if (chunkId === "fmt " && bodyStart + 16 <= fileSize) {
+        const { bytesRead: fmtRead } = await inHandle.read(
+          fmtBuf,
+          0,
+          16,
+          bodyStart,
+        );
+        if (fmtRead >= 16) {
+          numChannels = fmtBuf.readUInt16LE(2) || 1;
+          sampleRate = fmtBuf.readUInt32LE(4) || 24000;
+          bitsPerSample = fmtBuf.readUInt16LE(14) || 16;
+        }
+      } else if (chunkId === "data") {
+        // Streaming WAV writers sometimes set chunkSize to 0xFFFFFFFF or larger than remaining buffer; clamp safely.
+        const available = fileSize - bodyStart;
+        const actualSize =
+          chunkSize > 0 && chunkSize <= available ? chunkSize : available;
+        pcmOffset = bodyStart;
+        pcmLength = actualSize - (actualSize % 2);
+        break;
+      }
+      offset = bodyStart + chunkSize + (chunkSize % 2);
+    }
+
+    const bytesPerSample = bitsPerSample >> 3;
+    const numSampleFrames = Math.floor(
+      pcmLength / (numChannels * bytesPerSample),
+    );
+
+    // Encode sampleRate as 80-bit IEEE 754 extended precision float
+    const srExtended = Buffer.alloc(10);
+    let sr = sampleRate;
+    let exp = 16383 + 31;
+    while (sr < 0x80000000 && exp > 0) {
+      sr *= 2;
+      exp--;
+    }
+    srExtended.writeUInt16BE(exp, 0);
+    srExtended.writeUInt32BE(Math.floor(sr) >>> 0, 2);
+    srExtended.writeUInt32BE(0, 6);
+
+    // COMM chunk (18 bytes body) + SSND chunk (8 + pcmLength bytes body)
+    const commSize = 18;
+    const ssndSize = 8 + pcmLength;
+    const formSize = 4 + (8 + commSize) + (8 + ssndSize);
+    const header = Buffer.alloc(12 + 8 + commSize + 8 + 8);
+    let o = 0;
+    header.write("FORM", o, "ascii");
+    o += 4;
+    header.writeUInt32BE(formSize, o);
+    o += 4;
+    header.write("AIFF", o, "ascii");
+    o += 4;
+    header.write("COMM", o, "ascii");
+    o += 4;
+    header.writeUInt32BE(commSize, o);
+    o += 4;
+    header.writeUInt16BE(numChannels, o);
+    o += 2;
+    header.writeUInt32BE(numSampleFrames, o);
+    o += 4;
+    header.writeUInt16BE(bitsPerSample, o);
+    o += 2;
+    srExtended.copy(header, o);
+    o += 10;
+    header.write("SSND", o, "ascii");
+    o += 4;
+    header.writeUInt32BE(ssndSize, o);
+    o += 4;
+    header.writeUInt32BE(0, o);
+    o += 4; // offset
+    header.writeUInt32BE(0, o);
+    o += 4; // blockSize
+
+    // Stream PCM in 1 MB chunks with in-place big-endian byte swap (AIFF uses big-endian signed 16-bit samples)
+    const CHUNK_BYTES = 1024 * 1024;
+    const chunkBuf = Buffer.allocUnsafe(
+      Math.min(CHUNK_BYTES, Math.max(2, pcmLength)),
+    );
+    const outHandle = await fsp.open(aiffPath, "w");
+    try {
+      await outHandle.write(header, 0, header.length, 0);
+      let inPos = pcmOffset;
+      let outPos = header.length;
+      let remaining = pcmLength;
+      while (remaining > 0) {
+        const want = Math.min(chunkBuf.length, remaining);
+        let filled = 0;
+        while (filled < want) {
+          const { bytesRead } = await inHandle.read(
+            chunkBuf,
+            filled,
+            want - filled,
+            inPos + filled,
+          );
+          if (bytesRead <= 0) break;
+          filled += bytesRead;
+        }
+        if (filled <= 0) break;
+        const slice =
+          filled === chunkBuf.length ? chunkBuf : chunkBuf.subarray(0, filled);
+        if (bytesPerSample === 2) {
+          const evenLen = slice.length - (slice.length % 2);
+          if (evenLen > 0) {
+            (evenLen === slice.length
+              ? slice
+              : slice.subarray(0, evenLen)
+            ).swap16();
+          }
+        }
+        await outHandle.write(slice, 0, slice.length, outPos);
+        inPos += filled;
+        outPos += filled;
+        remaining -= filled;
+      }
+    } finally {
+      await outHandle.close();
+    }
   } finally {
-    await outHandle.close();
+    await inHandle.close();
   }
 }
 

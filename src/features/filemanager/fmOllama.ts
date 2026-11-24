@@ -4452,7 +4452,14 @@ export async function runOllamaAutoInstall(
                 windowsHide: true,
               },
             );
-          } catch {
+          } catch (installErr: any) {
+            const errMsg = installErr?.message || String(installErr);
+            console.warn(
+              `[fmOllama] Windows OllamaSetup.exe download/install failed: ${errMsg}`,
+            );
+            updateOllamaLongTask({
+              step: `Windows Ollama installer failed: ${errMsg}`,
+            });
           } finally {
             removePathForceSync(tmpExe);
           }
@@ -5716,7 +5723,15 @@ export async function runOllamaSpeech(
   await Bun.write(cacheWavPath, wavForPlayback);
   if (cachedSpeechFiles.size >= MAX_CACHED_SPEECH_FILES) {
     const oldestKey = cachedSpeechFiles.keys().next().value;
-    if (oldestKey) cachedSpeechFiles.delete(oldestKey);
+    if (oldestKey) {
+      const evicted = cachedSpeechFiles.get(oldestKey);
+      cachedSpeechFiles.delete(oldestKey);
+      if (evicted?.absPath) {
+        void Bun.file(evicted.absPath)
+          .delete()
+          .catch(() => {});
+      }
+    }
   }
   cachedSpeechFiles.set(audioId, {
     absPath: cacheWavPath,

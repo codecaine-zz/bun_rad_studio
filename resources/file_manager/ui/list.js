@@ -596,6 +596,27 @@ export function syncSelection(pane = left) {
     statusEl.textContent = statusText;
 }
 
+/** Updates `.cut` markers in-place on existing rows without rebuilding the list DOM. */
+function syncClipboard(pane = left) {
+  const { rows } = viewOf(pane);
+  if (rows.size === 0) {
+    renderList(pane);
+    return;
+  }
+  const cutSet =
+    state.clipboard?.mode === "cut" &&
+    Array.isArray(state.clipboard.paths) &&
+    state.clipboard.paths.length > 0
+      ? new Set(state.clipboard.paths)
+      : null;
+  for (const [key, row] of rows) {
+    const isCut = Boolean(cutSet && cutSet.has(key));
+    if (row.classList.contains("cut") !== isCut) {
+      row.classList.toggle("cut", isCut);
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Inline rename
 // ---------------------------------------------------------------------------------------------------------------
@@ -868,12 +889,8 @@ export function wireList() {
     state.shown = 0;
     renderList();
   });
-  on("settings", (c) => {
-    if (c && ("columns" in c || "groupBy" in c || "tags" in c || "notes" in c))
-      renderList(left);
-  });
   on("selection", () => syncSelection(left));
-  on("clipboard", () => renderList(left));
+  on("clipboard", () => syncClipboard(left));
   on("rename-request", ({ key, pane }) =>
     setTimeout(() => beginRename(key, pane), 0),
   );

@@ -4459,18 +4459,27 @@ describe("tool screen room toggles and universal window/browser actions", () => 
       }),
     );
     expect(app().classList.contains("power-max")).toBe(false);
-    win.dispatchEvent(
-      new win.MessageEvent("message", {
-        data: { fmToggleExpand: true },
-        origin: win.location.origin,
-      }),
-    );
-    expect(app().classList.contains("power-max")).toBe(true);
-    // Nested Database Studio iframe on a separate loopback port can also restore Ultra Focus via fmEscapeExpand
+    // Unmounted / sourceless loopback postMessage must be rejected even when a power iframe is mounted
     const mountedFrame = doc.querySelector(
       "#power-panel iframe",
     ) as HTMLIFrameElement;
     expect(mountedFrame).not.toBeNull();
+    win.dispatchEvent(
+      new win.MessageEvent("message", {
+        data: { fmToggleExpand: true },
+        origin: "http://127.0.0.1:54321",
+      }),
+    );
+    expect(app().classList.contains("power-max")).toBe(false);
+    win.dispatchEvent(
+      new win.MessageEvent("message", {
+        data: { fmToggleExpand: true },
+        origin: win.location.origin,
+        source: mountedFrame.contentWindow,
+      }),
+    );
+    expect(app().classList.contains("power-max")).toBe(true);
+    // Nested Database Studio iframe on a separate loopback port can also restore Ultra Focus via fmEscapeExpand
     win.dispatchEvent(
       new win.MessageEvent("message", {
         data: { fmEscapeExpand: true },
@@ -4501,6 +4510,7 @@ describe("tool screen room toggles and universal window/browser actions", () => 
       new win.MessageEvent("message", {
         data: { fmToggleExpand: true },
         origin: win.location.origin,
+        source: mountedFrame.contentWindow,
       }),
     );
     expect(app().classList.contains("power-max")).toBe(true);

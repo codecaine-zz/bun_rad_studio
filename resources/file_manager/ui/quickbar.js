@@ -797,7 +797,7 @@ export function setKindFilter(kindId) {
     );
 }
 
-export function renderQuickbar() {
+export function renderQuickbar({ filterOnly = false } = {}) {
   const bar = $("#quickbar");
   if (!bar) return;
   const trash = inTrash(left);
@@ -861,56 +861,58 @@ export function renderQuickbar() {
     return;
   }
 
-  // Compute live counts across the current folder's raw entries (after tag filter if any)
-  let baseEntries = left.search ? left.search.entries : left.entries;
-  if (state.tagFilter && state.settings?.tags) {
-    baseEntries = baseEntries.filter(
-      (e) => state.settings.tags[e.path] === state.tagFilter,
-    );
-  }
-  const counts = new Map();
-  for (const def of KIND_CHIP_DEFS) counts.set(def.id, 0);
-  counts.set("all", baseEntries.length);
-  for (const e of baseEntries) {
-    for (const def of KIND_CHIP_DEFS) {
-      if (def.id === "all") continue;
-      if (entryMatchesKindFilter(e, def.id)) {
-        counts.set(def.id, (counts.get(def.id) || 0) + 1);
+  if (!(filterOnly && chipsBox && chipsBox.childElementCount > 0)) {
+    // Compute live counts across the current folder's raw entries (after tag filter if any)
+    let baseEntries = left.search ? left.search.entries : left.entries;
+    if (state.tagFilter && state.settings?.tags) {
+      baseEntries = baseEntries.filter(
+        (e) => state.settings.tags[e.path] === state.tagFilter,
+      );
+    }
+    const counts = new Map();
+    for (const def of KIND_CHIP_DEFS) counts.set(def.id, 0);
+    counts.set("all", baseEntries.length);
+    for (const e of baseEntries) {
+      for (const def of KIND_CHIP_DEFS) {
+        if (def.id === "all") continue;
+        if (entryMatchesKindFilter(e, def.id)) {
+          counts.set(def.id, (counts.get(def.id) || 0) + 1);
+        }
       }
     }
-  }
 
-  if (chipsBox) {
-    clear(chipsBox);
-    const activeKind = state.kindFilter || "all";
-    for (const def of KIND_CHIP_DEFS) {
-      const count = counts.get(def.id) ?? 0;
-      if (def.id !== "all" && count === 0 && activeKind !== def.id) continue;
-      const pressed = activeKind === def.id;
-      const btnIconId = `chip.${def.id === "document" ? "docs" : def.id === "media" ? "video" : def.id}`;
-      const chip = h(
-        "button",
-        {
-          type: "button",
-          class: `qb-chip${pressed ? " active" : ""}`,
-          dataset: { kindChip: def.id, kind: def.id },
-          "aria-pressed": String(pressed),
-          title: `${def.tip} (${count})`,
-          onclick: () => setKindFilter(def.id),
-        },
-        h(
-          "span",
+    if (chipsBox) {
+      clear(chipsBox);
+      const activeKind = state.kindFilter || "all";
+      for (const def of KIND_CHIP_DEFS) {
+        const count = counts.get(def.id) ?? 0;
+        if (def.id !== "all" && count === 0 && activeKind !== def.id) continue;
+        const pressed = activeKind === def.id;
+        const btnIconId = `chip.${def.id === "document" ? "docs" : def.id === "media" ? "video" : def.id}`;
+        const chip = h(
+          "button",
           {
-            class: "qb-chip-icon",
-            "aria-hidden": "true",
-            dataset: { btnIcon: btnIconId, defaultIcon: def.icon },
+            type: "button",
+            class: `qb-chip${pressed ? " active" : ""}`,
+            dataset: { kindChip: def.id, kind: def.id },
+            "aria-pressed": String(pressed),
+            title: `${def.tip} (${count})`,
+            onclick: () => setKindFilter(def.id),
           },
-          buttonIconFor(btnIconId, undefined, def.icon),
-        ),
-        h("span", { class: "qb-chip-label" }, def.label),
-        h("span", { class: "qb-chip-count" }, String(count)),
-      );
-      chipsBox.append(chip);
+          h(
+            "span",
+            {
+              class: "qb-chip-icon",
+              "aria-hidden": "true",
+              dataset: { btnIcon: btnIconId, defaultIcon: def.icon },
+            },
+            buttonIconFor(btnIconId, undefined, def.icon),
+          ),
+          h("span", { class: "qb-chip-label" }, def.label),
+          h("span", { class: "qb-chip-count" }, String(count)),
+        );
+        chipsBox.append(chip);
+      }
     }
   }
 
@@ -1305,7 +1307,7 @@ export function wireQuickbar() {
       state.quickFilter = input.value;
       state.shown = 0;
       renderList(left);
-      renderQuickbar();
+      renderQuickbar({ filterOnly: true });
       emit("selection");
     });
     input.addEventListener("keydown", (e) => {

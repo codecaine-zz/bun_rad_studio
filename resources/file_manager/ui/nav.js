@@ -685,7 +685,7 @@ export async function showTrash({ push = true } = {}) {
       emit("places");
       return true;
     } catch (err) {
-      reportLoadError(err);
+      if (mine === navigation) reportLoadError(err);
       return false;
     }
   });
@@ -820,7 +820,7 @@ export async function runSearch(query, { keepSelection = false } = {}) {
       emit("selection");
       return true;
     } catch (err) {
-      reportLoadError(err);
+      if (mine === navigation) reportLoadError(err);
       return false;
     }
   });

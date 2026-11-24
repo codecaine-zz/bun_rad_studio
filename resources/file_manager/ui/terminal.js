@@ -300,6 +300,11 @@ function ensureTerminal() {
     scrollback: 5000,
     theme: terminalTheme(),
     screenReaderMode: false,
+    linkHandler: {
+      activate(_e, uri) {
+        if (/^https?:\/\//i.test(uri)) void call("link/open", { url: uri });
+      },
+    },
   });
   fit = new FitAddon();
   term.loadAddon(fit);

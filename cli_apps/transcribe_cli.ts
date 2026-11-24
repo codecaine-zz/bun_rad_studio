@@ -23,7 +23,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import * as nodePath from "node:path";
-import { SimpleCLI } from "../src/index.ts";
+import { SimpleCLI } from "../src/simplecli/core/SimpleCLI.ts";
 import {
   assertCreatable,
   createContext,

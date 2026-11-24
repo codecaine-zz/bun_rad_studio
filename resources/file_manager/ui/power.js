@@ -978,8 +978,7 @@ export function wirePower() {
       });
       const fromPowerFrame =
         (e.source === window && isAllowedOrigin) ||
-        (fromMountedFrame && isLoopbackOrigin) ||
-        (frames.length > 0 && Boolean(e.origin) && isLoopbackOrigin);
+        (fromMountedFrame && isLoopbackOrigin);
       if (!fromPowerFrame) return;
       if (e.data.fmCloseApp) {
         const quit = window.quitApp || window.closeApp || window.closeWindow;

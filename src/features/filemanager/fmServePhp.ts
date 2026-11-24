@@ -467,19 +467,47 @@ function createPhpHostGuardFile(): string {
   return file;
 }
 
-const PHP_HOST_GUARD_FILE = createPhpHostGuardFile();
+let cachedPhpHostGuardFile: string | null = null;
+
+/** Lazily creates and caches the temporary PHP host-guard script so importing `fmServePhp.ts` does no filesystem I/O. */
+export function getPhpHostGuardFile(): string {
+  if (!cachedPhpHostGuardFile) {
+    cachedPhpHostGuardFile = createPhpHostGuardFile();
+  }
+  return cachedPhpHostGuardFile;
+}
+
+/** Builds the PHP `-d` flags lazily so the host-guard temp file is only created when a PHP server is actually started. */
+export function getDevIni(): string[] {
+  return [
+    "-d",
+    "display_errors=1",
+    "-d",
+    "error_reporting=E_ALL",
+    "-d",
+    "log_errors=1",
+    "-d",
+    `auto_prepend_file=${getPhpHostGuardFile()}`,
+  ];
+}
 
 /** A development server shows PHP's errors in the page and the log, whatever the installed php.ini (Linux packages ship with display_errors off), and guards loopback `Host` headers against DNS rebinding. */
-export const DEV_INI = [
-  "-d",
-  "display_errors=1",
-  "-d",
-  "error_reporting=E_ALL",
-  "-d",
-  "log_errors=1",
-  "-d",
-  `auto_prepend_file=${PHP_HOST_GUARD_FILE}`,
-];
+export const DEV_INI: string[] = new Proxy([] as string[], {
+  get(_target, prop) {
+    const arr = getDevIni();
+    const val = Reflect.get(arr, prop, arr);
+    return typeof val === "function" ? val.bind(arr) : val;
+  },
+  ownKeys() {
+    return Reflect.ownKeys(getDevIni());
+  },
+  getOwnPropertyDescriptor(_target, prop) {
+    return Reflect.getOwnPropertyDescriptor(getDevIni(), prop);
+  },
+  has(_target, prop) {
+    return Reflect.has(getDevIni(), prop);
+  },
+});
 
 /** Spawns `php -S <host>:<port> -t <docroot>`, waits until it accepts connections, and streams output to `o.log`. */
 export async function startPhp(o: PhpStartOptions): Promise<PhpProcess> {
@@ -491,7 +519,7 @@ export async function startPhp(o: PhpStartOptions): Promise<PhpProcess> {
     );
   const argv = [
     o.php,
-    ...DEV_INI,
+    ...getDevIni(),
     "-S",
     `${o.host}:${o.port}`,
     "-t",

@@ -30,7 +30,7 @@ import {
 } from "node:fs";
 import { promises as fsp } from "node:fs";
 import * as nodePath from "node:path";
-import { SimpleCLI } from "../src/index.ts";
+import { SimpleCLI } from "../src/simplecli/core/SimpleCLI.ts";
 import {
   createContext,
   type FmContext,

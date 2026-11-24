@@ -6,7 +6,7 @@
  * health checks, and discovering or running the 76 built-in RAD CLI utilities.
  */
 import { createHash } from "crypto";
-import { promises as fsp } from "fs";
+import { createReadStream } from "fs";
 import * as nodePath from "path";
 import {
   absolutePath,
@@ -21,21 +21,32 @@ import { listFolder, propertiesOf, searchFolder } from "./fmList";
 import { APP_NAME, APP_VERSION } from "./fmServer";
 import { toolStatus } from "./fmToolDetect";
 import { listTrash, moveToTrash, restoreFromTrash } from "./fmTrash";
-import { runTtsCli } from "../../../cli_apps/tts_cli";
-import { runTranscribeCli } from "../../../cli_apps/transcribe_cli";
 
 type SortBy = "name" | "size" | "modified" | "type";
 
 async function computeFileDigests(ctx: FmContext, targetPath: string) {
   const safePath = absolutePath(ctx, targetPath);
-  const buf = await fsp.readFile(safePath);
+  const md5 = createHash("md5");
+  const sha1 = createHash("sha1");
+  const sha256 = createHash("sha256");
+  const sha512 = createHash("sha512");
+  let size = 0;
+  for await (const chunk of createReadStream(safePath)) {
+    const buf =
+      typeof chunk === "string" ? Buffer.from(chunk) : (chunk as Uint8Array);
+    size += buf.byteLength;
+    md5.update(buf);
+    sha1.update(buf);
+    sha256.update(buf);
+    sha512.update(buf);
+  }
   return {
     path: safePath,
-    size: buf.byteLength,
-    md5: createHash("md5").update(buf).digest("hex"),
-    sha1: createHash("sha1").update(buf).digest("hex"),
-    sha256: createHash("sha256").update(buf).digest("hex"),
-    sha512: createHash("sha512").update(buf).digest("hex"),
+    size,
+    md5: md5.digest("hex"),
+    sha1: sha1.digest("hex"),
+    sha256: sha256.digest("hex"),
+    sha512: sha512.digest("hex"),
   };
 }
 
@@ -651,6 +662,7 @@ export async function runFileManagerCli(
       case "speech":
       case "phonon":
       case "say": {
+        const { runTtsCli } = await import("../../../cli_apps/tts_cli");
         return await runTtsCli(subArgs, {
           stdout: out,
           stderr: err,
@@ -660,6 +672,7 @@ export async function runFileManagerCli(
       }
 
       case "kindle": {
+        const { runTtsCli } = await import("../../../cli_apps/tts_cli");
         return await runTtsCli(["kindle", ...subArgs], {
           stdout: out,
           stderr: err,
@@ -671,6 +684,8 @@ export async function runFileManagerCli(
       case "transcribe":
       case "stt":
       case "asr": {
+        const { runTranscribeCli } =
+          await import("../../../cli_apps/transcribe_cli");
         return await runTranscribeCli(subArgs, {
           stdout: out,
           stderr: err,

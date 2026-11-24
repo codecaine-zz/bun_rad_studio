@@ -3233,11 +3233,16 @@ function clearPalette() {
 }
 
 let cachedHw = null;
+let cachedHwWithGpu = null;
 
 /** Probes client OS platform (macOS / Windows / Linux), CPU architecture (ARM64 Apple Silicon M4 Pro vs x64), VM renderer (Parallels / VirtIO / Hyper-V / VMware), GPU, display gamut/HDR, and accessibility constraints. */
-export function probeClientHardware(navOverride, winOverride) {
+export function probeClientHardware(navOverride, winOverride, opts = {}) {
   const hasOverride = Boolean(navOverride || winOverride);
-  if (!hasOverride && cachedHw) return cachedHw;
+  const probeGpu = Boolean(opts && opts.probeGpu);
+  if (!hasOverride) {
+    if (probeGpu && cachedHwWithGpu) return cachedHwWithGpu;
+    if (!probeGpu && cachedHw) return cachedHw;
+  }
   const nav =
     navOverride || (typeof navigator !== "undefined" ? navigator : {});
   const win = winOverride || (typeof window !== "undefined" ? window : {});
@@ -3251,6 +3256,7 @@ export function probeClientHardware(navOverride, winOverride) {
   let gpu = "";
   try {
     if (
+      probeGpu &&
       !hasOverride &&
       typeof document !== "undefined" &&
       !/jsdom/i.test(nav.userAgent || "")
@@ -3262,6 +3268,9 @@ export function probeClientHardware(navOverride, winOverride) {
         gpu = dbg
           ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || "")
           : String(gl.getParameter(gl.RENDERER) || "");
+        try {
+          gl.getExtension("WEBGL_lose_context")?.loseContext();
+        } catch {}
       }
     }
   } catch {}
@@ -3381,7 +3390,10 @@ export function probeClientHardware(navOverride, winOverride) {
     p3,
     hdr,
   };
-  if (!hasOverride) cachedHw = result;
+  if (!hasOverride) {
+    cachedHw = result;
+    if (probeGpu) cachedHwWithGpu = result;
+  }
   return result;
 }
 
@@ -3764,7 +3776,9 @@ export async function applyPalette(key) {
   try {
     const { theme } = await call("themes/get", { key: resolvedKey });
     if (wanted !== resolvedKey) return theme.name; // another theme was chosen while this one loaded
-    const hw = probeClientHardware();
+    const hw = probeClientHardware(undefined, undefined, {
+      probeGpu: Boolean(theme.hasEffects),
+    });
     if (
       theme.hasEffects &&
       hw.shouldFallback &&
@@ -18519,6 +18533,13 @@ export function ensureGlobalThemeShortcutsBound() {
       }
     }
     if (!e.altKey || e.ctrlKey || e.metaKey) return;
+    if (
+      hasModal ||
+      (typeof document !== "undefined" &&
+        Boolean(document.querySelector(".ql-backdrop")))
+    ) {
+      return;
+    }
     const target = e.target;
     const tag = target?.tagName;
     const isThemeSearch = Boolean(
