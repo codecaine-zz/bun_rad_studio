@@ -353,12 +353,21 @@ describe("ARIA tablist structure, keyboard navigation, closedTabs & session rest
 
     // 3. Debounced persistence writes updated sessionTabs to settings
     await tabs.openNewTab(folderA);
-    await sleep(450);
-    const saved = JSON.parse(
-      readFileSync(join(dataDir, "file_manager.json"), "utf8"),
-    );
-    expect(saved.sessionTabs.length).toBe(4);
-    expect(saved.activeTabIndex).toBe(3);
+    const settingsFile = join(dataDir, "file_manager.json");
+    let saved: any = null;
+    for (let i = 0; i < 60; i++) {
+      await sleep(50);
+      try {
+        saved = JSON.parse(readFileSync(settingsFile, "utf8"));
+        if (saved?.sessionTabs?.length === 4 && saved?.activeTabIndex === 3) {
+          break;
+        }
+      } catch {
+        // wait for debounced save to hit disk
+      }
+    }
+    expect(saved?.sessionTabs?.length).toBe(4);
+    expect(saved?.activeTabIndex).toBe(3);
   });
 });
 

@@ -326,8 +326,10 @@ describe("the Graveyard tab", () => {
   test("an empty graveyard shows zeros, an explanation, the path, and no 'null' or 'undefined'", async () => {
     await openTab();
     await until(
-      () => q(".grave-path", pane())?.textContent === gy,
-      "the graveyard path",
+      () =>
+        q(".grave-path", pane())?.textContent === gy &&
+        !q(".grave-empty", pane())?.hidden,
+      "the graveyard path and empty state",
     );
     const cards = qa(".grave-card", pane()).map((c) => c.textContent);
     expect(cards).toHaveLength(5);
