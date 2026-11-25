@@ -5241,7 +5241,15 @@ describe("core file browsing & pane ergonomics (tabs, marquee, folder tree, colu
     const tabs = (await import("../resources/file_manager/ui/tabs.js")) as any;
     const dual = (await import("../resources/file_manager/ui/dual.js")) as any;
 
+    const { renderList } =
+      (await import("../resources/file_manager/ui/list.js")) as any;
+    state.quickFilter = "";
+    state.kindFilter = "all";
+    state.tagFilter = "";
+    left.search = null;
+    emit("workspace-go", "files");
     await goTo(home);
+    renderList(left);
     for (let i = 0; i < 60 && !rowOf("#list", "dest"); i++) {
       await sleep(50);
     }
@@ -5251,17 +5259,12 @@ describe("core file browsing & pane ergonomics (tabs, marquee, folder tree, colu
     expect(sizesRes.count).toBe(1);
     expect(sizesRes.sizes[dest]).toBeDefined();
     expect(sizesRes.sizes[dest].files).toBeGreaterThanOrEqual(1);
-    for (
-      let i = 0;
-      i < 60 &&
-      !rowOf("#list", "dest")
-        ?.querySelector(".c-size")
-        ?.classList.contains("folder-size-badge");
-      i++
-    ) {
-      await sleep(50);
-    }
+    renderList(left);
     const destRow = rowOf("#list", "dest");
+    expect(
+      destRow,
+      `destRow missing; rows=${JSON.stringify(rowNames("#list"))}, entries=${JSON.stringify(left.entries?.map((e: any) => e.name))}, view=${state.settings?.view}, loc=${left.location?.path}`,
+    ).toBeDefined();
     expect(
       destRow.querySelector(".c-size")?.classList.contains("folder-size-badge"),
     ).toBe(true);

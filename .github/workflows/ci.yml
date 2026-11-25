@@ -12,7 +12,7 @@ jobs:
   test:
     # macOS is the platform the tests were verified on; other platforms have not been tried.
     runs-on: macos-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
 

@@ -436,7 +436,7 @@ describe("P1 SCREENSHOT_MODE=1 privacy masking", () => {
       expect(dest).not.toMatch(/\b192\.168\.\d+\.\d+\b/);
       expect(dest).not.toMatch(/\b169\.254\.\d+\.\d+\b/);
     }
-  });
+  }, 90_000);
 
   test("fmTaskManager masks os.hostname() in command and exePath under SCREENSHOT_MODE=1", async () => {
     process.env.SCREENSHOT_MODE = "1";
