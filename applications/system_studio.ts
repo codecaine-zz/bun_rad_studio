@@ -2647,7 +2647,7 @@ ${SYSTEM_STUDIO_EXTRA_OVERLAY_HTML}
         thunderbolt: [{ name: "Thunderbolt USB4 Bus 0", uuid: "🔒 [Protected / Masked]", bus: 0, type: "hub", speed: 120 }],
         npu: [{ vendor: "Studio", name: "Neural Accelerator", model: "Studio NPU 16-Core", cores: 16, driver: "ane" }],
         wifiInterfaces: [{ id: "Wi-Fi", networkInterface: "en0", model: "AirPort AX", vendor: "Studio", mac: "🔒 [Protected / Masked]" }],
-        software: [{ name: "Bun RAD Studio", version: "1.6.4", installDate: "2026-11-22", architecture: "arm64", path: "/Applications/BunRADStudio.app" }]
+        software: [{ name: "Bun RAD Studio", version: "1.6.5", installDate: "2026-11-24", architecture: "arm64", path: "/Applications/BunRADStudio.app" }]
       };
 
       const dynamicSnap = {

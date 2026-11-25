@@ -24,7 +24,7 @@ import {
 import * as os from "os";
 
 const SUITE_NAME = "Codecaine Utility Suite";
-const FALLBACK_VERSION = "1.6.4";
+const FALLBACK_VERSION = "1.6.5";
 
 /**
  * Verifies that a candidate directory is an authentic `bun_rad_studio` / `bun-rad-studio`
