@@ -5193,7 +5193,9 @@ describe("core file browsing & pane ergonomics (tabs, marquee, folder tree, colu
     ) as any;
     expect(activeTabBtn).not.toBeNull();
     key(activeTabBtn, "Home");
-    await sleep(40);
+    for (let i = 0; i < 40 && state.activeTabId !== state.tabs[0]!.id; i++) {
+      await sleep(25);
+    }
     expect(state.activeTabId).toBe(state.tabs[0]!.id);
     await tabs.closeOtherTabs(state.tabs[0]!.id);
     expect(state.tabs.length).toBe(1);
@@ -5206,7 +5208,15 @@ describe("core file browsing & pane ergonomics (tabs, marquee, folder tree, colu
     rightAddr.hidden = false;
     rightAddr.value = join(dest, "c.txt");
     key(rightAddr, "Enter");
-    await sleep(80);
+    for (
+      let i = 0;
+      i < 60 &&
+      (right.location.path !== dest ||
+        !right.selection.has(join(dest, "c.txt")));
+      i++
+    ) {
+      await sleep(50);
+    }
     expect(right.location.path).toBe(dest);
     expect(right.selection.has(join(dest, "c.txt"))).toBe(true);
 
@@ -5218,7 +5228,9 @@ describe("core file browsing & pane ergonomics (tabs, marquee, folder tree, colu
     $("#dual-list").focus();
     $("#dual-list").dispatchEvent(new win.Event("focusin", { bubbles: true }));
     key($("#dual-list"), "Escape");
-    await sleep(40);
+    for (let i = 0; i < 40 && right.search !== null; i++) {
+      await sleep(25);
+    }
     expect(right.search).toBeNull();
     expect($("#dual-search").value).toBe("");
 
