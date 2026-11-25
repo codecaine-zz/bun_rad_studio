@@ -397,44 +397,54 @@ describe("P1 SCREENSHOT_MODE=1 privacy masking", () => {
     const pubIpRes = await runSysinfoProbe("inetPublicIp", "", "darwin");
     expect((pubIpRes.data as any).v4).toBe("203.0.113.42");
 
-    const ov = await collectSysinfoOverview("darwin");
-    expect(ov.os.hostname).toBe("studio-workstation");
-    expect(ov.os.user).toBe("developer");
-    expect(ov.os.homeDir).toBe("/Users/developer");
+    // Live systeminformation WMIC/PowerShell probes can hang indefinitely on Windows CI runners;
+    // exercise full live overview/section collection on POSIX hosts and deterministic probe masking everywhere.
+    if (process.platform !== "win32") {
+      const ov = await collectSysinfoOverview(process.platform as any);
+      expect(ov.os.hostname).toBe("studio-workstation");
+      expect(ov.os.user).toBe("developer");
+      expect(ov.os.homeDir).toBe("/Users/developer");
 
-    const soft = await collectSysinfoSection("software", "darwin");
-    const hostFact = soft.facts.find(([k]) => k === "Hostname");
-    expect(hostFact?.[1]).toBe("studio-workstation");
-    const softRawJson = JSON.stringify(soft.raw);
-    const realHost = os.hostname();
-    if (realHost && realHost.length > 2) {
-      expect(softRawJson.toLowerCase()).not.toContain(realHost.toLowerCase());
-    }
-
-    const net = await collectSysinfoSection("network", "darwin");
-    const rawIfaces = ((net.raw as any).interfaces ?? []) as any[];
-    for (const iface of rawIfaces) {
-      if (!iface.internal && iface.mac && iface.mac !== "00:00:00:00:00:00") {
-        expect(iface.mac).toBe("🔒 [Protected]");
+      const soft = await collectSysinfoSection(
+        "software",
+        process.platform as any,
+      );
+      const hostFact = soft.facts.find(([k]) => k === "Hostname");
+      expect(hostFact?.[1]).toBe("studio-workstation");
+      const softRawJson = JSON.stringify(soft.raw);
+      const realHost = os.hostname();
+      if (realHost && realHost.length > 2) {
+        expect(softRawJson.toLowerCase()).not.toContain(realHost.toLowerCase());
       }
-    }
 
-    const routesTable = net.tables.find((t) =>
-      t.title.startsWith("Routing Table"),
-    );
-    if (routesTable) {
-      for (const row of routesTable.rows) {
-        const dest = String(row[0] ?? "");
+      const net = await collectSysinfoSection(
+        "network",
+        process.platform as any,
+      );
+      const rawIfaces = ((net.raw as any).interfaces ?? []) as any[];
+      for (const iface of rawIfaces) {
+        if (!iface.internal && iface.mac && iface.mac !== "00:00:00:00:00:00") {
+          expect(iface.mac).toBe("🔒 [Protected]");
+        }
+      }
+
+      const routesTable = net.tables.find((t) =>
+        t.title.startsWith("Routing Table"),
+      );
+      if (routesTable) {
+        for (const row of routesTable.rows) {
+          const dest = String(row[0] ?? "");
+          expect(dest).not.toMatch(/\b192\.168\.\d+\.\d+\b/);
+          expect(dest).not.toMatch(/\b169\.254\.\d+\.\d+\b/);
+          expect(dest).not.toMatch(/\b10\.\d+\.\d+\.\d+\b/);
+        }
+      }
+      const rawRoutes = ((net.raw as any).routes ?? []) as any[];
+      for (const rt of rawRoutes) {
+        const dest = String(rt?.destination ?? "");
         expect(dest).not.toMatch(/\b192\.168\.\d+\.\d+\b/);
         expect(dest).not.toMatch(/\b169\.254\.\d+\.\d+\b/);
-        expect(dest).not.toMatch(/\b10\.\d+\.\d+\.\d+\b/);
       }
-    }
-    const rawRoutes = ((net.raw as any).routes ?? []) as any[];
-    for (const rt of rawRoutes) {
-      const dest = String(rt?.destination ?? "");
-      expect(dest).not.toMatch(/\b192\.168\.\d+\.\d+\b/);
-      expect(dest).not.toMatch(/\b169\.254\.\d+\.\d+\b/);
     }
   }, 90_000);
 
