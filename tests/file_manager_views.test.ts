@@ -5242,13 +5242,25 @@ describe("core file browsing & pane ergonomics (tabs, marquee, folder tree, colu
     const dual = (await import("../resources/file_manager/ui/dual.js")) as any;
 
     await goTo(home);
-    await sleep(40);
+    for (let i = 0; i < 60 && !rowOf("#list", "dest"); i++) {
+      await sleep(50);
+    }
 
     // 1. On-demand Folder Size calculation renders .folder-size-badge on folder rows
     const sizesRes = await calculateFolderSizes(left, [dest]);
     expect(sizesRes.count).toBe(1);
     expect(sizesRes.sizes[dest]).toBeDefined();
     expect(sizesRes.sizes[dest].files).toBeGreaterThanOrEqual(1);
+    for (
+      let i = 0;
+      i < 60 &&
+      !rowOf("#list", "dest")
+        ?.querySelector(".c-size")
+        ?.classList.contains("folder-size-badge");
+      i++
+    ) {
+      await sleep(50);
+    }
     const destRow = rowOf("#list", "dest");
     expect(
       destRow.querySelector(".c-size")?.classList.contains("folder-size-badge"),

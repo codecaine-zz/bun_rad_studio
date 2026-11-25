@@ -329,12 +329,13 @@ describe("the download API", () => {
   test("keeps request headers out of the listing", async () => {
     const r: any = await (
       await post("dl/add", {
-        urls: "http://127.0.0.1:9/secret.bin",
+        urls: "https://example.com/secret.bin",
         headers: { Authorization: "Bearer topsecret" },
         start: false,
       })
     ).json();
     expect(JSON.stringify(r)).not.toContain("topsecret");
+    expect(Array.isArray(r.items)).toBe(true);
     await post("dl/clear", {});
     for (const i of r.items) await post("dl/remove", { id: i.id });
   });

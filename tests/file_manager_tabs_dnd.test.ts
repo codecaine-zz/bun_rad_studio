@@ -445,19 +445,32 @@ describe("POST /api/upload-drop & dnd.js external OS file drop", () => {
     );
     expect(badName.status).toBe(400);
 
-    // Rejects oversized payload (> 32 MiB)
-    const tooBig = await fetch(
-      `${baseUrl()}/api/upload-drop?dir=${encodeURIComponent(folderA)}&name=huge.bin`,
-      {
-        method: "POST",
-        headers: {
-          "x-fm-token": server.token,
-          "Content-Type": "application/octet-stream",
+    // Rejects oversized payload (> 32 MiB) via Content-Length without triggering Windows ECONNRESET on a 32 MiB body stream
+    const http = await import("node:http");
+    const tooBigStatus = await new Promise<number>((resolve, reject) => {
+      const req = http.request(
+        `${baseUrl()}/api/upload-drop?dir=${encodeURIComponent(folderA)}&name=huge.bin`,
+        {
+          method: "POST",
+          headers: {
+            "x-fm-token": server.token,
+            "Content-Type": "application/octet-stream",
+            "Content-Length": String(MAX_UPLOAD_DROP_BYTES + 1),
+          },
         },
-        body: new Uint8Array(MAX_UPLOAD_DROP_BYTES + 1),
-      },
-    );
-    expect(tooBig.status).toBe(413);
+        (res) => {
+          res.resume();
+          resolve(res.statusCode ?? 0);
+          req.destroy();
+        },
+      );
+      req.on("error", (err: any) => {
+        if (err?.code === "ECONNRESET") return;
+        reject(err);
+      });
+      req.write(Buffer.alloc(16));
+    });
+    expect(tooBigStatus).toBe(413);
   });
 
   test("dnd.js attachDropTarget highlights copy on external Files dragover and uploads on drop (ignoring trash)", async () => {
